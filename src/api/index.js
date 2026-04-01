@@ -40,6 +40,8 @@ function createMockApi() {
     listClaimsForDetailing: (...a) => r.listClaimsForDetailing(...a),
     createClaim: (...a) => r.createClaim(...a),
     reviewClaim: (...a) => r.reviewClaim(...a),
+
+    resetLocalDemo: () => r.resetLocalDemo(),
   }
 }
 
@@ -129,6 +131,10 @@ function createRealApi() {
     },
     async getCarByShareToken(tokenValue) {
       return await httpJson({ baseUrl, path: `share/${tokenValue}`, method: 'GET', token })
+    },
+
+    resetLocalDemo() {
+      return { ok: false, reason: 'real_api' }
     },
   }
 }

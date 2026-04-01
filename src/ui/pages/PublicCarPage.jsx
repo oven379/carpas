@@ -46,9 +46,10 @@ export default function PublicCarPage() {
 
       <div className="carHero" style={{ backgroundImage: `url(${car.hero})` }}>
         <div className="carHero__overlay">
-          <div className="row gap wrap">
-            <Pill>VIN: {mask(car.vin, { keepEnd: 4 })}</Pill>
-            <Pill>Номер: {mask(car.plate, { keepEnd: 2 })}</Pill>
+          <div className="row gap wrap carHero__pills carHero__pills--public">
+            <Pill>Цвет: {car.color || '—'}</Pill>
+            <Pill>Год: {car.year != null && car.year !== '' ? car.year : '—'}</Pill>
+            <Pill>Пробег: {fmtKm(car.mileageKm)}</Pill>
             {car.seller?.name ? <Pill>Где мылся: {car.seller.name}</Pill> : null}
           </div>
         </div>
@@ -103,8 +104,11 @@ export default function PublicCarPage() {
                   <div className="miniList__meta">
                     {fmtDateTime(e.at)} • {fmtKm(e.mileageKm)}
                   </div>
+                  {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+                    <div className="rowItem__sub">ТО: {e.maintenanceServices.join(', ')}</div>
+                  ) : null}
                   {Array.isArray(e.services) && e.services.length ? (
-                    <div className="rowItem__sub">Работы: {e.services.join(', ')}</div>
+                    <div className="rowItem__sub">Детейлинг: {e.services.join(', ')}</div>
                   ) : null}
                   {e.note ? <div className="note">{e.note}</div> : null}
                 </div>

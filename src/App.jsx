@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
 import { TopNav } from './ui/components.jsx'
-import { useRepo } from './ui/useRepo.js'
+import FooterSupport from './ui/FooterSupport.jsx'
 import { isAuthed } from './ui/auth.js'
 import HomePage from './ui/pages/HomePage.jsx'
 import MarketPage from './ui/pages/MarketPage.jsx'
@@ -89,7 +89,8 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footer">
-        <span>Прототип. Данные хранятся локально в браузере.</span>
+        <span className="footer__note">Прототип. Данные хранятся локально в браузере.</span>
+        <FooterSupport />
       </footer>
     </div>
   )

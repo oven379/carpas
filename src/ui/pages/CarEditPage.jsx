@@ -105,6 +105,22 @@ export default function CarEditPage({ mode }) {
 
   const [draft, setDraft] = useState(() => emptyDraft())
   const loadedKeyRef = useRef('')
+  const heroCoverFileRef = useRef(null)
+
+  async function applyHeroFromFile(file) {
+    if (!file) return
+    try {
+      const url = await compressImageFile(file, {
+        maxW: 1200,
+        maxH: 800,
+        quality: 0.82,
+        maxBytes: 2 * 1024 * 1024,
+      })
+      setDraft((d) => ({ ...d, hero: url }))
+    } catch {
+      alert('Не удалось прочитать файл')
+    }
+  }
 
   useEffect(() => {
     const key = `${mode}:${id || ''}`
@@ -112,6 +128,7 @@ export default function CarEditPage({ mode }) {
 
     if (mode === 'edit') {
       if (!car) return
+      const hero = car.hero || ''
       setDraft({
         vin: car.vin || '',
         plate: car.plate || '',
@@ -121,7 +138,7 @@ export default function CarEditPage({ mode }) {
         mileageKm: car.mileageKm ?? '',
         city: car.city || '',
         color: car.color || '',
-        hero: car.hero || '',
+        hero,
       })
       loadedKeyRef.current = key
       return
@@ -278,48 +295,47 @@ export default function CarEditPage({ mode }) {
               onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
             />
           </Field>
-          <Field label="Фото/обложка (URL)" hint="можно вставить ссылку на картинку">
-            <Input
-              className="input"
-              value={draft.hero}
-              onChange={(e) => setDraft((d) => ({ ...d, hero: e.target.value }))}
-              placeholder="https://..."
-            />
-          </Field>
-          <Field label="Или загрузить фото" hint="фото будет автоматически сжато до 2 МБ и сохранено в браузере">
-            <Input
-              className="input"
-              type="file"
-              accept="image/*"
-              onChange={async (e) => {
-                const file = e.target.files?.[0]
-                if (!file) return
-                try {
-                  const url = await compressImageFile(file, {
-                    maxW: 1200,
-                    maxH: 800,
-                    quality: 0.82,
-                    maxBytes: 2 * 1024 * 1024,
-                  })
-                  setDraft((d) => ({ ...d, hero: url }))
-                } catch {
-                  alert('Не удалось прочитать файл')
-                } finally {
-                  e.target.value = ''
-                }
-              }}
-            />
-          </Field>
         </div>
 
-        {draft.hero ? (
-          <div className="topBorder">
-            <div className="muted small" style={{ marginBottom: 10 }}>
-              Предпросмотр обложки
+        <div className="topBorder carEditCoverBlock">
+          <div className="muted small carEditCoverBlock__title">Обложка карточки</div>
+          <div
+            className={`carHero carHero--editCover${draft.hero ? '' : ' carHero--editCover--empty'}`}
+            style={draft.hero ? { backgroundImage: cssUrl(draft.hero) } : undefined}
+          >
+            <div className="carHero__overlay carHero__overlay--editCover">
+              <input
+                ref={heroCoverFileRef}
+                className="srOnly"
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  if (file) await applyHeroFromFile(file)
+                  e.target.value = ''
+                }}
+              />
+              <div className="carHero__editCoverBtns">
+                <button
+                  type="button"
+                  className="heroCoverBtn heroCoverBtn--replace"
+                  onClick={() => heroCoverFileRef.current?.click?.()}
+                >
+                  {draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
+                </button>
+                {draft.hero ? (
+                  <button
+                    type="button"
+                    className="heroCoverBtn heroCoverBtn--remove"
+                    onClick={() => setDraft((d) => ({ ...d, hero: '' }))}
+                  >
+                    Убрать обложку
+                  </button>
+                ) : null}
+              </div>
             </div>
-            <div className="carHero" style={{ height: 200, margin: 0, backgroundImage: cssUrl(draft.hero) }} />
           </div>
-        ) : null}
+        </div>
 
         <div className="row spread gap topBorder">
           <div className="row gap">

@@ -12,9 +12,9 @@ function eqNorm(a, b) {
 
 export default function RequestsPage() {
   const r = useRepo()
+  const nav = useNavigate()
   const { detailingId, detailing, mode } = useDetailing()
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
-  const nav = useNavigate()
 
   const claims = r.listClaimsForDetailing(detailingId)
   const pending = claims.filter((x) => x.status === 'pending')

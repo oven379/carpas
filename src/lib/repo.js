@@ -1,5 +1,6 @@
-import { readLS, removeLS, writeLS } from './storage.js'
+import { readLS, removeLS, resetAll, writeLS } from './storage.js'
 import { makeId, seedCars, seedEvents } from './seed.js'
+import { splitLegacyCombinedServices } from './serviceCatalogs.js'
 
 const CARS_KEY = 'cars'
 const EVENTS_KEY = 'events'
@@ -102,7 +103,8 @@ export function repo() {
         : d.id === 'det_seed'
           ? '1111'
           : pin
-    return { ...d, pin, email, password }
+    const phone = d.phone != null ? String(d.phone).trim() : ''
+    return { ...d, pin, email, password, phone }
   }
 
   function migrateCar(c) {
@@ -113,7 +115,12 @@ export function repo() {
     }
     if (next.segment == null) next.segment = Number(next.priceRub) >= 6000000 ? 'premium' : 'mass'
     if (next.seller == null) next.seller = { name: 'Not. Moiko.', type: 'service' }
-    if (next.detailingId == null) next.detailingId = 'det_seed'
+    // Демо-детейлинг по умолчанию только для карточек без владельца (инвентарь сервиса).
+    // Личный гараж (есть ownerEmail) без привязки к СТО остаётся с detailingId = null —
+    // иначе авто попадало бы в список детейлинга без заявки по VIN.
+    if (next.detailingId == null && !normEmail(next.ownerEmail)) {
+      next.detailingId = 'det_seed'
+    }
     if (next.ownerEmail == null) next.ownerEmail = null
 
     // Переносим тяжелую обложку в отдельный ключ, чтобы не переписывать весь массив cars
@@ -133,6 +140,14 @@ export function repo() {
     const next = { ...e }
     if (next.type == null || next.type === 'note') next.type = 'visit'
     if (!Array.isArray(next.services)) next.services = []
+    if (!Array.isArray(next.maintenanceServices)) next.maintenanceServices = []
+    if (next.source === 'service') {
+      next.maintenanceServices = []
+    } else {
+      const split = splitLegacyCombinedServices(next.services, next.maintenanceServices)
+      next.services = split.services
+      next.maintenanceServices = split.maintenanceServices
+    }
     if (next.detailingId == null) next.detailingId = 'det_seed'
     if (next.source == null) next.source = 'service'
     if (next.ownerEmail == null) next.ownerEmail = null
@@ -182,22 +197,27 @@ export function repo() {
     getDetailing(id) {
       return this.listDetailings().find((d) => d.id === id) || null
     },
-    registerDetailing({ name, email, password }) {
+    registerDetailing({ name, email, phone, password }) {
       const ds = readLS(DETAILINGS_KEY, [])
       const migrated = ds.map(migrateDetailing)
       const em = normEmail(email)
       if (!em) return { error: 'bad_email' }
-      const pwd = String(password || '').trim()
-      if (!pwd) return { error: 'bad_password' }
+      const nm = String(name || '').trim()
+      if (!nm) return { error: 'bad_name' }
+      const phon = String(phone || '').trim()
+      if (!phon) return { error: 'bad_phone' }
       if (migrated.some((x) => normEmail(x.email) === em)) {
         return { error: 'email_taken' }
       }
+      const pwd = String(password || '').trim()
+      const finalPwd = pwd || '1111'
       const d = {
         id: makeId('det'),
-        name: String(name || '').trim() || 'Детейлинг',
+        name: nm,
         email: em,
-        password: pwd,
-        pin: pwd,
+        phone: phon,
+        password: finalPwd,
+        pin: finalPwd,
         createdAt: nowIso(),
       }
       writeLS(DETAILINGS_KEY, [d, ...ds])
@@ -224,10 +244,29 @@ export function repo() {
       const cars = readLS(CARS_KEY, [])
       const migrated = cars.map(migrateCar)
       writeLS(CARS_KEY, migrated)
+
+      let approvedOwnerByCar = null
+      if (detId) {
+        const claims = readClaims()
+        approvedOwnerByCar = new Set(
+          claims
+            .filter((x) => x.status === 'approved' && x.detailingId === detId)
+            .map((x) => `${x.carId}|${normEmail(x.ownerEmail)}`),
+        )
+      }
+
       return migrated
         .filter((c) => {
           if (ownerEmail) return normEmail(c.ownerEmail) === ownerEmail
-          if (detId) return c.detailingId === detId
+          if (detId) {
+            if (c.detailingId !== detId) return false
+            const em = normEmail(c.ownerEmail)
+            if (em) {
+              const key = `${c.id}|${em}`
+              if (!approvedOwnerByCar.has(key)) return false
+            }
+            return true
+          }
           return true
         })
         .map((c) => {
@@ -303,7 +342,9 @@ export function repo() {
       }
 
       if (patch && Object.prototype.hasOwnProperty.call(patch, 'hero')) {
-        setHero(id, patch.hero || '')
+        const h = String(patch.hero || '').trim()
+        if (h) setHero(id, h)
+        else removeHero(id)
         patch = { ...patch }
         delete patch.hero
       }
@@ -388,6 +429,8 @@ export function repo() {
 
       const evts = readLS(EVENTS_KEY, [])
       const createdAt = nowIso()
+      const rawSv = Array.isArray(input.services) ? input.services : []
+      const rawMs = Array.isArray(input.maintenanceServices) ? input.maintenanceServices : []
       const evt = {
         id: makeId('evt'),
         detailingId: detId,
@@ -396,7 +439,8 @@ export function repo() {
         type: input.type || 'visit',
         title: input.title?.trim() || '',
         mileageKm: Number(input.mileageKm) || 0,
-        services: Array.isArray(input.services) ? input.services : [],
+        services: rawSv,
+        maintenanceServices: ownerEmail ? rawMs : [],
         note: input.note?.trim() || '',
         source: ownerEmail ? 'owner' : 'service',
         ownerEmail: ownerEmail || null,
@@ -440,6 +484,12 @@ export function repo() {
         ownerEmail: prev.ownerEmail,
         type: prev.type || 'visit',
         services: Array.isArray((patch || {}).services) ? (patch || {}).services : prev.services,
+        maintenanceServices:
+          prev.source === 'service'
+            ? []
+            : Array.isArray((patch || {}).maintenanceServices)
+              ? (patch || {}).maintenanceServices
+              : prev.maintenanceServices,
         title: (patch || {}).title == null ? prev.title : String((patch || {}).title || '').trim(),
         note: (patch || {}).note == null ? prev.note : String((patch || {}).note || '').trim(),
         mileageKm:
@@ -457,7 +507,6 @@ export function repo() {
         detailingId && typeof detailingId === 'object'
           ? detailingId
           : { detailingId: detailingId || null, ownerEmail: null }
-      const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
       const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
@@ -571,7 +620,11 @@ export function repo() {
       // поиск по всем авто, без скоупа
       const all = readLS(CARS_KEY, []).map(migrateCar)
       writeLS(CARS_KEY, all)
-      return all.filter((c) => String(c.vin || '').trim().toLowerCase() === v)
+      return all.filter(
+        (c) =>
+          String(c.vin || '').trim().toLowerCase() === v &&
+          Boolean(c.detailingId),
+      )
     },
     listClaimsForOwner(ownerEmail) {
       const em = normEmail(ownerEmail)
@@ -630,6 +683,13 @@ export function repo() {
         this.updateCar(prev.carId, { ownerEmail: prev.ownerEmail }, { detailingId: prev.detailingId })
       }
       return next
+    },
+
+    /** Очистка localStorage/sessionStorage с префиксом приложения + повторное заполнение демо (MVP). */
+    resetLocalDemo() {
+      resetAll()
+      ensureSeeded()
+      return { ok: true }
     },
   }
 }

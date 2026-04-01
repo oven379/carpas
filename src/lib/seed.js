@@ -83,6 +83,7 @@ export function seedEvents(carId) {
       title: 'Мойка + осмотр',
       mileageKm: 12500,
       services: ['Мойка', 'Осмотр ЛКП'],
+      maintenanceServices: [],
       note: 'Зафиксировали мелкие сколы на капоте. Рекомендована полировка.',
     },
     {
@@ -94,6 +95,7 @@ export function seedEvents(carId) {
       title: 'Детейлинг',
       mileageKm: 17100,
       services: ['Полировка', 'Керамика'],
+      maintenanceServices: [],
       note: 'Выполнено: полировка + керамика. Фото в документах.',
     },
   ]

@@ -1,57 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Button, Card, Field, Input, Textarea } from '../components.jsx'
 import { fmtDateTime, fmtKm } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
-
-const DETAILING_SERVICES = [
-  {
-    group: 'Мойка / уход',
-    items: [
-      'Мойка кузова',
-      'Деликатная мойка (2‑фазная)',
-      'Антибитум',
-      'Удаление следов насекомых',
-      'Чистка дисков',
-      'Чернение резины',
-      'Химчистка ковриков',
-    ],
-  },
-  {
-    group: 'Салон',
-    items: ['Пылесос салона', 'Химчистка салона', 'Озонация', 'Уход за кожей', 'Уход за пластиком'],
-  },
-  {
-    group: 'Кузов',
-    items: [
-      'Осмотр ЛКП',
-      'Полировка (1‑шаг)',
-      'Полировка (2‑шаг)',
-      'Полировка (3‑шаг)',
-      'Керамика',
-      'Воск/синтетика',
-      'Антидождь',
-      'Удаление царапин локально',
-    ],
-  },
-  {
-    group: 'Защита',
-    items: [
-      'Оклейка пленкой (PPF)',
-      'Оклейка зон риска (PPF)',
-      'Тонировка',
-      'Бронирование фар',
-    ],
-  },
-  {
-    group: 'Стёкла / оптика',
-    items: ['Полировка фар', 'Полировка стекол', 'Чистка стекол', 'Антизапотевание'],
-  },
-]
-
-const WASH_SERVICE_MARKERS = new Set(DETAILING_SERVICES.find((g) => g.group === 'Мойка / уход')?.items || [])
+import {
+  DETAILING_SERVICES,
+  MAINTENANCE_SERVICES,
+  WASH_SERVICE_MARKERS,
+} from '../../lib/serviceCatalogs.js'
 
 function toggle(list, item) {
   const set = new Set(Array.isArray(list) ? list : [])
@@ -67,19 +25,162 @@ function countSelected(services, items) {
   return n
 }
 
+function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const rootRef = useRef(null)
+  const selected = Array.isArray(value) ? value : []
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (ev) => {
+      if (rootRef.current?.contains(ev.target)) return
+      setOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    return () => document.removeEventListener('mousedown', onDown)
+  }, [open])
+
+  return (
+    <Field label={label} hint={hint}>
+      <div className="svcdd" ref={rootRef}>
+        <div className="svcdd__anchor">
+          <button
+            type="button"
+            className="input svcdd__btn"
+            onClick={() => {
+              setOpen((v) => {
+                const nextOpen = !v
+                if (nextOpen) {
+                  setTimeout(
+                    () => rootRef.current?.querySelector('.svcdd__search')?.focus?.(),
+                    0,
+                  )
+                }
+                return nextOpen
+              })
+            }}
+          >
+            <span>Выбрать услуги</span>
+            <span className="svcdd__meta">{selected.length ? `(${selected.length})` : '(0)'}</span>
+          </button>
+
+          {open ? (
+            <div className="svcdd__menu" role="dialog" aria-label={ariaLabel}>
+              <div className="svcdd__top">
+                <input
+                  className="input svcdd__search"
+                  placeholder="Поиск услуги…"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn"
+                  data-variant="ghost"
+                  onClick={() => {
+                    onChange([])
+                    setQ('')
+                  }}
+                >
+                  Очистить
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  data-variant="primary"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setOpen(false)
+                    setQ('')
+                  }}
+                >
+                  Готово
+                </button>
+              </div>
+
+              <div className="svcdd__list">
+                {catalog.map((g) => {
+                  const qq = String(q || '').trim().toLowerCase()
+                  const items = qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq)) : g.items
+                  if (!items.length) return null
+                  return (
+                    <details key={g.group} className="svcdd__group" open>
+                      <summary className="svcdd__title">
+                        <span>{g.group}</span>
+                        <span className="svcdd__count">
+                          {countSelected(selected, g.items)}/{g.items.length}
+                        </span>
+                      </summary>
+                      <div className="svcdd__grid">
+                        {items.map((it) => {
+                          const checked = selected.includes(it)
+                          return (
+                            <button
+                              type="button"
+                              key={it}
+                              className={`svcdd__item ${checked ? 'is-on' : ''}`}
+                              onClick={() => onChange(toggle(selected, it))}
+                            >
+                              <span className="svcdd__check">{checked ? '✓' : ''}</span>
+                              <span>{it}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </details>
+                  )
+                })}
+                {(() => {
+                  const qq = String(q || '').trim()
+                  const hasAny = catalog.some((g) =>
+                    (qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq.toLowerCase())) : g.items).length,
+                  )
+                  if (hasAny) return null
+                  return <div className="muted small">Ничего не найдено.</div>
+                })()}
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        {selected.length ? (
+          <div className="svcdd__chips">
+            {selected.slice(0, 12).map((s) => (
+              <button
+                type="button"
+                key={s}
+                className="svcdd__chip"
+                onClick={() => onChange(toggle(selected, s))}
+                title="Убрать"
+              >
+                {s} <span aria-hidden>×</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </Field>
+  )
+}
+
 export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
   const { detailingId, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
-  if (!car) return <Navigate to="/cars" replace />
   const [sp, setSp] = useSearchParams()
   const nav = useNavigate()
   const fromRaw = sp.get('from') || ''
   const from = fromRaw ? decodeURIComponent(fromRaw) : ''
 
-  const events = r.listEvents(id, scope)
+  const events = useMemo(() => {
+    if (!car) return []
+    const sc = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
+    return r.listEvents(id, sc)
+  }, [car, id, r, mode, owner?.email, detailingId])
   const serviceEvents = useMemo(() => events.filter((e) => e.source === 'service'), [events])
   const ownerEvents = useMemo(() => events.filter((e) => e.source === 'owner'), [events])
   const [tab, setTab] = useState('service') // service|owner
@@ -94,16 +195,15 @@ export default function HistoryPage() {
     mileageKm: '',
     note: '',
     services: [],
+    maintenanceServices: [],
     type: 'visit',
   })
   const [files, setFiles] = useState([])
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const formRef = useRef(null)
-
-  const [svcOpen, setSvcOpen] = useState(false)
-  const [svcQ, setSvcQ] = useState('')
-  const svcRef = useRef(null)
+  const visitPhotosInputId = useId()
+  const visitPhotosInputRef = useRef(null)
 
   const canEdit = (e) => {
     if (!e) return false
@@ -122,33 +222,22 @@ export default function HistoryPage() {
         setEditingId(edit)
       } else {
         setEditingId(null)
-        setDraft({ title: '', mileageKm: '', note: '', services: [], type: 'visit' })
+        setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
         setFiles([])
-        setSvcOpen(false)
-        setSvcQ('')
       }
     }
   }, [sp])
-
-  useEffect(() => {
-    if (!svcOpen) return
-    const onDown = (ev) => {
-      if (!svcRef.current) return
-      if (svcRef.current.contains(ev.target)) return
-      setSvcOpen(false)
-    }
-    document.addEventListener('mousedown', onDown)
-    return () => document.removeEventListener('mousedown', onDown)
-  }, [svcOpen])
 
   useEffect(() => {
     if (!showNew) return
     formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [showNew])
 
-  const title = useMemo(() => `${car.make} ${car.model}`, [car])
+  const title = useMemo(() => (car ? `${car.make} ${car.model}` : ''), [car])
 
   const visibleEvents = mode === 'owner' ? (tab === 'owner' ? ownerEvents : serviceEvents) : events
+
+  if (!car) return <Navigate to="/cars" replace />
 
   return (
     <div className="container">
@@ -210,10 +299,8 @@ export default function HistoryPage() {
           onClick={() => {
             setShowNew(true)
             setEditingId(null)
-            setDraft({ title: '', mileageKm: '', note: '', services: [], type: 'visit' })
+            setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
             setFiles([])
-            setSvcOpen(false)
-            setSvcQ('')
             const next = new URLSearchParams(sp)
             next.set('new', '1')
             next.delete('edit')
@@ -238,8 +325,11 @@ export default function HistoryPage() {
                     Подтверждено детейлингом
                   </div>
                 ) : null}
+                {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+                  <div className="rowItem__sub">ТО: {e.maintenanceServices.join(', ')}</div>
+                ) : null}
                 {Array.isArray(e.services) && e.services.length ? (
-                  <div className="rowItem__sub">Работы: {e.services.join(', ')}</div>
+                  <div className="rowItem__sub">Детейлинг: {e.services.join(', ')}</div>
                 ) : null}
                 {(() => {
                   const photos = r.listDocs(id, scope, { eventId: e.id })
@@ -251,27 +341,29 @@ export default function HistoryPage() {
                           <a className="thumb" href={d.url} target="_blank" rel="noreferrer">
                             <img alt={d.title} src={d.url} />
                           </a>
-                          <button
-                            type="button"
-                            className="thumbX"
-                            title="Удалить фото"
-                            onClick={(ev) => {
-                              ev.preventDefault()
-                              ev.stopPropagation()
-                              if (d.source === 'service' && mode === 'owner') {
-                                alert('Подтверждённые фото детейлинга нельзя удалять из кабинета владельца.')
-                                return
-                              }
-                              const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
-                              if (!ok) return
-                              r.deleteDoc(d.id)
-                              invalidateRepo()
-                            }}
-                          >
-                            <span className="thumbX__icon" aria-hidden="true">
-                              ×
-                            </span>
-                          </button>
+                          {showNew && editingId === e.id ? (
+                            <button
+                              type="button"
+                              className="thumbX"
+                              title="Удалить фото"
+                              onClick={(ev) => {
+                                ev.preventDefault()
+                                ev.stopPropagation()
+                                if (d.source === 'service' && mode === 'owner') {
+                                  alert('Подтверждённые фото детейлинга нельзя удалять из кабинета владельца.')
+                                  return
+                                }
+                                const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
+                                if (!ok) return
+                                r.deleteDoc(d.id)
+                                invalidateRepo()
+                              }}
+                            >
+                              <span className="thumbX__icon" aria-hidden="true">
+                                ×
+                              </span>
+                            </button>
+                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -292,11 +384,10 @@ export default function HistoryPage() {
                         mileageKm: e.mileageKm || '',
                         note: e.note || '',
                         services: Array.isArray(e.services) ? e.services : [],
+                        maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
                         type: e.type || 'visit',
                       })
                       setFiles([])
-                      setSvcOpen(false)
-                      setSvcQ('')
                       const next = new URLSearchParams(sp)
                       next.set('new', '1')
                       next.set('edit', e.id)
@@ -320,11 +411,10 @@ export default function HistoryPage() {
                           mileageKm: e.mileageKm || '',
                           note: e.note || '',
                           services: Array.isArray(e.services) ? e.services : [],
+                          maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
                           type: e.type || 'visit',
                         })
                         setFiles([])
-                        setSvcOpen(false)
-                        setSvcQ('')
                         const next = new URLSearchParams(sp)
                         next.set('new', '1')
                         next.set('edit', e.id)
@@ -381,7 +471,60 @@ export default function HistoryPage() {
                 placeholder="20000"
               />
             </Field>
-            <Field label="Описание">
+            {mode === 'owner' ? (
+              <ServicePicker
+                label="Услуги ТО"
+                hint="Выберите услуги из выпадающего списка"
+                ariaLabel="Выбор услуг ТО"
+                catalog={MAINTENANCE_SERVICES}
+                value={draft.maintenanceServices}
+                onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+              />
+            ) : null}
+            <ServicePicker
+              label="Услуги детейлинга"
+              hint="Выберите услуги из выпадающего списка"
+              ariaLabel="Выбор услуг детейлинга"
+              catalog={DETAILING_SERVICES}
+              value={draft.services}
+              onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+            />
+            <Field
+              label={
+                <span>
+                  Добавить <span className="textAccent">фото</span>
+                </span>
+              }
+              hint="можно выбрать несколько файлов"
+            >
+              <div className="filePick">
+                <input
+                  id={visitPhotosInputId}
+                  className="srOnly"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  ref={visitPhotosInputRef}
+                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                />
+                <button
+                  type="button"
+                  className="btn filePick__btn"
+                  data-variant="outline"
+                  onClick={() => visitPhotosInputRef.current?.click?.()}
+                >
+                  Выбрать файлы
+                </button>
+                <span className="filePick__status" title={files.map((f) => f.name).join(', ')}>
+                  {!files.length
+                    ? 'Файл не выбран'
+                    : files.length === 1
+                      ? files[0].name || '1 файл'
+                      : `Выбрано файлов: ${files.length}`}
+                </span>
+              </div>
+            </Field>
+            <Field label="Добавить комментарий">
               <Textarea
                 className="textarea"
                 rows={3}
@@ -389,136 +532,6 @@ export default function HistoryPage() {
                 onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
                 placeholder="Что сделали, где, сколько стоило, гарантия…"
               />
-            </Field>
-            <Field label="Услуги детейлинга" hint="выбор из выпадающего списка">
-              <div className="svcdd" ref={svcRef}>
-                <button
-                  type="button"
-                  className="input svcdd__btn"
-                  onClick={() => {
-                    setSvcOpen((v) => !v)
-                    if (!svcOpen) setTimeout(() => svcRef.current?.querySelector('input')?.focus?.(), 0)
-                  }}
-                >
-                  <span>Выбрать услуги</span>
-                  <span className="svcdd__meta">
-                    {Array.isArray(draft.services) && draft.services.length ? `(${draft.services.length})` : '(0)'}
-                  </span>
-                </button>
-
-                {svcOpen ? (
-                  <div className="svcdd__menu" role="dialog" aria-label="Выбор услуг">
-                    <div className="svcdd__top">
-                      <input
-                        className="input svcdd__search"
-                        placeholder="Поиск услуги…"
-                        value={svcQ}
-                        onChange={(e) => setSvcQ(e.target.value)}
-                      />
-                      <button
-                        type="button"
-                        className="btn"
-                        data-variant="ghost"
-                        onClick={() => {
-                          setDraft((d) => ({ ...d, services: [] }))
-                          setSvcQ('')
-                        }}
-                      >
-                        Очистить
-                      </button>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-variant="primary"
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setSvcOpen(false)
-                          setSvcQ('')
-                        }}
-                      >
-                        Готово
-                      </button>
-                    </div>
-
-                    <div className="svcdd__list">
-                      {DETAILING_SERVICES.map((g) => {
-                        const q = String(svcQ || '').trim().toLowerCase()
-                        const items = q ? g.items.filter((x) => String(x).toLowerCase().includes(q)) : g.items
-                        if (!items.length) return null
-                        return (
-                          <details key={g.group} className="svcdd__group" open>
-                            <summary className="svcdd__title">
-                              <span>{g.group}</span>
-                              <span className="svcdd__count">
-                                {countSelected(draft.services, g.items)}/{g.items.length}
-                              </span>
-                            </summary>
-                            <div className="svcdd__grid">
-                              {items.map((it) => {
-                                const checked = Array.isArray(draft.services) && draft.services.includes(it)
-                                return (
-                                  <button
-                                    type="button"
-                                    key={it}
-                                    className={`svcdd__item ${checked ? 'is-on' : ''}`}
-                                    onClick={() => {
-                                      setDraft((d) => ({ ...d, services: toggle(d.services, it) }))
-                                      setSvcOpen(false)
-                                      setSvcQ('')
-                                    }}
-                                  >
-                                    <span className="svcdd__check">{checked ? '✓' : ''}</span>
-                                    <span>{it}</span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          </details>
-                        )
-                      })}
-                      {(() => {
-                        const q = String(svcQ || '').trim()
-                        const hasAny = DETAILING_SERVICES.some((g) =>
-                          (q ? g.items.filter((x) => String(x).toLowerCase().includes(q.toLowerCase())) : g.items).length,
-                        )
-                        if (hasAny) return null
-                        return <div className="muted small">Ничего не найдено.</div>
-                      })()}
-                    </div>
-                  </div>
-                ) : null}
-
-                {Array.isArray(draft.services) && draft.services.length ? (
-                  <div className="svcdd__chips">
-                    {draft.services.slice(0, 12).map((s) => (
-                      <button
-                        type="button"
-                        key={s}
-                        className="svcdd__chip"
-                        onClick={() => setDraft((d) => ({ ...d, services: toggle(d.services, s) }))}
-                        title="Убрать"
-                      >
-                        {s} <span aria-hidden>×</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            </Field>
-            <Field label="Фото (по визиту)" hint="можно выбрать несколько файлов">
-              <input
-                className="input"
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              />
-              {files.length ? (
-                <div className="muted small" style={{ marginTop: 6 }}>
-                  Выбрано: {files.length}
-                </div>
-              ) : null}
             </Field>
           </div>
           <div className="row gap wrap historyFormActions">
@@ -532,6 +545,12 @@ export default function HistoryPage() {
                     mileageKm: draft.mileageKm,
                     note: draft.note,
                     services: Array.isArray(draft.services) ? draft.services : [],
+                    maintenanceServices:
+                      mode === 'owner'
+                        ? Array.isArray(draft.maintenanceServices)
+                          ? draft.maintenanceServices
+                          : []
+                        : [],
                   }
 
                   const evt = editingId
@@ -575,13 +594,11 @@ export default function HistoryPage() {
                     if (existing.length) r.updateCar(id, { washPhotos: existing.slice(0, 12) }, scope)
                   }
 
-                  setDraft({ title: '', mileageKm: '', note: '', services: [], type: 'visit' })
+                  setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
                   setFiles([])
                   invalidateRepo()
                   setShowNew(false)
                   setEditingId(null)
-                  setSvcOpen(false)
-                  setSvcQ('')
                   const next = new URLSearchParams(sp)
                   next.delete('new')
                   next.delete('edit')
@@ -596,7 +613,7 @@ export default function HistoryPage() {
                 }
               }}
             >
-              {editingId ? 'Сохранить' : 'Добавить'}
+              Сохранить
             </Button>
             {mode === 'detailing' && from ? (
               <button
@@ -610,6 +627,7 @@ export default function HistoryPage() {
                       mileageKm: draft.mileageKm,
                       note: draft.note,
                       services: Array.isArray(draft.services) ? draft.services : [],
+                      maintenanceServices: [],
                     }
 
                     const evt = editingId

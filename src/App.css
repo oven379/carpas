@@ -1,7 +1,10 @@
 .app {
   min-height: 100svh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .nav {
@@ -16,7 +19,7 @@
 .nav__inner {
   width: min(1126px, 100%);
   margin: 0 auto;
-  padding: 14px 16px;
+  padding: 14px max(16px, env(safe-area-inset-left, 0px)) 14px max(16px, env(safe-area-inset-right, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -36,17 +39,29 @@
 
 .nav__links {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  align-items: center;
 }
 
-.nav__link {
+/* Единый вид: ссылки и кнопки в шапке (без «серой» нативной кнопки) */
+.nav__action {
+  appearance: none;
+  margin: 0;
+  box-sizing: border-box;
   text-decoration: none;
-  color: var(--text);
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  font: 15px/1.2 var(--sans);
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 92%, var(--text-h));
+  background: transparent;
+  color: var(--text-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
   transition:
     background-color 120ms ease,
     border-color 120ms ease,
@@ -54,39 +69,63 @@
     filter 120ms ease;
 }
 
-.nav__link:hover {
-  background: color-mix(in oklab, var(--accent) 14%, var(--bg));
-  border-color: color-mix(in oklab, var(--accent) 60%, var(--border));
-  color: var(--text-h);
-  filter: brightness(1.06);
+button.nav__action {
+  font: inherit;
+  text-align: center;
 }
 
-.nav__link.is-active {
+.nav__action:hover {
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
   color: var(--text-h);
-  background: var(--code-bg);
+  filter: brightness(1.04);
+}
+
+.nav__action.is-active {
+  background: color-mix(in oklab, var(--code-bg) 88%, var(--bg));
   border-color: var(--border);
+  color: var(--text-h);
+}
+
+.nav__action:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
 }
 
 .main {
   flex: 1;
-  padding: 24px 0 44px;
+  padding: 24px 0 max(44px, env(safe-area-inset-bottom, 0px));
+  min-width: 0;
 }
 
 .footer {
   border-top: 1px solid var(--border);
-  padding: 12px 16px;
+  padding: 12px max(16px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-right, 0px));
   width: min(1126px, 100%);
   margin: 0 auto;
   color: var(--text);
   font-size: 14px;
   box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.footer__note {
+  flex: 1;
+  min-width: min(100%, 280px);
+  line-height: 1.45;
 }
 
 .container {
   width: min(1126px, 100%);
   margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 max(16px, env(safe-area-inset-left, 0px)) 0 max(16px, env(safe-area-inset-right, 0px));
   box-sizing: border-box;
+  min-width: 0;
 }
 
 .section {
@@ -111,6 +150,13 @@
 
 .muted {
   color: var(--text);
+}
+
+/* Подзаголовок карточки авто: город • VIN • дата последнего визита */
+.carPage__meta {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  line-height: 1.45;
 }
 
 .small {
@@ -264,6 +310,100 @@ button[data-variant]:focus-visible,
   resize: vertical;
 }
 
+/* Утилита для акцентного текста (цвет как у primary-кнопки) */
+.textAccent {
+  color: var(--accent);
+}
+
+/* Кастомная загрузка файлов: в стиле полей/кнопок сервиса */
+.filePick {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.filePick__btn {
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+  padding: 8px 14px;
+  font-size: 14px;
+}
+
+.filePick__status {
+  flex: 1;
+  min-width: 0;
+  font: 14px/1.35 var(--sans);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.carEditCoverBlock__title {
+  margin-bottom: 10px;
+}
+
+.carHero--editCover {
+  position: relative;
+  margin: 0;
+}
+
+.carHero__overlay--editCover {
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 16px 18px 20px;
+  background: linear-gradient(to top, color-mix(in oklab, black 78%, transparent) 0%, transparent 62%);
+}
+
+.carHero__editCoverBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.heroCoverBtn {
+  appearance: none;
+  font: 650 14px/1.15 var(--sans);
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, white 38%, transparent);
+  transition:
+    filter 120ms ease,
+    border-color 120ms ease;
+}
+
+.heroCoverBtn:hover {
+  filter: brightness(1.1);
+}
+
+.heroCoverBtn--remove {
+  border-color: color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
+.heroCoverBtn--remove:hover {
+  border-color: color-mix(in oklab, var(--accent) 88%, white);
+}
+
+.heroCoverBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 80%, white);
+  outline-offset: 3px;
+}
+
 .card {
   border: 1px solid var(--border);
   border-radius: 16px;
@@ -272,13 +412,18 @@ button[data-variant]:focus-visible,
 }
 
 .pad {
-  padding: 16px;
+  padding: 22px 24px;
+}
+
+/* После шапки страницы (breadcrumbs + заголовок + подзаголовок) — больше воздуха до первой карточки */
+.container > .row.spread.gap + .card.pad {
+  margin-top: 28px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .field__top {
@@ -296,6 +441,14 @@ button[data-variant]:focus-visible,
 .field__hint {
   color: var(--text);
   font-size: 12px;
+}
+
+.field__top--solo {
+  justify-content: flex-start;
+}
+
+.formGrid .field--full {
+  grid-column: 1 / -1;
 }
 
 .cb {
@@ -598,6 +751,10 @@ button[data-variant]:focus-visible,
   font-weight: 650;
 }
 
+.rowItem__main {
+  min-width: 0;
+}
+
 .rowItem__meta {
   color: var(--text);
   font-size: 13px;
@@ -684,6 +841,120 @@ button[data-variant]:focus-visible,
   border: 0;
 }
 
+/* Меню «Поддержка» в футере (раскрывается вверх) */
+.footerHelpDd {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.footerHelpDd__trigger {
+  gap: 6px;
+}
+
+.footerHelpDd__link {
+  text-decoration: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footerHelpDd__chev {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 4px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 6px solid currentColor;
+  opacity: 0.8;
+  transition: transform 0.15s ease;
+}
+
+.footerHelpDd__trigger[aria-expanded='true'] .footerHelpDd__chev {
+  transform: rotate(180deg);
+}
+
+/* «Поддержка» в шапке (владелец): меню открывается вниз */
+.navSupportDd {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.navSupportDd__trigger {
+  gap: 6px;
+}
+
+.navSupportDd__chev {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  margin-left: 4px;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 6px solid currentColor;
+  opacity: 0.8;
+  transition: transform 0.15s ease;
+}
+
+.navSupportDd__trigger[aria-expanded='true'] .navSupportDd__chev {
+  transform: rotate(180deg);
+}
+
+.navSupportDd__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  min-width: min(280px, calc(100vw - 32px));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--bg) 94%, var(--code-bg));
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+}
+
+.footerHelpDd__menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  min-width: min(280px, calc(100vw - 32px));
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--bg) 94%, var(--code-bg));
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+}
+
+.footerHelpDd__item {
+  width: 100%;
+  margin: 0;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-h);
+  font: 15px/1.3 var(--sans);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.footerHelpDd__item:hover {
+  background: color-mix(in oklab, var(--accent) 14%, var(--bg));
+}
+
 .carHero {
   height: 260px;
   border-radius: 18px;
@@ -708,10 +979,45 @@ button[data-variant]:focus-visible,
   box-sizing: border-box;
 }
 
+/* Пилюли цвет/год/пробег — группа у правого края обложки */
+.carHero__overlay:has(.carHero__pills) {
+  justify-content: flex-end;
+}
+
+.carHero__overlay .carHero__pills {
+  width: auto;
+  max-width: 100%;
+  justify-content: flex-end;
+}
+
+.carHero--editCover--empty .carHero__overlay--editCover {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, black 65%, transparent) 0%,
+    transparent 70%
+  );
+}
+
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+/* /auth: отступ до колонок (у общего правила + .card сюда не попадает) */
+.authPage__split {
+  margin-top: 28px;
+  align-items: stretch;
+}
+
+.authPage .formGrid > *,
+.authPage .split > .card {
+  min-width: 0;
+}
+
+.authPage__head .muted {
+  max-width: 56ch;
+  line-height: 1.55;
 }
 
 .kv {
@@ -900,7 +1206,7 @@ button[data-variant]:focus-visible,
 .formGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 
 .historyFormGrid {
@@ -940,6 +1246,12 @@ button[data-variant]:focus-visible,
 }
 
 .svcdd {
+  position: relative;
+  width: 100%;
+}
+
+/* Якорь: только кнопка + меню — чтобы чипы не сдвигали position:absolute выпадашки */
+.svcdd__anchor {
   position: relative;
   width: 100%;
 }
@@ -1099,6 +1411,42 @@ button[data-variant]:focus-visible,
   margin-top: 10px;
 }
 
+.authFormGrid--owner {
+  grid-template-columns: 1fr;
+  max-width: min(420px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.authPage .authFormGrid--owner + .authFormActions {
+  max-width: min(420px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Заявка партнёра: телефон и кнопка в одну линию по нижнему краю (вровень с полем ввода) */
+.partnerApplyRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.partnerApplyRow__phone {
+  min-width: 0;
+}
+
+.partnerApplyRow__submit {
+  flex-shrink: 0;
+}
+
+.partnerApplyRow__submit .btn,
+.partnerApplyRow__submit button[data-variant] {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
 .authFormActions {
   margin-top: 12px;
 }
@@ -1180,6 +1528,11 @@ button[data-variant]:focus-visible,
   .split {
     grid-template-columns: 1fr;
   }
+
+  .authPage__split {
+    gap: 14px;
+    margin-top: 22px;
+  }
   .cards3 {
     grid-template-columns: 1fr;
   }
@@ -1197,6 +1550,17 @@ button[data-variant]:focus-visible,
   }
   .formGrid {
     grid-template-columns: 1fr;
+  }
+
+  .partnerApplyRow {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .partnerApplyRow__submit .btn,
+  .partnerApplyRow__submit button[data-variant] {
+    width: 100%;
+    white-space: normal;
   }
 
   .eventActions {
@@ -1220,5 +1584,254 @@ button[data-variant]:focus-visible,
 
   .svcdd__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Телефоны и узкие экраны */
+@media (max-width: 768px) {
+  .main {
+    padding: 16px 0 max(32px, env(safe-area-inset-bottom, 0px));
+  }
+
+  .container {
+    padding-left: max(12px, env(safe-area-inset-left, 0px));
+    padding-right: max(12px, env(safe-area-inset-right, 0px));
+  }
+
+  .authPage__split {
+    margin-top: 18px;
+    gap: 16px;
+  }
+
+  /* iOS: меньше непроизвольного зума при фокусе в поле */
+  .authPage .field .input {
+    font-size: 16px;
+  }
+
+  .authPage .authFormGrid--owner,
+  .authPage .authFormGrid--owner + .authFormActions {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .authPage > .card.pad button[data-variant='danger'] {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .pad {
+    padding: 18px 16px;
+  }
+
+  .h1 {
+    font-size: 26px;
+    letter-spacing: -0.6px;
+  }
+
+  .h2 {
+    font-size: 18px;
+  }
+
+  /* Шапка страницы: заголовок и кнопки столбцом, без горизонтального скролла */
+  .container > .row.spread.gap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .container > .row.spread.gap > .row.gap,
+  .container > .row.spread.gap > .row.gap.wrap {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  /* Навигация: логотип сверху, ссылки переносятся */
+  .nav__inner {
+    flex-direction: column;
+    align-items: stretch;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .nav__brand {
+    width: fit-content;
+  }
+
+  .nav__links {
+    justify-content: flex-start;
+    row-gap: 8px;
+  }
+
+  .nav__action {
+    min-height: 44px;
+    padding: 10px 14px;
+  }
+
+  .carHero {
+    height: 200px;
+    margin: 10px 0;
+    border-radius: 14px;
+  }
+
+  .carHero__overlay {
+    padding: 10px;
+  }
+
+  /* Герой карточки: цвет / год / пробег (и владелец, и детейлинг; без VIN и номера на обложке) */
+  .carHero__overlay .carHero__pills.row.gap {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    row-gap: 6px;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+
+  .carHero__overlay .carHero__pills > .pill {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: min(100%, 10.5rem);
+    padding: 4px 8px;
+    font-size: 11px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Публичная карточка: цвет, год, пробег, «где мылся» */
+  .carHero__overlay .carHero__pills--public.row.gap {
+    flex-wrap: wrap;
+    row-gap: 6px;
+    min-width: 0;
+  }
+
+  .carHero__overlay .carHero__pills--public > .pill {
+    max-width: min(100%, 10.5rem);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .thumbs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .thumbs--big {
+    grid-template-columns: 1fr;
+  }
+
+  /* Карточки в списках авто: колонка, превью на всю ширину */
+  .rowItem {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .rowItem__img {
+    width: 100%;
+    height: 140px;
+    max-width: none;
+  }
+
+  .rowItem__aside {
+    text-align: left;
+    justify-self: stretch;
+  }
+
+  .rowItem__aside .btn {
+    width: 100%;
+  }
+
+  .eventRow.row.spread {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .eventActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .historyFormActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .historyFormActions .btn {
+    width: 100%;
+  }
+
+  .authFormActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .authFormActions .btn {
+    width: 100%;
+  }
+
+  .topBorder .row.spread.gap {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .row.spread.gap.topBorder {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .row.spread.gap.topBorder > .muted {
+    text-align: left;
+  }
+
+  .kv__row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .footer {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .cb__menu {
+    max-height: min(320px, 55vh);
+  }
+}
+
+@media (max-width: 480px) {
+  .h1 {
+    font-size: 22px;
+    letter-spacing: -0.4px;
+  }
+
+  .pad {
+    padding: 14px 12px;
+  }
+
+  .btn,
+  button[data-variant] {
+    padding: 12px 14px;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .filePick {
+    flex-wrap: wrap;
+  }
+
+  .filePick__btn {
+    min-height: 44px;
   }
 }

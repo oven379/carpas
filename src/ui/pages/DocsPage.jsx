@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Button, Card, Field, Input } from '../components.jsx'
@@ -12,11 +12,19 @@ export default function DocsPage() {
   const { detailingId, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
-  if (!car) return <Navigate to="/cars" replace />
-
-  const docs = r.listDocs(id, scope)
-  const [draft, setDraft] = useState({ title: '', url: '' })
+  const [draft, setDraft] = useState({ title: '' })
   const [files, setFiles] = useState([])
+  const [editThumbs, setEditThumbs] = useState(false)
+  const docsFileInputId = useId()
+  const docsFileInputRef = useRef(null)
+
+  const docs = useMemo(() => {
+    if (!car) return []
+    const sc = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
+    return r.listDocs(id, sc)
+  }, [car, id, r, mode, owner?.email, detailingId])
+
+  if (!car) return <Navigate to="/cars" replace />
 
   return (
     <div className="container">
@@ -36,10 +44,18 @@ export default function DocsPage() {
               Документы / фото
             </h1>
           </div>
-          <p className="muted">
-            В прототипе добавляем файлы по URL (позже заменим на загрузку в сервер/облако).
-          </p>
+          <p className="muted">Загрузка фото и документов сохраняется локально в браузере (MVP).</p>
         </div>
+        {docs.length > 0 ? (
+          <button
+            type="button"
+            className="btn"
+            data-variant={editThumbs ? 'primary' : 'ghost'}
+            onClick={() => setEditThumbs((v) => !v)}
+          >
+            {editThumbs ? 'Готово' : 'Удаление фото'}
+          </button>
+        ) : null}
       </div>
 
       <Card className="card pad">
@@ -53,27 +69,40 @@ export default function DocsPage() {
               placeholder="Фото салона / ПТС / Сервисная книжка…"
             />
           </Field>
-          <Field label="URL файла/картинки">
-            <Input
-              className="input"
-              value={draft.url}
-              onChange={(e) => setDraft((d) => ({ ...d, url: e.target.value }))}
-              placeholder="https://..."
-            />
-          </Field>
-          <Field label="Или загрузить фото" hint="сохранится локально в браузере">
-            <input
-              className="input"
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files || []))}
-            />
-            {files.length ? (
-              <div className="muted small" style={{ marginTop: 6 }}>
-                Выбрано: {files.length}
-              </div>
-            ) : null}
+          <Field
+            className="field--full"
+            label={
+              <span>
+                Загрузить <span className="textAccent">фото</span> / файлы
+              </span>
+            }
+          >
+            <div className="filePick">
+              <input
+                id={docsFileInputId}
+                className="srOnly"
+                type="file"
+                accept="image/*"
+                multiple
+                ref={docsFileInputRef}
+                onChange={(e) => setFiles(Array.from(e.target.files || []))}
+              />
+              <button
+                type="button"
+                className="btn filePick__btn"
+                data-variant="outline"
+                onClick={() => docsFileInputRef.current?.click?.()}
+              >
+                Выбрать файлы
+              </button>
+              <span className="filePick__status" title={files.map((f) => f.name).join(', ')}>
+                {!files.length
+                  ? 'Файл не выбран'
+                  : files.length === 1
+                    ? files[0].name || '1 файл'
+                    : `Выбрано файлов: ${files.length}`}
+              </span>
+            </div>
           </Field>
         </div>
         <div className="row gap">
@@ -81,25 +110,30 @@ export default function DocsPage() {
             className="btn"
             variant="primary"
             onClick={async () => {
-              if (draft.url.trim()) {
-                r.addDoc(scope, id, { title: draft.title, url: draft.url, kind: 'photo' })
+              if (!files.length) {
+                alert('Выберите один или несколько файлов.')
+                return
               }
-              if (files.length) {
-                for (const f of files) {
-                  try {
-                    const url = await compressImageFile(f, {
-                      maxW: 1600,
-                      maxH: 1600,
-                      quality: 0.84,
-                      maxBytes: 2 * 1024 * 1024,
-                    })
-                    r.addDoc(scope, id, { title: f.name || 'Фото', url, kind: 'photo' })
-                  } catch {
-                    // ignore
-                  }
+              for (const f of files) {
+                try {
+                  const url = await compressImageFile(f, {
+                    maxW: 1600,
+                    maxH: 1600,
+                    quality: 0.84,
+                    maxBytes: 2 * 1024 * 1024,
+                  })
+                  const title =
+                    draft.title.trim() && files.length === 1
+                      ? draft.title.trim()
+                      : draft.title.trim()
+                        ? `${draft.title.trim()} · ${f.name || 'файл'}`
+                        : f.name || 'Фото'
+                  r.addDoc(scope, id, { title, url, kind: 'photo' })
+                } catch {
+                  // ignore
                 }
               }
-              setDraft({ title: '', url: '' })
+              setDraft({ title: '' })
               setFiles([])
               invalidateRepo()
             }}
@@ -116,27 +150,29 @@ export default function DocsPage() {
               <a className="thumbCard__img" href={d.url} target="_blank" rel="noreferrer">
                 <img alt={d.title} src={d.url} />
               </a>
-              <button
-                type="button"
-                className="thumbX"
-                title="Удалить фото"
-                onClick={(ev) => {
-                  ev.preventDefault()
-                  ev.stopPropagation()
-                  if (d.source === 'service' && mode === 'owner') {
-                    alert('Подтверждённые файлы детейлинга нельзя удалять из кабинета владельца.')
-                    return
-                  }
-                  const ok = confirm('Удалить этот файл?\n\nВосстановить будет невозможно.')
-                  if (!ok) return
-                  r.deleteDoc(d.id)
-                  invalidateRepo()
-                }}
-              >
-                <span className="thumbX__icon" aria-hidden="true">
-                  ×
-                </span>
-              </button>
+              {editThumbs ? (
+                <button
+                  type="button"
+                  className="thumbX"
+                  title="Удалить фото"
+                  onClick={(ev) => {
+                    ev.preventDefault()
+                    ev.stopPropagation()
+                    if (d.source === 'service' && mode === 'owner') {
+                      alert('Подтверждённые файлы детейлинга нельзя удалять из кабинета владельца.')
+                      return
+                    }
+                    const ok = confirm('Удалить этот файл?\n\nВосстановить будет невозможно.')
+                    if (!ok) return
+                    r.deleteDoc(d.id)
+                    invalidateRepo()
+                  }}
+                >
+                  <span className="thumbX__icon" aria-hidden="true">
+                    ×
+                  </span>
+                </button>
+              ) : null}
             </div>
             <div className="thumbCard__body">
               <div className="thumbCard__title">{d.title}</div>
@@ -144,7 +180,9 @@ export default function DocsPage() {
                 <a className="link" href={d.url} target="_blank" rel="noreferrer">
                   открыть →
                 </a>
-                <span className="muted small">удалить: крестик на фото</span>
+                <span className="muted small">
+                  {editThumbs ? 'Крестик на фото удаляет файл' : 'Включите «Удаление фото», чтобы убрать файлы'}
+                </span>
               </div>
             </div>
           </Card>

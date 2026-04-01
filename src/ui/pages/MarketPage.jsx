@@ -1,8 +1,8 @@
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Input, Pill } from '../components.jsx'
-import { fmtKm } from '../../lib/format.js'
+import { fmtDate, fmtKm } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 
 function matches(car, q) {
@@ -25,8 +25,8 @@ export default function MarketPage() {
   const [sp, setSp] = useSearchParams()
   const nav = useNavigate()
   const q = sp.get('q') || ''
+  const hub = sp.get('hub') === '1'
   const [vin, setVin] = useState('')
-
   const showSearch = mode !== 'owner' && cars.length > 0
   const filtered = useMemo(() => cars.filter((c) => matches(c, showSearch ? q : '')), [cars, q, showSearch])
   const ownerLimitHit = mode === 'owner' && cars.length >= 1
@@ -34,7 +34,11 @@ export default function MarketPage() {
   const pendingClaims = ownerClaims.filter((x) => x.status === 'pending')
   const [vinResults, setVinResults] = useState([])
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
-  const primaryCar = mode === 'owner' ? cars[0] || null : null
+
+  /* Владелец с авто: сразу на карточку. Экран с VIN и «+ Добавить авто» — только без авто или явно /cars?hub=1 (например «Назад»). */
+  if (mode === 'owner' && cars.length >= 1 && !hub) {
+    return <Navigate to={`/car/${cars[0].id}`} replace />
+  }
   const limitInfo =
     'Лимит MVP\n\n' +
     'В «Мой гараж» можно добавить 1 авто бесплатно. Чтобы добавить ещё — напишите в сервис.'
@@ -74,29 +78,6 @@ export default function MarketPage() {
           )}
         </div>
       </div>
-
-      {mode === 'owner' && primaryCar ? (
-        <Link className="rowItem" to={`/car/${primaryCar.id}`} style={{ marginTop: 12 }}>
-          <div
-            className="rowItem__img"
-            style={
-              primaryCar.hero ? { backgroundImage: `url("${String(primaryCar.hero).replaceAll('"', '%22')}")` } : undefined
-            }
-          />
-          <div className="rowItem__main">
-            <div className="rowItem__title">
-              {primaryCar.make} {primaryCar.model}
-            </div>
-            <div className="rowItem__meta">
-              {primaryCar.city || '—'} • {fmtKm(primaryCar.mileageKm)} • {primaryCar.year}
-            </div>
-            <div className="rowItem__sub">Открыть карточку и историю обслуживания</div>
-          </div>
-          <div className="rowItem__aside">
-            <div className="muted small">открыть →</div>
-          </div>
-        </Link>
-      ) : null}
 
       {mode === 'owner' ? (
         <Card className="card pad" style={{ marginTop: 12 }}>
@@ -241,14 +222,18 @@ export default function MarketPage() {
       ) : null}
 
       <div className="list">
-        {filtered.map((c) => (
+        {filtered.map((c) => {
+          const listScope =
+            mode === 'owner' ? { ownerEmail: owner?.email || '' } : { detailingId }
+          const lastVisitAt = r.listEvents(c.id, listScope)[0]?.at || null
+          return (
           <Link
             key={c.id}
             className="rowItem"
             to={
               mode !== 'owner'
                 ? `/car/${c.id}?from=${encodeURIComponent(`/cars${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`
-                : `/car/${c.id}`
+                : `/car/${c.id}?from=${encodeURIComponent('/cars?hub=1')}`
             }
           >
             <div
@@ -259,10 +244,29 @@ export default function MarketPage() {
               <div className="rowItem__title">
                 {c.make} {c.model}
               </div>
-              <div className="rowItem__meta">
-                {c.city || '—'} • {fmtKm(c.mileageKm)} • {c.year}
+              <div className="rowItem__meta carPage__meta">
+                <span>{c.city || '—'}</span>
+                <span aria-hidden="true"> • </span>
+                <span className="mono" title="Госномер">
+                  {c.plate || '—'}
+                </span>
+                <span aria-hidden="true"> • </span>
+                <span>
+                  VIN: <span className="mono">{c.vin || '—'}</span>
+                </span>
+                <span aria-hidden="true"> • </span>
+                <span>{lastVisitAt ? fmtDate(lastVisitAt) : '—'}</span>
               </div>
-              <div className="rowItem__sub">Сервис: {c.seller?.name || '—'}</div>
+              <div className="rowItem__sub">
+                {mode === 'owner' ? (
+                  <>
+                    Цвет: {c.color || '—'} • Год:{' '}
+                    {c.year != null && c.year !== '' ? c.year : '—'} • Пробег: {fmtKm(c.mileageKm)}
+                  </>
+                ) : (
+                  `Сервис: ${c.seller?.name || '—'}`
+                )}
+              </div>
             </div>
             <div className="rowItem__aside">
               {mode !== 'owner' ? (
@@ -284,8 +288,9 @@ export default function MarketPage() {
               )}
             </div>
           </Link>
-        ))}
-        {filtered.length === 0 ? (
+          )
+        })}
+        {filtered.length === 0 && cars.length > 0 ? (
           <Card className="card pad">
             <div className="muted">Ничего не найдено. Попробуй другой запрос.</div>
           </Card>

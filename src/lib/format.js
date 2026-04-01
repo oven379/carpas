@@ -16,6 +16,17 @@ export function fmtRub(n) {
   return `${new Intl.NumberFormat('ru-RU').format(Math.round(v))} ₽`
 }
 
+export function fmtDate(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return new Intl.DateTimeFormat('ru-RU', {
+    year: 'numeric',
+    month: 'short',
+    day: '2-digit',
+  }).format(d)
+}
+
 export function fmtDateTime(iso) {
   if (!iso) return ''
   const d = new Date(iso)

@@ -1,39 +1,54 @@
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Pill } from '../components.jsx'
-import { fmtDateTime, fmtKm } from '../../lib/format.js'
+import { fmtDate, fmtDateTime, fmtKm } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { useDetailing } from '../useDetailing.js'
-import { compressImageFile } from '../../lib/imageCompression.js'
+import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 
 export default function CarPage() {
   const { id } = useParams()
   const r = useRepo()
+  const nav = useNavigate()
+  const [sp] = useSearchParams()
+  const [washIdx, setWashIdx] = useState(0)
   const { detailingId, detailing, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
-  if (!car) return <Navigate to="/cars" replace />
-  const nav = useNavigate()
-  const [sp] = useSearchParams()
-  const fromRaw = sp.get('from') || ''
-  const from = fromRaw ? decodeURIComponent(fromRaw) : '/cars'
-  const fileRef = useRef(null)
-  const [washIdx, setWashIdx] = useState(0)
 
-  const washPhotos = useMemo(() => (Array.isArray(car.washPhotos) ? car.washPhotos : car.washPhoto ? [car.washPhoto] : []), [car])
+  const washPhotos = useMemo(() => {
+    if (!car) return []
+    return Array.isArray(car.washPhotos) ? car.washPhotos : car.washPhoto ? [car.washPhoto] : []
+  }, [car])
+
+  const washPhotosKey = useMemo(() => washPhotos.join('|'), [washPhotos])
 
   useEffect(() => {
-    // При обновлении набора фото показываем самое новое (первое)
     setWashIdx(0)
-  }, [washPhotos.join('|')])
+  }, [washPhotosKey])
 
-  const events = r.listEvents(id, detailingId).slice(0, 3)
-  const allEvents = r.listEvents(id, detailingId)
-  const docs = r.listDocs(id, detailingId).slice(0, 6)
-  const shares = r.listShares ? r.listShares(id) : []
-  const activeShare = shares.find((s) => !s.revokedAt) || null
+  if (!car) return <Navigate to="/cars" replace />
+
+  const fromRaw = sp.get('from') || ''
+  const ownerCars =
+    mode === 'owner' && owner?.email ? r.listCars({ ownerEmail: owner.email }) : []
+  const defaultGarage = mode === 'owner' && ownerCars.length >= 1 ? '/cars?hub=1' : '/cars'
+  let from = defaultGarage
+  if (fromRaw) {
+    try {
+      from = decodeURIComponent(fromRaw)
+    } catch {
+      from = '/cars'
+    }
+    if (!from.startsWith('/') || from.startsWith('//')) from = '/cars'
+  }
+
+  const allEvents = r.listEvents(id, scope)
+  const events = allEvents.slice(0, 3)
+  const docs = r.listDocs(id, scope).slice(0, 6)
   const recs = getCareRecommendations({ car, events: allEvents })
+  const lastVisitAt = allEvents[0]?.at || null
 
   return (
     <div className="container">
@@ -45,7 +60,7 @@ export default function CarPage() {
             <span>Карточка авто</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <Link className="carBack" to={from} title="Назад к поиску">
+            <Link className="carBack" to={from} title="Назад в гараж">
               <span className="chev chev--left" aria-hidden="true" />
               <span className="srOnly">Назад</span>
             </Link>
@@ -53,54 +68,21 @@ export default function CarPage() {
               {car.make} {car.model}
             </h1>
           </div>
-          <p className="muted">
-            {car.city || '—'} • {fmtKm(car.mileageKm)} • {car.year}
+          <p className="muted carPage__meta">
+            <span>{car.city || '—'}</span>
+            <span aria-hidden="true"> • </span>
+            <span className="mono" title="Госномер">
+              {car.plate || '—'}
+            </span>
+            <span aria-hidden="true"> • </span>
+            <span>
+              VIN: <span className="mono">{car.vin || '—'}</span>
+            </span>
+            <span aria-hidden="true"> • </span>
+            <span>{lastVisitAt ? fmtDate(lastVisitAt) : '—'}</span>
           </p>
         </div>
-        <div className="row gap">
-          <button
-            className="btn"
-            data-variant="primary"
-            onClick={async () => {
-              const share = activeShare || (await r.createShare(id))
-              invalidateRepo()
-              const url = `${location.origin}/share/${share.token}`
-              try {
-                await navigator.clipboard.writeText(url)
-                alert('Ссылка скопирована')
-              } catch {
-                prompt('Скопируй ссылку', url)
-              }
-            }}
-          >
-            Поделиться историей
-          </button>
-          {mode === 'owner' ? (
-            <button
-              className="btn"
-              data-variant="ghost"
-              onClick={() => {
-                const nextEmail = prompt('Введите почту нового владельца', '')
-                const em = String(nextEmail || '').trim().toLowerCase()
-                if (!em) return
-                const msg =
-                  'Передать авто другому владельцу?\n\n' +
-                  `Новый владелец: ${em}\n\n` +
-                  'После передачи это авто исчезнет из вашего гаража.'
-                if (!confirm(msg)) return
-                const ok = r.updateCar(id, { ownerEmail: em }, { ownerEmail: owner?.email })
-                if (!ok) {
-                  alert('Не удалось передать авто (нет доступа к карточке).')
-                  return
-                }
-                invalidateRepo()
-                alert('Авто передано новому владельцу.')
-                location.assign('/cars')
-              }}
-            >
-              Передать авто
-            </button>
-          ) : null}
+        <div className="row gap wrap">
           <Link className="btn" data-variant="ghost" to={`/car/${id}/edit`}>
             Редактировать
           </Link>
@@ -115,6 +97,7 @@ export default function CarPage() {
               if (!confirm(msg)) return
               r.deleteCar(id)
               invalidateRepo()
+              nav(getPathAfterCarRemovedFromScope(r, { mode, owner, detailingId }), { replace: true })
             }}
           >
             Удалить
@@ -127,48 +110,10 @@ export default function CarPage() {
         style={car.hero ? { backgroundImage: `url("${String(car.hero).replaceAll('"', '%22')}")` } : undefined}
       >
         <div className="carHero__overlay">
-          <div className="row spread gap wrap" style={{ width: '100%' }}>
-            <Pill>VIN: {car.vin || '—'}</Pill>
-            <div className="row gap wrap">
-              <Pill>Номер: {car.plate || '—'}</Pill>
-              {car.color ? <Pill>{car.color}</Pill> : null}
-              <input
-                ref={fileRef}
-                className="input"
-                type="file"
-                accept="image/*"
-                style={{ display: 'none' }}
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (!file) return
-                  e.target.value = ''
-                  try {
-                    const url = await compressImageFile(file, {
-                      maxW: 1400,
-                      maxH: 900,
-                      quality: 0.84,
-                      maxBytes: 2 * 1024 * 1024,
-                    })
-                    const ok = r.updateCar(id, { hero: url }, scope)
-                    if (!ok) {
-                      alert('Не удалось обновить фото (нет доступа к карточке).')
-                      return
-                    }
-                    invalidateRepo()
-                  } catch {
-                    alert('Не удалось загрузить фото')
-                  }
-                }}
-              />
-              <button
-                className="btn"
-                data-variant="ghost"
-                onClick={() => fileRef.current?.click()}
-                title="Загрузить фото обложки"
-              >
-                Загрузить фото
-              </button>
-            </div>
+          <div className="row gap wrap carHero__pills">
+            <Pill>Цвет: {car.color || '—'}</Pill>
+            <Pill>Год: {car.year != null && car.year !== '' ? car.year : '—'}</Pill>
+            <Pill>Пробег: {fmtKm(car.mileageKm)}</Pill>
           </div>
         </div>
       </div>
@@ -205,7 +150,9 @@ export default function CarPage() {
                 <div className="cardTitle" style={{ marginBottom: 0 }}>
                   Фото последней мойки
                 </div>
-                <div className="muted small">Обновляется автоматически после каждого визита с мойкой.</div>
+                <div className="muted small">
+                  Обновляется автоматически после каждого визита с мойкой. Удалить фото можно в разделе «Редактировать» карточки.
+                </div>
               </div>
             </div>
 
@@ -221,28 +168,6 @@ export default function CarPage() {
                   >
                     <img alt="Фото последней мойки" src={washPhotos[washIdx]} />
                   </a>
-                  <button
-                    type="button"
-                    className="thumbX"
-                    title="Удалить фото"
-                    onClick={() => {
-                      const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
-                      if (!ok) return
-                      const curr = washPhotos[washIdx]
-                      const next = washPhotos.filter((x) => x !== curr)
-                      const saved = r.updateCar(id, { washPhotos: next }, scope)
-                      if (!saved) {
-                        alert('Не удалось удалить фото (нет доступа к карточке).')
-                        return
-                      }
-                      setWashIdx((i) => Math.max(0, Math.min(i, Math.max(0, next.length - 1))))
-                      invalidateRepo()
-                    }}
-                  >
-                    <span className="thumbX__icon" aria-hidden="true">
-                      ×
-                    </span>
-                  </button>
                 </div>
                 <div className="washGallery__controls">
                   <div className="row gap">
@@ -316,8 +241,11 @@ export default function CarPage() {
                     <div className="miniList__meta">
                       {fmtDateTime(e.at)} • {fmtKm(e.mileageKm)}
                     </div>
+                    {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+                      <div className="rowItem__sub">ТО: {e.maintenanceServices.join(', ')}</div>
+                    ) : null}
                     {Array.isArray(e.services) && e.services.length ? (
-                      <div className="rowItem__sub">Работы: {e.services.join(', ')}</div>
+                      <div className="rowItem__sub">Детейлинг: {e.services.join(', ')}</div>
                     ) : null}
                   </div>
                 ))}
