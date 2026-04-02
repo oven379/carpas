@@ -13,6 +13,7 @@ function createMockApi() {
     getDetailing: (...a) => r.getDetailing(...a),
     registerDetailing: (...a) => r.registerDetailing(...a),
     loginDetailing: (...a) => r.loginDetailing(...a),
+    updateDetailing: (...a) => r.updateDetailing(...a),
 
     listCars: (...a) => r.listCars(...a),
     getCar: (...a) => r.getCar(...a),
@@ -41,6 +42,12 @@ function createMockApi() {
     createClaim: (...a) => r.createClaim(...a),
     reviewClaim: (...a) => r.reviewClaim(...a),
 
+    listOwners: (...a) => r.listOwners(...a),
+    getOwner: (...a) => r.getOwner(...a),
+    registerOwner: (...a) => r.registerOwner(...a),
+    loginOwner: (...a) => r.loginOwner(...a),
+    updateOwner: (...a) => r.updateOwner(...a),
+
     resetLocalDemo: () => r.resetLocalDemo(),
   }
 }
@@ -57,11 +64,17 @@ function createRealApi() {
     async listDetailings() {
       return await httpJson({ baseUrl, path: 'detailings', method: 'GET', token })
     },
+    async getDetailing(id) {
+      return await httpJson({ baseUrl, path: `detailings/${id}`, method: 'GET', token })
+    },
     async registerDetailing(body) {
       return await httpJson({ baseUrl, path: 'detailings', method: 'POST', body, token })
     },
     async loginDetailing(body) {
       return await httpJson({ baseUrl, path: 'detailings/login', method: 'POST', body, token })
+    },
+    async updateDetailing(id, patch) {
+      return await httpJson({ baseUrl, path: `detailings/${id}`, method: 'PATCH', body: patch, token })
     },
 
     async listCars() {

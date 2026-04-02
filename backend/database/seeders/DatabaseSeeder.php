@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         Detailing::query()->firstOrCreate(
             ['email' => 'test@test'],
             [
-                'name' => 'Not. Moiko. (демо)',
+                'name' => 'Демо-детейлинг',
                 'password' => Hash::make('1111'),
             ]
         );

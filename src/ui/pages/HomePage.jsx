@@ -23,7 +23,7 @@ export default function HomePage() {
             <Link className="btn" data-variant="primary" to="/cars">
               Мой гараж
             </Link>
-            <Link className="btn" data-variant="ghost" to="/auth">
+            <Link className="btn" data-variant="ghost" to="/auth/partner/apply">
               Стать партнёром
             </Link>
           </div>
@@ -113,27 +113,27 @@ export default function HomePage() {
             все авто →
           </Link>
         </div>
-      <div className="grid">
-        {top.map((c) => (
-          <Link key={c.id} className="tile" to={`/car/${c.id}`}>
-            <div className="tile__media" style={{ backgroundImage: `url(${c.hero})` }} />
+        <div className="grid">
+          {top.map((c) => (
+            <Link key={c.id} className="tile" to={`/car/${c.id}`}>
+              <div className="tile__media" style={{ backgroundImage: `url(${c.hero})` }} />
+              <div className="tile__body">
+                <div className="tile__title">
+                  {c.make} {c.model}
+                </div>
+                <div className="tile__meta">
+                  {c.year} · {c.city || '—'}
+                </div>
+              </div>
+            </Link>
+          ))}
+          <Link className="tile tile--add" to="/create">
             <div className="tile__body">
-              <div className="tile__title">
-                {c.make} {c.model}
-              </div>
-              <div className="tile__meta">
-                {c.year} • {c.city || '—'}
-              </div>
+              <div className="tile__title">+ Добавить авто</div>
+              <div className="tile__meta">создать карточку авто</div>
             </div>
           </Link>
-        ))}
-        <Link className="tile tile--add" to="/create">
-          <div className="tile__body">
-            <div className="tile__title">+ Добавить авто</div>
-            <div className="tile__meta">создать карточку авто</div>
-          </div>
-        </Link>
-      </div>
+        </div>
       </section>
 
       <section className="section">

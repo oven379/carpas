@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Button, Card, ComboBox, Field, Input } from '../components.jsx'
-import { useDetailing } from '../useDetailing.js'
+import { BackNav, Button, Card, ComboBox, Field, Input } from '../components.jsx'
+import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
+import { normDigits, normPlateBase, normPlateRegion, normVin, parsePlateFull } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
 import allCities from 'country-city-state/cities.json'
 import {
@@ -23,12 +24,17 @@ function emptyDraft() {
   return {
     vin: '',
     plate: '',
+    plateRegion: '',
     make: '',
     model: '',
     year: '',
     mileageKm: '',
     city: '',
     color: '',
+    ownerPhone: '',
+    clientName: '',
+    clientPhone: '',
+    clientEmail: '',
     hero: '',
   }
 }
@@ -59,13 +65,12 @@ function norm(s) {
 export default function CarEditPage({ mode }) {
   const { id } = useParams()
   const nav = useNavigate()
+  const [sp] = useSearchParams()
   const r = useRepo()
-  const { detailingId, owner, mode: who } = useDetailing()
+  const { detailingId, detailing, owner, mode: who } = useDetailing()
   const scope = who === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = mode === 'edit' ? r.getCar(id, scope) : null
-  const ownerLimitHit =
-    who === 'owner' && mode === 'create' && r.listCars({ ownerEmail: owner?.email }).length >= 1
-
+  const baseMileageKm = mode === 'edit' && car ? Number(car.mileageKm) || 0 : 0
   const makes = useMemo(() => {
     const labels = (Array.isArray(carBrands) ? carBrands : [])
       .map((x) => String(x?.label || '').trim())
@@ -132,21 +137,44 @@ export default function CarEditPage({ mode }) {
       setDraft({
         vin: car.vin || '',
         plate: car.plate || '',
+        plateRegion: car.plateRegion || '',
         make: car.make || '',
         model: car.model || '',
         year: car.year ?? '',
         mileageKm: car.mileageKm ?? '',
         city: car.city || '',
         color: car.color || '',
+        ownerPhone: car.ownerPhone || '',
+        clientName: car.clientName || '',
+        clientPhone: car.clientPhone || '',
+        clientEmail: car.clientEmail || '',
         hero,
       })
       loadedKeyRef.current = key
       return
     }
 
-    setDraft(emptyDraft())
+    const base = emptyDraft()
+    // Быстрое создание из кабинета детейлинга: подставляем VIN/номер/контакты из query-параметров
+    if (who !== 'owner') {
+      const vin = normVin(String(sp.get('vin') || '').trim())
+      const plate = String(sp.get('plate') || '').trim()
+      const plateRegion = String(sp.get('plateRegion') || '').trim()
+      const clientPhone = String(sp.get('clientPhone') || '').trim()
+      const clientEmail = String(sp.get('clientEmail') || '').trim()
+      if (vin) base.vin = vin
+      if (plate) {
+        const parsed = parsePlateFull(plate)
+        base.plate = parsed.plate
+        base.plateRegion = parsed.plateRegion
+      }
+      if (plateRegion) base.plateRegion = normPlateRegion(plateRegion)
+      if (clientPhone) base.clientPhone = clientPhone
+      if (clientEmail) base.clientEmail = clientEmail
+    }
+    setDraft(base)
     loadedKeyRef.current = key
-  }, [mode, id, car])
+  }, [mode, id, car, who, sp])
 
   useEffect(() => {
     let cancelled = false
@@ -184,25 +212,23 @@ export default function CarEditPage({ mode }) {
     }
   }, [draft.make, brandIdByMake])
 
+  if (detailingOnboardingPending(who, detailing)) return <Navigate to="/detailing/settings" replace />
   if (mode === 'edit' && !car) return <Navigate to="/cars" replace />
 
   const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
-  const backTo = mode === 'edit' ? `/car/${id}` : '/cars'
+  const garageLink = who === 'owner' ? '/cars' : '/detailing'
 
   return (
     <div className="container">
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to="/cars">{who === 'owner' ? 'Мой гараж' : 'Мои авто'}</Link>
+            <Link to={garageLink}>{who === 'owner' ? 'Мой гараж' : 'Кабинет'}</Link>
             <span> / </span>
             <span>{title}</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <Link className="carBack" to={backTo} title="Назад">
-              <span className="chev chev--left" aria-hidden="true" />
-              <span className="srOnly">Назад</span>
-            </Link>
+            <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
               {title}
             </h1>
@@ -214,14 +240,6 @@ export default function CarEditPage({ mode }) {
       </div>
 
       <Card className="card pad">
-        {ownerLimitHit ? (
-          <Card className="card pad" style={{ marginBottom: 14 }}>
-            <div className="cardTitle">Лимит MVP</div>
-            <p className="muted small">
-              В «Мой гараж» можно добавить <strong>1 авто бесплатно</strong>. Чтобы добавить ещё — напишите в сервис.
-            </p>
-          </Card>
-        ) : null}
         <div className="formGrid">
           <Field label="Марка">
             <ComboBox
@@ -249,16 +267,29 @@ export default function CarEditPage({ mode }) {
               options={years}
               placeholder="Например: 2020"
               maxItems={30}
-              onChange={(v) => setDraft((d) => ({ ...d, year: v }))}
+              onChange={(v) =>
+                setDraft((d) => ({ ...d, year: normDigits(v, { max: 2100, maxLen: 4 }) }))
+              }
             />
           </Field>
-          <Field label="Пробег (км)">
+          <Field
+            label="Пробег (км)"
+            hint={mode === 'edit' && baseMileageKm ? `мин. ${baseMileageKm} км` : undefined}
+          >
             <Input
               className="input"
               inputMode="numeric"
               value={draft.mileageKm}
-              onChange={(e) => setDraft((d) => ({ ...d, mileageKm: e.target.value }))}
-              placeholder="12000"
+              maxLength={7}
+              onChange={(e) =>
+                setDraft((d) => {
+                  const nextRaw = normDigits(e.target.value, { maxLen: 7 })
+                  const n = nextRaw ? Number(nextRaw) : 0
+                  if (Number.isFinite(n) && n > 1000000) return d // мягко блокируем ввод сверх лимита
+                  return { ...d, mileageKm: nextRaw }
+                })
+              }
+              placeholder={mode === 'edit' && baseMileageKm ? String(baseMileageKm) : '12000'}
             />
           </Field>
           <Field label="Город">
@@ -270,21 +301,69 @@ export default function CarEditPage({ mode }) {
               onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
             />
           </Field>
+          {who !== 'owner' ? (
+            <>
+              <Field label="Клиент (имя)" hint="необязательно">
+                <Input
+                  className="input"
+                  value={draft.clientName}
+                  onChange={(e) => setDraft((d) => ({ ...d, clientName: e.target.value }))}
+                  placeholder="Например: Иван"
+                  autoComplete="name"
+                />
+              </Field>
+              <Field label="Клиент (телефон)" hint="необязательно, для поиска">
+                <Input
+                  className="input"
+                  inputMode="tel"
+                  value={draft.clientPhone}
+                  onChange={(e) => setDraft((d) => ({ ...d, clientPhone: e.target.value }))}
+                  placeholder="+7 999 123-45-67"
+                  autoComplete="tel"
+                />
+              </Field>
+              <Field label="Клиент (почта)" hint="необязательно, для поиска">
+                <Input
+                  className="input"
+                  type="email"
+                  value={draft.clientEmail}
+                  onChange={(e) => setDraft((d) => ({ ...d, clientEmail: e.target.value }))}
+                  placeholder="client@example.com"
+                  autoComplete="email"
+                />
+              </Field>
+            </>
+          ) : null}
           <Field label="VIN" hint="можно оставить пустым для прототипа">
             <Input
               className="input mono"
               value={draft.vin}
-              onChange={(e) => setDraft((d) => ({ ...d, vin: e.target.value }))}
+              maxLength={17}
+              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />
           </Field>
           <Field label="Госномер">
-            <Input
-              className="input mono"
-              value={draft.plate}
-              onChange={(e) => setDraft((d) => ({ ...d, plate: e.target.value }))}
-              placeholder="A777AA77"
-            />
+            <div className="row gap" style={{ alignItems: 'center' }}>
+              <Input
+                className="input mono"
+                value={draft.plate}
+                maxLength={6}
+                onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBase(e.target.value) }))}
+                placeholder="A777AA"
+              />
+              <Input
+                className="input mono"
+                inputMode="numeric"
+                value={draft.plateRegion}
+                maxLength={3}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
+                }
+                placeholder="77"
+                title="Регион"
+              />
+            </div>
           </Field>
           <Field label="Цвет">
             <ComboBox
@@ -342,19 +421,21 @@ export default function CarEditPage({ mode }) {
             <Button
               className="btn"
               variant="primary"
-              disabled={ownerLimitHit}
-              title={ownerLimitHit ? 'Лимит 1 авто в Мой гараж (MVP)' : undefined}
               onClick={() => {
                 try {
                   if (mode === 'edit') {
+                    const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                    if (nextMileage < baseMileageKm) {
+                      alert(`Пробег не может быть меньше исходного (${baseMileageKm} км).`)
+                      return
+                    }
                     const saved = r.updateCar(id, draft, scope)
                     if (!saved) {
                       alert('Не удалось сохранить изменения: нет доступа к этой карточке (проверьте, что вы вошли в правильный аккаунт).')
                       return
                     }
                   } else {
-                    if (ownerLimitHit) return
-                    const vin = String(draft.vin || '').trim()
+                    const vin = normVin(draft.vin)
                     if (vin) {
                       const matches = r.findCarsByVin ? r.findCarsByVin(vin) : []
                       if (Array.isArray(matches) && matches.length) {
@@ -365,11 +446,19 @@ export default function CarEditPage({ mode }) {
                         if (!confirm(msg)) return
                       }
                     }
-                    const created = r.createCar(scope, draft)
-                    if (created?.error === 'owner_limit') {
-                      alert('В «Мой гараж» можно добавить 1 авто бесплатно. Чтобы добавить ещё — напишите в сервис.')
-                      return
+                    const plateKey =
+                      draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
+                    if (plateKey && r.findCarsByPlate) {
+                      const matches2 = r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion }) || []
+                      if (Array.isArray(matches2) && matches2.length) {
+                        const msg =
+                          'Похоже, авто с таким госномером уже есть в сервисе.\n\n' +
+                          'Это может быть дубль.\n\n' +
+                          'Создать новую карточку всё равно?'
+                        if (!confirm(msg)) return
+                      }
                     }
+                    const created = r.createCar(scope, draft)
                     nav(`/car/${created.id}`)
                   }
                   invalidateRepo()
@@ -385,7 +474,7 @@ export default function CarEditPage({ mode }) {
             >
               Сохранить
             </Button>
-            <Link className="btn" data-variant="ghost" to={mode === 'edit' ? `/car/${id}` : '/cars'}>
+            <Link className="btn" data-variant="ghost" to={mode === 'edit' ? `/car/${id}` : garageLink}>
               Отмена
             </Link>
           </div>

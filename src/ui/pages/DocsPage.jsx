@@ -1,29 +1,31 @@
 import { useId, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Button, Card, Field, Input } from '../components.jsx'
-import { useDetailing } from '../useDetailing.js'
+import { BackNav, Button, Card, Field, Input } from '../components.jsx'
+import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
+import { fmtDateTime } from '../../lib/format.js'
 
 export default function DocsPage() {
   const { id } = useParams()
-  const nav = useNavigate()
   const r = useRepo()
-  const { detailingId, owner, mode } = useDetailing()
+  const { detailingId, detailing, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
   const [draft, setDraft] = useState({ title: '' })
   const [files, setFiles] = useState([])
-  const [editThumbs, setEditThumbs] = useState(false)
   const docsFileInputId = useId()
   const docsFileInputRef = useRef(null)
 
   const docs = useMemo(() => {
     if (!car) return []
     const sc = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-    return r.listDocs(id, sc)
+    // Документы/фото здесь — только "прочие" файлы без привязки к визиту.
+    // Фото моек/обслуживания остаются в Истории (там они привязаны к eventId).
+    return (r.listDocs(id, sc) || []).filter((d) => !d.eventId)
   }, [car, id, r, mode, owner?.email, detailingId])
 
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
   if (!car) return <Navigate to="/cars" replace />
 
   return (
@@ -36,30 +38,18 @@ export default function DocsPage() {
             <span>Документы</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <button className="carBack" type="button" title="Назад" onClick={() => nav(-1)}>
-              <span className="chev chev--left" aria-hidden="true" />
-              <span className="srOnly">Назад</span>
-            </button>
+            <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
               Документы / фото
             </h1>
           </div>
-          <p className="muted">Загрузка фото и документов сохраняется локально в браузере (MVP).</p>
+          <p className="muted">
+            Здесь — дополнительные фото и документы. Фото моек/обслуживания смотрите в разделе «История».
+          </p>
         </div>
-        {docs.length > 0 ? (
-          <button
-            type="button"
-            className="btn"
-            data-variant={editThumbs ? 'primary' : 'ghost'}
-            onClick={() => setEditThumbs((v) => !v)}
-          >
-            {editThumbs ? 'Готово' : 'Удаление фото'}
-          </button>
-        ) : null}
       </div>
 
       <Card className="card pad">
-        <h2 className="h2">Добавить файл</h2>
         <div className="formGrid">
           <Field label="Название">
             <Input
@@ -77,69 +67,69 @@ export default function DocsPage() {
               </span>
             }
           >
-            <div className="filePick">
-              <input
-                id={docsFileInputId}
-                className="srOnly"
-                type="file"
-                accept="image/*"
-                multiple
-                ref={docsFileInputRef}
-                onChange={(e) => setFiles(Array.from(e.target.files || []))}
-              />
-              <button
-                type="button"
-                className="btn filePick__btn"
-                data-variant="outline"
-                onClick={() => docsFileInputRef.current?.click?.()}
+            <div className="docsAddRow">
+              <div className="filePick" style={{ margin: 0 }}>
+                <input
+                  id={docsFileInputId}
+                  className="srOnly"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  ref={docsFileInputRef}
+                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                />
+                <button
+                  type="button"
+                  className="btn filePick__btn"
+                  data-variant="outline"
+                  onClick={() => docsFileInputRef.current?.click?.()}
+                >
+                  Добавить файл
+                </button>
+                <span className="filePick__status" title={files.map((f) => f.name).join(', ')}>
+                  {!files.length
+                    ? 'Файл не выбран'
+                    : files.length === 1
+                      ? files[0].name || '1 файл'
+                      : `Выбрано файлов: ${files.length}`}
+                </span>
+              </div>
+              <Button
+                className="btn docsAddRow__btn"
+                variant="primary"
+                onClick={async () => {
+                  if (!files.length) {
+                    alert('Выберите один или несколько файлов.')
+                    return
+                  }
+                  for (const f of files) {
+                    try {
+                      const url = await compressImageFile(f, {
+                        maxW: 1600,
+                        maxH: 1600,
+                        quality: 0.84,
+                        maxBytes: 2 * 1024 * 1024,
+                      })
+                      const title =
+                        draft.title.trim() && files.length === 1
+                          ? draft.title.trim()
+                          : draft.title.trim()
+                            ? `${draft.title.trim()} · ${f.name || 'файл'}`
+                            : f.name || 'Фото'
+                      r.addDoc(scope, id, { title, url, kind: 'photo' })
+                    } catch {
+                      // ignore
+                    }
+                  }
+                  setDraft({ title: '' })
+                  setFiles([])
+                  invalidateRepo()
+                }}
               >
-                Выбрать файлы
-              </button>
-              <span className="filePick__status" title={files.map((f) => f.name).join(', ')}>
-                {!files.length
-                  ? 'Файл не выбран'
-                  : files.length === 1
-                    ? files[0].name || '1 файл'
-                    : `Выбрано файлов: ${files.length}`}
-              </span>
+                Добавить
+              </Button>
             </div>
           </Field>
-        </div>
-        <div className="row gap">
-          <Button
-            className="btn"
-            variant="primary"
-            onClick={async () => {
-              if (!files.length) {
-                alert('Выберите один или несколько файлов.')
-                return
-              }
-              for (const f of files) {
-                try {
-                  const url = await compressImageFile(f, {
-                    maxW: 1600,
-                    maxH: 1600,
-                    quality: 0.84,
-                    maxBytes: 2 * 1024 * 1024,
-                  })
-                  const title =
-                    draft.title.trim() && files.length === 1
-                      ? draft.title.trim()
-                      : draft.title.trim()
-                        ? `${draft.title.trim()} · ${f.name || 'файл'}`
-                        : f.name || 'Фото'
-                  r.addDoc(scope, id, { title, url, kind: 'photo' })
-                } catch {
-                  // ignore
-                }
-              }
-              setDraft({ title: '' })
-              setFiles([])
-              invalidateRepo()
-            }}
-          >
-            Добавить
-          </Button>
         </div>
       </Card>
 
@@ -150,7 +140,7 @@ export default function DocsPage() {
               <a className="thumbCard__img" href={d.url} target="_blank" rel="noreferrer">
                 <img alt={d.title} src={d.url} />
               </a>
-              {editThumbs ? (
+              {d.source === 'owner' || mode === 'detailing' ? (
                 <button
                   type="button"
                   className="thumbX"
@@ -164,7 +154,11 @@ export default function DocsPage() {
                     }
                     const ok = confirm('Удалить этот файл?\n\nВосстановить будет невозможно.')
                     if (!ok) return
-                    r.deleteDoc(d.id)
+                    const ok2 = r.deleteDoc(d.id, scope)
+                    if (!ok2) {
+                      alert('Не удалось удалить файл (нет доступа).')
+                      return
+                    }
                     invalidateRepo()
                   }}
                 >
@@ -176,13 +170,8 @@ export default function DocsPage() {
             </div>
             <div className="thumbCard__body">
               <div className="thumbCard__title">{d.title}</div>
-              <div className="row spread gap">
-                <a className="link" href={d.url} target="_blank" rel="noreferrer">
-                  открыть →
-                </a>
-                <span className="muted small">
-                  {editThumbs ? 'Крестик на фото удаляет файл' : 'Включите «Удаление фото», чтобы убрать файлы'}
-                </span>
+              <div className="muted small">
+                {d.createdAt ? fmtDateTime(d.createdAt) : ''}
               </div>
             </div>
           </Card>

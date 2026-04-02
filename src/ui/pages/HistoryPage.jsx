@@ -1,15 +1,18 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Button, Card, Field, Input, Textarea } from '../components.jsx'
-import { fmtDateTime, fmtKm } from '../../lib/format.js'
-import { useDetailing } from '../useDetailing.js'
+import { BackNav, Button, Card, Field, Input, Textarea } from '../components.jsx'
+import { clampVisitTitle, fmtDateTime, fmtKm, normDigits, VISIT_TITLE_MAX_LEN } from '../../lib/format.js'
+import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
   DETAILING_SERVICES,
   MAINTENANCE_SERVICES,
+  splitWashDetailingServices,
   WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
+
+const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
 
 function toggle(list, item) {
   const set = new Set(Array.isArray(list) ? list : [])
@@ -25,7 +28,7 @@ function countSelected(services, items) {
   return n
 }
 
-function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
+function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange, disabled = false }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const rootRef = useRef(null)
@@ -41,6 +44,10 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
+  useEffect(() => {
+    if (disabled && open) setOpen(false)
+  }, [disabled, open])
+
   return (
     <Field label={label} hint={hint}>
       <div className="svcdd" ref={rootRef}>
@@ -48,6 +55,7 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
           <button
             type="button"
             className="input svcdd__btn"
+            disabled={disabled}
             onClick={() => {
               setOpen((v) => {
                 const nextOpen = !v
@@ -73,11 +81,13 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
                   placeholder="Поиск услуги…"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
+                  disabled={disabled}
                 />
                 <button
                   type="button"
                   className="btn"
                   data-variant="ghost"
+                  disabled={disabled}
                   onClick={() => {
                     onChange([])
                     setQ('')
@@ -89,6 +99,7 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
                   type="button"
                   className="btn"
                   data-variant="primary"
+                  disabled={disabled}
                   onClick={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
@@ -121,6 +132,7 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
                               type="button"
                               key={it}
                               className={`svcdd__item ${checked ? 'is-on' : ''}`}
+                              disabled={disabled}
                               onClick={() => onChange(toggle(selected, it))}
                             >
                               <span className="svcdd__check">{checked ? '✓' : ''}</span>
@@ -152,7 +164,11 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
                 type="button"
                 key={s}
                 className="svcdd__chip"
-                onClick={() => onChange(toggle(selected, s))}
+                disabled={disabled}
+                onClick={() => {
+                  if (disabled) return
+                  onChange(toggle(selected, s))
+                }}
                 title="Убрать"
               >
                 {s} <span aria-hidden>×</span>
@@ -168,13 +184,16 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange }) {
 export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
-  const { detailingId, owner, mode } = useDetailing()
+  const { detailingId, detailing, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
+  const baseMileageKm = car ? Number(car.mileageKm) || 0 : 0
   const [sp, setSp] = useSearchParams()
   const nav = useNavigate()
   const fromRaw = sp.get('from') || ''
   const from = fromRaw ? decodeURIComponent(fromRaw) : ''
+  const wantNew = sp.get('new') === '1'
+  const editParam = sp.get('edit')
 
   const events = useMemo(() => {
     if (!car) return []
@@ -183,11 +202,11 @@ export default function HistoryPage() {
   }, [car, id, r, mode, owner?.email, detailingId])
   const serviceEvents = useMemo(() => events.filter((e) => e.source === 'service'), [events])
   const ownerEvents = useMemo(() => events.filter((e) => e.source === 'owner'), [events])
-  const [tab, setTab] = useState('service') // service|owner
+  const [tab, setTab] = useState('all') // all|service|owner
   useEffect(() => {
     if (mode !== 'owner') return
     const t = sp.get('t')
-    if (t === 'owner' || t === 'service') setTab(t)
+    if (t === 'all' || t === 'owner' || t === 'service') setTab(t)
   }, [sp, mode])
 
   const [draft, setDraft] = useState({
@@ -202,31 +221,89 @@ export default function HistoryPage() {
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const formRef = useRef(null)
+  const initFormKeyRef = useRef('')
   const visitPhotosInputId = useId()
   const visitPhotosInputRef = useRef(null)
+
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+  const isWithinEditWindow = useCallback(
+    (e) => {
+      const base = e?.updatedAt || e?.createdAt || e?.at || null
+      const t = base ? new Date(base).getTime() : NaN
+      if (!Number.isFinite(t)) return false
+      return nowMs - t <= EDIT_WINDOW_MS
+    },
+    [nowMs],
+  )
+
+  const canOpen = useCallback((e) => {
+    if (!e) return false
+    if (mode === 'detailing') return e.source === 'service'
+    if (mode === 'owner') return e.source === 'owner'
+    return false
+  }, [mode])
 
   const canEdit = (e) => {
     if (!e) return false
     if (e.source !== 'service') return false
     if (mode !== 'detailing') return false
-    return true
+    return isWithinEditWindow(e)
   }
 
+  const canEditOwner = (e) => {
+    if (!e) return false
+    if (mode !== 'owner') return false
+    if (e.source !== 'owner') return false
+    return isWithinEditWindow(e)
+  }
+
+  const canEditAny = (e) => canEdit(e) || canEditOwner(e)
+
   useEffect(() => {
-    const wantNew = sp.get('new') === '1'
-    const edit = sp.get('edit')
+    if (!wantNew) {
+      initFormKeyRef.current = ''
+      return
+    }
+
+    const key = `new=1&edit=${editParam || ''}`
+    if (initFormKeyRef.current === key) return
+    initFormKeyRef.current = key
+
     if (wantNew) {
       setShowNew(true)
       // если есть edit=<id> — открываем редактирование, иначе это новая запись
-      if (edit) {
-        setEditingId(edit)
+      if (editParam) {
+        const evt = events.find((x) => x.id === editParam) || null
+        if (evt && canOpen(evt)) {
+          setEditingId(editParam)
+          setDraft({
+            title: clampVisitTitle(evt.title || ''),
+            mileageKm: evt.mileageKm || '',
+            note: evt.note || '',
+            services: Array.isArray(evt.services) ? evt.services : [],
+            maintenanceServices: Array.isArray(evt.maintenanceServices) ? evt.maintenanceServices : [],
+            type: evt.type || 'visit',
+          })
+          setFiles([])
+        } else {
+          setShowNew(false)
+          setEditingId(null)
+          const next = new URLSearchParams(sp)
+          next.delete('new')
+          next.delete('edit')
+          setSp(next, { replace: true })
+        }
       } else {
         setEditingId(null)
         setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
         setFiles([])
       }
     }
-  }, [sp])
+  }, [wantNew, editParam, events, mode, canOpen, setSp, sp])
 
   useEffect(() => {
     if (!showNew) return
@@ -234,10 +311,34 @@ export default function HistoryPage() {
   }, [showNew])
 
   const title = useMemo(() => (car ? `${car.make} ${car.model}` : ''), [car])
+  const detForBadge = useMemo(() => {
+    const detId = car?.detailingId
+    if (!detId || !r.getDetailing) return null
+    return r.getDetailing(detId) || null
+  }, [car?.detailingId, r])
+  const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
+  const detBadgeInitials = useMemo(() => {
+    const nm = String(detForBadge?.name || 'Д').trim()
+    return nm.slice(0, 2).toUpperCase()
+  }, [detForBadge?.name])
 
-  const visibleEvents = mode === 'owner' ? (tab === 'owner' ? ownerEvents : serviceEvents) : events
+  const visibleEvents =
+    mode === 'owner'
+      ? tab === 'owner'
+        ? ownerEvents
+        : tab === 'service'
+          ? serviceEvents
+          : events
+      : events
 
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
   if (!car) return <Navigate to="/cars" replace />
+
+  const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
+  const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
+  const isEditing = Boolean(editingId)
+  const formLocked = isEditing && !editAllowed
+  const editingPhotos = editingId && editAllowed ? r.listDocs(id, scope, { eventId: editingId }) : []
 
   return (
     <div className="container">
@@ -249,12 +350,9 @@ export default function HistoryPage() {
             <span>История</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <button className="carBack" type="button" title="Назад" onClick={() => nav(-1)}>
-              <span className="chev chev--left" aria-hidden="true" />
-              <span className="srOnly">Назад</span>
-            </button>
+            <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
-              История — {title}
+              {title}
             </h1>
           </div>
           <p className="muted">События: ТО, ремонты, детейлинг, заметки.</p>
@@ -264,8 +362,20 @@ export default function HistoryPage() {
       <div className="row spread gap" style={{ marginTop: 10 }}>
         <div className="row gap wrap">
           <div className="muted small">История обслуживания автомобиля.</div>
-          {mode === 'owner' ? (
-            <div className="row gap wrap">
+          {mode === 'owner' && serviceEvents.length > 0 && ownerEvents.length > 0 ? (
+            <div className="row gap wrap" aria-label="Фильтр истории">
+              <button
+                className="btn"
+                data-variant={tab === 'all' ? 'primary' : 'ghost'}
+                onClick={() => {
+                  setTab('all')
+                  const next = new URLSearchParams(sp)
+                  next.set('t', 'all')
+                  setSp(next, { replace: true })
+                }}
+              >
+                Все ({events.length})
+              </button>
               <button
                 className="btn"
                 data-variant={tab === 'service' ? 'primary' : 'ghost'}
@@ -307,18 +417,82 @@ export default function HistoryPage() {
             setSp(next, { replace: true })
           }}
         >
-          Новая история
+          Новый визит
         </button>
       </div>
 
       <div className="list">
-        {visibleEvents.map((e) => (
-          <Card key={e.id} className="card pad">
+        {visibleEvents.map((e) => {
+          const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
+          return (
+          <Card
+            key={e.id}
+            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}`}
+            role={canOpen(e) ? 'button' : undefined}
+            tabIndex={canOpen(e) ? 0 : undefined}
+            onClick={() => {
+              if (!canOpen(e)) return
+              setEditingId(e.id)
+              setShowNew(true)
+              setDraft({
+                title: clampVisitTitle(e.title || ''),
+                mileageKm: e.mileageKm || '',
+                note: e.note || '',
+                services: Array.isArray(e.services) ? e.services : [],
+                maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
+                type: e.type || 'visit',
+              })
+              setFiles([])
+              const next = new URLSearchParams(sp)
+              next.set('new', '1')
+              next.set('edit', e.id)
+              if (mode === 'owner') next.set('t', 'owner')
+              setSp(next, { replace: true })
+            }}
+            onKeyDown={(ev) => {
+              if (!canOpen(e)) return
+              if (ev.key !== 'Enter' && ev.key !== ' ') return
+              ev.preventDefault()
+              ev.stopPropagation()
+              setEditingId(e.id)
+              setShowNew(true)
+              setDraft({
+                title: clampVisitTitle(e.title || ''),
+                mileageKm: e.mileageKm || '',
+                note: e.note || '',
+                services: Array.isArray(e.services) ? e.services : [],
+                maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
+                type: e.type || 'visit',
+              })
+              setFiles([])
+              const next = new URLSearchParams(sp)
+              next.set('new', '1')
+              next.set('edit', e.id)
+              if (mode === 'owner') next.set('t', 'owner')
+              setSp(next, { replace: true })
+            }}
+            aria-label={canOpen(e) ? 'Открыть визит' : undefined}
+            title={canOpen(e) ? (canEditAny(e) ? 'Нажмите, чтобы отредактировать' : 'Нажмите, чтобы посмотреть') : undefined}
+          >
             <div className="row spread gap eventRow">
-              <div>
+              <div className="eventMain">
+                {mode === 'owner' && e.source === 'service' ? (
+                  <div className="detBadge" title={detBadgeLabel} aria-label={detBadgeLabel}>
+                    {detForBadge?.logo ? (
+                      <img alt="" src={detForBadge.logo} />
+                    ) : (
+                      <span aria-hidden="true">{detBadgeInitials}</span>
+                    )}
+                  </div>
+                ) : null}
                 <div className="rowItem__title">{e.title || 'Событие'}</div>
                 <div className="rowItem__meta">
-                  {fmtDateTime(e.at)} • {fmtKm(e.mileageKm)}
+                  <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
+                  <span className="eventMeta__sep" aria-hidden="true">
+                    {' '}
+                    ·{' '}
+                  </span>
+                  <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
                 </div>
                 {e.source === 'service' ? (
                   <div className="muted small" style={{ marginTop: 6 }}>
@@ -326,10 +500,19 @@ export default function HistoryPage() {
                   </div>
                 ) : null}
                 {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
-                  <div className="rowItem__sub">ТО: {e.maintenanceServices.join(', ')}</div>
+                  <div className="rowItem__sub">
+                    <span className="eventLabel">ТО:</span> {e.maintenanceServices.join(', ')}
+                  </div>
                 ) : null}
-                {Array.isArray(e.services) && e.services.length ? (
-                  <div className="rowItem__sub">Детейлинг: {e.services.join(', ')}</div>
+                {washList.length ? (
+                  <div className="rowItem__sub">
+                    <span className="eventLabel">Уход:</span> {washList.join(', ')}
+                  </div>
+                ) : null}
+                {detList.length ? (
+                  <div className="rowItem__sub">
+                    <span className="eventLabel">Детейлинг:</span> {detList.join(', ')}
+                  </div>
                 ) : null}
                 {(() => {
                   const photos = r.listDocs(id, scope, { eventId: e.id })
@@ -338,32 +521,15 @@ export default function HistoryPage() {
                     <div className="thumbs" style={{ marginTop: 10 }}>
                       {photos.slice(0, 6).map((d) => (
                         <div key={d.id} className="thumbWrap" title={d.title}>
-                          <a className="thumb" href={d.url} target="_blank" rel="noreferrer">
+                          <a
+                            className="thumb"
+                            href={d.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(ev) => ev.stopPropagation()}
+                          >
                             <img alt={d.title} src={d.url} />
                           </a>
-                          {showNew && editingId === e.id ? (
-                            <button
-                              type="button"
-                              className="thumbX"
-                              title="Удалить фото"
-                              onClick={(ev) => {
-                                ev.preventDefault()
-                                ev.stopPropagation()
-                                if (d.source === 'service' && mode === 'owner') {
-                                  alert('Подтверждённые фото детейлинга нельзя удалять из кабинета владельца.')
-                                  return
-                                }
-                                const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
-                                if (!ok) return
-                                r.deleteDoc(d.id)
-                                invalidateRepo()
-                              }}
-                            >
-                              <span className="thumbX__icon" aria-hidden="true">
-                                ×
-                              </span>
-                            </button>
-                          ) : null}
                         </div>
                       ))}
                     </div>
@@ -371,78 +537,10 @@ export default function HistoryPage() {
                 })()}
                 {e.note ? <div className="note">{e.note}</div> : null}
               </div>
-              <div className="eventActions">
-                {e.source === 'service' && canEdit(e) ? (
-                  <button
-                    className="btn"
-                    data-variant="outline"
-                    onClick={() => {
-                      setEditingId(e.id)
-                      setShowNew(true)
-                      setDraft({
-                        title: e.title || '',
-                        mileageKm: e.mileageKm || '',
-                        note: e.note || '',
-                        services: Array.isArray(e.services) ? e.services : [],
-                        maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
-                        type: e.type || 'visit',
-                      })
-                      setFiles([])
-                      const next = new URLSearchParams(sp)
-                      next.set('new', '1')
-                      next.set('edit', e.id)
-                      setSp(next, { replace: true })
-                    }}
-                  >
-                    Редактировать
-                  </button>
-                ) : null}
-
-                {e.source === 'owner' ? (
-                  <div className="row gap wrap eventActions__row">
-                    <button
-                      className="btn"
-                      data-variant="outline"
-                      onClick={() => {
-                        setEditingId(e.id)
-                        setShowNew(true)
-                        setDraft({
-                          title: e.title || '',
-                          mileageKm: e.mileageKm || '',
-                          note: e.note || '',
-                          services: Array.isArray(e.services) ? e.services : [],
-                          maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
-                          type: e.type || 'visit',
-                        })
-                        setFiles([])
-                        const next = new URLSearchParams(sp)
-                        next.set('new', '1')
-                        next.set('edit', e.id)
-                        next.set('t', 'owner')
-                        setSp(next, { replace: true })
-                      }}
-                    >
-                      Редактировать
-                    </button>
-                    <button
-                      className="btn"
-                      data-variant="danger"
-                      onClick={() => {
-                        const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
-                        if (!ok) return
-                        const res = r.deleteEvent(e.id, scope)
-                        if (!res) alert('Нельзя удалить это событие.')
-                        invalidateRepo()
-                      }}
-                    >
-                      Удалить
-                    </button>
-                  </div>
-                ) : null}
-              </div>
             </div>
           </Card>
-        ))}
+          )
+        })}
         {visibleEvents.length === 0 ? (
           <Card className="card pad">
             <div className="muted">Событий пока нет.</div>
@@ -452,23 +550,44 @@ export default function HistoryPage() {
 
       {showNew ? (
         <Card className="card pad" style={{ marginTop: 12 }} ref={formRef}>
-          <h2 className="h2">{editingId ? 'Редактировать визит (30 минут)' : 'Добавить визит / событие'}</h2>
+          <h2 className="h2">{editingId ? 'Редактировать визит' : 'Добавить визит / событие'}</h2>
+          {editingId && !editAllowed ? (
+            <div className="muted small" style={{ marginTop: 6 }}>
+              Редактирование доступно только в течение 3 часов после сохранения визита.
+            </div>
+          ) : null}
           <div className="formGrid historyFormGrid">
-            <Field label="Заголовок">
+            <Field
+              label="Заголовок"
+              hint={`до ${VISIT_TITLE_MAX_LEN} символов, пробелы считаются`}
+            >
               <Input
                 className="input"
                 value={draft.title}
-                onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-                placeholder="ТО-2 / Замена колодок / Заметка…"
+                maxLength={VISIT_TITLE_MAX_LEN}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, title: clampVisitTitle(e.target.value) }))
+                }
+                placeholder="ТО-2 / Визит…"
+                disabled={formLocked}
               />
             </Field>
-            <Field label="Пробег (км)">
+            <Field label="Пробег (км)" hint={baseMileageKm ? `мин. ${baseMileageKm} км` : undefined}>
               <Input
                 className="input"
                 inputMode="numeric"
                 value={draft.mileageKm}
-                onChange={(e) => setDraft((d) => ({ ...d, mileageKm: e.target.value }))}
-                placeholder="20000"
+                maxLength={7}
+                onChange={(e) =>
+                  setDraft((d) => {
+                    const nextRaw = normDigits(e.target.value, { maxLen: 7 })
+                    const n = nextRaw ? Number(nextRaw) : 0
+                    if (Number.isFinite(n) && n > 1000000) return d // мягко блокируем ввод сверх лимита
+                    return { ...d, mileageKm: nextRaw }
+                  })
+                }
+                placeholder={baseMileageKm ? String(baseMileageKm) : '20000'}
+                disabled={formLocked}
               />
             </Field>
             {mode === 'owner' ? (
@@ -479,16 +598,60 @@ export default function HistoryPage() {
                 catalog={MAINTENANCE_SERVICES}
                 value={draft.maintenanceServices}
                 onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+                disabled={formLocked}
               />
             ) : null}
             <ServicePicker
-              label="Услуги детейлинга"
-              hint="Выберите услуги из выпадающего списка"
+              label="Детейлинг"
+              hint="Можно выбрать несколько услуг из списка"
               ariaLabel="Выбор услуг детейлинга"
               catalog={DETAILING_SERVICES}
               value={draft.services}
               onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+              disabled={formLocked}
             />
+            {editingId ? (
+              <Field label="Фото визита" hint={editingPhotos.length ? `загружено: ${editingPhotos.length}` : 'пока нет фото'}>
+                {editingPhotos.length ? (
+                  <div className="thumbs thumbs--big" style={{ marginTop: 6 }}>
+                    {editingPhotos.map((d) => (
+                      <div key={d.id} className="thumbWrap" title={d.title}>
+                        <a className="thumb" href={d.url} target="_blank" rel="noreferrer">
+                          <img alt={d.title} src={d.url} />
+                        </a>
+                        {editAllowed ? (
+                          <button
+                            type="button"
+                            className="thumbX"
+                            title="Удалить фото"
+                            onClick={(ev) => {
+                              ev.preventDefault()
+                              ev.stopPropagation()
+                              const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
+                              if (!ok) return
+                              const ok2 = r.deleteDoc(d.id, scope)
+                              if (!ok2) {
+                                alert('Не удалось удалить фото (нет доступа или время редактирования истекло).')
+                                return
+                              }
+                              invalidateRepo()
+                            }}
+                          >
+                            <span className="thumbX__icon" aria-hidden="true">
+                              ×
+                            </span>
+                          </button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="muted small" style={{ marginTop: 6 }}>
+                    Фото визита будут здесь.
+                  </div>
+                )}
+              </Field>
+            ) : null}
             <Field
               label={
                 <span>
@@ -506,12 +669,14 @@ export default function HistoryPage() {
                   multiple
                   ref={visitPhotosInputRef}
                   onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                  disabled={formLocked}
                 />
                 <button
                   type="button"
                   className="btn filePick__btn"
                   data-variant="outline"
                   onClick={() => visitPhotosInputRef.current?.click?.()}
+                  disabled={formLocked}
                 >
                   Выбрать файлы
                 </button>
@@ -531,6 +696,7 @@ export default function HistoryPage() {
                 value={draft.note}
                 onChange={(e) => setDraft((d) => ({ ...d, note: e.target.value }))}
                 placeholder="Что сделали, где, сколько стоило, гарантия…"
+                disabled={formLocked}
               />
             </Field>
           </div>
@@ -538,10 +704,20 @@ export default function HistoryPage() {
             <Button
               className="btn"
               variant="primary"
+              disabled={formLocked}
               onClick={async () => {
                 try {
+                  if (editingId && !editAllowed) {
+                    alert('Редактирование визита доступно только в течение 3 часов после сохранения.')
+                    return
+                  }
+                  const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                  if (baseMileageKm && nextMileage < baseMileageKm) {
+                    alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
+                    return
+                  }
                   const payload = {
-                    title: draft.title,
+                    title: clampVisitTitle(draft.title),
                     mileageKm: draft.mileageKm,
                     note: draft.note,
                     services: Array.isArray(draft.services) ? draft.services : [],
@@ -615,6 +791,36 @@ export default function HistoryPage() {
             >
               Сохранить
             </Button>
+            {editingId && editingEvent && canEditAny(editingEvent) ? (
+              <button
+                className="btn"
+                data-variant="danger"
+                type="button"
+                disabled={!editAllowed}
+                onClick={() => {
+                  if (!editAllowed) {
+                    alert('Удаление доступно только в течение 3 часов после сохранения визита.')
+                    return
+                  }
+                  const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
+                  if (!ok) return
+                  const res = r.deleteEvent(editingId, scope)
+                  if (!res) {
+                    alert('Нельзя удалить это событие.')
+                    return
+                  }
+                  invalidateRepo()
+                  setShowNew(false)
+                  setEditingId(null)
+                  const next = new URLSearchParams(sp)
+                  next.delete('new')
+                  next.delete('edit')
+                  setSp(next, { replace: true })
+                }}
+              >
+                Удалить
+              </button>
+            ) : null}
             {mode === 'detailing' && from ? (
               <button
                 className="btn"
@@ -622,8 +828,13 @@ export default function HistoryPage() {
                 onClick={async () => {
                   // Сохраняем и возвращаемся в список авто (удобно для потока по нескольким авто)
                   try {
+                    const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                    if (baseMileageKm && nextMileage < baseMileageKm) {
+                      alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
+                      return
+                    }
                     const payload = {
-                      title: draft.title,
+                      title: clampVisitTitle(draft.title),
                       mileageKm: draft.mileageKm,
                       note: draft.note,
                       services: Array.isArray(draft.services) ? draft.services : [],

@@ -77,7 +77,11 @@ export default function OwnerSupportDropdown() {
                 className="footerHelpDd__item"
                 onClick={async () => {
                   setOpen(false)
-                  const share = activeShare || (await r.createShare(carId))
+                  const share = activeShare || (await r.createShare(carId, { ownerEmail: owner?.email }))
+                  if (!share) {
+                    alert('Не удалось создать ссылку (нет доступа к авто).')
+                    return
+                  }
                   invalidateRepo()
                   const url = `${location.origin}/share/${share.token}`
                   try {
@@ -135,6 +139,27 @@ export default function OwnerSupportDropdown() {
             }}
           >
             Написать в поддержку
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="footerHelpDd__item"
+            onClick={() => {
+              setOpen(false)
+              if (!owner?.email || !r.updateOwner) {
+                alert('Не удалось обновить тариф.')
+                return
+              }
+              const next = r.updateOwner(owner.email, { isPremium: !owner.isPremium })
+              if (!next) {
+                alert('Не удалось обновить тариф.')
+                return
+              }
+              invalidateRepo()
+              alert(next.isPremium ? 'Premium подключён (демо).' : 'Premium отключён (демо).')
+            }}
+          >
+            {owner?.isPremium ? 'Отключить Premium (демо)' : 'Подключить Premium (демо)'}
           </button>
         </div>
       ) : null}

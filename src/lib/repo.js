@@ -1,12 +1,22 @@
 import { readLS, removeLS, resetAll, writeLS } from './storage.js'
 import { makeId, seedCars, seedEvents } from './seed.js'
 import { splitLegacyCombinedServices } from './serviceCatalogs.js'
+import {
+  clampVisitTitle,
+  fmtPlateFull,
+  normPlateBase,
+  normPlateRegion,
+  normVin,
+  OWNER_DEMO_PASSWORD,
+  parsePlateFull,
+} from './format.js'
 
 const CARS_KEY = 'cars'
 const EVENTS_KEY = 'events'
 const DOCS_KEY = 'docs'
 const SHARES_KEY = 'shares'
 const DETAILINGS_KEY = 'detailings'
+const OWNERS_KEY = 'owners'
 const HERO_PREFIX = 'carHero.'
 const WASH_PREFIX = 'carWash.'
 const CLAIMS_KEY = 'carClaims'
@@ -20,7 +30,7 @@ function ensureSeeded() {
   const detailings = [
     {
       id: 'det_seed',
-      name: 'Not. Moiko. (демо)',
+      name: 'Демо-детейлинг',
       email: 'test@test',
       password: '1111',
       pin: '1234',
@@ -42,6 +52,22 @@ function ensureSeeded() {
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+const EVENT_EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
+
+function isWithinEditWindow(evt) {
+  if (!evt) return false
+  const base = evt.updatedAt || evt.createdAt || evt.at || null
+  const t = base ? new Date(base).getTime() : NaN
+  if (!Number.isFinite(t)) return false
+  return Date.now() - t <= EVENT_EDIT_WINDOW_MS
+}
+
+function clampInt(n, { min = 0, max = 1000000 } = {}) {
+  const v = Number(n)
+  if (!Number.isFinite(v)) return min
+  return Math.min(Math.max(min, Math.trunc(v)), Math.trunc(max))
 }
 
 export function repo() {
@@ -88,6 +114,19 @@ export function repo() {
       .toLowerCase()
   }
 
+  function normPhone(s) {
+    const raw = String(s || '').trim()
+    if (!raw) return ''
+    const digits = raw.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    // RU-friendly normalизация: 8XXXXXXXXXX -> +7XXXXXXXXXX, 9XXXXXXXXX -> +79XXXXXXXXX
+    let d = digits
+    if (d.length === 11 && d.startsWith('8')) d = `7${d.slice(1)}`
+    else if (d.length === 10) d = `7${d}`
+    // 11 цифр с ведущей 7 — уже в формате кода страны
+    return `+${d}`
+  }
+
   function migrateDetailing(d) {
     if (!d) return d
     const pin = String(d.pin || '1234')
@@ -104,17 +143,65 @@ export function repo() {
           ? '1111'
           : pin
     const phone = d.phone != null ? String(d.phone).trim() : ''
-    return { ...d, pin, email, password, phone }
+    const city = d.city != null ? String(d.city).trim() : ''
+    const address = d.address != null ? String(d.address).trim() : ''
+    const description = d.description != null ? String(d.description).trim() : ''
+    const website = d.website != null ? String(d.website).trim() : ''
+    const telegram = d.telegram != null ? String(d.telegram).trim() : ''
+    const instagram = d.instagram != null ? String(d.instagram).trim() : ''
+    const logo = d.logo != null ? String(d.logo).trim() : ''
+    const cover = d.cover != null ? String(d.cover).trim() : ''
+    // Явно false только у новых регистраций; отсутствие поля = старые данные, считаем профиль заполненным
+    const profileCompleted = d.profileCompleted != null ? Boolean(d.profileCompleted) : true
+    return {
+      ...d,
+      pin,
+      email,
+      password,
+      phone,
+      city,
+      address,
+      description,
+      website,
+      telegram,
+      instagram,
+      logo,
+      cover,
+      profileCompleted,
+    }
+  }
+
+  function migrateOwner(o) {
+    if (!o) return o
+    const email = o.email != null ? normEmail(o.email) : ''
+    const password = o.password != null ? String(o.password) : ''
+    const name = o.name != null ? String(o.name).trim() : ''
+    const phone = o.phone != null ? String(o.phone).trim() : ''
+    const isPremium = o.isPremium != null ? Boolean(o.isPremium) : false
+    const createdAt = o.createdAt || nowIso()
+    const updatedAt = o.updatedAt || createdAt
+    return { ...o, email, password, name, phone, isPremium, createdAt, updatedAt }
   }
 
   function migrateCar(c) {
     if (c == null) return c
     const next = { ...c }
+    if (next.vin != null) next.vin = normVin(next.vin)
+    if (next.plateRegion == null) next.plateRegion = ''
+    // миграция: если раньше в plate хранили вместе с регионом (A777AA77) — разнесём
+    if (next.plate && !next.plateRegion) {
+      const parsed = parsePlateFull(next.plate)
+      next.plate = parsed.plate
+      next.plateRegion = parsed.plateRegion
+    } else {
+      next.plate = normPlateBase(next.plate)
+      next.plateRegion = normPlateRegion(next.plateRegion)
+    }
     if (next.priceRub == null && next.priceUsd != null) {
       next.priceRub = Math.round(Number(next.priceUsd) * 95)
     }
     if (next.segment == null) next.segment = Number(next.priceRub) >= 6000000 ? 'premium' : 'mass'
-    if (next.seller == null) next.seller = { name: 'Not. Moiko.', type: 'service' }
+    if (next.seller == null) next.seller = { name: 'Демо-детейлинг', type: 'service' }
     // Демо-детейлинг по умолчанию только для карточек без владельца (инвентарь сервиса).
     // Личный гараж (есть ownerEmail) без привязки к СТО остаётся с detailingId = null —
     // иначе авто попадало бы в список детейлинга без заявки по VIN.
@@ -122,6 +209,11 @@ export function repo() {
       next.detailingId = 'det_seed'
     }
     if (next.ownerEmail == null) next.ownerEmail = null
+    if (next.ownerPhone == null) next.ownerPhone = ''
+    if (next.clientName == null) next.clientName = ''
+    if (next.clientPhone == null) next.clientPhone = ''
+    if (next.clientEmail == null) next.clientEmail = ''
+    if (next.sellerId == null) next.sellerId = next.detailingId || null
 
     // Переносим тяжелую обложку в отдельный ключ, чтобы не переписывать весь массив cars
     if (next.hero) {
@@ -153,6 +245,7 @@ export function repo() {
     if (next.ownerEmail == null) next.ownerEmail = null
     if (next.createdAt == null) next.createdAt = next.at || nowIso()
     if (next.updatedAt == null) next.updatedAt = next.createdAt
+    next.title = clampVisitTitle(next.title ?? '')
     return next
   }
 
@@ -184,7 +277,91 @@ export function repo() {
     return migrated
   }
 
+  function hasCarAccess(car, scope) {
+    if (!car) return false
+    const detId = scope?.detailingId ? String(scope.detailingId || '') : ''
+    const ownerEmail = scope?.ownerEmail ? normEmail(scope.ownerEmail) : ''
+    if (detId) return String(car.detailingId || '') === detId
+    if (ownerEmail) return normEmail(car.ownerEmail) === ownerEmail
+    return false
+  }
+
+  function hasDocAccess(doc, scope) {
+    if (!doc) return false
+    const detId = scope?.detailingId ? String(scope.detailingId || '') : ''
+    const ownerEmail = scope?.ownerEmail ? normEmail(scope.ownerEmail) : ''
+    if (detId) return doc.source === 'service' && String(doc.detailingId || '') === detId
+    if (ownerEmail) return doc.source === 'owner' && normEmail(doc.ownerEmail) === ownerEmail
+    return false
+  }
+
   return {
+    // ===== owners (MVP local auth) =====
+    listOwners() {
+      const arr = readLS(OWNERS_KEY, [])
+      const migrated = (Array.isArray(arr) ? arr : []).map(migrateOwner)
+      writeLS(OWNERS_KEY, migrated)
+      return migrated
+    },
+    getOwner(email) {
+      const em = normEmail(email)
+      if (!em) return null
+      return this.listOwners().find((x) => normEmail(x.email) === em) || null
+    },
+    registerOwner({ email, password, name, phone }) {
+      const em = normEmail(email)
+      const pwd = String(password || '').trim()
+      if (!em) return { ok: false, reason: 'bad_email' }
+      if (pwd !== OWNER_DEMO_PASSWORD) return { ok: false, reason: 'bad_password' }
+      const all = this.listOwners()
+      if (all.some((x) => normEmail(x.email) === em)) return { ok: false, reason: 'email_taken' }
+      const createdAt = nowIso()
+      const o = {
+        id: makeId('own'),
+        email: em,
+        password: OWNER_DEMO_PASSWORD,
+        name: String(name || '').trim(),
+        phone: String(phone || '').trim(),
+        isPremium: false,
+        createdAt,
+        updatedAt: createdAt,
+      }
+      writeLS(OWNERS_KEY, [o, ...all])
+      return { ok: true, owner: o }
+    },
+    loginOwner({ email, password }) {
+      const em = normEmail(email)
+      const pwd = String(password || '').trim()
+      if (!em || !pwd) return { ok: false, reason: 'bad_credentials' }
+      if (pwd !== OWNER_DEMO_PASSWORD) return { ok: false, reason: 'bad_password' }
+      const o = this.getOwner(em)
+      if (!o) return { ok: false, reason: 'not_found' }
+      return { ok: true, owner: o }
+    },
+    updateOwner(email, patch) {
+      const em = normEmail(email)
+      if (!em) return null
+      const all = this.listOwners()
+      const idx = all.findIndex((x) => normEmail(x.email) === em)
+      if (idx < 0) return null
+      const prev = all[idx]
+      const next = {
+        ...prev,
+        ...(patch || {}),
+        id: prev.id,
+        email: prev.email,
+        password: prev.password,
+        name: patch?.name == null ? prev.name : String(patch.name || '').trim(),
+        phone: patch?.phone == null ? prev.phone : String(patch.phone || '').trim(),
+        isPremium: patch?.isPremium == null ? prev.isPremium : Boolean(patch.isPremium),
+        updatedAt: nowIso(),
+      }
+      const copy = all.slice()
+      copy[idx] = next
+      writeLS(OWNERS_KEY, copy)
+      return next
+    },
+
     listOwnerCars(ownerEmail) {
       return this.listCars({ ownerEmail: normEmail(ownerEmail) })
     },
@@ -218,6 +395,15 @@ export function repo() {
         phone: phon,
         password: finalPwd,
         pin: finalPwd,
+        city: '',
+        address: '',
+        description: '',
+        website: '',
+        telegram: '',
+        instagram: '',
+        logo: '',
+        cover: '',
+        profileCompleted: false,
         createdAt: nowIso(),
       }
       writeLS(DETAILINGS_KEY, [d, ...ds])
@@ -231,6 +417,45 @@ export function repo() {
       if (!d) return { ok: false, reason: 'not_found' }
       if (pwd !== String(d.password || '').trim()) return { ok: false, reason: 'bad_password' }
       return { ok: true, detailing: d }
+    },
+
+    updateDetailing(id, patch, { detailingId } = {}) {
+      const detId = String(detailingId || '')
+      if (!id || !detId || String(id) !== detId) return null
+
+      const ds = readLS(DETAILINGS_KEY, []).map(migrateDetailing)
+      writeLS(DETAILINGS_KEY, ds)
+      const idx = ds.findIndex((x) => x.id === id)
+      if (idx < 0) return null
+      const prev = ds[idx]
+
+      const next = {
+        ...prev,
+        ...(patch || {}),
+        id: prev.id,
+        email: prev.email,
+        pin: prev.pin,
+        password: prev.password,
+        phone: patch?.phone == null ? prev.phone : String(patch.phone || '').trim(),
+        name: patch?.name == null ? prev.name : String(patch.name || '').trim(),
+        city: patch?.city == null ? prev.city : String(patch.city || '').trim(),
+        address: patch?.address == null ? prev.address : String(patch.address || '').trim(),
+        description: patch?.description == null ? prev.description : String(patch.description || '').trim(),
+        website: patch?.website == null ? prev.website : String(patch.website || '').trim(),
+        telegram: patch?.telegram == null ? prev.telegram : String(patch.telegram || '').trim(),
+        instagram: patch?.instagram == null ? prev.instagram : String(patch.instagram || '').trim(),
+        logo: patch?.logo == null ? prev.logo : String(patch.logo || '').trim(),
+        cover: patch?.cover == null ? prev.cover : String(patch.cover || '').trim(),
+        profileCompleted:
+          patch && Object.prototype.hasOwnProperty.call(patch, 'profileCompleted')
+            ? Boolean(patch.profileCompleted)
+            : prev.profileCompleted,
+        updatedAt: nowIso(),
+      }
+      const copy = ds.slice()
+      copy[idx] = next
+      writeLS(DETAILINGS_KEY, copy)
+      return next
     },
 
     listCars(detailingId) {
@@ -292,30 +517,38 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      if (ownerEmail) {
-        const existing = this.listCars({ ownerEmail })
-        if (existing.length >= 1) return { error: 'owner_limit' }
-      }
-
       const cars = readLS(CARS_KEY, [])
       const createdAt = nowIso()
       const hero = input.hero?.trim() || ''
+      const det = detId ? this.getDetailing(detId) : null
+      const sellerFromDet =
+        detId && det?.name
+          ? { id: detId, name: String(det.name || '').trim(), type: 'service' }
+          : detId
+            ? { id: detId, name: 'Сервис', type: 'service' }
+            : null
       const car = {
         id: makeId('car'),
         detailingId: detId,
         ownerEmail,
-        vin: input.vin?.trim() || '',
-        plate: input.plate?.trim() || '',
+        ownerPhone: input.ownerPhone?.trim() || '',
+        clientName: String(input.clientName || '').trim(),
+        clientPhone: normPhone(input.clientPhone),
+        clientEmail: input.clientEmail ? normEmail(input.clientEmail) : '',
+        vin: normVin(input.vin),
+        plate: normPlateBase(input.plate),
+        plateRegion: normPlateRegion(input.plateRegion),
         make: input.make?.trim() || '',
         model: input.model?.trim() || '',
         year: Number(input.year) || null,
-        mileageKm: Number(input.mileageKm) || 0,
+        mileageKm: clampInt(input.mileageKm, { min: 0, max: 1000000 }),
         priceRub: Number(input.priceRub ?? input.priceUsd) || 0,
         color: input.color?.trim() || '',
         city: input.city?.trim() || '',
         hero: '',
         segment: Number(input.priceRub ?? 0) >= 6000000 ? 'premium' : 'mass',
-        seller: input.seller || { name: 'Not. Moiko.', type: 'service' },
+        sellerId: detId || null,
+        seller: input.seller || sellerFromDet || { name: 'Демо-детейлинг', type: 'service' },
         createdAt,
         updatedAt: createdAt,
       }
@@ -365,8 +598,17 @@ export function repo() {
       const next = {
         ...prev,
         ...patch,
+        vin: patch?.vin == null ? prev.vin : normVin(patch.vin),
+        plate: patch?.plate == null ? prev.plate : normPlateBase(patch.plate),
+        plateRegion: patch?.plateRegion == null ? prev.plateRegion : normPlateRegion(patch.plateRegion),
+        clientName: patch.clientName == null ? prev.clientName : String(patch.clientName || '').trim(),
+        clientPhone: patch.clientPhone == null ? prev.clientPhone : normPhone(patch.clientPhone),
+        clientEmail: patch.clientEmail == null ? prev.clientEmail : (patch.clientEmail ? normEmail(patch.clientEmail) : ''),
         year: patch.year == null ? prev.year : Number(patch.year) || null,
-        mileageKm: patch.mileageKm == null ? prev.mileageKm : Number(patch.mileageKm) || 0,
+        mileageKm:
+          patch.mileageKm == null
+            ? prev.mileageKm
+            : clampInt(patch.mileageKm, { min: clampInt(prev.mileageKm, { min: 0, max: 1000000 }), max: 1000000 }),
         priceRub: patch.priceRub == null ? prev.priceRub : Number(patch.priceRub) || 0,
         updatedAt: nowIso(),
       }
@@ -376,8 +618,15 @@ export function repo() {
       writeLS(CARS_KEY, copy)
       return next
     },
-    deleteCar(id) {
-      const cars = readLS(CARS_KEY, [])
+    deleteCar(id, detailingId) {
+      const scope =
+        detailingId && typeof detailingId === 'object'
+          ? detailingId
+          : { detailingId: detailingId || null, ownerEmail: null }
+      const cars = readLS(CARS_KEY, []).map(migrateCar)
+      writeLS(CARS_KEY, cars)
+      const prev = cars.find((c) => c.id === id)
+      if (!prev || !hasCarAccess(prev, scope)) return null
       writeLS(CARS_KEY, cars.filter((c) => c.id !== id))
       removeHero(id)
       removeWash(id)
@@ -387,6 +636,7 @@ export function repo() {
       writeLS(DOCS_KEY, docs.filter((d) => d.carId !== id))
       const shares = readLS(SHARES_KEY, [])
       writeLS(SHARES_KEY, shares.filter((s) => s.carId !== id))
+      return { ok: true }
     },
 
     listEvents(carId, detailingId) {
@@ -431,14 +681,16 @@ export function repo() {
       const createdAt = nowIso()
       const rawSv = Array.isArray(input.services) ? input.services : []
       const rawMs = Array.isArray(input.maintenanceServices) ? input.maintenanceServices : []
+      const car = this.getCar(carId, scope)
+      const minMileage = car ? clampInt(car.mileageKm, { min: 0, max: 1000000 }) : 0
       const evt = {
         id: makeId('evt'),
         detailingId: detId,
         carId,
         at: input.at || createdAt,
         type: input.type || 'visit',
-        title: input.title?.trim() || '',
-        mileageKm: Number(input.mileageKm) || 0,
+        title: clampVisitTitle(input.title),
+        mileageKm: clampInt(input.mileageKm, { min: minMileage, max: 1000000 }),
         services: rawSv,
         maintenanceServices: ownerEmail ? rawMs : [],
         note: input.note?.trim() || '',
@@ -448,6 +700,14 @@ export function repo() {
         updatedAt: createdAt,
       }
       writeLS(EVENTS_KEY, [evt, ...evts])
+      // Подтягиваем пробег в карточке авто вверх, если визит выше текущего
+      if (car && evt.mileageKm > minMileage) {
+        try {
+          this.updateCar(carId, { mileageKm: evt.mileageKm }, scope)
+        } catch {
+          // ignore in MVP
+        }
+      }
       return evt
     },
     updateEvent(id, patch, detailingId) {
@@ -463,6 +723,9 @@ export function repo() {
       const idx = evts.findIndex((e) => e.id === id)
       if (idx < 0) return null
       const prev = evts[idx]
+
+      // Редактирование визита доступно только 3 часа с момента последнего сохранения
+      if (!isWithinEditWindow(prev)) return null
 
       // права: owner может редактировать только свою историю, detailing — только свою service-историю
       if (prev.source === 'owner') {
@@ -490,16 +753,31 @@ export function repo() {
             : Array.isArray((patch || {}).maintenanceServices)
               ? (patch || {}).maintenanceServices
               : prev.maintenanceServices,
-        title: (patch || {}).title == null ? prev.title : String((patch || {}).title || '').trim(),
+        title:
+          (patch || {}).title == null ? prev.title : clampVisitTitle((patch || {}).title),
         note: (patch || {}).note == null ? prev.note : String((patch || {}).note || '').trim(),
         mileageKm:
-          (patch || {}).mileageKm == null ? prev.mileageKm : Number((patch || {}).mileageKm) || 0,
+          (patch || {}).mileageKm == null
+            ? prev.mileageKm
+            : (() => {
+                const car = this.getCar(prev.carId, scope)
+                const minMileage = car ? clampInt(car.mileageKm, { min: 0, max: 1000000 }) : 0
+                return clampInt((patch || {}).mileageKm, { min: minMileage, max: 1000000 })
+              })(),
         updatedAt: nowIso(),
       }
 
       const copy = evts.slice()
       copy[idx] = next
       writeLS(EVENTS_KEY, copy)
+      // Подтягиваем пробег в карточке авто вверх, если визит выше текущего
+      try {
+        const car = this.getCar(prev.carId, scope)
+        const cur = car ? clampInt(car.mileageKm, { min: 0, max: 1000000 }) : 0
+        if (car && next.mileageKm > cur) this.updateCar(prev.carId, { mileageKm: next.mileageKm }, scope)
+      } catch {
+        // ignore in MVP
+      }
       return next
     },
     deleteEvent(id, detailingId) {
@@ -564,6 +842,26 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
+      // Фото/файлы, привязанные к визиту, можно менять только в окно редактирования
+      const targetEventId = input?.eventId || null
+      if (targetEventId) {
+        const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+        writeLS(EVENTS_KEY, evts)
+        const evt = evts.find((e) => e.id === targetEventId)
+        if (!evt || evt.carId !== carId) return null
+
+        // права должны совпадать с типом визита
+        if (evt.source === 'owner') {
+          if (!ownerEmail || normEmail(evt.ownerEmail) !== ownerEmail) return null
+        } else if (evt.source === 'service') {
+          if (!detId || evt.detailingId !== detId) return null
+        } else {
+          return null
+        }
+
+        if (!isWithinEditWindow(evt)) return null
+      }
+
       const docs = readLS(DOCS_KEY, [])
       const doc = {
         id: makeId('doc'),
@@ -572,7 +870,7 @@ export function repo() {
         title: input.title?.trim() || 'Файл',
         kind: input.kind || 'photo',
         url: input.url || '',
-        eventId: input.eventId || null,
+        eventId: targetEventId,
         createdAt: nowIso(),
         source: ownerEmail ? 'owner' : 'service',
         ownerEmail: ownerEmail || null,
@@ -580,12 +878,36 @@ export function repo() {
       writeLS(DOCS_KEY, [doc, ...docs])
       return doc
     },
-    deleteDoc(id) {
-      const docs = readLS(DOCS_KEY, [])
+    deleteDoc(id, detailingId) {
+      const scope =
+        detailingId && typeof detailingId === 'object'
+          ? detailingId
+          : { detailingId: detailingId || null, ownerEmail: null }
+      const docs = readLS(DOCS_KEY, []).map(migrateDoc)
+      writeLS(DOCS_KEY, docs)
+      const prev = docs.find((d) => d.id === id)
+      if (!prev || !hasDocAccess(prev, scope)) return null
+
+      // Если это файл визита — удалять можно только в окно редактирования визита
+      if (prev.eventId) {
+        const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+        writeLS(EVENTS_KEY, evts)
+        const evt = evts.find((e) => e.id === prev.eventId)
+        if (!evt) return null
+        if (!isWithinEditWindow(evt)) return null
+      }
+
       writeLS(DOCS_KEY, docs.filter((d) => d.id !== id))
+      return { ok: true }
     },
 
-    createShare(carId) {
+    createShare(carId, detailingId) {
+      const scope =
+        detailingId && typeof detailingId === 'object'
+          ? detailingId
+          : { detailingId: detailingId || null, ownerEmail: null }
+      const car = this.getCar(carId, scope)
+      if (!car) return null
       const shares = readLS(SHARES_KEY, [])
       const token = makeId('share').replace('share_', '')
       const share = { id: makeId('share'), carId, token, createdAt: nowIso(), revokedAt: null }
@@ -599,10 +921,19 @@ export function repo() {
         .slice()
         .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
     },
-    revokeShare(token) {
+    revokeShare(token, detailingId) {
+      const scope =
+        detailingId && typeof detailingId === 'object'
+          ? detailingId
+          : { detailingId: detailingId || null, ownerEmail: null }
       const shares = readLS(SHARES_KEY, [])
+      const share = shares.find((s) => s.token === token && !s.revokedAt)
+      if (!share) return null
+      const car = this.getCar(share.carId, scope)
+      if (!car) return null
       const copy = shares.map((s) => (s.token === token ? { ...s, revokedAt: nowIso() } : s))
       writeLS(SHARES_KEY, copy)
+      return { ok: true }
     },
     getCarByShareToken(token) {
       const shares = readLS(SHARES_KEY, [])
@@ -615,16 +946,26 @@ export function repo() {
 
     // ===== VIN claim flow (MVP mock) =====
     findCarsByVin(vin) {
-      const v = String(vin || '').trim().toLowerCase()
+      const v = normVin(vin)
       if (!v) return []
       // поиск по всем авто, без скоупа
       const all = readLS(CARS_KEY, []).map(migrateCar)
       writeLS(CARS_KEY, all)
       return all.filter(
         (c) =>
-          String(c.vin || '').trim().toLowerCase() === v &&
+          normVin(c.vin) === v &&
           Boolean(c.detailingId),
       )
+    },
+
+    findCarsByPlate({ plate, plateRegion } = {}) {
+      const b = normPlateBase(plate)
+      const r = normPlateRegion(plateRegion)
+      if (!b) return []
+      const key = fmtPlateFull(b, r)
+      const all = readLS(CARS_KEY, []).map(migrateCar)
+      writeLS(CARS_KEY, all)
+      return all.filter((c) => fmtPlateFull(c.plate, c.plateRegion) === key)
     },
     listClaimsForOwner(ownerEmail) {
       const em = normEmail(ownerEmail)

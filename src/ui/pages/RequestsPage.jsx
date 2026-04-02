@@ -1,7 +1,7 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Card, Pill } from '../components.jsx'
-import { useDetailing } from '../useDetailing.js'
+import { BackNav, Card, Pill } from '../components.jsx'
+import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 function eqNorm(a, b) {
   const x = String(a || '').trim().toLowerCase()
@@ -12,9 +12,9 @@ function eqNorm(a, b) {
 
 export default function RequestsPage() {
   const r = useRepo()
-  const nav = useNavigate()
   const { detailingId, detailing, mode } = useDetailing()
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
 
   const claims = r.listClaimsForDetailing(detailingId)
   const pending = claims.filter((x) => x.status === 'pending')
@@ -29,16 +29,13 @@ export default function RequestsPage() {
             <span>Заявки</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <button className="carBack" type="button" title="Назад" onClick={() => nav(-1)}>
-              <span className="chev chev--left" aria-hidden="true" />
-              <span className="srOnly">Назад</span>
-            </button>
+            <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
               Заявки на привязку авто
             </h1>
           </div>
           <p className="muted">
-            Детейлинг: <span className="mono">{detailing?.name || detailingId}</span> • в ожидании: {pending.length}
+            Детейлинг: <span className="mono">{detailing?.name || detailingId}</span> · в ожидании: {pending.length}
           </p>
         </div>
       </div>

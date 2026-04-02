@@ -52,9 +52,12 @@ export const MAINTENANCE_SERVICES = [
   },
 ]
 
+/** Группа каталога детейлинга: услуги ухода (в т.ч. мойка) — для splitWashDetailingServices / фото визита */
+const CARE_GROUP = 'Уход за кузовом'
+
 export const DETAILING_SERVICES = [
   {
-    group: 'Мойка / уход',
+    group: CARE_GROUP,
     items: [
       'Мойка кузова',
       'Деликатная мойка (2‑фазная)',
@@ -107,8 +110,15 @@ export const MAINTENANCE_ITEM_SET = flatItemSet(MAINTENANCE_SERVICES)
 export const DETAILING_ITEM_SET = flatItemSet(DETAILING_SERVICES)
 
 export const WASH_SERVICE_MARKERS = new Set(
-  DETAILING_SERVICES.find((g) => g.group === 'Мойка / уход')?.items || [],
+  DETAILING_SERVICES.find((g) => g.group === CARE_GROUP)?.items || [],
 )
+
+export function splitWashDetailingServices(services) {
+  const sv = Array.isArray(services) ? services : []
+  const wash = sv.filter((s) => WASH_SERVICE_MARKERS.has(s))
+  const other = sv.filter((s) => !WASH_SERVICE_MARKERS.has(s))
+  return { wash, other }
+}
 
 /**
  * Раньше ТО и детейлинг лежали в одном `services`. После разделения: если `maintenanceServices`

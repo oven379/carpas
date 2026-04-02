@@ -1,8 +1,9 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
-import { Card, Pill } from '../components.jsx'
-import { fmtDateTime, fmtKm } from '../../lib/format.js'
+import { BackNav, Card, Pill } from '../components.jsx'
+import { fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
+import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
 function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   const v = String(s || '')
@@ -32,11 +33,14 @@ export default function PublicCarPage() {
           <div className="breadcrumbs">
             <span>Публичная история</span>
           </div>
-          <h1 className="h1">
-            {car.make} {car.model}
-          </h1>
+          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+            <BackNav />
+            <h1 className="h1" style={{ margin: 0 }}>
+              {car.make} {car.model}
+            </h1>
+          </div>
           <p className="muted">
-            {car.city || '—'} • {fmtKm(car.mileageKm)} • {car.year}
+            {car.city || '—'} · {fmtKm(car.mileageKm)} · {car.year}
           </p>
         </div>
         <Link className="btn" data-variant="ghost" to="/auth">
@@ -65,7 +69,7 @@ export default function PublicCarPage() {
             </div>
             <div className="kv__row">
               <span className="kv__k">Госномер</span>
-              <span className="kv__v mono">{mask(car.plate, { keepEnd: 2 })}</span>
+              <span className="kv__v mono">{mask(fmtPlateFull(car.plate, car.plateRegion), { keepEnd: 2 })}</span>
             </div>
             <div className="kv__row">
               <span className="kv__k">Пробег</span>
@@ -102,14 +106,32 @@ export default function PublicCarPage() {
                 <div key={e.id} className="miniList__item">
                   <div className="miniList__title">{e.title || 'Визит'}</div>
                   <div className="miniList__meta">
-                    {fmtDateTime(e.at)} • {fmtKm(e.mileageKm)}
+                    <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
                   </div>
                   {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
-                    <div className="rowItem__sub">ТО: {e.maintenanceServices.join(', ')}</div>
+                    <div className="rowItem__sub">
+                      <span className="eventLabel">ТО:</span> {e.maintenanceServices.join(', ')}
+                    </div>
                   ) : null}
-                  {Array.isArray(e.services) && e.services.length ? (
-                    <div className="rowItem__sub">Детейлинг: {e.services.join(', ')}</div>
-                  ) : null}
+                  {(() => {
+                    const { wash, other } = splitWashDetailingServices(e.services)
+                    return (
+                      <>
+                        {wash.length ? (
+                          <div className="rowItem__sub">
+                            <span className="eventLabel">Уход:</span> {wash.join(', ')}
+                          </div>
+                        ) : null}
+                        {other.length ? (
+                          <div className="rowItem__sub">
+                            <span className="eventLabel">Детейлинг:</span> {other.join(', ')}
+                          </div>
+                        ) : null}
+                      </>
+                    )
+                  })()}
                   {e.note ? <div className="note">{e.note}</div> : null}
                 </div>
               ))}
