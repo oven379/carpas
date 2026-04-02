@@ -121,8 +121,8 @@ export default function App() {
           <Route path="/share/:token" element={<PublicCarPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/owner" element={<OwnerAuthPage />} />
-          <Route path="/auth/partner" element={<PartnerLoginPage />} />
           <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
+          <Route path="/auth/partner" element={<PartnerLoginPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

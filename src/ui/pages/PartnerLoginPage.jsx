@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Card, Field, Input, Pill } from '../components.jsx'
+import { safeSyncRepo } from '../../lib/syncRepoCall.js'
+import { BackNav, Button, Card, Field, Input, Pill } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { getSessionDetailingId, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
@@ -8,7 +9,13 @@ import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
 export default function PartnerLoginPage() {
   const r = useRepo()
   const currentId = getSessionDetailingId()
-  const current = currentId ? r.getDetailing?.(currentId) : null
+  const current =
+    currentId && r.getDetailing
+      ? (() => {
+          const res = safeSyncRepo(() => r.getDetailing(currentId))
+          return res.ok ? res.value ?? null : null
+        })()
+      : null
   const [email, setEmail] = useState('test@test')
   const [password, setPassword] = useState('')
   const detEmailRef = useRef(null)
@@ -22,7 +29,7 @@ export default function PartnerLoginPage() {
       <div className="row spread gap authPage__head">
         <div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to="/auth" title="К выбору входа" />
             <h1 className="h1" style={{ margin: 0 }}>
               Вход партнёра
             </h1>

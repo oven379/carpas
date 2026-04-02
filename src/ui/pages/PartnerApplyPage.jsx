@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { Button, Card, Field, Input } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
@@ -19,7 +19,7 @@ export default function PartnerApplyPage() {
       <div className="row spread gap authPage__head">
         <div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to="/auth" title="К выбору входа" />
             <h1 className="h1" style={{ margin: 0 }}>
               Стать партнёром
             </h1>

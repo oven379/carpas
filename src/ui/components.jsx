@@ -1,5 +1,6 @@
 import { forwardRef } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { safeSyncRepo } from '../lib/syncRepoCall.js'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
 import { useRepo } from './useRepo.js'
@@ -13,9 +14,9 @@ export function Button({ variant = 'primary', ...props }) {
   return <button data-variant={variant} {...props} />
 }
 
-export function Input(props) {
-  return <input {...props} />
-}
+export const Input = forwardRef(function Input(props, ref) {
+  return <input ref={ref} {...props} />
+})
 
 export function Textarea(props) {
   return <textarea {...props} />
@@ -64,27 +65,32 @@ export function OpenAction({ to, asSpan, className = '', children = 'Откры�
   )
 }
 
-/** Назад: тонкий фиолетовый шеврон влево без подложки; возврат на предыдущую страницу в истории. */
-export function BackNav({ className = '', title = 'Назад' }) {
+/** Назад: шеврон влево. С `to` — ссылка (надёжно с экранов /auth/*); без — шаг назад по истории. */
+export function BackNav({ className = '', title = 'Назад', to }) {
   const nav = useNavigate()
+  const cn = `backNav ${className}`.trim()
+  const svg = (
+    <svg className="backNav__svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M15 18l-6-6 6-6"
+      />
+    </svg>
+  )
+  if (to) {
+    return (
+      <Link className={cn} to={to} aria-label={title} title={title}>
+        {svg}
+      </Link>
+    )
+  }
   return (
-    <button
-      type="button"
-      className={`backNav ${className}`.trim()}
-      aria-label={title}
-      title={title}
-      onClick={() => nav(-1)}
-    >
-      <svg className="backNav__svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-        <path
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.25"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M15 18l-6-6 6-6"
-        />
-      </svg>
+    <button type="button" className={cn} aria-label={title} title={title} onClick={() => nav(-1)}>
+      {svg}
     </button>
   )
 }
@@ -94,10 +100,13 @@ export function TopNav() {
   const r = useRepo()
   const { detailingId, mode } = useDetailing()
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
-  const pendingClaims =
-    mode === 'detailing' && detailingId && r.listClaimsForDetailing
-      ? r.listClaimsForDetailing(detailingId).filter((x) => x.status === 'pending').length
-      : 0
+  let pendingClaims = 0
+  if (mode === 'detailing' && detailingId && r.listClaimsForDetailing) {
+    const res = safeSyncRepo(() => r.listClaimsForDetailing(detailingId))
+    if (res.ok && Array.isArray(res.value)) {
+      pendingClaims = res.value.filter((x) => x.status === 'pending').length
+    }
+  }
   return (
     <header className="nav">
       <div className="nav__inner">

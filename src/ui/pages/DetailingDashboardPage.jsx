@@ -1,7 +1,7 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useRepo } from '../useRepo.js'
-import { Card, Field, Input, Pill } from '../components.jsx'
+import { BackNav, Card, Field, Input, Pill } from '../components.jsx'
 import { fmtDate, fmtPlateFull, normVin, parsePlateFull } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 
@@ -244,49 +244,51 @@ export default function DetailingDashboardPage() {
       <div className="list" style={{ marginTop: 12 }}>
         {filtered.map((c) => {
           const lastVisitAt = r.listEvents(c.id, { detailingId })[0]?.at || null
+          const carHref = `/car/${c.id}?from=${encodeURIComponent(`/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`
           return (
-            <Link
-              key={c.id}
-              className="rowItem"
-              to={`/car/${c.id}?from=${encodeURIComponent(`/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`}
-            >
-              <div
-                className="rowItem__img"
-                style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
-              />
-              <div className="rowItem__main">
-                <div className="rowItem__title">
-                  {c.make} {c.model}
+            <div key={c.id} className="rowItem">
+              <Link
+                className="rowItem__rowLink"
+                to={carHref}
+                aria-label={`Открыть карточку: ${c.make} ${c.model}`}
+              >
+                <div
+                  className="rowItem__img"
+                  style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
+                />
+                <div className="rowItem__main">
+                  <div className="rowItem__title">
+                    {c.make} {c.model}
+                  </div>
+                  <div className="rowItem__meta carPage__meta">
+                    <span>{c.city || '—'}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span className="mono" title="Госномер">
+                      {fmtPlateFull(c.plate, c.plateRegion) || '—'}
+                    </span>
+                    <span aria-hidden="true"> · </span>
+                    <span>
+                      VIN: <span className="mono">{c.vin || '—'}</span>
+                    </span>
+                    {lastVisitAt ? (
+                      <>
+                        <span aria-hidden="true"> · </span>
+                        <span>{fmtDate(lastVisitAt)}</span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="rowItem__sub">
+                    Клиент:{' '}
+                    {c.clientName || c.clientPhone || c.clientEmail || c.ownerEmail || c.ownerPhone || '—'}
+                  </div>
                 </div>
-                <div className="rowItem__meta carPage__meta">
-                  <span>{c.city || '—'}</span>
-                  <span aria-hidden="true"> · </span>
-                  <span className="mono" title="Госномер">
-                    {fmtPlateFull(c.plate, c.plateRegion) || '—'}
-                  </span>
-                  <span aria-hidden="true"> · </span>
-                  <span>
-                    VIN: <span className="mono">{c.vin || '—'}</span>
-                  </span>
-                  {lastVisitAt ? (
-                    <>
-                      <span aria-hidden="true"> · </span>
-                      <span>{fmtDate(lastVisitAt)}</span>
-                    </>
-                  ) : null}
-                </div>
-                <div className="rowItem__sub">
-                  Клиент:{' '}
-                  {c.clientName || c.clientPhone || c.clientEmail || c.ownerEmail || c.ownerPhone || '—'}
-                </div>
-              </div>
+              </Link>
               <div className="rowItem__aside">
                 <button
+                  type="button"
                   className="btn"
                   data-variant="primary"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
+                  onClick={() => {
                     const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
                     nav(`/car/${c.id}/history?new=1&from=${encodeURIComponent(from)}`)
                   }}
@@ -295,7 +297,7 @@ export default function DetailingDashboardPage() {
                   + Визит
                 </button>
               </div>
-            </Link>
+            </div>
           )
         })}
 

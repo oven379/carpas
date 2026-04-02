@@ -89,7 +89,11 @@ export default function RequestsPage() {
                       className="btn"
                       data-variant="primary"
                       onClick={() => {
-                        r.reviewClaim(x.id, { status: 'approved' })
+                        const done = r.reviewClaim(x.id, { status: 'approved' })
+                        if (!done) {
+                          alert('Не удалось подтвердить заявку.')
+                          return
+                        }
                         invalidateRepo()
                       }}
                     >
@@ -99,7 +103,11 @@ export default function RequestsPage() {
                       className="btn"
                       data-variant="danger"
                       onClick={() => {
-                        r.reviewClaim(x.id, { status: 'rejected' })
+                        const done = r.reviewClaim(x.id, { status: 'rejected' })
+                        if (!done) {
+                          alert('Не удалось отклонить заявку.')
+                          return
+                        }
                         invalidateRepo()
                       }}
                     >

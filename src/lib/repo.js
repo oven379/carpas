@@ -21,9 +21,15 @@ const HERO_PREFIX = 'carHero.'
 const WASH_PREFIX = 'carWash.'
 const CLAIMS_KEY = 'carClaims'
 
+/** Битый JSON в localStorage не должен валить весь UI при .map/.filter */
+function lsArr(key) {
+  const v = readLS(key, [])
+  return Array.isArray(v) ? v : []
+}
+
 function ensureSeeded() {
   const seed = readLS('seeded', false)
-  const existingCars = readLS(CARS_KEY, [])
+  const existingCars = lsArr(CARS_KEY)
   const hasCars = Array.isArray(existingCars) && existingCars.length > 0
   if (seed && hasCars) return
 
@@ -271,8 +277,7 @@ export function repo() {
   }
 
   function readClaims() {
-    const arr = readLS(CLAIMS_KEY, [])
-    const migrated = (Array.isArray(arr) ? arr : []).map(migrateClaim)
+    const migrated = lsArr(CLAIMS_KEY).map(migrateClaim)
     writeLS(CLAIMS_KEY, migrated)
     return migrated
   }
@@ -298,8 +303,7 @@ export function repo() {
   return {
     // ===== owners (MVP local auth) =====
     listOwners() {
-      const arr = readLS(OWNERS_KEY, [])
-      const migrated = (Array.isArray(arr) ? arr : []).map(migrateOwner)
+      const migrated = lsArr(OWNERS_KEY).map(migrateOwner)
       writeLS(OWNERS_KEY, migrated)
       return migrated
     },
@@ -366,7 +370,7 @@ export function repo() {
       return this.listCars({ ownerEmail: normEmail(ownerEmail) })
     },
     listDetailings() {
-      const ds = readLS(DETAILINGS_KEY, [])
+      const ds = lsArr(DETAILINGS_KEY)
       const migrated = ds.map(migrateDetailing)
       writeLS(DETAILINGS_KEY, migrated)
       return migrated.slice().sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')))
@@ -375,7 +379,7 @@ export function repo() {
       return this.listDetailings().find((d) => d.id === id) || null
     },
     registerDetailing({ name, email, phone, password }) {
-      const ds = readLS(DETAILINGS_KEY, [])
+      const ds = lsArr(DETAILINGS_KEY)
       const migrated = ds.map(migrateDetailing)
       const em = normEmail(email)
       if (!em) return { error: 'bad_email' }
@@ -423,7 +427,7 @@ export function repo() {
       const detId = String(detailingId || '')
       if (!id || !detId || String(id) !== detId) return null
 
-      const ds = readLS(DETAILINGS_KEY, []).map(migrateDetailing)
+      const ds = lsArr(DETAILINGS_KEY).map(migrateDetailing)
       writeLS(DETAILINGS_KEY, ds)
       const idx = ds.findIndex((x) => x.id === id)
       if (idx < 0) return null
@@ -466,7 +470,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const cars = readLS(CARS_KEY, [])
+      const cars = lsArr(CARS_KEY)
       const migrated = cars.map(migrateCar)
       writeLS(CARS_KEY, migrated)
 
@@ -517,7 +521,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const cars = readLS(CARS_KEY, [])
+      const cars = lsArr(CARS_KEY)
       const createdAt = nowIso()
       const hero = input.hero?.trim() || ''
       const det = detId ? this.getDetailing(detId) : null
@@ -564,7 +568,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const cars = readLS(CARS_KEY, [])
+      const cars = lsArr(CARS_KEY)
       const idx = cars.findIndex((c) => c.id === id)
       if (idx < 0) return null
       const prev = cars[idx]
@@ -623,18 +627,18 @@ export function repo() {
         detailingId && typeof detailingId === 'object'
           ? detailingId
           : { detailingId: detailingId || null, ownerEmail: null }
-      const cars = readLS(CARS_KEY, []).map(migrateCar)
+      const cars = lsArr(CARS_KEY).map(migrateCar)
       writeLS(CARS_KEY, cars)
       const prev = cars.find((c) => c.id === id)
       if (!prev || !hasCarAccess(prev, scope)) return null
       writeLS(CARS_KEY, cars.filter((c) => c.id !== id))
       removeHero(id)
       removeWash(id)
-      const evts = readLS(EVENTS_KEY, [])
+      const evts = lsArr(EVENTS_KEY)
       writeLS(EVENTS_KEY, evts.filter((e) => e.carId !== id))
-      const docs = readLS(DOCS_KEY, [])
+      const docs = lsArr(DOCS_KEY)
       writeLS(DOCS_KEY, docs.filter((d) => d.carId !== id))
-      const shares = readLS(SHARES_KEY, [])
+      const shares = lsArr(SHARES_KEY)
       writeLS(SHARES_KEY, shares.filter((s) => s.carId !== id))
       return { ok: true }
     },
@@ -647,7 +651,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const evts = readLS(EVENTS_KEY, [])
+      const evts = lsArr(EVENTS_KEY)
       const migrated = evts.map(migrateEvent)
       writeLS(EVENTS_KEY, migrated)
       const car = this.getCar(carId)
@@ -677,7 +681,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const evts = readLS(EVENTS_KEY, [])
+      const evts = lsArr(EVENTS_KEY)
       const createdAt = nowIso()
       const rawSv = Array.isArray(input.services) ? input.services : []
       const rawMs = Array.isArray(input.maintenanceServices) ? input.maintenanceServices : []
@@ -718,7 +722,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+      const evts = lsArr(EVENTS_KEY).map(migrateEvent)
       writeLS(EVENTS_KEY, evts)
       const idx = evts.findIndex((e) => e.id === id)
       if (idx < 0) return null
@@ -787,7 +791,7 @@ export function repo() {
           : { detailingId: detailingId || null, ownerEmail: null }
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+      const evts = lsArr(EVENTS_KEY).map(migrateEvent)
       writeLS(EVENTS_KEY, evts)
       const prev = evts.find((e) => e.id === id)
       if (!prev) return null
@@ -814,7 +818,7 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
-      const docs = readLS(DOCS_KEY, [])
+      const docs = lsArr(DOCS_KEY)
       const migrated = docs.map(migrateDoc)
       writeLS(DOCS_KEY, migrated)
       const car = this.getCar(carId)
@@ -845,7 +849,7 @@ export function repo() {
       // Фото/файлы, привязанные к визиту, можно менять только в окно редактирования
       const targetEventId = input?.eventId || null
       if (targetEventId) {
-        const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+        const evts = lsArr(EVENTS_KEY).map(migrateEvent)
         writeLS(EVENTS_KEY, evts)
         const evt = evts.find((e) => e.id === targetEventId)
         if (!evt || evt.carId !== carId) return null
@@ -862,7 +866,7 @@ export function repo() {
         if (!isWithinEditWindow(evt)) return null
       }
 
-      const docs = readLS(DOCS_KEY, [])
+      const docs = lsArr(DOCS_KEY)
       const doc = {
         id: makeId('doc'),
         detailingId: detId,
@@ -883,14 +887,14 @@ export function repo() {
         detailingId && typeof detailingId === 'object'
           ? detailingId
           : { detailingId: detailingId || null, ownerEmail: null }
-      const docs = readLS(DOCS_KEY, []).map(migrateDoc)
+      const docs = lsArr(DOCS_KEY).map(migrateDoc)
       writeLS(DOCS_KEY, docs)
       const prev = docs.find((d) => d.id === id)
       if (!prev || !hasDocAccess(prev, scope)) return null
 
       // Если это файл визита — удалять можно только в окно редактирования визита
       if (prev.eventId) {
-        const evts = readLS(EVENTS_KEY, []).map(migrateEvent)
+        const evts = lsArr(EVENTS_KEY).map(migrateEvent)
         writeLS(EVENTS_KEY, evts)
         const evt = evts.find((e) => e.id === prev.eventId)
         if (!evt) return null
@@ -908,14 +912,14 @@ export function repo() {
           : { detailingId: detailingId || null, ownerEmail: null }
       const car = this.getCar(carId, scope)
       if (!car) return null
-      const shares = readLS(SHARES_KEY, [])
+      const shares = lsArr(SHARES_KEY)
       const token = makeId('share').replace('share_', '')
       const share = { id: makeId('share'), carId, token, createdAt: nowIso(), revokedAt: null }
       writeLS(SHARES_KEY, [share, ...shares])
       return share
     },
     listShares(carId) {
-      const shares = readLS(SHARES_KEY, [])
+      const shares = lsArr(SHARES_KEY)
       return shares
         .filter((s) => s.carId === carId)
         .slice()
@@ -926,7 +930,7 @@ export function repo() {
         detailingId && typeof detailingId === 'object'
           ? detailingId
           : { detailingId: detailingId || null, ownerEmail: null }
-      const shares = readLS(SHARES_KEY, [])
+      const shares = lsArr(SHARES_KEY)
       const share = shares.find((s) => s.token === token && !s.revokedAt)
       if (!share) return null
       const car = this.getCar(share.carId, scope)
@@ -936,7 +940,7 @@ export function repo() {
       return { ok: true }
     },
     getCarByShareToken(token) {
-      const shares = readLS(SHARES_KEY, [])
+      const shares = lsArr(SHARES_KEY)
       const share = shares.find((s) => s.token === token && !s.revokedAt)
       if (!share) return null
       const car = this.getCar(share.carId)
@@ -949,7 +953,7 @@ export function repo() {
       const v = normVin(vin)
       if (!v) return []
       // поиск по всем авто, без скоупа
-      const all = readLS(CARS_KEY, []).map(migrateCar)
+      const all = lsArr(CARS_KEY).map(migrateCar)
       writeLS(CARS_KEY, all)
       return all.filter(
         (c) =>
@@ -963,7 +967,7 @@ export function repo() {
       const r = normPlateRegion(plateRegion)
       if (!b) return []
       const key = fmtPlateFull(b, r)
-      const all = readLS(CARS_KEY, []).map(migrateCar)
+      const all = lsArr(CARS_KEY).map(migrateCar)
       writeLS(CARS_KEY, all)
       return all.filter((c) => fmtPlateFull(c.plate, c.plateRegion) === key)
     },
