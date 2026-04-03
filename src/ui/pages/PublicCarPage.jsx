@@ -1,9 +1,12 @@
+import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, Pill } from '../components.jsx'
 import { fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
+import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import { docsToPhotoItems } from '../../lib/photoGallery.js'
 
 function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   const v = String(s || '')
@@ -17,14 +20,28 @@ function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
 export default function PublicCarPage() {
   const { token } = useParams()
   const r = useRepo()
+  const [photoLb, setPhotoLb] = useState(null)
   const data = r.getCarByShareToken(token)
-  if (!data) return <Navigate to="/" replace />
+  const car = data?.car ?? null
 
-  const { car } = data
-  // Публично показываем только личную историю владельца (owner) + скрываем VIN/номер.
-  const events = r.listEvents(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((e) => e.source === 'owner')
-  const docs = r.listDocs(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((d) => d.source === 'owner')
-  const recs = getCareRecommendations({ car, events })
+  const events = useMemo(() => {
+    if (!car) return []
+    return r.listEvents(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((e) => e.source === 'owner')
+  }, [car, r])
+
+  const docs = useMemo(() => {
+    if (!car) return []
+    return r.listDocs(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((d) => d.source === 'owner')
+  }, [car, r])
+
+  const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
+
+  const recs = useMemo(() => {
+    if (!car) return []
+    return getCareRecommendations({ car, events })
+  }, [car, events])
+
+  if (!data) return <Navigate to="/" replace />
 
   return (
     <div className="container">
@@ -149,16 +166,40 @@ export default function PublicCarPage() {
         </div>
         {docs.length ? (
           <div className="thumbs thumbs--big">
-            {docs.map((d) => (
-              <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
-                <img alt={d.title} src={d.url} />
-              </a>
-            ))}
+            {docs.map((d) => {
+              const gi = docGalleryItems.findIndex((g) => g.id === d.id)
+              return gi >= 0 ? (
+                <button
+                  key={d.id}
+                  type="button"
+                  className="thumb thumb--lb"
+                  aria-label={d.title ? `Открыть фото: ${d.title}` : 'Открыть фото'}
+                  onClick={() =>
+                    setPhotoLb({
+                      items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                      startIndex: gi,
+                    })
+                  }
+                >
+                  <img alt={d.title} src={d.url} />
+                </button>
+              ) : (
+                <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
+                  <img alt={d.title} src={d.url} />
+                </a>
+              )
+            })}
           </div>
         ) : (
           <div className="muted">Нет файлов.</div>
         )}
       </Card>
+      <PhotoLightbox
+        open={Boolean(photoLb)}
+        items={photoLb?.items ?? []}
+        startIndex={photoLb?.startIndex ?? 0}
+        onClose={() => setPhotoLb(null)}
+      />
     </div>
   )
 }

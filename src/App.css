@@ -37,6 +37,56 @@
   gap: 10px;
 }
 
+.brandMarkImgWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, #6b5ce7 18%);
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.brandMarkImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Вордмарк: тёмный фон под белую часть логотипа */
+.brandWordmarkWrap {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, #6b5ce7 18%);
+  background: #0a0a0a;
+  line-height: 0;
+}
+
+.brandWordmarkImg {
+  display: block;
+  width: auto;
+  vertical-align: middle;
+}
+
+.brandTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brandTagline {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.18px;
+  color: var(--text);
+  line-height: 1.2;
+}
+
 .nav__links {
   display: flex;
   gap: 10px;
@@ -133,14 +183,23 @@ button.nav__action {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px 20px;
   flex-wrap: wrap;
 }
 
-.footer__note {
-  flex: 1;
-  min-width: min(100%, 280px);
-  line-height: 1.45;
+.footerLegal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  min-width: 0;
+}
+
+.footerLegal__sep {
+  color: var(--muted);
+  user-select: none;
 }
 
 .container {
@@ -182,6 +241,10 @@ button.nav__action {
   line-height: 1.45;
   margin-top: 10px;
   margin-bottom: 0;
+}
+
+.carPage__meta--emph {
+  font-weight: 600;
 }
 
 /* Простая кликабельная ссылка (не кнопка) */
@@ -228,6 +291,7 @@ button.nav__action {
 .btn,
 button[data-variant] {
   appearance: none;
+  box-sizing: border-box;
   border: 1px solid var(--border);
   background: var(--bg);
   color: var(--text-h);
@@ -561,9 +625,29 @@ button[data-variant]:focus-visible,
 }
 
 .cardTitle {
+  font-family: var(--heading);
+  font-size: 20px;
+  letter-spacing: -0.2px;
+  line-height: 1.25;
   color: var(--text-h);
   font-weight: 650;
   margin-bottom: 6px;
+}
+
+/* Публичный лендинг: акцент на тип сервиса в строке под заголовком */
+.detPublic__kind {
+  color: var(--accent);
+  font-weight: 650;
+}
+
+.detPublic__kindSep {
+  color: color-mix(in oklab, var(--text) 80%, var(--text-h));
+  font-weight: 500;
+}
+
+.detPublic__metaCity {
+  color: var(--text);
+  font-weight: inherit;
 }
 
 .steps {
@@ -1010,7 +1094,7 @@ button[data-variant]:focus-visible,
 /* Единая «Назад»: шеврон акцентного цвета, без рамки и заливки */
 a.backNav {
   text-decoration: none;
-  box-sizing: border-box;
+  color: var(--accent);
 }
 
 .backNav {
@@ -1028,6 +1112,9 @@ a.backNav {
   color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
   transition:
     color 120ms ease,
     opacity 120ms ease,
@@ -1131,7 +1218,8 @@ a.backNav {
   right: 0;
   top: calc(100% + 8px);
   z-index: 50;
-  min-width: min(280px, calc(100vw - 32px));
+  width: min(280px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -1148,7 +1236,8 @@ a.backNav {
   right: 0;
   bottom: calc(100% + 8px);
   z-index: 40;
-  min-width: min(280px, calc(100vw - 32px));
+  width: min(280px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -1408,20 +1497,95 @@ a.backNav {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
 }
 
+.detHero__logoLink {
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    filter 120ms ease;
+}
+
+.detHero__logoLink:hover {
+  border-color: color-mix(in oklab, var(--accent) 60%, var(--border));
+  filter: brightness(1.06);
+}
+
 .detHero__logo--card {
   z-index: 2;
 }
 
 .detHero__logo img {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
 }
 
 .detHero__logo span {
   color: var(--text-h);
   font-weight: 800;
   letter-spacing: -0.4px;
+}
+
+.garageHero__avatarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.4px;
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
+}
+
+/* Гараж владельца: заголовок страницы + имя поменьше */
+.garagePage__ownerName {
+  margin: 8px 0 0;
+  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text-h);
+  letter-spacing: -0.2px;
+  max-width: 52ch;
+}
+
+.garagePage__meta {
+  margin-top: 6px;
+}
+
+/* Герой гаража: кнопки баннера как у обложки карточки авто + иконка настроек */
+.detHero__overlay--garageOwner {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.garageHero__bottomRow {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.garageHero__bannerBtns {
+  justify-content: flex-end;
+}
+
+.garageHero--noBanner .detHero__overlay--card {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, black 72%, transparent) 0%,
+    color-mix(in oklab, black 22%, transparent) 55%,
+    transparent 72%
+  );
+}
+
+.rowItem--static {
+  cursor: default;
 }
 
 .detHero__titleCol {
@@ -1541,6 +1705,260 @@ a.backNav {
   object-fit: cover;
 }
 
+/* Настройки гаража: воздух под шапкой, отступы у блоков медиа */
+.garageSettings__title {
+  margin-bottom: 6px;
+}
+
+.garageSettings__intro {
+  margin-top: 12px;
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+.garageSettings__card {
+  margin-top: clamp(20px, 4vw, 32px);
+}
+
+.garageSettings__mediaWrap {
+  margin-top: 14px;
+  padding-top: 12px;
+}
+
+.garageSettings__mediaHeading {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  color: var(--text-h);
+}
+
+.garageSettings__mediaLead {
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.garageSettings__mediaCols {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 12px 14px;
+  align-items: start;
+}
+
+.garageSettings__mediaCol {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.garageSettings__mediaSublabel {
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+.garageSettings__thumb {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px dashed color-mix(in oklab, var(--border) 82%, var(--accent) 14%);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--code-bg) 48%, var(--bg));
+  line-height: 0;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.garageSettings__thumb:hover {
+  border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+}
+
+.garageSettings__thumb:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.garageSettings__thumb--banner {
+  aspect-ratio: 16 / 9;
+  min-height: 84px;
+  max-height: 128px;
+}
+
+.garageSettings__thumb--banner img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.garageSettings__thumb--avatar {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+  border-radius: 16px;
+}
+
+/* Заполняем квадрат целиком (иначе в <button> картинка центрируется и видны «тёмные поля») */
+.garageSettings__thumb--avatar img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+}
+
+.garageSettings__thumbEmpty {
+  display: flex;
+  min-height: 100%;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--muted);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.garageSettings__mediaRemove {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 5px 0;
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .garageSettings__mediaCols {
+    grid-template-columns: 1fr;
+  }
+
+  .garageSettings__mediaCol--avatar {
+    flex-flow: row wrap;
+    align-items: flex-start;
+    column-gap: 14px;
+  }
+
+  .garageSettings__mediaCol--avatar .garageSettings__mediaSublabel {
+    flex: 1 0 100%;
+  }
+}
+
+/* Одно поле: префикс origin/g/ + редактируемый slug + копирование полного URL */
+.garageSettings__urlComposer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.garageSettings__urlComposerInner {
+  display: flex;
+  flex: 1 1 220px;
+  min-width: 0;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--bg);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.garageSettings__urlComposerInner:focus-within {
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 35%, transparent);
+}
+
+.garageSettings__urlPrefix {
+  flex: 0 1 auto;
+  max-width: min(100%, 52vw);
+  padding: 10px 10px 10px 12px;
+  background: color-mix(in oklab, var(--code-bg) 62%, var(--bg));
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+}
+
+.garageSettings__urlSlugInput {
+  flex: 1 1 120px;
+  min-width: 0;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.garageSettings__urlSlugInput:focus {
+  outline: none !important;
+}
+
+.garageSettings__urlCopyBtn {
+  flex: 0 0 auto;
+  align-self: stretch;
+}
+
+@media (max-width: 520px) {
+  .garageSettings__urlComposerInner {
+    flex-direction: column;
+  }
+
+  .garageSettings__urlPrefix {
+    max-width: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    white-space: normal;
+    word-break: break-all;
+  }
+}
+
+.garageSettings__copyHint {
+  margin: 8px 0 0;
+}
+
+.garageSettings__phonePublicCheck {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 12px;
+  cursor: pointer;
+  max-width: 100%;
+  line-height: 1.45;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.garageSettings__phonePublicCheck input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
 .detCoverPreview {
   height: 130px;
   border-radius: 16px;
@@ -1558,6 +1976,198 @@ a.backNav {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+.authHub__intro {
+  margin: 0;
+  line-height: 1.55;
+}
+
+.authHub__card .authHub {
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+  max-width: none;
+}
+
+.authHub__card {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.authSplit__formCol .authHub {
+  margin-top: 0;
+  margin-left: 0;
+  margin-right: 0;
+  max-width: none;
+}
+
+.authHub__cardTitle {
+  font-weight: 650;
+  color: var(--text-h);
+}
+
+/* Заголовок в левой колонке экранов входа (владелец / партнёр) */
+.authPage__head--splitAside {
+  margin-top: 4px;
+}
+
+/* Слева текст, справа форма — /auth/owner, /auth/partner, /auth/partner/apply */
+.authSplit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, min(440px, 100%));
+  gap: clamp(24px, 4vw, 48px);
+  align-items: start;
+  margin-top: 12px;
+}
+
+/* /auth: хотим, чтобы правая карточка начиналась напротив строки «Вход в сервис» */
+.authSplit--hub {
+  grid-template-rows: auto 1fr;
+}
+
+.authSplit--hub .authHub__brand {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.authHub__logoHeading {
+  line-height: 0;
+}
+
+.authSplit--hub .authHub__info {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.authSplit--hub .authHub__actions {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.authSplit__aside {
+  min-width: 0;
+}
+
+.authSplit__aside .authSplit__lede {
+  max-width: none;
+}
+
+.authSplit__formCol {
+  min-width: 0;
+}
+
+.authSplit__formCard {
+  position: sticky;
+  /* под липкой шапкой .nav (~56px + отступ) */
+  top: calc(env(safe-area-inset-top, 0px) + 58px);
+}
+
+.authSplit__formCol .authFormGrid--owner,
+.authSplit__formCol .authFormGrid--owner + .authFormActions {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.authSplit__lede {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+  max-width: min(42rem, 100%);
+}
+
+.authSplit__tagline {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.4vw, 1.2rem);
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+}
+
+.authSplit__benefits {
+  margin: 0;
+  padding: 0 0 0 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.authSplit__benefits li {
+  padding-left: 6px;
+}
+
+.authSplit__benefits li::marker {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.authSplit__note {
+  margin: 0;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  max-width: 100%;
+}
+
+.authFormActions .authOwner__submitGarage {
+  width: 100%;
+  justify-content: center;
+}
+
+.authConsent {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.authConsent__input {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.authConsent__text {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+a.authConsent__legalLink {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  font-weight: 650;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, var(--accent) 45%, transparent);
+  cursor: pointer;
+  transition:
+    color 120ms ease,
+    text-decoration-color 120ms ease,
+    filter 120ms ease;
+}
+
+a.authConsent__legalLink:hover {
+  color: var(--accent);
+  text-decoration-color: var(--accent);
+  filter: brightness(1.12);
+  transform: none;
+  box-shadow: none;
 }
 
 /* /auth: отступ до колонок (у общего правила + .card сюда не попадает) */
@@ -1584,26 +2194,34 @@ a.backNav {
   margin-right: auto;
 }
 
-/* Как heroActions / carPage__iconBtn: скругление ~14px, тонкая рамка, без «плавающей» тени */
+/* На всех экранах: не допускаем горизонтального скролла из-за authHub */
+.authHub,
+.authHub .btn.authHub__btn {
+  max-width: 100%;
+}
+
+/* Кнопки выбора роли: аккуратные, без «раздувания» */
 .authHub .btn.authHub__btn {
   width: 100%;
   justify-content: center;
-  min-height: 48px;
-  padding: 12px 18px;
-  border-radius: 14px;
-  font-weight: 650;
+  min-height: 44px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12px;
   box-shadow: none;
   transition:
     background-color 120ms ease,
     border-color 120ms ease,
     color 120ms ease,
-    filter 120ms ease;
+    filter 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .authHub .btn.authHub__btn:not(:disabled):hover {
   transform: none;
-  box-shadow: none;
-  filter: brightness(1.04);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
+  filter: brightness(1.03);
 }
 
 .authHub .btn.authHub__btn:not(:disabled):active {
@@ -1613,7 +2231,7 @@ a.backNav {
 
 .authHub .btn.authHub__btn--neutral {
   background: color-mix(in oklab, var(--code-bg) 52%, var(--bg));
-  border-color: color-mix(in oklab, var(--border) 88%, var(--text-h));
+  border-color: color-mix(in oklab, var(--border) 82%, var(--text-h));
   color: var(--text-h);
 }
 
@@ -1625,7 +2243,7 @@ a.backNav {
 
 .authHub .btn.authHub__btn--accent {
   background: color-mix(in oklab, var(--accent) 10%, var(--bg));
-  border-color: color-mix(in oklab, var(--accent) 58%, var(--border));
+  border-color: color-mix(in oklab, var(--accent) 62%, var(--border));
   color: var(--accent);
 }
 
@@ -1636,7 +2254,7 @@ a.backNav {
 
 .authHub .btn.authHub__btn--cta {
   background: var(--accent);
-  border-color: color-mix(in oklab, var(--accent) 78%, white);
+  border-color: color-mix(in oklab, var(--accent) 82%, white);
   color: white;
 }
 
@@ -1715,21 +2333,97 @@ a.backNav {
   display: block;
 }
 
+button.thumb.thumb--lb {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+button.thumb.thumb--lb:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, var(--border));
+  outline-offset: 2px;
+}
+
 .thumbWrap {
   position: relative;
 }
 
-/* Значок детейлинга на подтверждённой истории (вкладка владельца) */
-.eventRow {
-  position: relative;
+.historyCardAddPhoto {
+  margin-top: 10px;
+}
+
+.historyThumbAdd {
+  width: 100%;
+  min-height: 72px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.historyThumbAdd--muted {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+}
+
+.historyEditPhotoBroken {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.historyEditPhotoDel {
+  font-size: 13px;
+  padding: 6px 10px;
+  align-self: flex-start;
+}
+
+/* Значок детейлинга: нижняя строка карточки истории (владелец, записи сервиса) */
+.eventCardDetBadgeRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+}
+
+.eventCardDetBadgeRow__text {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+}
+
+.eventCardDetBadgeRow__name {
+  font-weight: 650;
+  font-size: 14px;
+  line-height: 1.3;
+  color: var(--text-h);
+  word-break: break-word;
+}
+
+.eventCardDetBadgeRow__visit {
+  line-height: 1.35;
 }
 
 .detBadge {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 999px;
   border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
   background: color-mix(in oklab, var(--bg) 78%, var(--code-bg));
@@ -1738,7 +2432,37 @@ a.backNav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  z-index: 2;
+  flex-shrink: 0;
+}
+
+a.detBadge.detBadge--btn {
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent) 25%, transparent);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+a.detBadge.detBadge--btn:hover {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+  transform: translateY(-1px);
+}
+
+a.detBadge.detBadge--btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, var(--border));
+  outline-offset: 3px;
+}
+
+a.detBadge.detBadge--btn:active {
+  transform: translateY(0);
+}
+
+.detBadge--static {
+  opacity: 0.92;
 }
 
 .detBadge img {
@@ -1752,6 +2476,31 @@ a.backNav {
   font-size: 12px;
   letter-spacing: -0.3px;
   color: var(--text-h);
+}
+
+@media (max-width: 720px) {
+  .detBadge,
+  a.detBadge.detBadge--btn {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .detBadge span {
+    font-size: 13px;
+  }
+
+  .eventCardDetBadgeRow {
+    margin-top: 14px;
+    padding-top: 14px;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .eventCardDetBadgeRow__name {
+    font-size: 15px;
+  }
 }
 
 .thumbX {
@@ -1854,6 +2603,27 @@ a.backNav {
 
 .thumbCard {
   overflow: hidden;
+}
+
+button.thumbCard__img.thumbCard__img--btn {
+  appearance: none;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  border-radius: 0;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+button.thumbCard__img.thumbCard__img--btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, var(--border));
+  outline-offset: -2px;
 }
 
 .thumbCard__img img {
@@ -2236,6 +3006,32 @@ a.backNav {
     grid-template-columns: 1fr;
   }
 
+  .authSplit {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 8px;
+  }
+
+  .authSplit--hub {
+    grid-template-rows: auto;
+  }
+
+  .authSplit--hub .authHub__brand,
+  .authSplit--hub .authHub__info,
+  .authSplit--hub .authHub__actions {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  /* /auth на планшетах/мобилках: кнопки ближе к началу */
+  .authSplit--hub .authHub__actions {
+    margin-top: 4px;
+  }
+
+  .authSplit__formCard {
+    position: static;
+  }
+
   .authPage__split {
     gap: 14px;
     margin-top: 22px;
@@ -2308,6 +3104,93 @@ a.backNav {
   .authPage__split {
     margin-top: 18px;
     gap: 16px;
+  }
+
+  /* Вход/регистрация: мобильная «компактная» версия */
+  .authSplit {
+    gap: 18px;
+    margin-top: 6px;
+  }
+
+  /* /auth: на телефоне — бренд, информация о сервисе, затем кнопки */
+  .authSplit--hub {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .authSplit--hub .authHub__brand {
+    order: 1;
+  }
+
+  .authSplit--hub .authHub__info {
+    order: 2;
+    margin-top: 6px;
+  }
+
+  .authSplit--hub .authHub__actions {
+    order: 3;
+    margin-top: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .authSplit--hub .authHub__intro {
+    font-size: 14px;
+  }
+
+  .authSplit--hub .authSplit__benefits {
+    font-size: 14px;
+  }
+
+  .authSplit--hub .authSplit__note {
+    font-size: 13px;
+  }
+
+  .authSplit__lede {
+    margin-top: 12px;
+    gap: 12px;
+  }
+
+  .authSplit__tagline {
+    font-size: 18px;
+  }
+
+  .authSplit__benefits {
+    gap: 8px;
+    padding-left: 1.05rem;
+    font-size: 0.98rem;
+  }
+
+  .authSplit__note {
+    font-size: 13px;
+  }
+
+  .authSplit__formCard.card.pad {
+    padding: 16px 14px;
+    border-radius: 16px;
+  }
+
+  .authHub {
+    gap: 10px;
+  }
+
+  .authHub .btn.authHub__btn {
+    min-height: 44px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    letter-spacing: 0.1px;
+  }
+
+  .authHub__cardTitle {
+    font-size: 13px;
+  }
+
+  .authHub__card {
+    margin-top: 0;
+    width: 100%;
+    max-width: min(520px, 100%);
   }
 
   /* iOS: меньше непроизвольного зума при фокусе в поле */
@@ -2432,8 +3315,8 @@ a.backNav {
     flex: 1;
     min-width: 0;
     justify-content: flex-end;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    overflow-x: hidden;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -2699,5 +3582,137 @@ a.backNav {
 
   .filePick__btn {
     min-height: 44px;
+  }
+}
+
+/* Полноэкранный просмотр фото (лайтбокс) */
+.photoLightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: color-mix(in oklab, #000 78%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.photoLightbox__inner {
+  position: relative;
+  width: min(calc(100vw - 32px), 1120px);
+  max-height: min(94vh, 920px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.photoLightbox__close {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  z-index: 9;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 999px;
+  font-size: 26px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.photoLightbox__stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px 12px;
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+.photoLightbox__tapZone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: min(28%, 140px);
+  z-index: 2;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.photoLightbox__tapZone--prev {
+  left: 0;
+}
+
+.photoLightbox__tapZone--next {
+  right: 0;
+}
+
+.photoLightbox__tapZone:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, var(--border));
+  outline-offset: -4px;
+}
+
+.photoLightbox__img {
+  position: relative;
+  z-index: 1;
+  max-width: 100%;
+  max-height: min(74vh, 680px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 14px;
+  box-shadow: 0 20px 56px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-drag: none;
+  cursor: pointer;
+}
+
+.photoLightbox__caption {
+  flex-shrink: 0;
+  padding: 12px 8px 0;
+  text-align: center;
+}
+
+.photoLightbox__counter {
+  display: block;
+  margin-bottom: 6px;
+}
+
+.photoLightbox__title {
+  font-weight: 650;
+  font-size: 15px;
+  color: var(--text-h);
+  margin-bottom: 8px;
+}
+
+.photoLightbox__openTab {
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  .photoLightbox__stage {
+    padding: 52px 10px 8px;
+  }
+
+  .photoLightbox__img {
+    max-height: min(68vh, 560px);
+  }
+
+  .photoLightbox__close {
+    top: 4px;
+    right: 4px;
   }
 }

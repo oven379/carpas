@@ -10,7 +10,7 @@ export function getPathAfterCarRemovedFromScope(r, { mode, owner, detailingId })
   if (mode === 'detailing' && detailingId) {
     const list = r.listCars(detailingId)
     if (list.length >= 1) return `/car/${list[0].id}`
-    return '/cars'
+    return '/detailing'
   }
   return '/cars'
 }

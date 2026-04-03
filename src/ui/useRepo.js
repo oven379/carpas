@@ -24,12 +24,6 @@ export function useRepo() {
     () => version,
   )
 
-  return useMemo(() => {
-    const r = API
-    return {
-      ...r,
-      _invalidate: invalidateRepo,
-    }
-  }, [])
+  return useMemo(() => API, [])
 }
 

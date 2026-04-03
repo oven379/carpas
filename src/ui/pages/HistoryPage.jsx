@@ -11,8 +11,138 @@ import {
   splitWashDetailingServices,
   WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
+import { buildCarFromQuery } from '../carNav.js'
+import { detailingBrandHref } from '../serviceLinkUi.js'
+import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import { docsToPhotoItems } from '../../lib/photoGallery.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
+
+/** Миниатюра документа визита: при битой ссылке или пустом url — кнопка «Добавить фото». */
+function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
+  const [broken, setBroken] = useState(() => !String(doc?.url || '').trim())
+  if (broken) {
+    return (
+      <div className="thumbWrap">
+        {canReplace ? (
+          <button
+            type="button"
+            className="btn historyThumbAdd"
+            data-variant="outline"
+            onClick={(ev) => {
+              ev.preventDefault()
+              ev.stopPropagation()
+              onAddPhoto()
+            }}
+          >
+            Добавить фото
+          </button>
+        ) : (
+          <span className="muted small historyThumbAdd historyThumbAdd--muted">Фото недоступно</span>
+        )}
+      </div>
+    )
+  }
+  const img = (
+    <img
+      alt={doc.title || 'Фото'}
+      src={doc.url}
+      onError={() => setBroken(true)}
+    />
+  )
+  return (
+    <div className="thumbWrap" title={doc.title}>
+      {openGallery ? (
+        <button
+          type="button"
+          className="thumb thumb--lb"
+          aria-label={doc.title ? `Открыть фото: ${doc.title}` : 'Открыть фото'}
+          onClick={(ev) => {
+            ev.preventDefault()
+            ev.stopPropagation()
+            openGallery()
+          }}
+        >
+          {img}
+        </button>
+      ) : (
+        <a className="thumb" href={doc.url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()}>
+          {img}
+        </a>
+      )}
+    </div>
+  )
+}
+
+/** Фото визита в форме редактирования: битая ссылка → замена/удаление записи. */
+function EditingVisitPhoto({ doc, editAllowed, scope, r, onPickFiles, onDeleted }) {
+  const [broken, setBroken] = useState(() => !String(doc?.url || '').trim())
+  if (broken) {
+    return (
+      <div className="thumbWrap">
+        <div className="historyEditPhotoBroken">
+          {editAllowed ? (
+            <>
+              <button type="button" className="btn historyThumbAdd" data-variant="outline" onClick={onPickFiles}>
+                Добавить фото
+              </button>
+              <button
+                type="button"
+                className="btn historyEditPhotoDel"
+                data-variant="ghost"
+                onClick={(ev) => {
+                  ev.preventDefault()
+                  const ok = confirm('Удалить эту запись о фото?')
+                  if (!ok) return
+                  const ok2 = r.deleteDoc(doc.id, scope)
+                  if (!ok2) {
+                    alert('Не удалось удалить (нет доступа или время редактирования истекло).')
+                    return
+                  }
+                  onDeleted()
+                }}
+              >
+                Удалить запись
+              </button>
+            </>
+          ) : (
+            <span className="muted small">Фото недоступно</span>
+          )}
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="thumbWrap" title={doc.title}>
+      <a className="thumb" href={doc.url} target="_blank" rel="noreferrer">
+        <img alt={doc.title} src={doc.url} onError={() => setBroken(true)} />
+      </a>
+      {editAllowed ? (
+        <button
+          type="button"
+          className="thumbX"
+          title="Удалить фото"
+          onClick={(ev) => {
+            ev.preventDefault()
+            ev.stopPropagation()
+            const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
+            if (!ok) return
+            const ok2 = r.deleteDoc(doc.id, scope)
+            if (!ok2) {
+              alert('Не удалось удалить фото (нет доступа или время редактирования истекло).')
+              return
+            }
+            onDeleted()
+          }}
+        >
+          <span className="thumbX__icon" aria-hidden="true">
+            ×
+          </span>
+        </button>
+      ) : null}
+    </div>
+  )
+}
 
 function toggle(list, item) {
   const set = new Set(Array.isArray(list) ? list : [])
@@ -220,6 +350,7 @@ export default function HistoryPage() {
   const [files, setFiles] = useState([])
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [photoLb, setPhotoLb] = useState(null)
   const formRef = useRef(null)
   const initFormKeyRef = useRef('')
   const visitPhotosInputId = useId()
@@ -262,6 +393,29 @@ export default function HistoryPage() {
   }
 
   const canEditAny = (e) => canEdit(e) || canEditOwner(e)
+
+  const openVisitEdit = useCallback(
+    (e) => {
+      if (!canOpen(e)) return
+      setEditingId(e.id)
+      setShowNew(true)
+      setDraft({
+        title: clampVisitTitle(e.title || ''),
+        mileageKm: e.mileageKm || '',
+        note: e.note || '',
+        services: Array.isArray(e.services) ? e.services : [],
+        maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
+        type: e.type || 'visit',
+      })
+      setFiles([])
+      const next = new URLSearchParams(sp)
+      next.set('new', '1')
+      next.set('edit', e.id)
+      if (mode === 'owner') next.set('t', 'owner')
+      setSp(next, { replace: true })
+    },
+    [canOpen, sp, setSp, mode],
+  )
 
   useEffect(() => {
     if (!wantNew) {
@@ -331,8 +485,10 @@ export default function HistoryPage() {
           : events
       : events
 
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
-  if (!car) return <Navigate to="/cars" replace />
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
+
+  const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 
   const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
   const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
@@ -345,12 +501,12 @@ export default function HistoryPage() {
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to={`/car/${id}`}>Карточка авто</Link>
+            <Link to={carCardHref}>Карточка авто</Link>
             <span> / </span>
             <span>История</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to={carCardHref} title="К карточке авто" />
             <h1 className="h1" style={{ margin: 0 }}>
               {title}
             </h1>
@@ -424,67 +580,28 @@ export default function HistoryPage() {
       <div className="list">
         {visibleEvents.map((e) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
+          const showDetFooter = mode === 'owner' && e.source === 'service' && detForBadge
+          const detBrandTarget = showDetFooter ? detailingBrandHref(detForBadge) : null
+          const cardInnerLink = Boolean(showDetFooter && detBrandTarget)
           return (
           <Card
             key={e.id}
-            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}`}
-            role={canOpen(e) ? 'button' : undefined}
+            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
+            role={canOpen(e) && !cardInnerLink ? 'button' : undefined}
             tabIndex={canOpen(e) ? 0 : undefined}
-            onClick={() => {
-              if (!canOpen(e)) return
-              setEditingId(e.id)
-              setShowNew(true)
-              setDraft({
-                title: clampVisitTitle(e.title || ''),
-                mileageKm: e.mileageKm || '',
-                note: e.note || '',
-                services: Array.isArray(e.services) ? e.services : [],
-                maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
-                type: e.type || 'visit',
-              })
-              setFiles([])
-              const next = new URLSearchParams(sp)
-              next.set('new', '1')
-              next.set('edit', e.id)
-              if (mode === 'owner') next.set('t', 'owner')
-              setSp(next, { replace: true })
-            }}
+            onClick={() => openVisitEdit(e)}
             onKeyDown={(ev) => {
               if (!canOpen(e)) return
               if (ev.key !== 'Enter' && ev.key !== ' ') return
               ev.preventDefault()
               ev.stopPropagation()
-              setEditingId(e.id)
-              setShowNew(true)
-              setDraft({
-                title: clampVisitTitle(e.title || ''),
-                mileageKm: e.mileageKm || '',
-                note: e.note || '',
-                services: Array.isArray(e.services) ? e.services : [],
-                maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
-                type: e.type || 'visit',
-              })
-              setFiles([])
-              const next = new URLSearchParams(sp)
-              next.set('new', '1')
-              next.set('edit', e.id)
-              if (mode === 'owner') next.set('t', 'owner')
-              setSp(next, { replace: true })
+              openVisitEdit(e)
             }}
             aria-label={canOpen(e) ? 'Открыть визит' : undefined}
             title={canOpen(e) ? (canEditAny(e) ? 'Нажмите, чтобы отредактировать' : 'Нажмите, чтобы посмотреть') : undefined}
           >
             <div className="row spread gap eventRow">
               <div className="eventMain">
-                {mode === 'owner' && e.source === 'service' ? (
-                  <div className="detBadge" title={detBadgeLabel} aria-label={detBadgeLabel}>
-                    {detForBadge?.logo ? (
-                      <img alt="" src={detForBadge.logo} />
-                    ) : (
-                      <span aria-hidden="true">{detBadgeInitials}</span>
-                    )}
-                  </div>
-                ) : null}
                 <div className="rowItem__title">{e.title || 'Событие'}</div>
                 <div className="rowItem__meta">
                   <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
@@ -516,28 +633,101 @@ export default function HistoryPage() {
                 ) : null}
                 {(() => {
                   const photos = r.listDocs(id, scope, { eventId: e.id })
-                  if (!photos.length) return null
+                  const canPhoto = canEditAny(e)
+                  if (!photos.length) {
+                    return (
+                      <div className="historyCardPhotosEmpty" style={{ marginTop: 10 }}>
+                        <div className="muted small">Нет добавленных фотографий.</div>
+                        {canPhoto ? (
+                          <div className="historyCardAddPhoto" style={{ marginTop: 8 }} onClick={(ev) => ev.stopPropagation()}>
+                            <button
+                              type="button"
+                              className="btn"
+                              data-variant="outline"
+                              onClick={() => openVisitEdit(e)}
+                            >
+                              Добавить фото
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
+                    )
+                  }
+                  const galleryItems = docsToPhotoItems(photos)
                   return (
                     <div className="thumbs" style={{ marginTop: 10 }}>
-                      {photos.slice(0, 6).map((d) => (
-                        <div key={d.id} className="thumbWrap" title={d.title}>
-                          <a
-                            className="thumb"
-                            href={d.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(ev) => ev.stopPropagation()}
-                          >
-                            <img alt={d.title} src={d.url} />
-                          </a>
-                        </div>
-                      ))}
+                      {photos.slice(0, 6).map((d) => {
+                        const gi = galleryItems.findIndex((g) => g.id === d.id)
+                        return (
+                          <HistoryEventDocThumb
+                            key={d.id}
+                            doc={d}
+                            canReplace={canPhoto}
+                            onAddPhoto={() => openVisitEdit(e)}
+                            openGallery={
+                              gi >= 0
+                                ? () =>
+                                    setPhotoLb({
+                                      items: galleryItems.map((x) => ({ url: x.url, title: x.title })),
+                                      startIndex: gi,
+                                    })
+                                : undefined
+                            }
+                          />
+                        )
+                      })}
                     </div>
                   )
                 })()}
                 {e.note ? <div className="note">{e.note}</div> : null}
               </div>
             </div>
+            {showDetFooter ? (
+              <div className="eventCardDetBadgeRow">
+                {(() => {
+                  const detBadgeInner = detForBadge?.logo ? (
+                    <img alt="" src={detForBadge.logo} />
+                  ) : (
+                    <span aria-hidden="true">{detBadgeInitials}</span>
+                  )
+                  const detBadgeNode =
+                    detBrandTarget?.kind === 'external' ? (
+                      <a
+                        className="detBadge detBadge--btn"
+                        href={detBrandTarget.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(ev) => ev.stopPropagation()}
+                        aria-label={`Сайт сервиса: ${detBadgeLabel}`}
+                      >
+                        {detBadgeInner}
+                      </a>
+                    ) : detBrandTarget?.kind === 'app' ? (
+                      <Link
+                        className="detBadge detBadge--btn"
+                        to={detBrandTarget.to}
+                        onClick={(ev) => ev.stopPropagation()}
+                        aria-label={`Страница сервиса: ${detBadgeLabel}`}
+                      >
+                        {detBadgeInner}
+                      </Link>
+                    ) : (
+                      <span className="detBadge detBadge--static" title={detBadgeLabel} aria-label={detBadgeLabel}>
+                        {detBadgeInner}
+                      </span>
+                    )
+                  return (
+                    <>
+                      {detBadgeNode}
+                      <div className="eventCardDetBadgeRow__text">
+                        <div className="eventCardDetBadgeRow__name">{detBadgeLabel}</div>
+                        <div className="eventCardDetBadgeRow__visit muted small">Визит: {fmtDateTime(e.at)}</div>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+            ) : null}
           </Card>
           )
         })}
@@ -553,7 +743,7 @@ export default function HistoryPage() {
           <h2 className="h2">{editingId ? 'Редактировать визит' : 'Добавить визит / событие'}</h2>
           {editingId && !editAllowed ? (
             <div className="muted small" style={{ marginTop: 6 }}>
-              Редактирование доступно только в течение 3 часов после сохранения визита.
+              Редактирование доступно в течение 3 часов с момента последнего сохранения визита.
             </div>
           ) : null}
           <div className="formGrid historyFormGrid">
@@ -615,39 +805,31 @@ export default function HistoryPage() {
                 {editingPhotos.length ? (
                   <div className="thumbs thumbs--big" style={{ marginTop: 6 }}>
                     {editingPhotos.map((d) => (
-                      <div key={d.id} className="thumbWrap" title={d.title}>
-                        <a className="thumb" href={d.url} target="_blank" rel="noreferrer">
-                          <img alt={d.title} src={d.url} />
-                        </a>
-                        {editAllowed ? (
-                          <button
-                            type="button"
-                            className="thumbX"
-                            title="Удалить фото"
-                            onClick={(ev) => {
-                              ev.preventDefault()
-                              ev.stopPropagation()
-                              const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
-                              if (!ok) return
-                              const ok2 = r.deleteDoc(d.id, scope)
-                              if (!ok2) {
-                                alert('Не удалось удалить фото (нет доступа или время редактирования истекло).')
-                                return
-                              }
-                              invalidateRepo()
-                            }}
-                          >
-                            <span className="thumbX__icon" aria-hidden="true">
-                              ×
-                            </span>
-                          </button>
-                        ) : null}
-                      </div>
+                      <EditingVisitPhoto
+                        key={d.id}
+                        doc={d}
+                        editAllowed={editAllowed}
+                        scope={scope}
+                        r={r}
+                        onPickFiles={() => visitPhotosInputRef.current?.click?.()}
+                        onDeleted={() => invalidateRepo()}
+                      />
                     ))}
                   </div>
                 ) : (
                   <div className="muted small" style={{ marginTop: 6 }}>
-                    Фото визита будут здесь.
+                    {editAllowed ? (
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="outline"
+                        onClick={() => visitPhotosInputRef.current?.click?.()}
+                      >
+                        Добавить фото
+                      </button>
+                    ) : (
+                      'Фото визита будут здесь.'
+                    )}
                   </div>
                 )}
               </Field>
@@ -708,7 +890,7 @@ export default function HistoryPage() {
               onClick={async () => {
                 try {
                   if (editingId && !editAllowed) {
-                    alert('Редактирование визита доступно только в течение 3 часов после сохранения.')
+                    alert('Редактирование визита доступно только в течение 3 часов с момента последнего сохранения.')
                     return
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
@@ -759,7 +941,7 @@ export default function HistoryPage() {
                           eventId: evt.id,
                         })
                       } catch {
-                        // ignore single-file read errors in MVP
+                        // ignore single-file read errors
                       }
                     }
                   }
@@ -778,11 +960,15 @@ export default function HistoryPage() {
                   const next = new URLSearchParams(sp)
                   next.delete('new')
                   next.delete('edit')
+                  if (mode === 'owner') {
+                    next.set('t', 'all')
+                    setTab('all')
+                  }
                   setSp(next, { replace: true })
                 } catch (err) {
                   const msg = String(err?.message || err || '')
                   if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
-                    alert('Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте демо-данные.')
+                    alert('Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте локальные данные на экране входа.')
                   } else {
                     alert('Не удалось сохранить историю. Попробуйте ещё раз.')
                   }
@@ -799,7 +985,7 @@ export default function HistoryPage() {
                 disabled={!editAllowed}
                 onClick={() => {
                   if (!editAllowed) {
-                    alert('Удаление доступно только в течение 3 часов после сохранения визита.')
+                    alert('Удаление доступно только в течение 3 часов с момента последнего сохранения визита.')
                     return
                   }
                   const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
@@ -815,6 +1001,10 @@ export default function HistoryPage() {
                   const next = new URLSearchParams(sp)
                   next.delete('new')
                   next.delete('edit')
+                  if (mode === 'owner') {
+                    next.set('t', 'all')
+                    setTab('all')
+                  }
                   setSp(next, { replace: true })
                 }}
               >
@@ -871,7 +1061,7 @@ export default function HistoryPage() {
                             eventId: evt.id,
                           })
                         } catch {
-                          // ignore single-file read errors in MVP
+                          // ignore single-file read errors
                         }
                       }
                     }
@@ -887,7 +1077,7 @@ export default function HistoryPage() {
                     const msg = String(err?.message || err || '')
                     if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
                       alert(
-                        'Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте демо-данные.',
+                        'Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте локальные данные на экране входа.',
                       )
                     } else {
                       alert('Не удалось сохранить историю. Попробуйте ещё раз.')
@@ -915,6 +1105,12 @@ export default function HistoryPage() {
           </div>
         </Card>
       ) : null}
+      <PhotoLightbox
+        open={Boolean(photoLb)}
+        items={photoLb?.items ?? []}
+        startIndex={photoLb?.startIndex ?? 0}
+        onClose={() => setPhotoLb(null)}
+      />
     </div>
   )
 }

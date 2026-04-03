@@ -1,4 +1,4 @@
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Card, OpenAction, Pill } from '../components.jsx'
@@ -7,16 +7,41 @@ import { getCareRecommendations } from '../../lib/recommendations.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 import { splitWashDetailingServices, WASH_SERVICE_MARKERS } from '../../lib/serviceCatalogs.js'
+import { buildCarSubRoutePath, resolveCarListReturnPath } from '../carNav.js'
+import { detailingCarAccessBadge, ownerServiceLinkSummary } from '../serviceLinkUi.js'
+import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import { docsToPhotoItems } from '../../lib/photoGallery.js'
 
 export default function CarPage() {
   const { id } = useParams()
+  const [sp] = useSearchParams()
   const r = useRepo()
   const nav = useNavigate()
   const [washIdx, setWashIdx] = useState(0)
   const [recsOpen, setRecsOpen] = useState(false)
+  const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode } = useDetailing()
-  const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
+  const scope = useMemo(
+    () => (mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }),
+    [mode, owner?.email, detailingId],
+  )
   const car = r.getCar(id, scope)
+
+  const docs = useMemo(() => {
+    if (!id) return []
+    return (r.listDocs(id, scope) || []).filter((d) => !d.eventId).slice(0, 6)
+  }, [id, r, scope])
+  const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
+
+  const ownerServiceSummary = useMemo(() => {
+    if (mode !== 'owner' || !owner?.email || !car) return null
+    return ownerServiceLinkSummary(r, car, owner.email)
+  }, [mode, owner?.email, car, r])
+
+  const detailingAccess = useMemo(() => {
+    if (mode !== 'detailing' || !car) return null
+    return detailingCarAccessBadge(r, car, detailingId)
+  }, [mode, car, r, detailingId])
 
   const washPhotos = useMemo(() => {
     if (!car) return []
@@ -29,13 +54,18 @@ export default function CarPage() {
     setWashIdx(0)
   }, [washPhotosKey])
 
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
-  if (!car) return <Navigate to="/cars" replace />
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!car) {
+    return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
+  }
+
+  const fromParam = sp.get('from') || ''
+  const listReturn = resolveCarListReturnPath(mode, fromParam)
+  const backTitle = mode === 'detailing' ? 'К кабинету' : 'В гараж'
 
   const allEvents = r.listEvents(id, scope)
   const lastWashEvent =
     allEvents.find((e) => Array.isArray(e?.services) && e.services.some((s) => WASH_SERVICE_MARKERS.has(s))) || null
-  const docs = (r.listDocs(id, scope) || []).filter((d) => !d.eventId).slice(0, 6)
   const recs = getCareRecommendations({ car, events: allEvents })
   const lastServiceVisitAt = allEvents.find((e) => e.source === 'service')?.at || null
 
@@ -44,12 +74,12 @@ export default function CarPage() {
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
-            <Link to="/cars">{mode === 'detailing' ? detailing?.name || 'Детейлинг' : 'Мой гараж'}</Link>
+            <Link to={listReturn}>{mode === 'detailing' ? detailing?.name || 'Кабинет' : 'Мой гараж'}</Link>
             <span> / </span>
             <span>Карточка авто</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to={listReturn} title={backTitle} />
             <h1 className="h1" style={{ margin: 0 }}>
               {car.make} {car.model}
             </h1>
@@ -83,7 +113,7 @@ export default function CarPage() {
             <Link
               className="btn carPage__iconBtn"
               data-variant="ghost"
-              to={`/car/${id}/edit`}
+              to={buildCarSubRoutePath(id, 'edit', fromParam)}
               aria-label="Редактировать"
               title="Редактировать"
             >
@@ -121,6 +151,96 @@ export default function CarPage() {
           </div>
         </div>
       </div>
+
+      {mode === 'owner' && ownerServiceSummary ? (
+        <Card className="card pad" style={{ marginBottom: 16 }}>
+          <div className="cardTitle" style={{ marginBottom: 8 }}>
+            Сервис и доступ
+          </div>
+          {ownerServiceSummary.kind === 'no_service' ? (
+            <>
+              <p className="muted small" style={{ margin: 0 }}>
+                Карточка только в вашем гараже: обслуживание у партнёра ещё не привязано. Записи «от сервиса» появятся после
+                привязки через витрину или когда детейлинг заведёт авто на ваш аккаунт.
+              </p>
+              <div className="row gap wrap" style={{ marginTop: 10 }}>
+                <Link className="btn" data-variant="primary" to="/market">
+                  Открыть витрину
+                </Link>
+              </div>
+            </>
+          ) : ownerServiceSummary.ownerLink === 'approved' || ownerServiceSummary.ownerLink === 'implicit' ? (
+            <>
+              <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <span className="metaStrong">Обслуживается в: {ownerServiceSummary.serviceName}</span>
+                <Pill tone="accent">Связь с сервисом подтверждена</Pill>
+              </div>
+              <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+                История с пометкой «Подтверждено детейлингом» добавлена сервисом; свои записи вы добавляете сами.
+              </p>
+            </>
+          ) : ownerServiceSummary.ownerLink === 'pending' ? (
+            <>
+              <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <span className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</span>
+                <Pill tone="neutral">Заявка на рассмотрении</Pill>
+              </div>
+              <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+                Детейлинг проверит заявку. После одобрения авто появится в вашем гараже со всей историей сервиса.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <span className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</span>
+                <Pill tone="neutral">Заявка отклонена</Pill>
+              </div>
+              <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+                Уточните данные и попробуйте снова через витрину или свяжитесь с сервисом напрямую.
+              </p>
+              <div className="row gap wrap" style={{ marginTop: 10 }}>
+                <Link className="btn" data-variant="primary" to="/market">
+                  Витрина
+                </Link>
+              </div>
+            </>
+          )}
+        </Card>
+      ) : null}
+
+      {mode === 'detailing' && detailingAccess?.label ? (
+        <Card className="card pad" style={{ marginBottom: 16 }}>
+          <div className="cardTitle" style={{ marginBottom: 8 }}>
+            Клиент и доступ
+          </div>
+          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+            <Pill tone={detailingAccess.tone}>{detailingAccess.label}</Pill>
+          </div>
+          {detailingAccess.label === 'Учёт в сервисе' ? (
+            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+              Личный кабинет владельца не подключён — карточка ведётся только у вас. Клиент может подать заявку с витрины,
+              чтобы привязать аккаунт.
+            </p>
+          ) : null}
+          {detailingAccess.label === 'Заявка владельца' ? (
+            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+              Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
+            </p>
+          ) : null}
+          {detailingAccess.label === 'Владелец в приложении' ? (
+            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+              В гараже клиента: <span className="mono">{car.ownerEmail}</span>
+            </p>
+          ) : null}
+          {detailingAccess.label === 'Заявка владельца' ? (
+            <div className="row gap wrap" style={{ marginTop: 10 }}>
+              <Link className="btn" data-variant="primary" to="/requests">
+                Перейти к заявкам
+              </Link>
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <div className="split">
         <Card className="card pad">
@@ -238,7 +358,7 @@ export default function CarPage() {
                   Рекомендации
                 </span>
               </button>
-              <Link className="btn" data-variant="primary" to={`/car/${id}/history?new=1`}>
+              <Link className="btn" data-variant="primary" to={buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })}>
                 + Добавить визит
               </Link>
             </div>
@@ -262,7 +382,7 @@ export default function CarPage() {
           <Card className="card pad">
             <div className="row spread gap">
               <h2 className="h2">Последний уход</h2>
-              <OpenAction to={`/car/${id}/history`} />
+              <OpenAction to={buildCarSubRoutePath(id, 'history', fromParam)} />
             </div>
             {lastWashEvent ? (
               <div className="miniList">
@@ -305,15 +425,33 @@ export default function CarPage() {
           <Card className="card pad">
             <div className="row spread gap">
               <h2 className="h2">Документы / фото</h2>
-              <OpenAction to={`/car/${id}/docs`} />
+              <OpenAction to={buildCarSubRoutePath(id, 'docs', fromParam)} />
             </div>
             {docs.length ? (
               <div className="thumbs">
-                {docs.map((d) => (
-                  <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
-                    <img alt={d.title} src={d.url} />
-                  </a>
-                ))}
+                {docs.map((d) => {
+                  const gi = docGalleryItems.findIndex((g) => g.id === d.id)
+                  return gi >= 0 ? (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className="thumb thumb--lb"
+                      aria-label={d.title ? `Открыть фото: ${d.title}` : 'Открыть фото'}
+                      onClick={() =>
+                        setPhotoLb({
+                          items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                          startIndex: gi,
+                        })
+                      }
+                    >
+                      <img alt={d.title} src={d.url} />
+                    </button>
+                  ) : (
+                    <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
+                      <img alt={d.title} src={d.url} />
+                    </a>
+                  )
+                })}
               </div>
             ) : (
               <div className="muted">Пока нет файлов.</div>
@@ -321,6 +459,12 @@ export default function CarPage() {
           </Card>
         </div>
       </div>
+      <PhotoLightbox
+        open={Boolean(photoLb)}
+        items={photoLb?.items ?? []}
+        startIndex={photoLb?.startIndex ?? 0}
+        onClose={() => setPhotoLb(null)}
+      />
     </div>
   )
 }

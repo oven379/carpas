@@ -40,7 +40,7 @@ export default function OwnerSupportDropdown() {
   }, [open])
 
   const supportTextGeneric =
-    'Поддержка (MVP)\n\n' +
+    'Поддержка КарПас\n\n' +
     `Страница: ${location.href}\n` +
     `Браузер: ${navigator.userAgent}\n\n` +
     'Опишите проблему и отправьте это сообщение в поддержку.'
@@ -129,7 +129,7 @@ export default function OwnerSupportDropdown() {
             onClick={() => {
               void copySupport(
                 car
-                  ? 'Поддержка (MVP)\n\n' +
+                  ? 'Поддержка КарПас\n\n' +
                       `Авто: ${car.make} ${car.model} · VIN: ${car.vin || '—'}\n` +
                       `Страница: ${location.href}\n` +
                       `Браузер: ${navigator.userAgent}\n\n` +
@@ -156,10 +156,10 @@ export default function OwnerSupportDropdown() {
                 return
               }
               invalidateRepo()
-              alert(next.isPremium ? 'Premium подключён (демо).' : 'Premium отключён (демо).')
+              alert(next.isPremium ? 'Premium включён.' : 'Premium выключен.')
             }}
           >
-            {owner?.isPremium ? 'Отключить Premium (демо)' : 'Подключить Premium (демо)'}
+            {owner?.isPremium ? 'Отключить Premium' : 'Подключить Premium'}
           </button>
         </div>
       ) : null}

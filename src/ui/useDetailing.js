@@ -21,7 +21,7 @@ export function useDetailing() {
   return useMemo(() => ({ detailingId, detailing, owner, mode }), [detailingId, detailing, owner, mode])
 }
 
-/** Партнёр вошёл, но ещё не сохранил первичные настройки детейлинга — кабинет недоступен, только /detailing/settings */
+/** Партнёр вошёл, но ещё не сохранил настройки лендинга — кабинет недоступен, только /detailing/landing */
 export function detailingOnboardingPending(mode, detailing) {
   return mode === 'detailing' && detailing != null && detailing.profileCompleted === false
 }

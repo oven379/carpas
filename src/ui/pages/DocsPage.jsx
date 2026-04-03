@@ -1,19 +1,24 @@
 import { useId, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import { fmtDateTime } from '../../lib/format.js'
+import { buildCarFromQuery } from '../carNav.js'
+import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import { docsToPhotoItems } from '../../lib/photoGallery.js'
 
 export default function DocsPage() {
   const { id } = useParams()
+  const [sp] = useSearchParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode } = useDetailing()
   const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
   const car = r.getCar(id, scope)
   const [draft, setDraft] = useState({ title: '' })
   const [files, setFiles] = useState([])
+  const [photoLb, setPhotoLb] = useState(null)
   const docsFileInputId = useId()
   const docsFileInputRef = useRef(null)
 
@@ -24,21 +29,24 @@ export default function DocsPage() {
     // Фото моек/обслуживания остаются в Истории (там они привязаны к eventId).
     return (r.listDocs(id, sc) || []).filter((d) => !d.eventId)
   }, [car, id, r, mode, owner?.email, detailingId])
+  const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
 
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
-  if (!car) return <Navigate to="/cars" replace />
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
+
+  const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 
   return (
     <div className="container">
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to={`/car/${id}`}>Карточка авто</Link>
+            <Link to={carCardHref}>Карточка авто</Link>
             <span> / </span>
             <span>Документы</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to={carCardHref} title="К карточке авто" />
             <h1 className="h1" style={{ margin: 0 }}>
               Документы / фото
             </h1>
@@ -137,9 +145,28 @@ export default function DocsPage() {
         {docs.map((d) => (
           <Card key={d.id} className="card thumbCard">
             <div className="thumbWrap">
-              <a className="thumbCard__img" href={d.url} target="_blank" rel="noreferrer">
-                <img alt={d.title} src={d.url} />
-              </a>
+              {(() => {
+                const gi = docGalleryItems.findIndex((g) => g.id === d.id)
+                return gi >= 0 ? (
+                  <button
+                    type="button"
+                    className="thumbCard__img thumbCard__img--btn"
+                    aria-label={d.title ? `Открыть фото: ${d.title}` : 'Открыть фото'}
+                    onClick={() =>
+                      setPhotoLb({
+                        items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                        startIndex: gi,
+                      })
+                    }
+                  >
+                    <img alt={d.title} src={d.url} />
+                  </button>
+                ) : (
+                  <a className="thumbCard__img" href={d.url} target="_blank" rel="noreferrer">
+                    <img alt={d.title} src={d.url} />
+                  </a>
+                )
+              })()}
               {d.source === 'owner' || mode === 'detailing' ? (
                 <button
                   type="button"
@@ -182,6 +209,12 @@ export default function DocsPage() {
           </Card>
         ) : null}
       </div>
+      <PhotoLightbox
+        open={Boolean(photoLb)}
+        items={photoLb?.items ?? []}
+        startIndex={photoLb?.startIndex ?? 0}
+        onClose={() => setPhotoLb(null)}
+      />
     </div>
   )
 }

@@ -1,8 +1,11 @@
 /** Заголовок визита в истории: лимит символов (пробелы учитываются). Менять только здесь. */
 export const VISIT_TITLE_MAX_LEN = 40
 
-/** Демо: один пароль для любого аккаунта владельца (почты различаются). */
+/** Демо: раньше был единый пароль; оставлен для совместимости со старыми подсказками в коде партнёров. */
 export const OWNER_DEMO_PASSWORD = '1111'
+
+/** Минимальная длина пароля владельца в локальном режиме. */
+export const OWNER_PASSWORD_MIN_LEN = 4
 
 export function clampVisitTitle(raw) {
   return String(raw ?? '')
@@ -147,7 +150,7 @@ export function normPlateBase(raw, { maxLen = 6 } = {}) {
   return out
 }
 
-// Регион: 2-3 цифры (в MVP позволим 1-3, но показывать/проверять будем как строку)
+// Регион: 2–3 цифры; при вводе допускаем 1–3 символа
 export function normPlateRegion(raw, { maxLen = 3 } = {}) {
   return normDigits(raw, { maxLen, max: 999 })
 }
@@ -169,5 +172,86 @@ export function fmtPlateFull(plate, plateRegion) {
   const b = normPlateBase(plate, { maxLen: 6 })
   const r = normPlateRegion(plateRegion, { maxLen: 3 })
   return r ? `${b}${r}` : b
+}
+
+/** Кириллица (и часть укр. букв) → латиница для slug в URL. */
+const CYR_TO_LATIN_SLUG = {
+  а: 'a',
+  б: 'b',
+  в: 'v',
+  г: 'g',
+  д: 'd',
+  е: 'e',
+  ё: 'e',
+  ж: 'zh',
+  з: 'z',
+  и: 'i',
+  й: 'y',
+  к: 'k',
+  л: 'l',
+  м: 'm',
+  н: 'n',
+  о: 'o',
+  п: 'p',
+  р: 'r',
+  с: 's',
+  т: 't',
+  у: 'u',
+  ф: 'f',
+  х: 'h',
+  ц: 'c',
+  ч: 'ch',
+  ш: 'sh',
+  щ: 'sch',
+  ъ: '',
+  ы: 'y',
+  ь: '',
+  э: 'e',
+  ю: 'yu',
+  я: 'ya',
+  і: 'i',
+  ї: 'yi',
+  є: 'e',
+  ґ: 'g',
+}
+
+export function translitCyrillicForSlug(raw) {
+  let out = ''
+  for (const ch of String(raw)) {
+    const low = ch.toLocaleLowerCase('ru-RU')
+    const rep = CYR_TO_LATIN_SLUG[low]
+    if (rep !== undefined) out += rep
+    else out += ch
+  }
+  return out
+}
+
+/** Ввод адреса гаража: транслит + только a-z, 0-9, дефис (как в репозитории). */
+export function normalizeGarageSlugInput(raw) {
+  const s = translitCyrillicForSlug(raw)
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40)
+}
+
+/** Публичная витрина: не показываем полный VIN. */
+export function fmtVinPublic(vin) {
+  const v = normVin(vin)
+  if (!v) return '—'
+  if (v.length <= 6) return '••••••'
+  return `${v.slice(0, 4)}…${v.slice(-3)}`
+}
+
+/** Публичная витрина: не показываем полный номер. */
+export function fmtPlatePublic(plate, plateRegion) {
+  const full = fmtPlateFull(plate, plateRegion)
+  if (!full) return '—'
+  if (full.length <= 3) return '•••'
+  return `${full.slice(0, 2)}•••${full.slice(-2)}`
 }
 

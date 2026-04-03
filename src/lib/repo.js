@@ -1,13 +1,17 @@
 import { readLS, removeLS, resetAll, writeLS } from './storage.js'
-import { makeId, seedCars, seedEvents } from './seed.js'
-import { splitLegacyCombinedServices } from './serviceCatalogs.js'
+import { buildQaDetailingPack, makeId, QA_DETAILING_ID, seedCars, seedEvents } from './seed.js'
+import {
+  DETAILING_ITEM_SET,
+  MAINTENANCE_ITEM_SET,
+  splitLegacyCombinedServices,
+} from './serviceCatalogs.js'
 import {
   clampVisitTitle,
   fmtPlateFull,
   normPlateBase,
   normPlateRegion,
   normVin,
-  OWNER_DEMO_PASSWORD,
+  OWNER_PASSWORD_MIN_LEN,
   parsePlateFull,
 } from './format.js'
 
@@ -27,37 +31,62 @@ function lsArr(key) {
   return Array.isArray(v) ? v : []
 }
 
+/** Тестовый детейлинг с 10 авто — один раз дописывается в хранилище, если ещё нет `det_qa`. */
+function ensureQaDetailingPack() {
+  const detailings = lsArr(DETAILINGS_KEY)
+  if (detailings.some((d) => d && String(d.id) === QA_DETAILING_ID)) return
+
+  const pack = buildQaDetailingPack()
+  writeLS(DETAILINGS_KEY, [pack.detailing, ...detailings])
+  writeLS(CARS_KEY, [...pack.cars, ...lsArr(CARS_KEY)])
+  writeLS(EVENTS_KEY, [...pack.events, ...lsArr(EVENTS_KEY)])
+  writeLS(DOCS_KEY, [...pack.docs, ...lsArr(DOCS_KEY)])
+}
+
 function ensureSeeded() {
   const seed = readLS('seeded', false)
   const existingCars = lsArr(CARS_KEY)
   const hasCars = Array.isArray(existingCars) && existingCars.length > 0
-  if (seed && hasCars) return
+  if (!seed || !hasCars) {
+    const detailings = [
+      {
+        id: 'det_seed',
+        name: 'Демо-детейлинг',
+        email: 'test@test',
+        password: '1111',
+        pin: '1234',
+        createdAt: new Date().toISOString(),
+      },
+    ]
+    const cars = seedCars()
+    const events = cars.flatMap((c) => seedEvents(c.id))
+    const docs = []
+    const shares = []
 
-  const detailings = [
-    {
-      id: 'det_seed',
-      name: 'Демо-детейлинг',
-      email: 'test@test',
-      password: '1111',
-      pin: '1234',
-      createdAt: new Date().toISOString(),
-    },
-  ]
-  const cars = seedCars()
-  const events = cars.flatMap((c) => seedEvents(c.id))
-  const docs = []
-  const shares = []
+    writeLS(DETAILINGS_KEY, detailings)
+    writeLS(CARS_KEY, cars)
+    writeLS(EVENTS_KEY, events)
+    writeLS(DOCS_KEY, docs)
+    writeLS(SHARES_KEY, shares)
+    writeLS('seeded', true)
+  }
 
-  writeLS(DETAILINGS_KEY, detailings)
-  writeLS(CARS_KEY, cars)
-  writeLS(EVENTS_KEY, events)
-  writeLS(DOCS_KEY, docs)
-  writeLS(SHARES_KEY, shares)
-  writeLS('seeded', true)
+  ensureQaDetailingPack()
 }
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function normGarageSlug(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40)
 }
 
 const EVENT_EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
@@ -157,6 +186,8 @@ export function repo() {
     const instagram = d.instagram != null ? String(d.instagram).trim() : ''
     const logo = d.logo != null ? String(d.logo).trim() : ''
     const cover = d.cover != null ? String(d.cover).trim() : ''
+    const contactName = d.contactName != null ? String(d.contactName).trim() : ''
+    const servicesOffered = Array.isArray(d.servicesOffered) ? d.servicesOffered.map((x) => String(x || '').trim()).filter(Boolean) : []
     // Явно false только у новых регистраций; отсутствие поля = старые данные, считаем профиль заполненным
     const profileCompleted = d.profileCompleted != null ? Boolean(d.profileCompleted) : true
     return {
@@ -165,6 +196,7 @@ export function repo() {
       email,
       password,
       phone,
+      contactName,
       city,
       address,
       description,
@@ -173,6 +205,7 @@ export function repo() {
       instagram,
       logo,
       cover,
+      servicesOffered,
       profileCompleted,
     }
   }
@@ -186,7 +219,24 @@ export function repo() {
     const isPremium = o.isPremium != null ? Boolean(o.isPremium) : false
     const createdAt = o.createdAt || nowIso()
     const updatedAt = o.updatedAt || createdAt
-    return { ...o, email, password, name, phone, isPremium, createdAt, updatedAt }
+    const garageBanner = o.garageBanner != null ? String(o.garageBanner).trim() : ''
+    const garageAvatar = o.garageAvatar != null ? String(o.garageAvatar).trim() : ''
+    const garageSlug = o.garageSlug != null ? normGarageSlug(String(o.garageSlug)) : ''
+    const showPhonePublic = o.showPhonePublic != null ? Boolean(o.showPhonePublic) : false
+    return {
+      ...o,
+      email,
+      password,
+      name,
+      phone,
+      isPremium,
+      garageBanner,
+      garageAvatar,
+      garageSlug,
+      showPhonePublic,
+      createdAt,
+      updatedAt,
+    }
   }
 
   function migrateCar(c) {
@@ -301,7 +351,7 @@ export function repo() {
   }
 
   return {
-    // ===== owners (MVP local auth) =====
+    // ===== owners (локальная сессия) =====
     listOwners() {
       const migrated = lsArr(OWNERS_KEY).map(migrateOwner)
       writeLS(OWNERS_KEY, migrated)
@@ -312,21 +362,31 @@ export function repo() {
       if (!em) return null
       return this.listOwners().find((x) => normEmail(x.email) === em) || null
     },
+    getOwnerByGarageSlug(slug) {
+      const s = normGarageSlug(slug)
+      if (!s) return null
+      return this.listOwners().find((x) => normGarageSlug(x.garageSlug) === s) || null
+    },
     registerOwner({ email, password, name, phone }) {
       const em = normEmail(email)
       const pwd = String(password || '').trim()
       if (!em) return { ok: false, reason: 'bad_email' }
-      if (pwd !== OWNER_DEMO_PASSWORD) return { ok: false, reason: 'bad_password' }
+      if (pwd.length < OWNER_PASSWORD_MIN_LEN) return { ok: false, reason: 'bad_password' }
+      if (pwd.length > 128) return { ok: false, reason: 'bad_password' }
       const all = this.listOwners()
       if (all.some((x) => normEmail(x.email) === em)) return { ok: false, reason: 'email_taken' }
       const createdAt = nowIso()
       const o = {
         id: makeId('own'),
         email: em,
-        password: OWNER_DEMO_PASSWORD,
+        password: pwd,
         name: String(name || '').trim(),
         phone: String(phone || '').trim(),
         isPremium: false,
+        garageBanner: '',
+        garageAvatar: '',
+        garageSlug: '',
+        showPhonePublic: false,
         createdAt,
         updatedAt: createdAt,
       }
@@ -337,9 +397,10 @@ export function repo() {
       const em = normEmail(email)
       const pwd = String(password || '').trim()
       if (!em || !pwd) return { ok: false, reason: 'bad_credentials' }
-      if (pwd !== OWNER_DEMO_PASSWORD) return { ok: false, reason: 'bad_password' }
       const o = this.getOwner(em)
       if (!o) return { ok: false, reason: 'not_found' }
+      const stored = String(o.password || '').trim()
+      if (stored !== pwd) return { ok: false, reason: 'bad_password' }
       return { ok: true, owner: o }
     },
     updateOwner(email, patch) {
@@ -349,15 +410,31 @@ export function repo() {
       const idx = all.findIndex((x) => normEmail(x.email) === em)
       if (idx < 0) return null
       const prev = all[idx]
+      let garageSlug = prev.garageSlug != null ? normGarageSlug(String(prev.garageSlug)) : ''
+      if (patch && Object.prototype.hasOwnProperty.call(patch, 'garageSlug')) {
+        garageSlug = normGarageSlug(patch.garageSlug)
+        if (garageSlug) {
+          const taken = all.some(
+            (x, i) => i !== idx && normGarageSlug(x.garageSlug || '') === garageSlug,
+          )
+          if (taken) return null
+        }
+      }
       const next = {
         ...prev,
-        ...(patch || {}),
         id: prev.id,
         email: prev.email,
         password: prev.password,
         name: patch?.name == null ? prev.name : String(patch.name || '').trim(),
         phone: patch?.phone == null ? prev.phone : String(patch.phone || '').trim(),
         isPremium: patch?.isPremium == null ? prev.isPremium : Boolean(patch.isPremium),
+        garageBanner:
+          patch?.garageBanner === undefined ? prev.garageBanner || '' : String(patch.garageBanner || '').trim(),
+        garageAvatar:
+          patch?.garageAvatar === undefined ? prev.garageAvatar || '' : String(patch.garageAvatar || '').trim(),
+        garageSlug,
+        showPhonePublic:
+          patch?.showPhonePublic === undefined ? Boolean(prev.showPhonePublic) : Boolean(patch.showPhonePublic),
         updatedAt: nowIso(),
       }
       const copy = all.slice()
@@ -378,15 +455,26 @@ export function repo() {
     getDetailing(id) {
       return this.listDetailings().find((d) => d.id === id) || null
     },
-    registerDetailing({ name, email, phone, password }) {
+    registerDetailing({ name, contactName, email, phone, password, city, address, servicesOffered }) {
       const ds = lsArr(DETAILINGS_KEY)
       const migrated = ds.map(migrateDetailing)
       const em = normEmail(email)
       if (!em) return { error: 'bad_email' }
       const nm = String(name || '').trim()
       if (!nm) return { error: 'bad_name' }
+      const contact = String(contactName || '').trim()
+      if (!contact) return { error: 'bad_contact_name' }
       const phon = String(phone || '').trim()
       if (!phon) return { error: 'bad_phone' }
+      const cityTrim = String(city || '').trim()
+      if (!cityTrim) return { error: 'bad_city' }
+      const addrTrim = String(address || '').trim()
+      const offeredRaw = Array.isArray(servicesOffered) ? servicesOffered : []
+      const allowedSvc = new Set([...DETAILING_ITEM_SET, ...MAINTENANCE_ITEM_SET])
+      const offered = offeredRaw
+        .map((x) => String(x || '').trim())
+        .filter((x) => x && allowedSvc.has(x))
+      if (!offered.length) return { error: 'bad_services' }
       if (migrated.some((x) => normEmail(x.email) === em)) {
         return { error: 'email_taken' }
       }
@@ -395,12 +483,14 @@ export function repo() {
       const d = {
         id: makeId('det'),
         name: nm,
+        contactName: contact,
         email: em,
         phone: phon,
         password: finalPwd,
         pin: finalPwd,
-        city: '',
-        address: '',
+        servicesOffered: offered,
+        city: cityTrim,
+        address: addrTrim,
         description: '',
         website: '',
         telegram: '',
@@ -442,6 +532,16 @@ export function repo() {
         password: prev.password,
         phone: patch?.phone == null ? prev.phone : String(patch.phone || '').trim(),
         name: patch?.name == null ? prev.name : String(patch.name || '').trim(),
+        contactName:
+          patch?.contactName == null ? prev.contactName || '' : String(patch.contactName || '').trim(),
+        servicesOffered:
+          patch?.servicesOffered == null
+            ? Array.isArray(prev.servicesOffered)
+              ? prev.servicesOffered
+              : []
+            : Array.isArray(patch.servicesOffered)
+              ? patch.servicesOffered.map((x) => String(x || '').trim()).filter(Boolean)
+              : [],
         city: patch?.city == null ? prev.city : String(patch.city || '').trim(),
         address: patch?.address == null ? prev.address : String(patch.address || '').trim(),
         description: patch?.description == null ? prev.description : String(patch.description || '').trim(),
@@ -709,7 +809,7 @@ export function repo() {
         try {
           this.updateCar(carId, { mileageKm: evt.mileageKm }, scope)
         } catch {
-          // ignore in MVP
+          // ignore
         }
       }
       return evt
@@ -780,7 +880,7 @@ export function repo() {
         const cur = car ? clampInt(car.mileageKm, { min: 0, max: 1000000 }) : 0
         if (car && next.mileageKm > cur) this.updateCar(prev.carId, { mileageKm: next.mileageKm }, scope)
       } catch {
-        // ignore in MVP
+        // ignore
       }
       return next
     },
@@ -880,6 +980,15 @@ export function repo() {
         ownerEmail: ownerEmail || null,
       }
       writeLS(DOCS_KEY, [doc, ...docs])
+      if (targetEventId) {
+        const evBump = lsArr(EVENTS_KEY).map(migrateEvent)
+        const ix = evBump.findIndex((e) => e.id === targetEventId)
+        if (ix >= 0) {
+          const evCopy = evBump.slice()
+          evCopy[ix] = { ...evCopy[ix], updatedAt: nowIso() }
+          writeLS(EVENTS_KEY, evCopy)
+        }
+      }
       return doc
     },
     deleteDoc(id, detailingId) {
@@ -901,7 +1010,17 @@ export function repo() {
         if (!isWithinEditWindow(evt)) return null
       }
 
+      const evId = prev.eventId || null
       writeLS(DOCS_KEY, docs.filter((d) => d.id !== id))
+      if (evId) {
+        const evBump = lsArr(EVENTS_KEY).map(migrateEvent)
+        const ix = evBump.findIndex((e) => e.id === evId)
+        if (ix >= 0) {
+          const evCopy = evBump.slice()
+          evCopy[ix] = { ...evCopy[ix], updatedAt: nowIso() }
+          writeLS(EVENTS_KEY, evCopy)
+        }
+      }
       return { ok: true }
     },
 
@@ -948,7 +1067,7 @@ export function repo() {
       return { car, share }
     },
 
-    // ===== VIN claim flow (MVP mock) =====
+    // ===== заявки на привязку по VIN (mock) =====
     findCarsByVin(vin) {
       const v = normVin(vin)
       if (!v) return []
@@ -1030,7 +1149,7 @@ export function repo() {
       return next
     },
 
-    /** Очистка localStorage/sessionStorage с префиксом приложения + повторное заполнение демо (MVP). */
+    /** Очистка localStorage/sessionStorage с префиксом приложения + повторное заполнение стартовых данных. */
     resetLocalDemo() {
       resetAll()
       ensureSeeded()

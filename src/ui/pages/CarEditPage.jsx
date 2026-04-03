@@ -13,6 +13,7 @@ import {
   getCustomMakes,
   getCustomModelsByMake,
 } from '../../lib/customDicts.js'
+import { buildCarFromQuery, resolveCarListReturnPath } from '../carNav.js'
 
 function cssUrl(url) {
   // data: URL может содержать символы, которые ломают url(...) без кавычек
@@ -212,23 +213,38 @@ export default function CarEditPage({ mode }) {
     }
   }, [draft.make, brandIdByMake])
 
-  if (detailingOnboardingPending(who, detailing)) return <Navigate to="/detailing/settings" replace />
-  if (mode === 'edit' && !car) return <Navigate to="/cars" replace />
+  if (detailingOnboardingPending(who, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (mode === 'edit' && !car) {
+    return <Navigate to={who === 'detailing' ? '/detailing' : '/cars'} replace />
+  }
+
+  const fromParam = sp.get('from') || ''
+  const listReturn = resolveCarListReturnPath(who, fromParam)
+  const carCardHref = mode === 'edit' && id ? `/car/${id}${buildCarFromQuery(fromParam)}` : listReturn
 
   const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
-  const garageLink = who === 'owner' ? '/cars' : '/detailing'
+  /** Владелец: из редактирования сразу в гараж/список (?from=). Партнёр: из редактирования — к карточке авто. */
+  const backNavTo = who === 'owner' ? listReturn : mode === 'edit' ? carCardHref : listReturn
+  const backNavTitle =
+    who === 'owner'
+      ? listReturn.startsWith('/garage')
+        ? 'В гараж'
+        : 'К списку авто'
+      : mode === 'edit'
+        ? 'К карточке авто'
+        : 'К кабинету'
 
   return (
     <div className="container">
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to={garageLink}>{who === 'owner' ? 'Мой гараж' : 'Кабинет'}</Link>
+            <Link to={listReturn}>{who === 'owner' ? 'Мой гараж' : 'Кабинет'}</Link>
             <span> / </span>
             <span>{title}</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav to={backNavTo} title={backNavTitle} />
             <h1 className="h1" style={{ margin: 0 }}>
               {title}
             </h1>
@@ -334,7 +350,7 @@ export default function CarEditPage({ mode }) {
               </Field>
             </>
           ) : null}
-          <Field label="VIN" hint="можно оставить пустым для прототипа">
+          <Field label="VIN" hint="можно оставить пустым">
             <Input
               className="input mono"
               value={draft.vin}
@@ -459,22 +475,25 @@ export default function CarEditPage({ mode }) {
                       }
                     }
                     const created = r.createCar(scope, draft)
-                    nav(`/car/${created.id}`)
+                    nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
                   }
                   invalidateRepo()
-                  if (mode === 'edit') nav(`/car/${id}`)
+                  if (mode === 'edit') {
+                    if (who === 'owner') nav(listReturn)
+                    else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
+                  }
                 } catch (e) {
                   console.error(e)
                   alert(
                     'Не удалось сохранить. Скорее всего, браузеру не хватает места для хранения фото (localStorage).\n\n' +
-                      'Попробуйте: уменьшить фото или нажать «Сбросить демо», чтобы освободить место.',
+                      'Попробуйте: уменьшить фото или сбросить локальные данные на экране входа, чтобы освободить место.',
                   )
                 }
               }}
             >
               Сохранить
             </Button>
-            <Link className="btn" data-variant="ghost" to={mode === 'edit' ? `/car/${id}` : garageLink}>
+            <Link className="btn" data-variant="ghost" to={backNavTo}>
               Отмена
             </Link>
           </div>

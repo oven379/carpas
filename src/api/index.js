@@ -35,7 +35,7 @@ function createMockApi() {
     revokeShare: (...a) => r.revokeShare(...a),
     getCarByShareToken: (...a) => r.getCarByShareToken(...a),
 
-    // VIN claims / moderation (MVP mock)
+    // заявки на привязку авто (mock)
     findCarsByVin: (...a) => r.findCarsByVin(...a),
     listClaimsForOwner: (...a) => r.listClaimsForOwner(...a),
     listClaimsForDetailing: (...a) => r.listClaimsForDetailing(...a),
@@ -53,8 +53,7 @@ function createMockApi() {
 }
 
 function createRealApi() {
-  // Контракт-заглушка: чтобы UI уже был готов, а потом ты просто реализуешь бэк.
-  // Предполагаемые маршруты можно поменять без трогания UI (только этот файл).
+  // Заглушка HTTP-клиента под бэкенд; маршруты правятся здесь.
   const baseUrl = BASE_URL
   const token = null
 

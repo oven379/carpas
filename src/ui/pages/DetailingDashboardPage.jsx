@@ -1,7 +1,8 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, Field, Input, Pill } from '../components.jsx'
+import { Card, Field, Input, Pill } from '../components.jsx'
+import { detailingCarAccessBadge } from '../serviceLinkUi.js'
 import { fmtDate, fmtPlateFull, normVin, parsePlateFull } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 
@@ -18,7 +19,7 @@ function inferPrefill(qRaw) {
   const qLower = q.toLowerCase()
   const digits = onlyDigits(q)
 
-  // VIN: чаще всего 17 символов, но в MVP допускаем 11+
+  // VIN: обычно 17 символов; короткие значения допускаем для ручного ввода
   const vinCandidate = normVin(q)
   const isVin = vinCandidate.length >= 11
 
@@ -101,7 +102,7 @@ export default function DetailingDashboardPage() {
   const quickTargetCar = strictHits.length === 1 ? strictHits[0] : null
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
-  if (det && det.profileCompleted === false) return <Navigate to="/detailing/settings" replace />
+  if (det && det.profileCompleted === false) return <Navigate to="/detailing/landing" replace />
 
   const initials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addressText = [det?.city, det?.address].filter(Boolean).join(', ')
@@ -122,7 +123,6 @@ export default function DetailingDashboardPage() {
             <span>Кабинет СТО</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
-            <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
               {det?.name || 'Детейлинг / СТО'}
             </h1>
@@ -178,21 +178,29 @@ export default function DetailingDashboardPage() {
           <Link
             className="btn detHero__editBtn detHero__editBtn--icon"
             data-variant="ghost"
-            to="/detailing/settings"
-            aria-label="Редактировать компанию"
-            title="Редактировать компанию"
+            to="/detailing/landing"
+            aria-label="Настройки лендинга"
+            title="Настройки лендинга"
           >
             <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
           </Link>
 
           {det?.logo ? (
-            <div className="detHero__logo detHero__logo--card">
+            <Link
+              className="detHero__logo detHero__logo--card detHero__logoLink"
+              to={`/d/${encodeURIComponent(String(detailingId))}`}
+              title="Открыть публичную страницу детейлинга"
+            >
               <img alt="Логотип" src={det.logo} />
-            </div>
+            </Link>
           ) : (
-            <div className="detHero__logo detHero__logo--card">
+            <Link
+              className="detHero__logo detHero__logo--card detHero__logoLink"
+              to={`/d/${encodeURIComponent(String(detailingId))}`}
+              title="Открыть публичную страницу детейлинга"
+            >
               <span aria-hidden="true">{initials}</span>
-            </div>
+            </Link>
           )}
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
@@ -245,6 +253,7 @@ export default function DetailingDashboardPage() {
         {filtered.map((c) => {
           const lastVisitAt = r.listEvents(c.id, { detailingId })[0]?.at || null
           const carHref = `/car/${c.id}?from=${encodeURIComponent(`/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`
+          const access = detailingCarAccessBadge(r, c, detailingId)
           return (
             <div key={c.id} className="rowItem">
               <Link
@@ -257,8 +266,11 @@ export default function DetailingDashboardPage() {
                   style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
                 />
                 <div className="rowItem__main">
-                  <div className="rowItem__title">
-                    {c.make} {c.model}
+                  <div className="rowItem__title row gap wrap" style={{ alignItems: 'center' }}>
+                    <span>
+                      {c.make} {c.model}
+                    </span>
+                    {access.label ? <Pill tone={access.tone}>{access.label}</Pill> : null}
                   </div>
                   <div className="rowItem__meta carPage__meta">
                     <span>{c.city || '—'}</span>

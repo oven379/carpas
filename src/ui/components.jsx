@@ -1,5 +1,5 @@
 import { forwardRef } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { safeSyncRepo } from '../lib/syncRepoCall.js'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
@@ -65,9 +65,9 @@ export function OpenAction({ to, asSpan, className = '', children = 'Откры�
   )
 }
 
-/** Назад: шеврон влево. С `to` — ссылка (надёжно с экранов /auth/*); без — шаг назад по истории. */
+/** Назад: шеврон влево. С `to` — `<Link>` (надёжный переход в роутере); без `to` — кнопка «шаг назад» по истории. */
 export function BackNav({ className = '', title = 'Назад', to }) {
-  const nav = useNavigate()
+  const navigate = useNavigate()
   const cn = `backNav ${className}`.trim()
   const svg = (
     <svg className="backNav__svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
@@ -83,13 +83,13 @@ export function BackNav({ className = '', title = 'Назад', to }) {
   )
   if (to) {
     return (
-      <Link className={cn} to={to} aria-label={title} title={title}>
+      <Link to={to} className={cn} aria-label={title} title={title}>
         {svg}
       </Link>
     )
   }
   return (
-    <button type="button" className={cn} aria-label={title} title={title} onClick={() => nav(-1)}>
+    <button type="button" className={cn} aria-label={title} title={title} onClick={() => navigate(-1)}>
       {svg}
     </button>
   )
@@ -97,9 +97,15 @@ export function BackNav({ className = '', title = 'Назад', to }) {
 
 export function TopNav() {
   const nav = useNavigate()
+  const loc = useLocation()
   const r = useRepo()
   const { detailingId, mode } = useDetailing()
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
+  const onAuthHub = loc.pathname === '/auth' || loc.pathname.startsWith('/auth/')
+  /** Публичный лендинг детейлинга: только регистрация и поддержка (без входа/выхода в шапке) */
+  const isPublicDetailingPage = /^\/d\/[^/]+\/?$/.test(loc.pathname)
+  const isPublicGaragePage = /^\/g\/[^/]+\/?$/.test(loc.pathname)
+  const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
   let pendingClaims = 0
   if (mode === 'detailing' && detailingId && r.listClaimsForDetailing) {
     const res = safeSyncRepo(() => r.listClaimsForDetailing(detailingId))
@@ -112,41 +118,58 @@ export function TopNav() {
       <div className="nav__inner">
         <NavLink to="/" className="nav__brand">
           <Logo size={26} />
-          <span>КарПас</span>
         </NavLink>
         <nav className="nav__links">
           <div className="nav__linksScroll">
-            {mode === 'detailing' ? (
+            {mode === 'detailing' && !isPublicDetailingPage ? (
               <NavLink to="/requests" className={linkClass}>
                 Заявки{pendingClaims ? ` (${pendingClaims})` : ''}
               </NavLink>
             ) : null}
-            {mode === 'detailing' ? (
+            {mode === 'detailing' && !isPublicDetailingPage ? (
               <NavLink to="/detailing" className={linkClass}>
                 Кабинет
               </NavLink>
             ) : null}
           </div>
           <div className="nav__linksPersist">
-            {mode === 'owner' && isAuthed() ? <OwnerSupportDropdown /> : null}
-            {mode === 'guest' ? (
-              <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
-                Поддержка
-              </a>
-            ) : null}
-            {mode !== 'guest' ? (
-              <button
-                type="button"
-                className="nav__action"
-                onClick={() => {
-                  clearSession()
-                  invalidateRepo()
-                  nav('/')
-                }}
-              >
-                Выйти
-              </button>
-            ) : null}
+            {isPublicShowcasePage ? (
+              <>
+                <Link className="nav__action" to="/auth/owner">
+                  Зарегистрироваться
+                </Link>
+                <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
+                  Поддержка
+                </a>
+              </>
+            ) : (
+              <>
+                {onAuthHub ? (
+                  <Link className="nav__action" to="/about">
+                    О сервисе
+                  </Link>
+                ) : null}
+                {mode === 'owner' && isAuthed() ? <OwnerSupportDropdown /> : null}
+                {mode === 'guest' && !onAuthHub ? (
+                  <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
+                    Поддержка
+                  </a>
+                ) : null}
+                {mode !== 'guest' ? (
+                  <button
+                    type="button"
+                    className="nav__action"
+                    onClick={() => {
+                      clearSession()
+                      invalidateRepo()
+                      nav('/')
+                    }}
+                  >
+                    Выйти
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         </nav>
       </div>

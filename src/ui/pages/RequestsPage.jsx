@@ -14,7 +14,7 @@ export default function RequestsPage() {
   const r = useRepo()
   const { detailingId, detailing, mode } = useDetailing()
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/settings" replace />
+  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
 
   const claims = r.listClaimsForDetailing(detailingId)
   const pending = claims.filter((x) => x.status === 'pending')

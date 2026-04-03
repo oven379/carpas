@@ -18,6 +18,10 @@ import PublicCarPage from './ui/pages/PublicCarPage.jsx'
 import RequestsPage from './ui/pages/RequestsPage.jsx'
 import DetailingSettingsPage from './ui/pages/DetailingSettingsPage.jsx'
 import DetailingDashboardPage from './ui/pages/DetailingDashboardPage.jsx'
+import PublicDetailingPage from './ui/pages/PublicDetailingPage.jsx'
+import OwnerGaragePage from './ui/pages/OwnerGaragePage.jsx'
+import GarageSettingsPage from './ui/pages/GarageSettingsPage.jsx'
+import PublicGaragePage from './ui/pages/PublicGaragePage.jsx'
 
 function RequireAuth({ children }) {
   const loc = useLocation()
@@ -44,12 +48,29 @@ export default function App() {
       <main className="main">
         <ScrollToTopOnRouteChange />
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<AuthPage />} />
+          <Route path="/about" element={<HomePage />} />
           <Route
             path="/cars"
             element={
               <RequireAuth>
                 <MarketPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/garage"
+            element={
+              <RequireAuth>
+                <OwnerGaragePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/garage/settings"
+            element={
+              <RequireAuth>
+                <GarageSettingsPage />
               </RequireAuth>
             }
           />
@@ -103,13 +124,14 @@ export default function App() {
             }
           />
           <Route
-            path="/detailing/settings"
+            path="/detailing/landing"
             element={
               <RequireAuth>
                 <DetailingSettingsPage />
               </RequireAuth>
             }
           />
+          <Route path="/detailing/settings" element={<Navigate to="/detailing/landing" replace />} />
           <Route
             path="/detailing"
             element={
@@ -118,6 +140,8 @@ export default function App() {
               </RequireAuth>
             }
           />
+          <Route path="/d/:id" element={<PublicDetailingPage />} />
+          <Route path="/g/:slug" element={<PublicGaragePage />} />
           <Route path="/share/:token" element={<PublicCarPage />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/auth/owner" element={<OwnerAuthPage />} />
@@ -127,7 +151,6 @@ export default function App() {
         </Routes>
       </main>
       <footer className="footer">
-        <span className="footer__note">Прототип. Данные хранятся локально в браузере.</span>
         <FooterSupport />
       </footer>
     </div>

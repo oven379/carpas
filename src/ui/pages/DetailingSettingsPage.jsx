@@ -1,9 +1,10 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { BackNav, Button, Card, Field, Input, Textarea } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
+import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -17,6 +18,7 @@ export default function DetailingSettingsPage() {
 
   const [draft, setDraft] = useState(() => ({
     name: '',
+    servicesOffered: [],
     phone: '',
     city: '',
     address: '',
@@ -36,6 +38,7 @@ export default function DetailingSettingsPage() {
     if (!d) return
     setDraft({
       name: d.name || '',
+      servicesOffered: Array.isArray(d.servicesOffered) ? d.servicesOffered : [],
       phone: d.phone || '',
       city: d.city || '',
       address: d.address || '',
@@ -51,6 +54,23 @@ export default function DetailingSettingsPage() {
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (!detailing) return <Navigate to="/cars" replace />
 
+  const carsCount = (r.listCars?.(detailingId) || []).length
+  const initials = String(draft.name || detailing.name || 'Д').trim().slice(0, 2).toUpperCase()
+  const addressText = [draft.city, draft.address].filter(Boolean).join(', ')
+  const phoneDigits = String(draft.phone || '').replace(/[^\d+]/g, '')
+  const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
+
+  function toggleService(item) {
+    const v = String(item || '').trim()
+    if (!v) return
+    setDraft((d) => {
+      const cur = Array.isArray(d.servicesOffered) ? d.servicesOffered : []
+      const has = cur.includes(v)
+      const next = has ? cur.filter((x) => x !== v) : [...cur, v]
+      return { ...d, servicesOffered: next }
+    })
+  }
+
   return (
     <div className="container">
       <div className="row spread gap">
@@ -58,31 +78,99 @@ export default function DetailingSettingsPage() {
           <div className="breadcrumbs">
             <span>Кабинет</span>
             <span> / </span>
-            <span>Настройки</span>
+            <span>Лендинг</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
-              Настройки детейлинга / СТО
+              Настройки лендинга
             </h1>
           </div>
           <p className="muted">
-            Эти данные используются в кабинете и при отображении сервиса клиентам.
+            Здесь задаётся публичная страница по ссылке <strong>/d/…</strong>: что увидят клиенты до визита. Кабинет подтягивает те же
+            название, обложку и логотип для узнаваемости.
           </p>
           {detailing.profileCompleted === false ? (
             <p className="muted small" style={{ marginTop: 10 }}>
-              <strong>Первый вход:</strong> заполните профиль и нажмите «Сохранить» — после этого откроется кабинет со списком авто
-              на обслуживании у вашего детейлинга.
+              <strong>Первый вход:</strong> заполните лендинг и нажмите «Сохранить» — откроется кабинет со списком авто на обслуживании.
             </p>
           ) : null}
         </div>
       </div>
 
       <Card className="card pad" style={{ marginTop: 12 }}>
+        <div className="cardTitle" style={{ marginBottom: 10 }}>
+          Предпросмотр лендинга (как увидят клиенты)
+        </div>
+        <div
+          className="detHero detHero--card"
+          style={draft.cover ? { backgroundImage: `url("${String(draft.cover).replaceAll('"', '%22')}")` } : undefined}
+        >
+          <div className="detHero__overlay detHero__overlay--card">
+            {draft.logo ? (
+              <div className="detHero__logo detHero__logo--card">
+                <img alt="Логотип" src={draft.logo} />
+              </div>
+            ) : (
+              <div className="detHero__logo detHero__logo--card">
+                <span aria-hidden="true">{initials}</span>
+              </div>
+            )}
+            <div className="detHero__bottomRow">
+              <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
+                <Pill tone="accent">Авто на обслуживании: {carsCount}</Pill>
+                {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
+                  <Pill>{`Услуг: ${draft.servicesOffered.length}`}</Pill>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="topBorder">
+          <div className="row spread gap" style={{ alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="h2" style={{ margin: 0 }}>
+                {draft.name || 'Название студии / СТО'}
+              </div>
+              <p className="muted" style={{ marginTop: 8 }}>
+                {addressText || 'Город и адрес'}
+              </p>
+              {draft.description ? (
+                <p className="muted small" style={{ marginTop: 8, lineHeight: 1.55 }}>
+                  {draft.description}
+                </p>
+              ) : (
+                <p className="muted small" style={{ marginTop: 8 }}>
+                  Добавьте описание — чем вы занимаетесь, режим работы, гарантия, подход.
+                </p>
+              )}
+            </div>
+            {draft.phone ? (
+              <a className="btn" data-variant="primary" href={phoneHref} style={{ whiteSpace: 'nowrap' }}>
+                Позвонить
+              </a>
+            ) : null}
+          </div>
+          {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
+            <div className="row gap wrap" style={{ marginTop: 10 }}>
+              {draft.servicesOffered.slice(0, 10).map((s) => (
+                <Pill key={s}>{s}</Pill>
+              ))}
+              {draft.servicesOffered.length > 10 ? <Pill>+ ещё</Pill> : null}
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
           <div className="cardTitle" style={{ marginBottom: 10 }}>
-            Внешний вид
+            Внешний вид лендинга
           </div>
+          <p className="muted small" style={{ margin: '0 0 14px' }}>
+            Логотип и обложка видны на публичной странице и в шапке кабинета.
+          </p>
           <div className="formGrid">
             <Field label="Логотип" hint="PNG/JPG, квадрат лучше всего">
               <div className="row gap wrap">
@@ -164,6 +252,15 @@ export default function DetailingSettingsPage() {
           </div>
         </div>
 
+        <div className="topBorder">
+          <div className="cardTitle" style={{ marginBottom: 8 }}>
+            Текст и контакты на лендинге
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Название, адрес, телефон, услуги и ссылки — как на публичной странице по ссылке для клиентов.
+          </p>
+        </div>
+
         <div className="formGrid">
           <Field label="Название">
             <Input
@@ -201,6 +298,76 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
+          <div className="field field--full">
+            <div className="field__top">
+              <span className="field__label">Услуги</span>
+              <span className="field__hint">детейлинг и ТО — что делаете (появится на лендинге)</span>
+            </div>
+            <p className="muted small" style={{ margin: '0 0 8px' }}>
+              Детейлинг
+            </p>
+            <div className="svc svc--compact">
+              {DETAILING_SERVICES.map((g) => {
+                const items = Array.isArray(g.items) ? g.items : []
+                const selected = items.filter((x) => draft.servicesOffered.includes(x)).length
+                return (
+                  <details key={`d-${g.group}`} className="svc__group" open={selected > 0}>
+                    <summary className="svc__title">
+                      <span>{g.group}</span>
+                      <span className="svc__count">{selected ? `${selected}/${items.length}` : `${items.length}`}</span>
+                    </summary>
+                    <div className="svc__grid">
+                      {items.map((it) => {
+                        const checked = draft.servicesOffered.includes(it)
+                        return (
+                          <label key={it} className="svc__item">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleService(it)}
+                            />
+                            <span>{it}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </details>
+                )
+              })}
+            </div>
+            <p className="muted small" style={{ margin: '14px 0 8px' }}>
+              ТО и ремонт
+            </p>
+            <div className="svc svc--compact">
+              {MAINTENANCE_SERVICES.map((g) => {
+                const items = Array.isArray(g.items) ? g.items : []
+                const selected = items.filter((x) => draft.servicesOffered.includes(x)).length
+                return (
+                  <details key={`m-${g.group}`} className="svc__group" open={selected > 0}>
+                    <summary className="svc__title">
+                      <span>{g.group}</span>
+                      <span className="svc__count">{selected ? `${selected}/${items.length}` : `${items.length}`}</span>
+                    </summary>
+                    <div className="svc__grid">
+                      {items.map((it) => {
+                        const checked = draft.servicesOffered.includes(it)
+                        return (
+                          <label key={it} className="svc__item">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleService(it)}
+                            />
+                            <span>{it}</span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </details>
+                )
+              })}
+            </div>
+          </div>
           <Field className="field--full" label="Описание" hint="необязательно">
             <Textarea
               className="textarea"
@@ -242,6 +409,22 @@ export default function DetailingSettingsPage() {
             className="btn"
             variant="primary"
             onClick={() => {
+              if (!String(draft.name || '').trim()) {
+                alert('Укажите название')
+                return
+              }
+              if (!String(draft.phone || '').trim()) {
+                alert('Укажите телефон')
+                return
+              }
+              if (!String(draft.city || '').trim()) {
+                alert('Укажите город')
+                return
+              }
+              if (!Array.isArray(draft.servicesOffered) || draft.servicesOffered.length === 0) {
+                alert('Выберите хотя бы одну услугу')
+                return
+              }
               const saved = r.updateDetailing?.(
                 detailingId,
                 { ...draft, profileCompleted: true },
