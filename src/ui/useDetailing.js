@@ -13,13 +13,18 @@ import {
   getSessionDetailingId,
   getSessionOwner,
   getSessionRefreshEpoch,
+  hasDetailingSession,
+  hasOwnerSession,
   subscribeSessionRefresh,
 } from './auth.js'
 import { getApi } from '../api/index.js'
 
 const DetailingSessionContext = createContext(null)
 
-/** Один раз на приложение: загрузка `/me` и `/owners/me`, без N запросов от каждого компонента. */
+/**
+ * Профиль с API (`owner`, `detailing`) — асинхронно.
+ * Роль (`mode`) — синхронно из sessionStorage: hasOwnerSession / hasDetailingSession (см. auth.js).
+ */
 export function DetailingSessionProvider({ children }) {
   const sessionEpoch = useSyncExternalStore(subscribeSessionRefresh, getSessionRefreshEpoch, getSessionRefreshEpoch)
   const detailingId = getSessionDetailingId()
@@ -87,17 +92,9 @@ export function DetailingSessionProvider({ children }) {
 
   const value = useMemo(() => {
     const sid = getSessionDetailingId()
-    const stOwner = getSessionOwner()
-    const oT = getOwnerToken()
-    const em = stOwner?.email || ''
-
-    // Пока /owners/me не вернулся, в state `owner` ещё null — иначе защищённые страницы шлют обратно на /auth/owner
-    const effectiveOwner =
-      owner != null ? owner : em && oT && !sid && typeof stOwner === 'object' ? stOwner : null
-
-    const mode = effectiveOwner?.email ? 'owner' : sid ? 'detailing' : 'guest'
-    return { detailingId: sid, detailing, owner: effectiveOwner, mode, loading }
-  }, [detailingId, detailing, owner, loading, dTok, oTok, ownerEmailKey, sessionEpoch])
+    const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
+    return { detailingId: sid, detailing, owner, mode, loading }
+  }, [detailing, owner, loading, detailingId, dTok, oTok, ownerEmailKey, sessionEpoch])
 
   return createElement(DetailingSessionContext.Provider, { value }, children)
 }

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Button, Card, Field, Input, Textarea } from '../components.jsx'
 import { clampVisitTitle, fmtDateTime, fmtKm, normDigits, VISIT_TITLE_MAX_LEN } from '../../lib/format.js'
+import { getSessionOwner } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
@@ -315,7 +316,8 @@ export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode } = useDetailing()
-  const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
+  const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const scope = mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }
   const [car, setCar] = useState(null)
   const [events, setEvents] = useState([])
   const [allDocs, setAllDocs] = useState([])

@@ -4,6 +4,7 @@ import { HttpError } from '../../api/http.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Input, Pill } from '../components.jsx'
 import { normDigits, normVin } from '../../lib/format.js'
+import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 
@@ -19,6 +20,7 @@ function claimAlreadyPending(err) {
 export default function MarketPage() {
   const r = useRepo()
   const { owner, mode } = useDetailing()
+  const ownerEmail = String(owner?.email || getSessionOwner()?.email || '').trim()
   const [vin, setVin] = useState('')
   const [vinResults, setVinResults] = useState([])
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
@@ -28,7 +30,7 @@ export default function MarketPage() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (mode !== 'owner' || !owner?.email) {
+      if (!hasOwnerSession()) {
         setCars([])
         setOwnerClaims([])
         return
@@ -48,12 +50,11 @@ export default function MarketPage() {
     return () => {
       cancelled = true
     }
-  }, [r, r._version, mode, owner?.email])
+  }, [r, r._version, ownerEmail])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
-  if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth" replace />
+  if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
 
-  const ownerEmail = owner.email
   const pendingClaims = ownerClaims.filter((x) => x.status === 'pending')
 
   return (

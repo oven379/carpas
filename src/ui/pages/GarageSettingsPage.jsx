@@ -2,6 +2,7 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { BackNav, Card, Field, Input } from '../components.jsx'
 import { bumpSessionRefresh } from '../auth.js'
+import { hasOwnerSession } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
@@ -62,7 +63,7 @@ export default function GarageSettingsPage() {
   }, [previewUrl])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
-  if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth/owner" replace />
+  if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
 
   const email = owner.email
   const urlPrefix = `${typeof window !== 'undefined' ? window.location.origin : ''}/g/`

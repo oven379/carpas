@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
 import { useRepo } from './useRepo.js'
-import { clearSession, isAuthed } from './auth.js'
+import { clearSession, hasOwnerSession, isAuthed } from './auth.js'
 import { invalidateRepo } from './useRepo.js'
 import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
@@ -162,7 +162,7 @@ export function TopNav() {
                     О сервисе
                   </Link>
                 ) : null}
-                {mode === 'owner' && isAuthed() ? <OwnerSupportDropdown /> : null}
+                {hasOwnerSession() ? <OwnerSupportDropdown /> : null}
                 {mode === 'guest' && !onAuthHub ? (
                   <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
                     Поддержка

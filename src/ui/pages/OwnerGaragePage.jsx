@@ -2,7 +2,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Pill } from '../components.jsx'
-import { bumpSessionRefresh } from '../auth.js'
+import { bumpSessionRefresh, getSessionOwner, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import { compressImageFile } from '../../lib/imageCompression.js'
@@ -18,12 +18,12 @@ export default function OwnerGaragePage() {
     return `${window.location.origin}/g/${slug}`
   }, [slug])
 
-  const ownerEmail = owner?.email || ''
+  const ownerEmail = String(owner?.email || getSessionOwner()?.email || '').trim()
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (mode !== 'owner' || !ownerEmail) {
+      if (!hasOwnerSession() || !ownerEmail) {
         setCars([])
         return
       }
@@ -37,12 +37,12 @@ export default function OwnerGaragePage() {
     return () => {
       cancelled = true
     }
-  }, [mode, ownerEmail, r, r._version])
+  }, [ownerEmail, r, r._version])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
-  if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth/owner" replace />
+  if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
 
-  const displayName = String(owner.name || '').trim() || ownerEmail
+  const displayName = String(owner?.name || getSessionOwner()?.name || '').trim() || ownerEmail
   const initials = displayName.slice(0, 2).toUpperCase()
 
   async function onBannerFileChange(e) {
@@ -70,7 +70,7 @@ export default function OwnerGaragePage() {
   }
 
   async function removeBanner() {
-    if (!owner.garageBanner) return
+    if (!owner?.garageBanner) return
     if (!confirm('Убрать баннер гаража?')) return
     try {
       await r.updateOwnerMe({ garageBanner: '' })
@@ -107,9 +107,9 @@ export default function OwnerGaragePage() {
       </div>
 
       <div
-        className={`detHero detHero--card garageHero${owner.garageBanner ? '' : ' garageHero--noBanner'}`}
+        className={`detHero detHero--card garageHero${owner?.garageBanner ? '' : ' garageHero--noBanner'}`}
         style={
-          owner.garageBanner
+          owner?.garageBanner
             ? { backgroundImage: `url("${String(owner.garageBanner).replaceAll('"', '%22')}")` }
             : undefined
         }
@@ -131,7 +131,7 @@ export default function OwnerGaragePage() {
           >
             <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
           </Link>
-          {owner.garageAvatar ? (
+          {owner?.garageAvatar ? (
             <div className="detHero__logo detHero__logo--card">
               <img alt="" src={owner.garageAvatar} />
             </div>
@@ -147,9 +147,9 @@ export default function OwnerGaragePage() {
                 className="heroCoverBtn heroCoverBtn--replace"
                 onClick={() => bannerFileRef.current?.click?.()}
               >
-                {owner.garageBanner ? 'Заменить баннер' : 'Загрузить баннер'}
+                {owner?.garageBanner ? 'Заменить баннер' : 'Загрузить баннер'}
               </button>
-              {owner.garageBanner ? (
+              {owner?.garageBanner ? (
                 <button type="button" className="heroCoverBtn heroCoverBtn--remove" onClick={removeBanner}>
                   Убрать баннер
                 </button>

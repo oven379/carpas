@@ -4,6 +4,7 @@ import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Card, OpenAction, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
+import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 import { splitWashDetailingServices, WASH_SERVICE_MARKERS } from '../../lib/serviceCatalogs.js'
@@ -21,6 +22,7 @@ export default function CarPage() {
   const [recsOpen, setRecsOpen] = useState(false)
   const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode } = useDetailing()
+  const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
   const [car, setCar] = useState(null)
   const [docs, setDocs] = useState([])
   const [allEvents, setAllEvents] = useState([])
@@ -41,7 +43,7 @@ export default function CarPage() {
         setAllEvents(Array.isArray(ev) ? ev : [])
         let oc = []
         let ib = []
-        if (mode === 'owner' && owner?.email) {
+        if (hasOwnerSession() && ownerEmailResolved) {
           oc = await r.listClaimsForOwner()
         } else if (mode === 'detailing' && detailingId) {
           ib = await r.listClaimsForDetailing()
@@ -64,14 +66,14 @@ export default function CarPage() {
     return () => {
       cancelled = true
     }
-  }, [id, r, r._version, mode, owner?.email, detailingId])
+  }, [id, r, r._version, mode, ownerEmailResolved, detailingId])
 
   const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
 
   const ownerServiceSummary = useMemo(() => {
-    if (mode !== 'owner' || !owner?.email || !car) return null
-    return ownerServiceLinkSummary(car, owner.email, ownerClaims)
-  }, [mode, owner?.email, car, ownerClaims])
+    if (mode !== 'owner' || !ownerEmailResolved || !car) return null
+    return ownerServiceLinkSummary(car, ownerEmailResolved, ownerClaims)
+  }, [mode, ownerEmailResolved, car, ownerClaims])
 
   const detailingAccess = useMemo(() => {
     if (mode !== 'detailing' || !car) return null

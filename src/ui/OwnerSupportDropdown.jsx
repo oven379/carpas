@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useMatch, useNavigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { useDetailing } from './useDetailing.js'
-import { bumpSessionRefresh, isAuthed } from './auth.js'
+import { bumpSessionRefresh, hasOwnerSession, isAuthed } from './auth.js'
 import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 
 /**
@@ -20,7 +20,7 @@ export default function OwnerSupportDropdown() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!carId || !isAuthed() || mode !== 'owner') {
+      if (!carId || !isAuthed() || !hasOwnerSession()) {
         setCar(null)
         setShares([])
         return

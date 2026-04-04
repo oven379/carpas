@@ -2,13 +2,13 @@ import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { setSessionOwner } from '../auth.js'
+import { debugAuth, hasDetailingSession, hasOwnerSession, setSessionOwner } from '../auth.js'
 import { OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const [ownEmail, setOwnEmail] = useState('')
   const [ownPassword, setOwnPassword] = useState('')
   const [ownName, setOwnName] = useState('')
@@ -22,9 +22,12 @@ export default function OwnerAuthPage() {
   const nextAfterAuth =
     typeof f === 'string' && f.startsWith('/') && !f.startsWith('/auth') ? (f === '/' ? '/garage' : f) : '/garage'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/garage" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) {
+    debugAuth('OwnerAuthPage: уже есть сессия владельца → редирект', { to: nextAfterAuth })
+    return <Navigate to={nextAfterAuth} replace />
+  }
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
@@ -143,6 +146,7 @@ export default function OwnerAuthPage() {
                   }
                   try {
                     const loginRes = await r.loginOwner({ email: em, password: pwd })
+                    debugAuth('OwnerAuth: ответ loginOwner', { ok: loginRes?.ok, reason: loginRes?.reason })
                     if (loginRes?.ok) {
                       setSessionOwner(
                         {
@@ -153,6 +157,7 @@ export default function OwnerAuthPage() {
                         loginRes.token,
                       )
                       invalidateRepo()
+                      debugAuth('OwnerAuth: после setSessionOwner, перед navigate', { nextAfterAuth })
                       nav(nextAfterAuth, { replace: true })
                       return
                     }
@@ -178,6 +183,7 @@ export default function OwnerAuthPage() {
                           reg.token,
                         )
                         invalidateRepo()
+                        debugAuth('OwnerAuth: регистрация ok, перед navigate', { nextAfterAuth })
                         nav(nextAfterAuth, { replace: true })
                         return
                       } catch {

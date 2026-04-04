@@ -2,14 +2,14 @@ import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { setSessionDetailingId } from '../auth.js'
+import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 
 export default function PartnerApplyPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const [regName, setRegName] = useState('')
   const [regContactName, setRegContactName] = useState('')
   const [regEmail, setRegEmail] = useState('')
@@ -22,9 +22,9 @@ export default function PartnerApplyPage() {
   const loc = useLocation()
   const from = loc.state?.from || '/'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/cars" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/cars" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 

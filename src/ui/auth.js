@@ -39,6 +39,30 @@ export function getOwnerToken() {
   return readSS(SESSION_OWNER_TOKEN_KEY, null)
 }
 
+/** Синхронно: есть сессия владельца (токен + почта в storage). Редиректы и mode — от этого, не от async /me. */
+export function hasOwnerSession() {
+  const t = getOwnerToken()
+  const em = String(getSessionOwner()?.email || '').trim()
+  return Boolean(t && em)
+}
+
+/** Синхронно: сессия партнёра (детейлинг). */
+export function hasDetailingSession() {
+  return Boolean(getDetailingToken() && getSessionDetailingId())
+}
+
+const AUTH_DEBUG = import.meta.env.DEV
+
+export function debugAuth(phase, data = {}) {
+  if (!AUTH_DEBUG) return
+  console.log('[carpas:auth]', phase, {
+    hasOwnerSession: hasOwnerSession(),
+    hasDetailingSession: hasDetailingSession(),
+    path: typeof location !== 'undefined' ? location.pathname : '',
+    ...data,
+  })
+}
+
 export function isAuthed() {
   return Boolean(getSessionDetailingId() || getSessionOwner())
 }
@@ -49,6 +73,8 @@ export function setSessionDetailingId(id, token = null) {
   else removeSS(SESSION_DETAILING_TOKEN_KEY)
   removeSS(SESSION_OWNER_KEY)
   removeSS(SESSION_OWNER_TOKEN_KEY)
+  debugAuth('setSessionDetailingId', { detailingId: id, hasToken: Boolean(token) })
+  bumpSessionRefresh()
 }
 
 export function setSessionOwner(owner, token = null) {
@@ -57,6 +83,8 @@ export function setSessionOwner(owner, token = null) {
   else removeSS(SESSION_OWNER_TOKEN_KEY)
   removeSS(SESSION_DETAILING_KEY)
   removeSS(SESSION_DETAILING_TOKEN_KEY)
+  debugAuth('setSessionOwner', { email: owner?.email, hasToken: Boolean(token) })
+  bumpSessionRefresh()
 }
 
 export function clearSession() {
@@ -64,6 +92,8 @@ export function clearSession() {
   removeSS(SESSION_DETAILING_TOKEN_KEY)
   removeSS(SESSION_OWNER_KEY)
   removeSS(SESSION_OWNER_TOKEN_KEY)
+  debugAuth('clearSession')
+  bumpSessionRefresh()
 }
 
 /** @deprecated используйте setSessionDetailingId(id, token) */

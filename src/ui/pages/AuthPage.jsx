@@ -1,16 +1,17 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card } from '../components.jsx'
 import Logo from '../Logo.jsx'
+import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function AuthPage() {
   const loc = useLocation()
   const from = loc.state?.from || '/'
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/garage" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/garage" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 

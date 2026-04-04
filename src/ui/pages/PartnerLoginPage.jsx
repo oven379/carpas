@@ -2,13 +2,13 @@ import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BackNav, Button, Card, Field, Input, Pill } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { getSessionDetailingId, setSessionDetailingId } from '../auth.js'
+import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function PartnerLoginPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const currentId = getSessionDetailingId()
   const current =
     currentId && detailing && String(detailing.id) === String(currentId) ? detailing : null
@@ -21,9 +21,9 @@ export default function PartnerLoginPage() {
   const loc = useLocation()
   const from = loc.state?.from || '/'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/cars" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/cars" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
