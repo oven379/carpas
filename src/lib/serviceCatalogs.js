@@ -109,6 +109,42 @@ function flatItemSet(groups) {
 export const MAINTENANCE_ITEM_SET = flatItemSet(MAINTENANCE_SERVICES)
 export const DETAILING_ITEM_SET = flatItemSet(DETAILING_SERVICES)
 
+/** Макс. длина названия услуги (каталог или своя строка в профиле). */
+export const OFFERED_SERVICE_MAX_LEN = 80
+
+export function dedupeOfferedStrings(arr, maxLen = OFFERED_SERVICE_MAX_LEN) {
+  const seen = new Set()
+  const out = []
+  for (const x of Array.isArray(arr) ? arr : []) {
+    const s = String(x || '')
+      .trim()
+      .slice(0, maxLen)
+    if (!s) continue
+    const k = s.toLowerCase()
+    if (seen.has(k)) continue
+    seen.add(k)
+    out.push(s)
+  }
+  return out
+}
+
+/**
+ * Разнести плоский servicesOffered по ведёркам (миграция и legacy API).
+ * Позиции только из каталога ТО → в ТО; только из каталога детейлинга → в детейлинг;
+ * если строка в обоих (редко) → детейлинг; не из каталога → детейлинг (раньше таких не было).
+ */
+export function splitOfferedByCatalog(flatList) {
+  const det = []
+  const maint = []
+  for (const s of dedupeOfferedStrings(flatList)) {
+    const inD = DETAILING_ITEM_SET.has(s)
+    const inM = MAINTENANCE_ITEM_SET.has(s)
+    if (inM && !inD) maint.push(s)
+    else det.push(s)
+  }
+  return { detailingServicesOffered: det, maintenanceServicesOffered: maint }
+}
+
 export const WASH_SERVICE_MARKERS = new Set(
   DETAILING_SERVICES.find((g) => g.group === CARE_GROUP)?.items || [],
 )

@@ -1,19 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
-import { useMatch, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { useDetailing } from './useDetailing.js'
 import { isAuthed } from './auth.js'
 import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 
 /**
- * «Поддержка» с выпадающим меню — только в шапке для владельца (личный гараж).
+ * «Поддержка» с выпадающим меню для владельца (шапка или футер).
+ * `placement="footer"` — меню открывается вверх, стиль как у ссылок в футере.
  */
-export default function OwnerSupportDropdown() {
+export default function OwnerSupportDropdown({ placement = 'nav' }) {
   const r = useRepo()
   const nav = useNavigate()
+  const loc = useLocation()
   const { detailingId, owner, mode } = useDetailing()
-  const match = useMatch({ path: '/car/:id', end: true })
-  const carId = match?.params?.id
+  const carId = useMemo(() => {
+    const m = /^\/car\/([^/]+)/.exec(loc.pathname)
+    return m ? m[1] : undefined
+  }, [loc.pathname])
   const scope = { ownerEmail: owner?.email }
   const car =
     carId && isAuthed() && mode === 'owner' ? r.getCar(carId, scope) : null
@@ -55,20 +59,29 @@ export default function OwnerSupportDropdown() {
     }
   }
 
+  const isFooter = placement === 'footer'
+  const rootClass = isFooter ? 'footerHelpDd' : 'navSupportDd'
+  const menuClass = isFooter ? 'footerHelpDd__menu' : 'navSupportDd__menu'
+  const triggerClass = isFooter
+    ? 'btn footerHelpDd__link footerHelpDd__trigger ownerSupportDd__footerBtn'
+    : 'nav__action navSupportDd__trigger'
+  const chevClass = isFooter ? 'footerHelpDd__chev' : 'navSupportDd__chev'
+
   return (
-    <div className="navSupportDd" ref={ref}>
+    <div className={rootClass} ref={ref}>
       <button
         type="button"
-        className="nav__action navSupportDd__trigger"
+        className={triggerClass}
+        data-variant={isFooter ? 'outline' : undefined}
         aria-expanded={open}
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
       >
         Поддержка
-        <span className="navSupportDd__chev" aria-hidden="true" />
+        <span className={chevClass} aria-hidden="true" />
       </button>
       {open ? (
-        <div className="navSupportDd__menu" role="menu">
+        <div className={menuClass} role="menu">
           {car ? (
             <>
               <button

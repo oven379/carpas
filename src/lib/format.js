@@ -1,16 +1,29 @@
 /** Заголовок визита в истории: лимит символов (пробелы учитываются). Менять только здесь. */
 export const VISIT_TITLE_MAX_LEN = 40
 
+/** Советы по уходу из визита детейлинга (поля «Важно» / «Совет 1–3»). */
+export const VISIT_CARE_TIP_MAX_LEN = 240
+
+/** Режим работы детейлинга/СТО (публичная витрина и кабинет). */
+export const DETAILING_WORKING_HOURS_MAX_LEN = 200
+
+/** Подпись в пустых зонах выбора изображения (баннер, аватар, обложка карточки). */
+export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажми чтобы загрузить'
+
 /** Демо: раньше был единый пароль; оставлен для совместимости со старыми подсказками в коде партнёров. */
 export const OWNER_DEMO_PASSWORD = '1111'
 
 /** Минимальная длина пароля владельца в локальном режиме. */
 export const OWNER_PASSWORD_MIN_LEN = 4
 
+/** Для поля ввода: только лимит длины; пробелы не удаляем (иначе нельзя набрать пробел между словами). */
+export function clampVisitTitleInput(raw) {
+  return String(raw ?? '').slice(0, VISIT_TITLE_MAX_LEN)
+}
+
+/** Для сохранения визита: убираем пробелы по краям, затем лимит длины. */
 export function clampVisitTitle(raw) {
-  return String(raw ?? '')
-    .slice(0, VISIT_TITLE_MAX_LEN)
-    .trim()
+  return clampVisitTitleInput(String(raw ?? '').trim())
 }
 
 export function fmtInt(n) {
@@ -247,11 +260,76 @@ export function fmtVinPublic(vin) {
   return `${v.slice(0, 4)}…${v.slice(-3)}`
 }
 
+/**
+ * Поле ввода телефона РФ: всегда префикс +7, после него до 10 цифр (как у 9XXXXXXXXX).
+ * Ввод 8XXXXXXXXXX или с лидирующей 7 нормализуется. Только «+» без цифр или пусто — пустая строка.
+ */
+export function formatPhoneRuInput(raw) {
+  const dAll = String(raw ?? '').replace(/\D/g, '')
+  if (!dAll) return ''
+  let d = dAll
+  if (d.startsWith('8')) d = `7${d.slice(1)}`
+  if (d.startsWith('7')) d = d.slice(1)
+  d = d.slice(0, 10)
+  return `+7${d}`
+}
+
 /** Публичная витрина: не показываем полный номер. */
 export function fmtPlatePublic(plate, plateRegion) {
   const full = fmtPlateFull(plate, plateRegion)
   if (!full) return '—'
   if (full.length <= 3) return '•••'
   return `${full.slice(0, 2)}•••${full.slice(-2)}`
+}
+
+/** Сайт и строки соцсетей: только http/https. */
+export function normalizeHttpUrl(raw) {
+  const t = String(raw ?? '').trim()
+  if (!t) return ''
+  let u = t
+  if (!/^https?:\/\//i.test(u)) {
+    if (/^\/\//.test(u)) u = `https:${u}`
+    else u = `https://${u}`
+  }
+  try {
+    const parsed = new URL(u)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return ''
+    return parsed.href
+  } catch {
+    return ''
+  }
+}
+
+export function parseGarageSocialLines(raw) {
+  return String(raw ?? '')
+    .split(/\r?\n/)
+    .map((x) => x.trim())
+    .filter(Boolean)
+}
+
+/** Одна ссылка для поля в настройках гаража (остальные строки при сохранении отбрасываются). */
+export function firstGarageSocialLine(raw) {
+  const [first] = parseGarageSocialLines(raw)
+  return first || ''
+}
+
+/**
+ * Флаги публичности витрины владельца: `Boolean("false")` в JS даёт true — явный разбор.
+ */
+export function ownerPublicFlagTrue(value) {
+  if (value === true || value === 1) return true
+  if (value === false || value === 0) return false
+  if (typeof value === 'string') {
+    const s = value.trim().toLowerCase()
+    if (s === 'true' || s === '1' || s === 'yes') return true
+    if (s === 'false' || s === '0' || s === 'no' || s === '') return false
+  }
+  return false
+}
+
+/** Город на публичной витрине: если поля не было — считаем включённым (миграция со старых данных). */
+export function ownerCityPublicFlag(value) {
+  if (value == null) return true
+  return ownerPublicFlagTrue(value)
 }
 

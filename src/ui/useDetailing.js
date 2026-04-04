@@ -15,7 +15,7 @@ export function useDetailing() {
   let owner = ownerSession
   if (ownerSession?.email && r.getOwner) {
     const res = safeSyncRepo(() => r.getOwner(ownerSession.email))
-    if (res.ok && res.value) owner = res.value
+    if (res.ok && res.value) owner = { ...ownerSession, ...res.value }
   }
   const mode = owner?.email ? 'owner' : detailingId ? 'detailing' : 'guest'
   return useMemo(() => ({ detailingId, detailing, owner, mode }), [detailingId, detailing, owner, mode])

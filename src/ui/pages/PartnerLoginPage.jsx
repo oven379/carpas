@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { safeSyncRepo } from '../../lib/syncRepoCall.js'
-import { BackNav, Button, Card, Field, Input, Pill } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { getSessionDetailingId, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
@@ -51,11 +51,6 @@ export default function PartnerLoginPage() {
                 <li>Профиль организации, визиты и материалы к работам для прозрачности к клиенту.</li>
                 <li>После входа — список авто и заявки; кабинет использует данные, сохранённые в браузере на этом устройстве.</li>
               </ul>
-              <p className="muted small authSplit__note">
-                При первом входе откроется настройка лендинга, затем — кабинет и авто. Примеры:{' '}
-                <strong>test@test</strong> / <strong>1111</strong> (стартовый набор), кабинет с 10 тестовыми авто:{' '}
-                <strong>qa@car.local</strong> / <strong>1111</strong>.
-              </p>
             </div>
           </div>
         </aside>
@@ -67,6 +62,17 @@ export default function PartnerLoginPage() {
                 <Pill>Сейчас в сессии: {current.name}</Pill>
               </div>
             ) : null}
+            <div id="partner-login-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 14 }}>
+              <div className="cardTitle" style={{ margin: 0 }}>
+                Вход
+              </div>
+              <ServiceHint scopeId="partner-login-hint" variant="compact" label="Справка: вход партнёра">
+                <p className="serviceHint__panelText">
+                  При первом входе откроется настройка лендинга, затем кабинет и авто. Демо: <strong>test@test</strong> /{' '}
+                  <strong>1111</strong>; кабинет с тестовыми авто: <strong>qa@car.local</strong> / <strong>1111</strong>.
+                </p>
+              </ServiceHint>
+            </div>
             <div className="formGrid authFormGrid authFormGrid--owner">
               <Field className="field--full" label="Почта">
                 <Input

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, Pill } from '../components.jsx'
+import { BackNav, Card } from '../components.jsx'
 import { fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
@@ -51,7 +51,7 @@ export default function PublicCarPage() {
             <span>Публичная история</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav fallbackTo="/auth" title="Назад" />
             <h1 className="h1" style={{ margin: 0 }}>
               {car.make} {car.model}
             </h1>
@@ -66,19 +66,12 @@ export default function PublicCarPage() {
       </div>
 
       <div className="carHero" style={{ backgroundImage: `url(${car.hero})` }}>
-        <div className="carHero__overlay">
-          <div className="row gap wrap carHero__pills carHero__pills--public">
-            <Pill>Цвет: {car.color || '—'}</Pill>
-            <Pill>Год: {car.year != null && car.year !== '' ? car.year : '—'}</Pill>
-            <Pill>Пробег: {fmtKm(car.mileageKm)}</Pill>
-            {car.seller?.name ? <Pill>Где мылся: {car.seller.name}</Pill> : null}
-          </div>
-        </div>
+        <div className="carHero__overlay" aria-hidden="true" />
       </div>
 
       <div className="split">
         <Card className="card pad">
-          <h2 className="h2">Паспорт</h2>
+          <h2 className="h2">Данные автомобиля</h2>
           <div className="kv">
             <div className="kv__row">
               <span className="kv__k">VIN</span>
@@ -99,7 +92,7 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">Рекомендации по уходу</h2>
+          <h2 className="h2">Рекомендации по уходу за автомобилем</h2>
           <div className="recList">
             {recs.map((x, idx) => (
               <div key={idx} className="recItem">
@@ -116,7 +109,7 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">История обслуживания</h2>
+          <h2 className="h2">История обслуживания автомобиля</h2>
           {events.length ? (
             <div className="miniList">
               {events.map((e) => (
@@ -161,7 +154,7 @@ export default function PublicCarPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="row spread gap">
-          <h2 className="h2">Фото / документы</h2>
+          <h2 className="h2">Фото и документы автомобиля</h2>
           <span className="muted small">{docs.length} шт.</span>
         </div>
         {docs.length ? (

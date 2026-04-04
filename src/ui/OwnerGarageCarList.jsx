@@ -5,7 +5,7 @@ import { fmtDateTime, fmtKm, fmtPlateFull } from '../lib/format.js'
 import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../lib/serviceCatalogs.js'
 import { buildCarFromQuery } from './carNav.js'
 
-/** Список авто владельца (как на витрине /cars), с единым `from` для возврата из карточки. */
+/** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
 export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
   const r = useRepo()
   const cars = r.listCars({ ownerEmail })
@@ -65,60 +65,62 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
               </div>
               <div className="rowItem__sub">
                 <div className="rowItem__lastEvt">
-                  {lastEvtPhotoUrl ? (
-                    <span
-                      className="rowItem__lastEvtPhoto"
-                      aria-hidden="true"
-                      style={{ backgroundImage: `url("${String(lastEvtPhotoUrl).replaceAll('"', '%22')}")` }}
-                    />
-                  ) : null}
-                  <div className="rowItem__lastEvtText">
-                    {lastEvt ? (
-                      <div className="rowItem__lastEvtName">{lastEvtTitle || 'Визит'}</div>
-                    ) : (
-                      <div className="rowItem__lastEvtTitle">
-                        {`Цвет: ${c.color || '—'} · Год: ${
-                          c.year != null && c.year !== '' ? c.year : '—'
-                        } · Пробег: ${fmtKm(c.mileageKm)}`}
-                      </div>
-                    )}
-                    {lastEvt ? (
-                      <div className="rowItem__lastEvtMeta">
-                        {lastEvtMs.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">ТО:</span> {lastEvtMs.join(', ')}
-                          </div>
-                        ) : null}
-                        {lastEvtWash.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Уход:</span> {lastEvtWash.join(', ')}
-                          </div>
-                        ) : null}
-                        {lastEvtDet.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Детейлинг:</span> {lastEvtDet.join(', ')}
-                          </div>
-                        ) : null}
-                        {!lastEvtMs.length && !lastEvtWash.length && !lastEvtDet.length && lastEvtNote ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Комментарий:</span> {lastEvtNote}
-                          </div>
-                        ) : null}
-                        {prevWashList.length ? (
-                          <div className="rowItem__lastEvtLine rowItem__lastEvtLine--prevWash">
-                            <span className="eventLabel">Уход</span>
-                            {prevWashEvt?.at ? (
-                              <span className="rowItem__lastEvtWashWhen">
-                                {` (${fmtDateTime(prevWashEvt.at)})`}
-                              </span>
-                            ) : null}
-                            <span>: </span>
-                            {prevWashList.join(', ')}
-                          </div>
-                        ) : null}
-                      </div>
+                  <div className="rowItem__lastEvtTop">
+                    {lastEvtPhotoUrl ? (
+                      <span
+                        className="rowItem__lastEvtPhoto"
+                        aria-hidden="true"
+                        style={{ backgroundImage: `url("${String(lastEvtPhotoUrl).replaceAll('"', '%22')}")` }}
+                      />
                     ) : null}
+                    <div className="rowItem__lastEvtText">
+                      {lastEvt ? (
+                        <div className="rowItem__lastEvtName">{lastEvtTitle || 'Визит'}</div>
+                      ) : (
+                        <div className="rowItem__lastEvtTitle">
+                          {`Цвет: ${c.color || '—'} · Год: ${
+                            c.year != null && c.year !== '' ? c.year : '—'
+                          } · Пробег: ${fmtKm(c.mileageKm)}`}
+                        </div>
+                      )}
+                    </div>
                   </div>
+                  {lastEvt ? (
+                    <div className="rowItem__lastEvtMeta">
+                      {lastEvtMs.length ? (
+                        <div className="rowItem__lastEvtLine">
+                          <span className="eventLabel">ТО:</span> {lastEvtMs.join(', ')}
+                        </div>
+                      ) : null}
+                      {lastEvtWash.length ? (
+                        <div className="rowItem__lastEvtLine">
+                          <span className="eventLabel">Уход:</span> {lastEvtWash.join(', ')}
+                        </div>
+                      ) : null}
+                      {lastEvtDet.length ? (
+                        <div className="rowItem__lastEvtLine">
+                          <span className="eventLabel">Детейлинг:</span> {lastEvtDet.join(', ')}
+                        </div>
+                      ) : null}
+                      {!lastEvtMs.length && !lastEvtWash.length && !lastEvtDet.length && lastEvtNote ? (
+                        <div className="rowItem__lastEvtLine">
+                          <span className="eventLabel">Комментарий:</span> {lastEvtNote}
+                        </div>
+                      ) : null}
+                      {prevWashList.length ? (
+                        <div className="rowItem__lastEvtLine rowItem__lastEvtLine--prevWash">
+                          <span className="eventLabel">Уход</span>
+                          {prevWashEvt?.at ? (
+                            <span className="rowItem__lastEvtWashWhen">
+                              {` (${fmtDateTime(prevWashEvt.at)})`}
+                            </span>
+                          ) : null}
+                          <span>: </span>
+                          {prevWashList.join(', ')}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

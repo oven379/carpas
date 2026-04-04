@@ -1,3 +1,15 @@
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from './historyVisitHints.js'
+
+/** Если детейлинг не заполнил «Важно» — показываем на карточке этот текст (последний визит от сервиса). */
+export const DEFAULT_DETAILING_CARE_IMPORTANT =
+  'Первые сутки после визита не мойте авто под высоким давлением и не натирайте ЛКП сухой тряпкой. Если что‑то смущает — напишите сервису, подскажем по уходу.'
+
+/** Если все три поля «Совет» пусты — показываем эти два совета вместо персональных. */
+export const DEFAULT_DETAILING_CARE_TIPS = [
+  'После мойки промакивайте стёкла и уплотнители мягкой тканью — меньше разводов и влаги в щелях.',
+  'Пыль с кузова лучше сдувать или сметать мягкой щёткой: сухая тряпка без воды может оставлять микроцарапины.',
+]
+
 function daysBetween(aIso, bIso) {
   const a = new Date(aIso)
   const b = new Date(bIso)
@@ -17,10 +29,33 @@ function findLastEvent(events, predicate) {
   return null
 }
 
+/**
+ * Карточки «важно» / «совет» из последнего по дате визита детейлинга (source === 'service').
+ * Пустые поля в визите подменяем дефолтами для владельца; если хотя бы один совет заполнен — показываем только заполненные.
+ */
+function latestManualCareRecs(evtsSortedNewestFirst) {
+  const lastService = evtsSortedNewestFirst.find((e) => e.source === 'service')
+  if (!lastService) return []
+  const ct = lastService.careTips && typeof lastService.careTips === 'object' ? lastService.careTips : null
+  const importantCustom = ct ? String(ct.important || '').trim() : ''
+  const tipsRaw = ct && Array.isArray(ct.tips) ? ct.tips : []
+  const tipsCustom = [0, 1, 2].map((i) => String(tipsRaw[i] || '').trim()).filter(Boolean)
+
+  const important = importantCustom || DEFAULT_DETAILING_CARE_IMPORTANT
+  const tips =
+    tipsCustom.length > 0 ? tipsCustom : DEFAULT_DETAILING_CARE_TIPS.slice(0, 2)
+
+  const out = []
+  out.push({ tone: 'accent', title: important, why: '' })
+  for (const t of tips) out.push({ tone: 'neutral', title: t, why: '' })
+  return out
+}
+
 export function getCareRecommendations({ car, events }) {
   const list = []
   const evts = Array.isArray(events) ? events.slice() : []
   evts.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
+  const manual = latestManualCareRecs(evts)
 
   const lastAny = evts[0] || null
   const lastWash = findLastEvent(evts, (e) => hasService(e.services, 'мойк'))
@@ -40,9 +75,9 @@ export function getCareRecommendations({ car, events }) {
     list.push({
       tone: 'neutral',
       title: 'Добавь фото/документы',
-      why: 'Фото кузова/салона после визита помогают видеть изменения и подтверждать состояние.',
+      why: `Фото кузова/салона после визита помогают видеть изменения и подтверждать состояние. ${PHOTO_LANDSCAPE_HINT_SENTENCE}`,
     })
-    return list
+    return [...manual, ...list]
   }
 
   const dWash = lastWash ? daysBetween(lastWash.at, now) : null
@@ -96,7 +131,7 @@ export function getCareRecommendations({ car, events }) {
     list.push({
       tone: 'neutral',
       title: 'Уход в норме',
-      why: 'Недавние визиты есть — продолжай фиксировать работы и добавляй фото при необходимости.',
+      why: `Недавние визиты есть — продолжай фиксировать работы и добавляй фото при необходимости. ${PHOTO_LANDSCAPE_HINT_SENTENCE}`,
     })
   }
 
@@ -109,6 +144,6 @@ export function getCareRecommendations({ car, events }) {
     })
   }
 
-  return list
+  return [...manual, ...list]
 }
 

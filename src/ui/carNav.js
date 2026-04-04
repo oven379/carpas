@@ -1,4 +1,13 @@
 /**
+ * Подпись крошки «назад к списку» для владельца: /garage — профиль и витрина, /cars — список машин.
+ */
+export function ownerGarageListCrumbLabel(listReturnPath) {
+  const p = String(listReturnPath || '')
+  if (p === '/garage' || p.startsWith('/garage?')) return 'В гараж'
+  return 'Мои автомобили'
+}
+
+/**
  * Куда возвращаться из карточки авто: учитываем ?from= из кабинета/гаража (только безопасные пути).
  */
 export function resolveCarListReturnPath(mode, fromParam) {

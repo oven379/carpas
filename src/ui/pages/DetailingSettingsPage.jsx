@@ -1,10 +1,18 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { BackNav, Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
+import { useEffect, useMemo, useState } from 'react'
+import { BackNav, Button, Card, Field, Input, Pill, ServiceHint, Textarea } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { compressImageFile } from '../../lib/imageCompression.js'
-import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
+import { DETAILING_WORKING_HOURS_MAX_LEN, formatPhoneRuInput } from '../../lib/format.js'
+import { DETAILING_ADDRESS_YANDEX_HINT, isWholeLineYandexMapsUrl } from '../../lib/mapsLinks.js'
+import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
+import {
+  dedupeOfferedStrings,
+  DETAILING_SERVICES,
+  MAINTENANCE_SERVICES,
+  OFFERED_SERVICE_MAX_LEN,
+} from '../../lib/serviceCatalogs.js'
+import OfferedServiceTagsRow from '../OfferedServiceTagsRow.jsx'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -18,10 +26,12 @@ export default function DetailingSettingsPage() {
 
   const [draft, setDraft] = useState(() => ({
     name: '',
-    servicesOffered: [],
+    detailingServicesOffered: [],
+    maintenanceServicesOffered: [],
     phone: '',
     city: '',
     address: '',
+    workingHours: '',
     description: '',
     website: '',
     telegram: '',
@@ -29,19 +39,20 @@ export default function DetailingSettingsPage() {
     logo: '',
     cover: '',
   }))
-  const logoRef = useRef(null)
-  const coverRef = useRef(null)
-
+  const [customDet, setCustomDet] = useState('')
+  const [customMaint, setCustomMaint] = useState('')
   useEffect(() => {
     if (!detailingId) return
     const d = r.getDetailing?.(detailingId)
     if (!d) return
     setDraft({
       name: d.name || '',
-      servicesOffered: Array.isArray(d.servicesOffered) ? d.servicesOffered : [],
+      detailingServicesOffered: Array.isArray(d.detailingServicesOffered) ? [...d.detailingServicesOffered] : [],
+      maintenanceServicesOffered: Array.isArray(d.maintenanceServicesOffered) ? [...d.maintenanceServicesOffered] : [],
       phone: d.phone || '',
       city: d.city || '',
       address: d.address || '',
+      workingHours: d.workingHours || '',
       description: d.description || '',
       website: d.website || '',
       telegram: d.telegram || '',
@@ -54,22 +65,57 @@ export default function DetailingSettingsPage() {
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (!detailing) return <Navigate to="/cars" replace />
 
-  const carsCount = (r.listCars?.(detailingId) || []).length
   const initials = String(draft.name || detailing.name || 'Д').trim().slice(0, 2).toUpperCase()
-  const addressText = [draft.city, draft.address].filter(Boolean).join(', ')
+  const draftAddrRaw = String(draft.address || '').trim()
+  const addressText = isWholeLineYandexMapsUrl(draftAddrRaw)
+    ? String(draft.city || '').trim()
+      ? `${String(draft.city).trim()} · точка из Яндекс.Карт`
+      : 'Указана ссылка на Яндекс.Карты'
+    : [draft.city, draft.address].filter(Boolean).join(', ')
   const phoneDigits = String(draft.phone || '').replace(/[^\d+]/g, '')
   const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
 
-  function toggleService(item) {
+  function toggleService(bucket, item) {
     const v = String(item || '').trim()
     if (!v) return
+    const key = bucket === 'det' ? 'detailingServicesOffered' : 'maintenanceServicesOffered'
     setDraft((d) => {
-      const cur = Array.isArray(d.servicesOffered) ? d.servicesOffered : []
+      const cur = Array.isArray(d[key]) ? d[key] : []
       const has = cur.includes(v)
       const next = has ? cur.filter((x) => x !== v) : [...cur, v]
-      return { ...d, servicesOffered: next }
+      return { ...d, [key]: next }
     })
   }
+
+  function addCustom(bucket) {
+    const raw = bucket === 'det' ? customDet : customMaint
+    const v = String(raw || '')
+      .trim()
+      .slice(0, OFFERED_SERVICE_MAX_LEN)
+    if (!v) return
+    const lower = v.toLowerCase()
+    const key = bucket === 'det' ? 'detailingServicesOffered' : 'maintenanceServicesOffered'
+    setDraft((d) => {
+      const cur = Array.isArray(d[key]) ? d[key] : []
+      if (cur.some((x) => String(x).toLowerCase() === lower)) return d
+      return { ...d, [key]: [...cur, v] }
+    })
+    if (bucket === 'det') setCustomDet('')
+    else setCustomMaint('')
+  }
+
+  function removeFromBucket(bucket, label) {
+    const key = bucket === 'det' ? 'detailingServicesOffered' : 'maintenanceServicesOffered'
+    setDraft((d) => ({
+      ...d,
+      [key]: (Array.isArray(d[key]) ? d[key] : []).filter((x) => x !== label),
+    }))
+  }
+
+  const previewServices = dedupeOfferedStrings([
+    ...(draft.detailingServicesOffered || []),
+    ...(draft.maintenanceServicesOffered || []),
+  ])
 
   return (
     <div className="container">
@@ -80,21 +126,24 @@ export default function DetailingSettingsPage() {
             <span> / </span>
             <span>Лендинг</span>
           </div>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
-            <h1 className="h1" style={{ margin: 0 }}>
-              Настройки лендинга
-            </h1>
+          <div id="detailing-settings-hint-scope" className="serviceHint__pageBlock">
+            <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
+              <BackNav />
+              <h1 className="h1">Настройки лендинга</h1>
+              <ServiceHint scopeId="detailing-settings-hint-scope" variant="compact" label="Справка о лендинге">
+                <p className="serviceHint__panelText">
+                  Здесь настраивается публичная страница по ссылке <span className="mono">/d/…</span> — что увидят клиенты до визита. В шапке
+                  кабинета используются те же название, обложка и логотип.
+                </p>
+                {detailing.profileCompleted === false ? (
+                  <p className="serviceHint__panelText">
+                    <strong>Первый вход:</strong> заполните данные о сервисе и нажмите «Сохранить» — откроется ваша публичная
+                    страница с этими данными. Оттуда можно перейти в кабинет и добавить первое авто на обслуживание.
+                  </p>
+                ) : null}
+              </ServiceHint>
+            </div>
           </div>
-          <p className="muted">
-            Здесь задаётся публичная страница по ссылке <strong>/d/…</strong>: что увидят клиенты до визита. Кабинет подтягивает те же
-            название, обложку и логотип для узнаваемости.
-          </p>
-          {detailing.profileCompleted === false ? (
-            <p className="muted small" style={{ marginTop: 10 }}>
-              <strong>Первый вход:</strong> заполните лендинг и нажмите «Сохранить» — откроется кабинет со списком авто на обслуживании.
-            </p>
-          ) : null}
         </div>
       </div>
 
@@ -116,14 +165,6 @@ export default function DetailingSettingsPage() {
                 <span aria-hidden="true">{initials}</span>
               </div>
             )}
-            <div className="detHero__bottomRow">
-              <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-                <Pill tone="accent">Авто на обслуживании: {carsCount}</Pill>
-                {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
-                  <Pill>{`Услуг: ${draft.servicesOffered.length}`}</Pill>
-                ) : null}
-              </div>
-            </div>
           </div>
         </div>
 
@@ -136,13 +177,18 @@ export default function DetailingSettingsPage() {
               <p className="muted" style={{ marginTop: 8 }}>
                 {addressText || 'Город и адрес'}
               </p>
+              {String(draft.workingHours || '').trim() ? (
+                <p className="muted small" style={{ marginTop: 6, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {String(draft.workingHours || '').trim()}
+                </p>
+              ) : null}
               {draft.description ? (
                 <p className="muted small" style={{ marginTop: 8, lineHeight: 1.55 }}>
                   {draft.description}
                 </p>
               ) : (
                 <p className="muted small" style={{ marginTop: 8 }}>
-                  Добавьте описание — чем вы занимаетесь, режим работы, гарантия, подход.
+                  Добавьте описание — специализация, гарантия, подход к клиенту.
                 </p>
               )}
             </div>
@@ -152,12 +198,12 @@ export default function DetailingSettingsPage() {
               </a>
             ) : null}
           </div>
-          {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
+          {previewServices.length ? (
             <div className="row gap wrap" style={{ marginTop: 10 }}>
-              {draft.servicesOffered.slice(0, 10).map((s) => (
+              {previewServices.slice(0, 10).map((s) => (
                 <Pill key={s}>{s}</Pill>
               ))}
-              {draft.servicesOffered.length > 10 ? <Pill>+ ещё</Pill> : null}
+              {previewServices.length > 10 ? <Pill>+ ещё</Pill> : null}
             </div>
           ) : null}
         </div>
@@ -165,100 +211,38 @@ export default function DetailingSettingsPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
-          <div className="cardTitle" style={{ marginBottom: 10 }}>
-            Внешний вид лендинга
+          <div id="detailing-appearance-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 12 }}>
+            <div className="cardTitle" style={{ margin: 0 }}>
+              Внешний вид лендинга
+            </div>
+            <ServiceHint scopeId="detailing-appearance-hint" variant="compact" label="Справка: логотип и обложка">
+              <p className="serviceHint__panelText">
+                Баннер — широкое фото (фасад, зал). Аватар — логотип, лучше квадрат. Удаление — иконки на превью. Оба показываются на{' '}
+                <span className="mono">/d/…</span> и в шапке кабинета.
+              </p>
+            </ServiceHint>
           </div>
-          <p className="muted small" style={{ margin: '0 0 14px' }}>
-            Логотип и обложка видны на публичной странице и в шапке кабинета.
-          </p>
-          <div className="formGrid">
-            <Field label="Логотип" hint="PNG/JPG, квадрат лучше всего">
-              <div className="row gap wrap">
-                <input
-                  ref={logoRef}
-                  className="srOnly"
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    try {
-                      const url = await compressImageFile(file, {
-                        maxW: 360,
-                        maxH: 360,
-                        quality: 0.86,
-                        maxBytes: 512 * 1024,
-                      })
-                      setDraft((d) => ({ ...d, logo: url }))
-                    } catch {
-                      alert('Не удалось прочитать файл')
-                    }
-                  }}
-                />
-                <button type="button" className="btn" data-variant="outline" onClick={() => logoRef.current?.click?.()}>
-                  {draft.logo ? 'Заменить логотип' : 'Загрузить логотип'}
-                </button>
-                {draft.logo ? (
-                  <button type="button" className="btn" data-variant="ghost" onClick={() => setDraft((d) => ({ ...d, logo: '' }))}>
-                    Убрать
-                  </button>
-                ) : null}
-              </div>
-              {draft.logo ? (
-                <div className="detLogoPreview" style={{ marginTop: 10 }}>
-                  <img alt="Логотип" src={draft.logo} />
-                </div>
-              ) : null}
-            </Field>
-
-            <Field label="Обложка кабинета" hint="широкая картинка, например фасад/зал">
-              <div className="row gap wrap">
-                <input
-                  ref={coverRef}
-                  className="srOnly"
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    try {
-                      const url = await compressImageFile(file, {
-                        maxW: 1400,
-                        maxH: 700,
-                        quality: 0.82,
-                        maxBytes: 1024 * 1024,
-                      })
-                      setDraft((d) => ({ ...d, cover: url }))
-                    } catch {
-                      alert('Не удалось прочитать файл')
-                    }
-                  }}
-                />
-                <button type="button" className="btn" data-variant="outline" onClick={() => coverRef.current?.click?.()}>
-                  {draft.cover ? 'Заменить обложку' : 'Загрузить обложку'}
-                </button>
-                {draft.cover ? (
-                  <button type="button" className="btn" data-variant="ghost" onClick={() => setDraft((d) => ({ ...d, cover: '' }))}>
-                    Убрать
-                  </button>
-                ) : null}
-              </div>
-              <div className="detCoverPreview" style={{ marginTop: 10, backgroundImage: draft.cover ? `url("${String(draft.cover).replaceAll('"', '%22')}")` : undefined }}>
-                {!draft.cover ? <div className="muted small">Обложка не задана</div> : null}
-              </div>
-            </Field>
-          </div>
+          <MediaBannerAvatarBlock
+            variant="detailing"
+            bannerUrl={draft.cover}
+            avatarUrl={draft.logo}
+            onBannerUrl={(url) => setDraft((d) => ({ ...d, cover: url }))}
+            onAvatarUrl={(url) => setDraft((d) => ({ ...d, logo: url }))}
+          />
         </div>
 
         <div className="topBorder">
-          <div className="cardTitle" style={{ marginBottom: 8 }}>
-            Текст и контакты на лендинге
+          <div id="detailing-contacts-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
+            <div className="cardTitle" style={{ margin: 0 }}>
+              Текст и контакты на лендинге
+            </div>
+            <ServiceHint scopeId="detailing-contacts-hint" variant="compact" label="Справка: блок контактов">
+              <p className="serviceHint__panelText">
+                Название, адрес, режим работы, телефон, услуги и ссылки отображаются на публичной странице{' '}
+                <span className="mono">/d/…</span> так, как их видят клиенты.
+              </p>
+            </ServiceHint>
           </div>
-          <p className="muted small" style={{ margin: 0 }}>
-            Название, адрес, телефон, услуги и ссылки — как на публичной странице по ссылке для клиентов.
-          </p>
         </div>
 
         <div className="formGrid">
@@ -275,9 +259,10 @@ export default function DetailingSettingsPage() {
             <Input
               className="input"
               value={draft.phone}
-              onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
+              onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
               placeholder="+7 …"
               autoComplete="tel"
+              inputMode="tel"
             />
           </Field>
           <Field label="Город">
@@ -289,19 +274,44 @@ export default function DetailingSettingsPage() {
               autoComplete="address-level2"
             />
           </Field>
-          <Field label="Адрес" hint="необязательно">
+          <div className="field serviceHint__fieldWrap" id="detailing-settings-hint-address">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">Адрес</span>
+              <ServiceHint scopeId="detailing-settings-hint-address" label="Справка: адрес и Яндекс.Карты">
+                <p className="serviceHint__panelText">{DETAILING_ADDRESS_YANDEX_HINT}</p>
+              </ServiceHint>
+            </div>
             <Input
               className="input"
               value={draft.address}
               onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
-              placeholder="Улица, дом"
+              placeholder="Улица, дом или ссылка из Яндекс.Карт"
               autoComplete="street-address"
             />
+          </div>
+          <Field
+            className="field--full"
+            label="Режим работы"
+            hint="Показывается на публичной странице сервиса в блоке контактов. Можно с новой строки для каждого дня."
+          >
+            <Textarea
+              className="textarea"
+              rows={2}
+              value={draft.workingHours}
+              maxLength={DETAILING_WORKING_HOURS_MAX_LEN}
+              onChange={(e) => setDraft((d) => ({ ...d, workingHours: e.target.value }))}
+              placeholder="Например: Пн–Пт 9:00–20:00, Сб 10:00–18:00, вс — выходной"
+            />
           </Field>
-          <div className="field field--full">
-            <div className="field__top">
-              <span className="field__label">Услуги</span>
-              <span className="field__hint">детейлинг и ТО — что делаете (появится на лендинге)</span>
+          <div className="field field--full serviceHint__fieldWrap" id="detailing-services-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label field__label--servicesLead">Услуги</span>
+              <ServiceHint scopeId="detailing-services-hint" label="Справка: услуги">
+                <p className="serviceHint__panelText">
+                  Отметьте детейлинг и/или ТО. Нет в списке — допишите свою строку: она сохранится в профиле и появится в
+                  выпадающих списках при оформлении визитов. Список также виден на публичном лендинге.
+                </p>
+              </ServiceHint>
             </div>
             <p className="muted small" style={{ margin: '0 0 8px' }}>
               Детейлинг
@@ -309,7 +319,7 @@ export default function DetailingSettingsPage() {
             <div className="svc svc--compact">
               {DETAILING_SERVICES.map((g) => {
                 const items = Array.isArray(g.items) ? g.items : []
-                const selected = items.filter((x) => draft.servicesOffered.includes(x)).length
+                const selected = items.filter((x) => draft.detailingServicesOffered.includes(x)).length
                 return (
                   <details key={`d-${g.group}`} className="svc__group" open={selected > 0}>
                     <summary className="svc__title">
@@ -318,13 +328,13 @@ export default function DetailingSettingsPage() {
                     </summary>
                     <div className="svc__grid">
                       {items.map((it) => {
-                        const checked = draft.servicesOffered.includes(it)
+                        const checked = draft.detailingServicesOffered.includes(it)
                         return (
                           <label key={it} className="svc__item">
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={() => toggleService(it)}
+                              onChange={() => toggleService('det', it)}
                             />
                             <span>{it}</span>
                           </label>
@@ -335,13 +345,32 @@ export default function DetailingSettingsPage() {
                 )
               })}
             </div>
+            <OfferedServiceTagsRow
+              items={draft.detailingServicesOffered}
+              onRemove={(s) => removeFromBucket('det', s)}
+              emptyHint="Пока ничего не выбрано — отметьте услуги в списке выше или добавьте свою строку ниже."
+              ariaLabel="Выбранные услуги детейлинга"
+            />
+            <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
+              <Input
+                className="input"
+                style={{ flex: 1, minWidth: 160 }}
+                value={customDet}
+                onChange={(e) => setCustomDet(e.target.value)}
+                maxLength={OFFERED_SERVICE_MAX_LEN}
+                placeholder="Своя услуга детейлинга, если нет в списке"
+              />
+              <button type="button" className="btn" data-variant="outline" onClick={() => addCustom('det')}>
+                Добавить
+              </button>
+            </div>
             <p className="muted small" style={{ margin: '14px 0 8px' }}>
               ТО и ремонт
             </p>
             <div className="svc svc--compact">
               {MAINTENANCE_SERVICES.map((g) => {
                 const items = Array.isArray(g.items) ? g.items : []
-                const selected = items.filter((x) => draft.servicesOffered.includes(x)).length
+                const selected = items.filter((x) => draft.maintenanceServicesOffered.includes(x)).length
                 return (
                   <details key={`m-${g.group}`} className="svc__group" open={selected > 0}>
                     <summary className="svc__title">
@@ -350,13 +379,13 @@ export default function DetailingSettingsPage() {
                     </summary>
                     <div className="svc__grid">
                       {items.map((it) => {
-                        const checked = draft.servicesOffered.includes(it)
+                        const checked = draft.maintenanceServicesOffered.includes(it)
                         return (
                           <label key={it} className="svc__item">
                             <input
                               type="checkbox"
                               checked={checked}
-                              onChange={() => toggleService(it)}
+                              onChange={() => toggleService('maint', it)}
                             />
                             <span>{it}</span>
                           </label>
@@ -367,8 +396,27 @@ export default function DetailingSettingsPage() {
                 )
               })}
             </div>
+            <OfferedServiceTagsRow
+              items={draft.maintenanceServicesOffered}
+              onRemove={(s) => removeFromBucket('maint', s)}
+              emptyHint="Пока ничего не выбрано — отметьте услуги ТО в списке выше или добавьте свою строку ниже."
+              ariaLabel="Выбранные услуги ТО"
+            />
+            <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
+              <Input
+                className="input"
+                style={{ flex: 1, minWidth: 160 }}
+                value={customMaint}
+                onChange={(e) => setCustomMaint(e.target.value)}
+                maxLength={OFFERED_SERVICE_MAX_LEN}
+                placeholder="Своя услуга ТО, если нет в списке"
+              />
+              <button type="button" className="btn" data-variant="outline" onClick={() => addCustom('maint')}>
+                Добавить
+              </button>
+            </div>
           </div>
-          <Field className="field--full" label="Описание" hint="необязательно">
+          <Field className="field--full" label="Описание">
             <Textarea
               className="textarea"
               rows={4}
@@ -377,7 +425,7 @@ export default function DetailingSettingsPage() {
               placeholder="Коротко: чем занимаетесь, режим работы, гарантия…"
             />
           </Field>
-          <Field label="Сайт" hint="необязательно">
+          <Field label="Сайт">
             <Input
               className="input"
               value={draft.website}
@@ -386,7 +434,7 @@ export default function DetailingSettingsPage() {
               inputMode="url"
             />
           </Field>
-          <Field label="Telegram" hint="необязательно">
+          <Field label="Telegram">
             <Input
               className="input"
               value={draft.telegram}
@@ -394,7 +442,7 @@ export default function DetailingSettingsPage() {
               placeholder="@username или ссылка"
             />
           </Field>
-          <Field label="Instagram" hint="необязательно">
+          <Field label="Instagram">
             <Input
               className="input"
               value={draft.instagram}
@@ -421,21 +469,43 @@ export default function DetailingSettingsPage() {
                 alert('Укажите город')
                 return
               }
-              if (!Array.isArray(draft.servicesOffered) || draft.servicesOffered.length === 0) {
+              const detL = dedupeOfferedStrings(draft.detailingServicesOffered)
+              const maintL = dedupeOfferedStrings(draft.maintenanceServicesOffered)
+              if (!detL.length && !maintL.length) {
                 alert('Выберите хотя бы одну услугу')
                 return
               }
               const saved = r.updateDetailing?.(
                 detailingId,
-                { ...draft, profileCompleted: true },
+                {
+                  name: draft.name,
+                  phone: draft.phone,
+                  city: draft.city,
+                  address: draft.address,
+                  workingHours: draft.workingHours,
+                  description: draft.description,
+                  website: draft.website,
+                  telegram: draft.telegram,
+                  instagram: draft.instagram,
+                  logo: draft.logo,
+                  cover: draft.cover,
+                  detailingServicesOffered: detL,
+                  maintenanceServicesOffered: maintL,
+                  profileCompleted: true,
+                },
                 { detailingId },
               )
               if (!saved) {
                 alert('Не удалось сохранить настройки (нет доступа).')
                 return
               }
+              const wasFirstSetup = detailing.profileCompleted === false
               invalidateRepo()
-              nav('/detailing', { replace: true })
+              if (wasFirstSetup) {
+                nav(`/d/${encodeURIComponent(String(detailingId))}?from=setup`, { replace: true })
+              } else {
+                nav('/detailing', { replace: true })
+              }
             }}
           >
             Сохранить

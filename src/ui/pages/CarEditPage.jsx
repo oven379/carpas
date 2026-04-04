@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, ComboBox, Field, Input } from '../components.jsx'
+import { BackNav, Button, Card, ComboBox, Field, Input, ServiceHint } from '../components.jsx'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
-import { normDigits, normPlateBase, normPlateRegion, normVin, parsePlateFull } from '../../lib/format.js'
+import {
+  formatPhoneRuInput,
+  IMAGE_UPLOAD_EMPTY_CTA,
+  normDigits,
+  normPlateBase,
+  normPlateRegion,
+  normVin,
+  parsePlateFull,
+} from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
 import allCities from 'country-city-state/cities.json'
 import {
@@ -13,7 +21,9 @@ import {
   getCustomMakes,
   getCustomModelsByMake,
 } from '../../lib/customDicts.js'
-import { buildCarFromQuery, resolveCarListReturnPath } from '../carNav.js'
+import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
+import { ownerGarageLimits } from '../../lib/garageLimits.js'
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 
 function cssUrl(url) {
   // data: URL может содержать символы, которые ломают url(...) без кавычек
@@ -170,7 +180,7 @@ export default function CarEditPage({ mode }) {
         base.plateRegion = parsed.plateRegion
       }
       if (plateRegion) base.plateRegion = normPlateRegion(plateRegion)
-      if (clientPhone) base.clientPhone = clientPhone
+      if (clientPhone) base.clientPhone = formatPhoneRuInput(clientPhone)
       if (clientEmail) base.clientEmail = clientEmail
     }
     setDraft(base)
@@ -217,6 +227,15 @@ export default function CarEditPage({ mode }) {
   if (mode === 'edit' && !car) {
     return <Navigate to={who === 'detailing' ? '/detailing' : '/cars'} replace />
   }
+  if (mode === 'edit' && who === 'owner' && car?.detailingId) {
+    return <Navigate to={`/car/${id}${buildCarFromQuery(sp.get('from') || '')}`} replace />
+  }
+  if (mode === 'create' && who === 'owner' && owner?.email) {
+    const lim = ownerGarageLimits(r.listCars({ ownerEmail: owner.email }))
+    if (!lim.canAddManual) {
+      return <Navigate to={resolveCarListReturnPath('owner', sp.get('from') || '')} replace />
+    }
+  }
 
   const fromParam = sp.get('from') || ''
   const listReturn = resolveCarListReturnPath(who, fromParam)
@@ -227,9 +246,9 @@ export default function CarEditPage({ mode }) {
   const backNavTo = who === 'owner' ? listReturn : mode === 'edit' ? carCardHref : listReturn
   const backNavTitle =
     who === 'owner'
-      ? listReturn.startsWith('/garage')
+      ? listReturn === '/garage' || listReturn.startsWith('/garage?')
         ? 'В гараж'
-        : 'К списку авто'
+        : 'К автомобилям'
       : mode === 'edit'
         ? 'К карточке авто'
         : 'К кабинету'
@@ -239,19 +258,21 @@ export default function CarEditPage({ mode }) {
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to={listReturn}>{who === 'owner' ? 'Мой гараж' : 'Кабинет'}</Link>
+            <Link to={listReturn}>{who === 'owner' ? ownerGarageListCrumbLabel(listReturn) : 'Кабинет'}</Link>
             <span> / </span>
             <span>{title}</span>
           </div>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav to={backNavTo} title={backNavTitle} />
-            <h1 className="h1" style={{ margin: 0 }}>
-              {title}
-            </h1>
+          <div id="car-edit-page-hint" className="serviceHint__pageBlock">
+            <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
+              <BackNav to={backNavTo} title={backNavTitle} />
+              <h1 className="h1">{title}</h1>
+              <ServiceHint scopeId="car-edit-page-hint" variant="compact" label="Справка: карточка авто">
+                <p className="serviceHint__panelText">
+                  Здесь основные данные автомобиля. История визитов, фото и документы — в карточке после сохранения.
+                </p>
+              </ServiceHint>
+            </div>
           </div>
-          <p className="muted">
-            Карточка авто + история визитов + документы.
-          </p>
         </div>
       </div>
 
@@ -288,10 +309,17 @@ export default function CarEditPage({ mode }) {
               }
             />
           </Field>
-          <Field
-            label="Пробег (км)"
-            hint={mode === 'edit' && baseMileageKm ? `мин. ${baseMileageKm} км` : undefined}
-          >
+          <div className="field serviceHint__fieldWrap" id="car-edit-mileage-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">Пробег (км)</span>
+              <ServiceHint scopeId="car-edit-mileage-hint" label="Справка: пробег">
+                {mode === 'edit' && baseMileageKm ? (
+                  <p className="serviceHint__panelText">Минимум {baseMileageKm} км — по данным последнего визита в истории.</p>
+                ) : (
+                  <p className="serviceHint__panelText">Укажите актуальный или ближайший к реальности пробег в километрах.</p>
+                )}
+              </ServiceHint>
+            </div>
             <Input
               className="input"
               inputMode="numeric"
@@ -307,7 +335,7 @@ export default function CarEditPage({ mode }) {
               }
               placeholder={mode === 'edit' && baseMileageKm ? String(baseMileageKm) : '12000'}
             />
-          </Field>
+          </div>
           <Field label="Город">
             <ComboBox
               value={draft.city}
@@ -319,7 +347,15 @@ export default function CarEditPage({ mode }) {
           </Field>
           {who !== 'owner' ? (
             <>
-              <Field label="Клиент (имя)" hint="необязательно">
+              <div className="field serviceHint__fieldWrap" id="car-edit-client-name-hint">
+                <div className="field__top serviceHint__fieldTop">
+                  <span className="field__label">Клиент (имя)</span>
+                  <ServiceHint scopeId="car-edit-client-name-hint" label="Справка: клиент">
+                    <p className="serviceHint__panelText">
+                      Имя, телефон и почта необязательны; помогают найти карточку в кабинете и связаться с владельцем.
+                    </p>
+                  </ServiceHint>
+                </div>
                 <Input
                   className="input"
                   value={draft.clientName}
@@ -327,18 +363,18 @@ export default function CarEditPage({ mode }) {
                   placeholder="Например: Иван"
                   autoComplete="name"
                 />
-              </Field>
-              <Field label="Клиент (телефон)" hint="необязательно, для поиска">
+              </div>
+              <Field label="Клиент (телефон)">
                 <Input
                   className="input"
                   inputMode="tel"
                   value={draft.clientPhone}
-                  onChange={(e) => setDraft((d) => ({ ...d, clientPhone: e.target.value }))}
+                  onChange={(e) => setDraft((d) => ({ ...d, clientPhone: formatPhoneRuInput(e.target.value) }))}
                   placeholder="+7 999 123-45-67"
                   autoComplete="tel"
                 />
               </Field>
-              <Field label="Клиент (почта)" hint="необязательно, для поиска">
+              <Field label="Клиент (почта)">
                 <Input
                   className="input"
                   type="email"
@@ -350,7 +386,13 @@ export default function CarEditPage({ mode }) {
               </Field>
             </>
           ) : null}
-          <Field label="VIN" hint="можно оставить пустым">
+          <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">VIN</span>
+              <ServiceHint scopeId="car-edit-vin-hint" label="Справка: VIN">
+                <p className="serviceHint__panelText">До 17 символов латиницы и цифр. Поле можно оставить пустым, если VIN пока неизвестен.</p>
+              </ServiceHint>
+            </div>
             <Input
               className="input mono"
               value={draft.vin}
@@ -358,7 +400,7 @@ export default function CarEditPage({ mode }) {
               onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />
-          </Field>
+          </div>
           <Field label="Госномер">
             <div className="row gap" style={{ alignItems: 'center' }}>
               <Input
@@ -394,6 +436,9 @@ export default function CarEditPage({ mode }) {
 
         <div className="topBorder carEditCoverBlock">
           <div className="muted small carEditCoverBlock__title">Обложка карточки</div>
+          <p className="muted small" style={{ marginTop: 6, marginBottom: 10 }}>
+            {PHOTO_LANDSCAPE_HINT_SENTENCE}
+          </p>
           <div
             className={`carHero carHero--editCover${draft.hero ? '' : ' carHero--editCover--empty'}`}
             style={draft.hero ? { backgroundImage: cssUrl(draft.hero) } : undefined}
@@ -416,7 +461,7 @@ export default function CarEditPage({ mode }) {
                   className="heroCoverBtn heroCoverBtn--replace"
                   onClick={() => heroCoverFileRef.current?.click?.()}
                 >
-                  {draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
+                  {draft.hero ? 'Заменить обложку' : IMAGE_UPLOAD_EMPTY_CTA}
                 </button>
                 {draft.hero ? (
                   <button
@@ -475,6 +520,12 @@ export default function CarEditPage({ mode }) {
                       }
                     }
                     const created = r.createCar(scope, draft)
+                    if (!created) {
+                      alert(
+                        'Достигнут лимит гаража: вручную не больше 2 авто, всего не больше 5. Остальные авто добавляются через «Найти авто по VIN» в сервисе.',
+                      )
+                      return
+                    }
                     nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
                   }
                   invalidateRepo()

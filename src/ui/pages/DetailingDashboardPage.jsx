@@ -1,9 +1,14 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useRepo } from '../useRepo.js'
-import { Card, Field, Input, Pill } from '../components.jsx'
+import { Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { detailingCarAccessBadge } from '../serviceLinkUi.js'
-import { fmtDate, fmtPlateFull, normVin, parsePlateFull } from '../../lib/format.js'
+import { fmtDate, fmtPlateFull, normVin, ownerPublicFlagTrue, parsePlateFull } from '../../lib/format.js'
+import {
+  detailingNavGeocodeQuery,
+  detailingYandexMapsWebHref,
+  isWholeLineYandexMapsUrl,
+} from '../../lib/mapsLinks.js'
 import { useDetailing } from '../useDetailing.js'
 
 function normStr(s) {
@@ -105,11 +110,16 @@ export default function DetailingDashboardPage() {
   if (det && det.profileCompleted === false) return <Navigate to="/detailing/landing" replace />
 
   const initials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
+  const addrRaw = String(det?.address || '').trim()
+  const addressIsYandexUrl = isWholeLineYandexMapsUrl(addrRaw)
   const addressText = [det?.city, det?.address].filter(Boolean).join(', ')
-  const mapsHref = addressText ? `https://yandex.ru/maps/?text=${encodeURIComponent(addressText)}` : ''
+  const mapsHref = detailingYandexMapsWebHref(det)
+  const geoQuery = detailingNavGeocodeQuery(det)
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
   const isIOS = /iPhone|iPad|iPod/i.test(ua)
-  const navHref = addressText ? (isIOS ? `maps://?q=${encodeURIComponent(addressText)}` : `geo:0,0?q=${encodeURIComponent(addressText)}`) : ''
+  const navHref = geoQuery ? (isIOS ? `maps://?q=${encodeURIComponent(geoQuery)}` : `geo:0,0?q=${encodeURIComponent(geoQuery)}`) : ''
+  const addressLinkLabel = addressIsYandexUrl ? 'Открыть точку и построить маршрут' : det?.address || addressText
+  const showAddressLink = Boolean(mapsHref)
   const phoneDigits = String(det?.phone || '').replace(/[^\d+]/g, '')
   const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
 
@@ -120,7 +130,7 @@ export default function DetailingDashboardPage() {
           <div className="breadcrumbs">
             <span>Кабинет</span>
             <span> / </span>
-            <span>Кабинет СТО</span>
+            <span>Автомобили</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
             <h1 className="h1" style={{ margin: 0 }}>
@@ -130,14 +140,14 @@ export default function DetailingDashboardPage() {
           <p className="muted carPage__meta">
             <span>{det?.city || '—'}</span>
             <span aria-hidden="true"> · </span>
-            {addressText ? (
+            {showAddressLink ? (
               <a
-                href={navHref || mapsHref}
-                target={navHref ? undefined : '_blank'}
-                rel={navHref ? undefined : 'noreferrer'}
-                title="Открыть в навигаторе"
+                href={addressIsYandexUrl ? mapsHref : navHref || mapsHref}
+                target={addressIsYandexUrl || !navHref ? '_blank' : undefined}
+                rel={addressIsYandexUrl || !navHref ? 'noopener noreferrer' : undefined}
+                title={addressIsYandexUrl ? 'Яндекс.Карты: точка и маршрут' : 'Открыть в навигаторе'}
                 onClick={(e) => {
-                  if (!navHref) return
+                  if (addressIsYandexUrl || !navHref) return
                   e.preventDefault()
                   try {
                     window.location.href = navHref
@@ -153,7 +163,7 @@ export default function DetailingDashboardPage() {
                   }, 450)
                 }}
               >
-                {det.address || addressText}
+                {addressLinkLabel}
               </a>
             ) : (
               <span>—</span>
@@ -167,6 +177,11 @@ export default function DetailingDashboardPage() {
               <span>—</span>
             )}
           </p>
+          {String(det?.workingHours || '').trim() ? (
+            <p className="muted small" style={{ marginTop: 6, maxWidth: '62ch', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+              {String(det.workingHours).trim()}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -202,60 +217,74 @@ export default function DetailingDashboardPage() {
               <span aria-hidden="true">{initials}</span>
             </Link>
           )}
-          <div className="detHero__bottomRow">
-            <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-              <Pill tone="accent">Авто на обслуживании: {cars.length}</Pill>
-            </div>
-          </div>
         </div>
       </div>
 
-      <Card className="card pad detSearchCard" style={{ marginTop: 12 }}>
-        <div className="row gap detSearchCard__row">
+      <Card className="card pad detSearchCard detSearchCard--sticky" style={{ marginTop: 12 }}>
+        <div className="row gap detSearchCard__row detSearchCard__row--main">
           <Input
             className="input detSearchCard__input"
             placeholder="Поиск… (VIN / номер / телефон / почта / марка)"
             value={q}
             onChange={(e) => setSp({ q: e.target.value }, { replace: true })}
           />
-          <button
-            type="button"
-            className="btn detSearchCard__addBtn"
-            data-variant="primary"
-            onClick={() => {
-              const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
-              if (quickTargetCar) {
-                nav(`/car/${quickTargetCar.id}/history?new=1&from=${encodeURIComponent(from)}`)
-                return
+          <div className="detSearchCard__actions">
+            <ServiceHint scopeId="detailing-dash-empty-hint" variant="compact" label="Справка: список авто">
+              <p className="serviceHint__panelText">
+                Список авто на обслуживании. Панель поиска и «Добавить авто» закреплены под шапкой при прокрутке длинного
+                списка.
+              </p>
+            </ServiceHint>
+            <button
+              type="button"
+              className="btn detSearchCard__addBtn"
+              data-variant="primary"
+              onClick={() => {
+                const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
+                if (quickTargetCar) {
+                  nav(`/car/${quickTargetCar.id}/history?new=1&from=${encodeURIComponent(from)}`)
+                  return
+                }
+                const pre = inferPrefill(q)
+                const qp = new URLSearchParams()
+                if (pre.vin) qp.set('vin', pre.vin)
+                if (pre.plate) qp.set('plate', pre.plate)
+                if (pre.plateRegion) qp.set('plateRegion', pre.plateRegion)
+                if (pre.clientPhone) qp.set('clientPhone', pre.clientPhone)
+                if (pre.clientEmail) qp.set('clientEmail', pre.clientEmail)
+                const qs = qp.toString()
+                nav(`/create${qs ? `?${qs}` : ''}`)
+              }}
+              title={
+                quickTargetCar
+                  ? 'Открыть создание визита для найденного авто'
+                  : 'Создать новое авто (VIN/номер/телефон подставятся автоматически)'
               }
-              const pre = inferPrefill(q)
-              const qp = new URLSearchParams()
-              if (pre.vin) qp.set('vin', pre.vin)
-              if (pre.plate) qp.set('plate', pre.plate)
-              if (pre.plateRegion) qp.set('plateRegion', pre.plateRegion)
-              if (pre.clientPhone) qp.set('clientPhone', pre.clientPhone)
-              if (pre.clientEmail) qp.set('clientEmail', pre.clientEmail)
-              const qs = qp.toString()
-              nav(`/create${qs ? `?${qs}` : ''}`)
-            }}
-            title={
-              quickTargetCar
-                ? 'Открыть создание визита для найденного авто'
-                : 'Создать новое авто (VIN/номер/телефон подставятся автоматически)'
-            }
-          >
-            {quickTargetCar ? '+ Визит' : '+ Добавить авто'}
-          </button>
+            >
+              {quickTargetCar ? '+ Визит' : '+ Добавить авто'}
+            </button>
+          </div>
         </div>
       </Card>
 
       <div className="list" style={{ marginTop: 12 }}>
         {filtered.map((c) => {
           const lastVisitAt = r.listEvents(c.id, { detailingId })[0]?.at || null
-          const carHref = `/car/${c.id}?from=${encodeURIComponent(`/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`)}`
+          const fromDash = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
+          const carHref = `/car/${c.id}?from=${encodeURIComponent(fromDash)}`
           const access = detailingCarAccessBadge(r, c, detailingId)
+          const ownerInApp = access.label === 'Владелец в приложении'
+          const listOwner = ownerInApp && c.ownerEmail && r.getOwner ? r.getOwner(c.ownerEmail) : null
+          const ownerSlug = String(listOwner?.garageSlug || '').trim()
+          const ownerAvatar = String(listOwner?.garageAvatar || '').trim()
+          const ownerPeekLabel = String(listOwner?.name || c.ownerEmail || '').trim()
+          const ownerPeekInitials = ownerPeekLabel.slice(0, 2).toUpperCase() || '?'
+          const ownerPhoneRaw = String(listOwner?.phone || '').trim()
+          const ownerPhoneDigits = ownerPhoneRaw.replace(/[^\d+]/g, '')
+          const ownerPhoneHref = ownerPhoneDigits ? `tel:${ownerPhoneDigits}` : ''
+          const ownerPhonePublic = ownerPublicFlagTrue(listOwner?.showPhonePublic)
           return (
-            <div key={c.id} className="rowItem">
+            <div key={c.id} className={`rowItem${ownerInApp ? ' rowItem--ownerPeek' : ''}`}>
               <Link
                 className="rowItem__rowLink"
                 to={carHref}
@@ -270,7 +299,7 @@ export default function DetailingDashboardPage() {
                     <span>
                       {c.make} {c.model}
                     </span>
-                    {access.label ? <Pill tone={access.tone}>{access.label}</Pill> : null}
+                    {!ownerInApp && access.label ? <Pill tone={access.tone}>{access.label}</Pill> : null}
                   </div>
                   <div className="rowItem__meta carPage__meta">
                     <span>{c.city || '—'}</span>
@@ -295,14 +324,95 @@ export default function DetailingDashboardPage() {
                   </div>
                 </div>
               </Link>
+              {ownerInApp ? (
+                <div className="rowItem__ownerSummary">
+                  {ownerSlug ? (
+                    <Link
+                      className="rowItem__ownerSummaryAvatar"
+                      to={`/g/${encodeURIComponent(ownerSlug)}`}
+                      state={{ from: fromDash }}
+                      title={`Открыть страницу владельца: ${ownerPeekLabel}`}
+                      aria-label={`Публичная страница владельца ${ownerPeekLabel}`}
+                    >
+                      {ownerAvatar ? (
+                        <img src={ownerAvatar} alt="" />
+                      ) : (
+                        <span className="rowItem__ownerSummaryFallback" aria-hidden="true">
+                          {ownerPeekInitials}
+                        </span>
+                      )}
+                    </Link>
+                  ) : (
+                    <span
+                      className="rowItem__ownerSummaryAvatar rowItem__ownerSummaryAvatar--disabled"
+                      title="Публичная витрина не задана"
+                      aria-label="Публичная витрина не задана"
+                    >
+                      {ownerAvatar ? (
+                        <img src={ownerAvatar} alt="" />
+                      ) : (
+                        <span className="rowItem__ownerSummaryFallback">{ownerPeekInitials}</span>
+                      )}
+                    </span>
+                  )}
+                  <div className="rowItem__ownerSummaryBody">
+                    <div className="rowItem__ownerSummaryTitle">{ownerPeekLabel}</div>
+                    {ownerPhonePublic && ownerPhoneHref ? (
+                      <a className="rowItem__ownerSummaryPhone" href={ownerPhoneHref}>
+                        {ownerPhoneRaw}
+                      </a>
+                    ) : ownerPhoneRaw && !ownerPhonePublic ? (
+                      <span className="muted small" title="Владелец не разрешил публикацию телефона на витрине">
+                        Телефон скрыт на витрине
+                      </span>
+                    ) : (
+                      <span className="muted small">Телефон в аккаунте не указан</span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
+              {ownerInApp ? (
+                <div className="rowItem__ownerPeek">
+                  {ownerSlug ? (
+                    <Link
+                      className="rowItem__ownerPeekLink"
+                      to={`/g/${encodeURIComponent(ownerSlug)}`}
+                      state={{ from: fromDash }}
+                      title={`Публичная страница: ${ownerPeekLabel}`}
+                      aria-label={`Открыть страницу владельца: ${ownerPeekLabel}`}
+                    >
+                      {ownerAvatar ? (
+                        <img src={ownerAvatar} alt="" />
+                      ) : (
+                        <span className="rowItem__ownerPeekFallback" aria-hidden="true">
+                          {ownerPeekInitials}
+                        </span>
+                      )}
+                    </Link>
+                  ) : (
+                    <span
+                      className="rowItem__ownerPeekLink rowItem__ownerPeekLink--disabled"
+                      title="У владельца не задан адрес публичной страницы /g/…"
+                      aria-label="Публичная страница владельца не задана"
+                    >
+                      {ownerAvatar ? (
+                        <img src={ownerAvatar} alt="" />
+                      ) : (
+                        <span className="rowItem__ownerPeekFallback" aria-hidden="true">
+                          {ownerPeekInitials}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              ) : null}
               <div className="rowItem__aside">
                 <button
                   type="button"
                   className="btn"
                   data-variant="primary"
                   onClick={() => {
-                    const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
-                    nav(`/car/${c.id}/history?new=1&from=${encodeURIComponent(from)}`)
+                    nav(`/car/${c.id}/history?new=1&from=${encodeURIComponent(fromDash)}`)
                   }}
                   title="Быстро добавить визит"
                 >
@@ -313,34 +423,7 @@ export default function DetailingDashboardPage() {
           )
         })}
 
-        {cars.length === 0 ? (
-          <Card className="card pad">
-            <div className="cardTitle">Пока нет автомобилей</div>
-            <p className="muted small" style={{ marginTop: 6 }}>
-              Здесь появятся авто, которые вы обслуживаете. Нажмите «Добавить авто», чтобы создать первую карточку клиента.
-            </p>
-            <div className="row gap" style={{ marginTop: 10 }}>
-              <button
-                type="button"
-                className="btn"
-                data-variant="primary"
-                onClick={() => {
-                  const pre = inferPrefill(q)
-                  const qp = new URLSearchParams()
-                  if (pre.vin) qp.set('vin', pre.vin)
-                  if (pre.plate) qp.set('plate', pre.plate)
-                  if (pre.plateRegion) qp.set('plateRegion', pre.plateRegion)
-                  if (pre.clientPhone) qp.set('clientPhone', pre.clientPhone)
-                  if (pre.clientEmail) qp.set('clientEmail', pre.clientEmail)
-                  const qs = qp.toString()
-                  nav(`/create${qs ? `?${qs}` : ''}`)
-                }}
-              >
-                + Добавить авто
-              </button>
-            </div>
-          </Card>
-        ) : filtered.length === 0 ? (
+        {cars.length > 0 && filtered.length === 0 ? (
           <Card className="card pad">
             <div className="muted">Ничего не найдено. Попробуйте другой запрос.</div>
           </Card>

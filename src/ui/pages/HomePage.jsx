@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { useRepo } from '../useRepo.js'
 import { Card, Pill } from '../components.jsx'
 import { fmtInt } from '../../lib/format.js'
@@ -21,7 +22,7 @@ export default function HomePage() {
           </p>
           <div className="row gap">
             <Link className="btn" data-variant="primary" to="/cars">
-              Мой гараж
+              Мои автомобили
             </Link>
             <Link className="btn" data-variant="ghost" to="/auth/partner/apply">
               Стать партнёром
@@ -59,7 +60,7 @@ export default function HomePage() {
           <Card className="card pad">
             <div className="cardTitle">Фото и документы</div>
             <p className="muted small">
-              Фото «до/после», акты и дополнительные материалы — всё прикрепляется к визитам.
+              Фото «до/после», акты и дополнительные материалы — всё прикрепляется к визитам. {PHOTO_LANDSCAPE_HINT_SENTENCE}
             </p>
           </Card>
           <Card className="card pad">
@@ -86,7 +87,7 @@ export default function HomePage() {
             <div className="cardTitle">Сервисы фиксируют визиты</div>
             <p className="muted small">
               Детейлинг/СТО добавляет работы, пробег, фото и рекомендации — история становится
-              «подтверждённой».
+              «подтверждённой». {PHOTO_LANDSCAPE_HINT_SENTENCE}
             </p>
           </Card>
           <Card className="card pad">

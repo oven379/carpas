@@ -1,9 +1,9 @@
 import { readLS, removeLS, resetAll, writeLS } from './storage.js'
 import { buildQaDetailingPack, makeId, QA_DETAILING_ID, seedCars, seedEvents } from './seed.js'
 import {
-  DETAILING_ITEM_SET,
-  MAINTENANCE_ITEM_SET,
+  dedupeOfferedStrings,
   splitLegacyCombinedServices,
+  splitOfferedByCatalog,
 } from './serviceCatalogs.js'
 import {
   clampVisitTitle,
@@ -12,8 +12,14 @@ import {
   normPlateRegion,
   normVin,
   OWNER_PASSWORD_MIN_LEN,
+  ownerCityPublicFlag,
+  ownerPublicFlagTrue,
   parsePlateFull,
+  VISIT_CARE_TIP_MAX_LEN,
+  DETAILING_WORKING_HOURS_MAX_LEN,
 } from './format.js'
+import { ownerGarageLimits } from './garageLimits.js'
+import { VISIT_MAX_PHOTOS } from './uploadLimits.js'
 
 const CARS_KEY = 'cars'
 const EVENTS_KEY = 'events'
@@ -56,6 +62,17 @@ function ensureSeeded() {
         password: '1111',
         pin: '1234',
         createdAt: new Date().toISOString(),
+        servicesOffered: [
+          'Мойка кузова',
+          'Деликатная мойка (2‑фазная)',
+          'Осмотр ЛКП',
+          'Полировка (1‑шаг)',
+          'Керамика',
+          'Химчистка салона',
+          'Замена масла ДВС',
+          'Замена передних колодок',
+          'Развал‑схождение',
+        ],
       },
     ]
     const cars = seedCars()
@@ -135,7 +152,7 @@ export function repo() {
       arr
         .map((x) => String(x || '').trim())
         .filter(Boolean)
-        .slice(0, 12),
+        .slice(0, VISIT_MAX_PHOTOS),
     )
   }
 
@@ -180,6 +197,10 @@ export function repo() {
     const phone = d.phone != null ? String(d.phone).trim() : ''
     const city = d.city != null ? String(d.city).trim() : ''
     const address = d.address != null ? String(d.address).trim() : ''
+    const workingHours =
+      d.workingHours != null
+        ? String(d.workingHours).trim().slice(0, DETAILING_WORKING_HOURS_MAX_LEN)
+        : ''
     const description = d.description != null ? String(d.description).trim() : ''
     const website = d.website != null ? String(d.website).trim() : ''
     const telegram = d.telegram != null ? String(d.telegram).trim() : ''
@@ -187,7 +208,45 @@ export function repo() {
     const logo = d.logo != null ? String(d.logo).trim() : ''
     const cover = d.cover != null ? String(d.cover).trim() : ''
     const contactName = d.contactName != null ? String(d.contactName).trim() : ''
-    const servicesOffered = Array.isArray(d.servicesOffered) ? d.servicesOffered.map((x) => String(x || '').trim()).filter(Boolean) : []
+    const servicesOfferedRaw = Array.isArray(d.servicesOffered)
+      ? d.servicesOffered.map((x) => String(x || '').trim()).filter(Boolean)
+      : []
+    const legacyNoSplit =
+      d.detailingServicesOffered == null && d.maintenanceServicesOffered == null
+    let detailingServicesOffered
+    let maintenanceServicesOffered
+    if (legacyNoSplit) {
+      const split = splitOfferedByCatalog(servicesOfferedRaw)
+      detailingServicesOffered = split.detailingServicesOffered
+      maintenanceServicesOffered = split.maintenanceServicesOffered
+    } else {
+      detailingServicesOffered = dedupeOfferedStrings(
+        Array.isArray(d.detailingServicesOffered) ? d.detailingServicesOffered : [],
+      )
+      maintenanceServicesOffered = dedupeOfferedStrings(
+        Array.isArray(d.maintenanceServicesOffered) ? d.maintenanceServicesOffered : [],
+      )
+    }
+    if (
+      !detailingServicesOffered.length &&
+      !maintenanceServicesOffered.length &&
+      String(d.id || '') === 'det_seed'
+    ) {
+      const split = splitOfferedByCatalog([
+        'Мойка кузова',
+        'Деликатная мойка (2‑фазная)',
+        'Осмотр ЛКП',
+        'Полировка (1‑шаг)',
+        'Керамика',
+        'Химчистка салона',
+        'Замена масла ДВС',
+        'Замена передних колодок',
+        'Развал‑схождение',
+      ])
+      detailingServicesOffered = split.detailingServicesOffered
+      maintenanceServicesOffered = split.maintenanceServicesOffered
+    }
+    const servicesOffered = dedupeOfferedStrings([...detailingServicesOffered, ...maintenanceServicesOffered])
     // Явно false только у новых регистраций; отсутствие поля = старые данные, считаем профиль заполненным
     const profileCompleted = d.profileCompleted != null ? Boolean(d.profileCompleted) : true
     return {
@@ -199,6 +258,7 @@ export function repo() {
       contactName,
       city,
       address,
+      workingHours,
       description,
       website,
       telegram,
@@ -206,6 +266,8 @@ export function repo() {
       logo,
       cover,
       servicesOffered,
+      detailingServicesOffered,
+      maintenanceServicesOffered,
       profileCompleted,
     }
   }
@@ -222,7 +284,15 @@ export function repo() {
     const garageBanner = o.garageBanner != null ? String(o.garageBanner).trim() : ''
     const garageAvatar = o.garageAvatar != null ? String(o.garageAvatar).trim() : ''
     const garageSlug = o.garageSlug != null ? normGarageSlug(String(o.garageSlug)) : ''
-    const showPhonePublic = o.showPhonePublic != null ? Boolean(o.showPhonePublic) : false
+    const showPhonePublic = o.showPhonePublic != null ? ownerPublicFlagTrue(o.showPhonePublic) : false
+    const garageWebsite = o.garageWebsite != null ? String(o.garageWebsite).trim() : ''
+    const garageSocial = o.garageSocial != null ? String(o.garageSocial).trim() : ''
+    const showWebsitePublic = o.showWebsitePublic != null ? ownerPublicFlagTrue(o.showWebsitePublic) : false
+    const showSocialPublic = o.showSocialPublic != null ? ownerPublicFlagTrue(o.showSocialPublic) : false
+    const showCityPublic = ownerCityPublicFlag(o.showCityPublic)
+    const garageCity = o.garageCity != null ? String(o.garageCity).trim() : ''
+    const lastVisitRaw = o.lastVisitAt != null ? String(o.lastVisitAt).trim() : ''
+    const lastVisitAt = lastVisitRaw || updatedAt || createdAt
     return {
       ...o,
       email,
@@ -234,6 +304,13 @@ export function repo() {
       garageAvatar,
       garageSlug,
       showPhonePublic,
+      garageWebsite,
+      garageSocial,
+      showWebsitePublic,
+      showSocialPublic,
+      showCityPublic,
+      garageCity,
+      lastVisitAt,
       createdAt,
       updatedAt,
     }
@@ -283,25 +360,36 @@ export function repo() {
     return next
   }
 
+  function normalizeCareTips(raw) {
+    if (!raw || typeof raw !== 'object') return { important: '', tips: ['', '', ''] }
+    const important = String(raw.important ?? '')
+      .trim()
+      .slice(0, VISIT_CARE_TIP_MAX_LEN)
+    const src = Array.isArray(raw.tips) ? raw.tips : []
+    const tips = [0, 1, 2].map((i) =>
+      String(src[i] ?? '')
+        .trim()
+        .slice(0, VISIT_CARE_TIP_MAX_LEN),
+    )
+    return { important, tips }
+  }
+
   function migrateEvent(e) {
     if (e == null) return e
     const next = { ...e }
     if (next.type == null || next.type === 'note') next.type = 'visit'
     if (!Array.isArray(next.services)) next.services = []
     if (!Array.isArray(next.maintenanceServices)) next.maintenanceServices = []
-    if (next.source === 'service') {
-      next.maintenanceServices = []
-    } else {
-      const split = splitLegacyCombinedServices(next.services, next.maintenanceServices)
-      next.services = split.services
-      next.maintenanceServices = split.maintenanceServices
-    }
+    const split = splitLegacyCombinedServices(next.services, next.maintenanceServices)
+    next.services = split.services
+    next.maintenanceServices = split.maintenanceServices
     if (next.detailingId == null) next.detailingId = 'det_seed'
     if (next.source == null) next.source = 'service'
     if (next.ownerEmail == null) next.ownerEmail = null
     if (next.createdAt == null) next.createdAt = next.at || nowIso()
     if (next.updatedAt == null) next.updatedAt = next.createdAt
     next.title = clampVisitTitle(next.title ?? '')
+    next.careTips = normalizeCareTips(next.careTips)
     return next
   }
 
@@ -387,8 +475,15 @@ export function repo() {
         garageAvatar: '',
         garageSlug: '',
         showPhonePublic: false,
+        garageWebsite: '',
+        garageSocial: '',
+        showWebsitePublic: false,
+        showSocialPublic: false,
+        showCityPublic: true,
+        garageCity: '',
         createdAt,
         updatedAt: createdAt,
+        lastVisitAt: createdAt,
       }
       writeLS(OWNERS_KEY, [o, ...all])
       return { ok: true, owner: o }
@@ -401,7 +496,28 @@ export function repo() {
       if (!o) return { ok: false, reason: 'not_found' }
       const stored = String(o.password || '').trim()
       if (stored !== pwd) return { ok: false, reason: 'bad_password' }
-      return { ok: true, owner: o }
+      const all = this.listOwners()
+      const idx = all.findIndex((x) => normEmail(x.email) === em)
+      if (idx < 0) return { ok: true, owner: o }
+      const prev = all[idx]
+      const next = { ...prev, lastVisitAt: nowIso() }
+      const copy = all.slice()
+      copy[idx] = next
+      writeLS(OWNERS_KEY, copy)
+      return { ok: true, owner: next }
+    },
+    touchOwnerLastVisit(email) {
+      const em = normEmail(email)
+      if (!em) return null
+      const all = this.listOwners()
+      const idx = all.findIndex((x) => normEmail(x.email) === em)
+      if (idx < 0) return null
+      const prev = all[idx]
+      const next = { ...prev, lastVisitAt: nowIso() }
+      const copy = all.slice()
+      copy[idx] = next
+      writeLS(OWNERS_KEY, copy)
+      return next
     },
     updateOwner(email, patch) {
       const em = normEmail(email)
@@ -434,7 +550,27 @@ export function repo() {
           patch?.garageAvatar === undefined ? prev.garageAvatar || '' : String(patch.garageAvatar || '').trim(),
         garageSlug,
         showPhonePublic:
-          patch?.showPhonePublic === undefined ? Boolean(prev.showPhonePublic) : Boolean(patch.showPhonePublic),
+          patch?.showPhonePublic === undefined
+            ? ownerPublicFlagTrue(prev.showPhonePublic)
+            : ownerPublicFlagTrue(patch.showPhonePublic),
+        garageWebsite:
+          patch?.garageWebsite === undefined ? prev.garageWebsite || '' : String(patch.garageWebsite || '').trim(),
+        garageSocial:
+          patch?.garageSocial === undefined ? prev.garageSocial || '' : String(patch.garageSocial || '').trim(),
+        showWebsitePublic:
+          patch?.showWebsitePublic === undefined
+            ? ownerPublicFlagTrue(prev.showWebsitePublic)
+            : ownerPublicFlagTrue(patch.showWebsitePublic),
+        showSocialPublic:
+          patch?.showSocialPublic === undefined
+            ? ownerPublicFlagTrue(prev.showSocialPublic)
+            : ownerPublicFlagTrue(patch.showSocialPublic),
+        showCityPublic:
+          patch?.showCityPublic === undefined
+            ? ownerCityPublicFlag(prev.showCityPublic)
+            : ownerPublicFlagTrue(patch.showCityPublic),
+        garageCity:
+          patch?.garageCity === undefined ? prev.garageCity || '' : String(patch.garageCity || '').trim(),
         updatedAt: nowIso(),
       }
       const copy = all.slice()
@@ -455,7 +591,19 @@ export function repo() {
     getDetailing(id) {
       return this.listDetailings().find((d) => d.id === id) || null
     },
-    registerDetailing({ name, contactName, email, phone, password, city, address, servicesOffered }) {
+    registerDetailing({
+      name,
+      contactName,
+      email,
+      phone,
+      password,
+      city,
+      address,
+      workingHours,
+      servicesOffered,
+      detailingServicesOffered,
+      maintenanceServicesOffered,
+    }) {
       const ds = lsArr(DETAILINGS_KEY)
       const migrated = ds.map(migrateDetailing)
       const em = normEmail(email)
@@ -469,12 +617,18 @@ export function repo() {
       const cityTrim = String(city || '').trim()
       if (!cityTrim) return { error: 'bad_city' }
       const addrTrim = String(address || '').trim()
-      const offeredRaw = Array.isArray(servicesOffered) ? servicesOffered : []
-      const allowedSvc = new Set([...DETAILING_ITEM_SET, ...MAINTENANCE_ITEM_SET])
-      const offered = offeredRaw
-        .map((x) => String(x || '').trim())
-        .filter((x) => x && allowedSvc.has(x))
-      if (!offered.length) return { error: 'bad_services' }
+      const hoursTrim = String(workingHours || '')
+        .trim()
+        .slice(0, DETAILING_WORKING_HOURS_MAX_LEN)
+      let detList = dedupeOfferedStrings(Array.isArray(detailingServicesOffered) ? detailingServicesOffered : [])
+      let maintList = dedupeOfferedStrings(Array.isArray(maintenanceServicesOffered) ? maintenanceServicesOffered : [])
+      if (!detList.length && !maintList.length && Array.isArray(servicesOffered)) {
+        const split = splitOfferedByCatalog(servicesOffered)
+        detList = split.detailingServicesOffered
+        maintList = split.maintenanceServicesOffered
+      }
+      if (!detList.length && !maintList.length) return { error: 'bad_services' }
+      const offered = dedupeOfferedStrings([...detList, ...maintList])
       if (migrated.some((x) => normEmail(x.email) === em)) {
         return { error: 'email_taken' }
       }
@@ -489,8 +643,11 @@ export function repo() {
         password: finalPwd,
         pin: finalPwd,
         servicesOffered: offered,
+        detailingServicesOffered: detList,
+        maintenanceServicesOffered: maintList,
         city: cityTrim,
         address: addrTrim,
+        workingHours: hoursTrim,
         description: '',
         website: '',
         telegram: '',
@@ -523,6 +680,25 @@ export function repo() {
       if (idx < 0) return null
       const prev = ds[idx]
 
+      let detailingServicesOffered = dedupeOfferedStrings(prev.detailingServicesOffered || [])
+      let maintenanceServicesOffered = dedupeOfferedStrings(prev.maintenanceServicesOffered || [])
+      if (patch?.detailingServicesOffered != null) {
+        detailingServicesOffered = dedupeOfferedStrings(patch.detailingServicesOffered)
+      }
+      if (patch?.maintenanceServicesOffered != null) {
+        maintenanceServicesOffered = dedupeOfferedStrings(patch.maintenanceServicesOffered)
+      }
+      if (
+        patch?.servicesOffered != null &&
+        patch?.detailingServicesOffered == null &&
+        patch?.maintenanceServicesOffered == null
+      ) {
+        const split = splitOfferedByCatalog(patch.servicesOffered)
+        detailingServicesOffered = split.detailingServicesOffered
+        maintenanceServicesOffered = split.maintenanceServicesOffered
+      }
+      const servicesOffered = dedupeOfferedStrings([...detailingServicesOffered, ...maintenanceServicesOffered])
+
       const next = {
         ...prev,
         ...(patch || {}),
@@ -534,16 +710,15 @@ export function repo() {
         name: patch?.name == null ? prev.name : String(patch.name || '').trim(),
         contactName:
           patch?.contactName == null ? prev.contactName || '' : String(patch.contactName || '').trim(),
-        servicesOffered:
-          patch?.servicesOffered == null
-            ? Array.isArray(prev.servicesOffered)
-              ? prev.servicesOffered
-              : []
-            : Array.isArray(patch.servicesOffered)
-              ? patch.servicesOffered.map((x) => String(x || '').trim()).filter(Boolean)
-              : [],
+        detailingServicesOffered,
+        maintenanceServicesOffered,
+        servicesOffered,
         city: patch?.city == null ? prev.city : String(patch.city || '').trim(),
         address: patch?.address == null ? prev.address : String(patch.address || '').trim(),
+        workingHours:
+          patch?.workingHours == null
+            ? prev.workingHours || ''
+            : String(patch.workingHours || '').trim().slice(0, DETAILING_WORKING_HOURS_MAX_LEN),
         description: patch?.description == null ? prev.description : String(patch.description || '').trim(),
         website: patch?.website == null ? prev.website : String(patch.website || '').trim(),
         telegram: patch?.telegram == null ? prev.telegram : String(patch.telegram || '').trim(),
@@ -621,6 +796,11 @@ export function repo() {
       const detId = scope.detailingId || null
       const ownerEmail = scope.ownerEmail ? normEmail(scope.ownerEmail) : null
 
+      if (ownerEmail && !detId) {
+        const mine = this.listCars({ ownerEmail })
+        if (!ownerGarageLimits(mine).canAddManual) return null
+      }
+
       const cars = lsArr(CARS_KEY)
       const createdAt = nowIso()
       const hero = input.hero?.trim() || ''
@@ -678,6 +858,12 @@ export function repo() {
         return null
       }
 
+      if (ownerEmail && prev.detailingId) {
+        const keys = Object.keys(patch || {}).filter((k) => Object.prototype.hasOwnProperty.call(patch, k))
+        const allowedOwnerServicePatch = new Set(['mileageKm', 'washPhotos', 'washPhoto'])
+        if (keys.some((k) => !allowedOwnerServicePatch.has(k))) return null
+      }
+
       if (patch && Object.prototype.hasOwnProperty.call(patch, 'hero')) {
         const h = String(patch.hero || '').trim()
         if (h) setHero(id, h)
@@ -731,6 +917,9 @@ export function repo() {
       writeLS(CARS_KEY, cars)
       const prev = cars.find((c) => c.id === id)
       if (!prev || !hasCarAccess(prev, scope)) return null
+      if (scope.ownerEmail && normEmail(prev.ownerEmail) === normEmail(scope.ownerEmail) && prev.detailingId) {
+        return null
+      }
       writeLS(CARS_KEY, cars.filter((c) => c.id !== id))
       removeHero(id)
       removeWash(id)
@@ -773,6 +962,25 @@ export function repo() {
         .slice()
         .sort((a, b) => (b.at || '').localeCompare(a.at || ''))
     },
+
+    /** Фото блока «последний визит» на карточке = снимки самого нового визита (по дате), если у него есть вложения. */
+    syncCarWashPhotosFromLatestEvent(carId, detailingId) {
+      const scope =
+        detailingId && typeof detailingId === 'object'
+          ? detailingId
+          : { detailingId: detailingId || null, ownerEmail: null }
+      const evts = this.listEvents(carId, scope) || []
+      const head = evts[0]
+      let urls = []
+      if (head?.id) {
+        urls = (this.listDocs(carId, scope, { eventId: head.id }) || [])
+          .map((d) => d.url)
+          .filter(Boolean)
+          .slice(0, VISIT_MAX_PHOTOS)
+      }
+      this.updateCar(carId, { washPhotos: urls }, scope)
+    },
+
     addEvent(detailingId, carId, input) {
       const scope =
         detailingId && typeof detailingId === 'object'
@@ -796,8 +1004,9 @@ export function repo() {
         title: clampVisitTitle(input.title),
         mileageKm: clampInt(input.mileageKm, { min: minMileage, max: 1000000 }),
         services: rawSv,
-        maintenanceServices: ownerEmail ? rawMs : [],
+        maintenanceServices: rawMs,
         note: input.note?.trim() || '',
+        careTips: ownerEmail ? normalizeCareTips(null) : normalizeCareTips(input.careTips),
         source: ownerEmail ? 'owner' : 'service',
         ownerEmail: ownerEmail || null,
         createdAt,
@@ -851,15 +1060,14 @@ export function repo() {
         ownerEmail: prev.ownerEmail,
         type: prev.type || 'visit',
         services: Array.isArray((patch || {}).services) ? (patch || {}).services : prev.services,
-        maintenanceServices:
-          prev.source === 'service'
-            ? []
-            : Array.isArray((patch || {}).maintenanceServices)
-              ? (patch || {}).maintenanceServices
-              : prev.maintenanceServices,
+        maintenanceServices: Array.isArray((patch || {}).maintenanceServices)
+          ? (patch || {}).maintenanceServices
+          : prev.maintenanceServices,
         title:
           (patch || {}).title == null ? prev.title : clampVisitTitle((patch || {}).title),
         note: (patch || {}).note == null ? prev.note : String((patch || {}).note || '').trim(),
+        careTips:
+          (patch || {}).careTips === undefined ? prev.careTips : normalizeCareTips((patch || {}).careTips),
         mileageKm:
           (patch || {}).mileageKm == null
             ? prev.mileageKm
@@ -907,6 +1115,7 @@ export function repo() {
       }
 
       writeLS(EVENTS_KEY, evts.filter((e) => e.id !== id))
+      this.syncCarWashPhotosFromLatestEvent(prev.carId, scope)
       return { ok: true }
     },
 
@@ -1020,6 +1229,7 @@ export function repo() {
           evCopy[ix] = { ...evCopy[ix], updatedAt: nowIso() }
           writeLS(EVENTS_KEY, evCopy)
         }
+        this.syncCarWashPhotosFromLatestEvent(prev.carId, scope)
       }
       return { ok: true }
     },
@@ -1107,6 +1317,8 @@ export function repo() {
     createClaim({ carId, ownerEmail, evidence }) {
       const em = normEmail(ownerEmail)
       if (!carId || !em) return { error: 'bad_input' }
+      const ownerCars = this.listCars({ ownerEmail: em })
+      if (!ownerGarageLimits(ownerCars).canVinClaim) return { error: 'garage_full' }
       const car = this.getCar(carId)
       if (!car || !car.detailingId) return { error: 'not_found' }
       const all = readClaims()
@@ -1114,7 +1326,6 @@ export function repo() {
         return { error: 'already_pending' }
       }
       const ev = evidence && typeof evidence === 'object' ? evidence : {}
-      const make = String(ev.make || '').trim()
       const year = String(ev.year || '').trim()
       const color = String(ev.color || '').trim()
       const claim = {
@@ -1125,7 +1336,7 @@ export function repo() {
         status: 'pending',
         createdAt: nowIso(),
         reviewedAt: null,
-        evidence: { make, year, color },
+        evidence: { make: '', year, color },
       }
       writeLS(CLAIMS_KEY, [claim, ...all])
       return claim

@@ -1,190 +1,83 @@
-import { Link, Navigate } from 'react-router-dom'
-import { useState } from 'react'
-import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Card, Input, Pill } from '../components.jsx'
-import { normDigits, normVin } from '../../lib/format.js'
+import { useEffect } from 'react'
+import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useRepo } from '../useRepo.js'
+import { OWNER_MAX_MANUAL_CARS, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { Pill, ServiceHint } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
+import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
 
 export default function MarketPage() {
   const r = useRepo()
+  const loc = useLocation()
   const { owner, mode } = useDetailing()
-  const [vin, setVin] = useState('')
-  const [vinResults, setVinResults] = useState([])
-  const [evidenceByCarId, setEvidenceByCarId] = useState({})
+
+  useEffect(() => {
+    if (loc.hash !== '#owner-vin-claim') return
+    const t = window.setTimeout(() => {
+      document.getElementById('owner-vin-claim')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+    return () => window.clearTimeout(t)
+  }, [loc.hash, loc.pathname])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth" replace />
 
   const ownerEmail = owner.email
   const cars = r.listCars({ ownerEmail })
-  const ownerClaims = r.listClaimsForOwner(ownerEmail)
-  const pendingClaims = ownerClaims.filter((x) => x.status === 'pending')
+  const limits = ownerGarageLimits(cars)
 
   return (
     <div className="container">
       <div className="row spread gap">
         <div className="marketHead">
           <div className="marketHead__titleRow">
-            <div className="row gap wrap" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <div id="market-cars-hint" className="row gap wrap" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
               <h1 className="h1" style={{ margin: 0 }}>
-                Мой гараж
+                Мои автомобили
               </h1>
+              <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
+                <p className="serviceHint__panelText">
+                  Здесь карточки и история по каждой машине. Профиль, баннер и публичная витрина по ссылке <span className="mono">/g/…</span>{' '}
+                  — в разделе «Гараж». Кнопка «Добавить авто» может быть недоступна при лимите гаража.
+                </p>
+              </ServiceHint>
             </div>
             <div className="marketHead__actions row gap wrap">
               <Link className="btn" data-variant="ghost" to="/garage">
-                Страница гаража
+                В гараж
               </Link>
-              <Link className="btn" data-variant="primary" to="/create">
-                + Добавить авто
-              </Link>
+              {limits.canAddManual ? (
+                <Link className="btn" data-variant="primary" to="/create">
+                  + Добавить авто
+                </Link>
+              ) : (
+                <span
+                  className="btn btn--asDisabled"
+                  data-variant="primary"
+                  title={
+                    limits.totalCount >= OWNER_MAX_TOTAL_CARS
+                      ? `Не больше ${OWNER_MAX_TOTAL_CARS} авто в гараже`
+                      : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто`
+                  }
+                >
+                  + Добавить авто
+                </span>
+              )}
             </div>
           </div>
-          <p className="muted">
-            {cars.length} авто
-            {owner?.isPremium ? (
-              <>
-                {' '}
-                <Pill tone="accent">Premium</Pill>
-              </>
-            ) : null}
-          </p>
+          <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+            <span>Карточки, история визитов, заявка по VIN</span>
+            <span aria-hidden="true"> · </span>
+            <span>{cars.length} авто</span>
+            {owner?.isPremium ? <Pill tone="accent">Premium</Pill> : null}
+          </div>
         </div>
       </div>
 
       <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/cars" />
 
-      <Card className="card pad" style={{ marginTop: 12 }}>
-        <div className="cardTitle">Добавить авто по VIN</div>
-        <p className="muted small">
-          Если детейлинг уже создал карточку, вы можете запросить доступ. Заявка уйдёт на модерацию в детейлинг.
-        </p>
-        <div className="row gap marketVinRow" style={{ marginTop: 10 }}>
-          <Input
-            className="input mono marketVinRow__input"
-            placeholder="VIN…"
-            value={vin}
-            maxLength={17}
-            onChange={(e) => setVin(normVin(e.target.value))}
-          />
-          <button
-            className="btn marketVinRow__btn"
-            data-variant="primary"
-            onClick={() => {
-              const v = normVin(vin)
-              setVin(v)
-              const res = r.findCarsByVin(v)
-              setVinResults(res)
-              if (!res.length) alert('В сервисе пока нет авто с таким VIN.')
-            }}
-          >
-            Найти
-          </button>
-        </div>
-
-        {pendingClaims.length ? (
-          <div className="topBorder">
-            <div className="muted small">Заявки на модерации: {pendingClaims.length}</div>
-          </div>
-        ) : null}
-
-        {vinResults.length ? (
-          <div className="topBorder">
-            <div className="muted small" style={{ marginBottom: 10 }}>
-              Найдено: {vinResults.length}
-            </div>
-            <div className="list">
-              {vinResults.slice(0, 5).map((c) => {
-                const alreadyMine = (c.ownerEmail || '').toLowerCase() === ownerEmail.toLowerCase()
-                const ev = evidenceByCarId[c.id] || { make: '', year: '', color: '' }
-                return (
-                  <Card key={c.id} className="card pad">
-                    <div className="muted small" style={{ marginBottom: 10 }}>
-                      Подтвердите признаки авто (марка/год/цвет) — это уйдёт на модерацию в детейлинг.
-                    </div>
-                    <div className="row spread gap">
-                      <div>
-                        <div className="rowItem__title">
-                          {c.make} {c.model}
-                        </div>
-                        <div className="rowItem__meta">
-                          {c.year} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
-                        </div>
-                      </div>
-                      <button
-                        className="btn"
-                        data-variant="primary"
-                        disabled={alreadyMine}
-                        onClick={() => {
-                          const claim = r.createClaim({ carId: c.id, ownerEmail, evidence: ev })
-                          if (claim?.error === 'already_pending') {
-                            alert('Заявка уже отправлена и ждёт подтверждения.')
-                            return
-                          }
-                          if (claim?.error) {
-                            alert('Не удалось отправить заявку.')
-                            return
-                          }
-                          invalidateRepo()
-                          alert('Заявка отправлена в детейлинг на подтверждение.')
-                        }}
-                      >
-                        {alreadyMine ? 'Уже в гараже' : 'Запросить доступ'}
-                      </button>
-                    </div>
-
-                    <div className="formGrid" style={{ marginTop: 10 }}>
-                      <div className="field">
-                        <div className="field__top">
-                          <span className="field__label">Марка</span>
-                        </div>
-                        <Input
-                          className="input"
-                          value={ev.make}
-                          onChange={(e) =>
-                            setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, make: e.target.value } }))
-                          }
-                          placeholder="Например: Volkswagen"
-                        />
-                      </div>
-                      <div className="field">
-                        <div className="field__top">
-                          <span className="field__label">Год</span>
-                        </div>
-                        <Input
-                          className="input"
-                          inputMode="numeric"
-                          value={ev.year}
-                          onChange={(e) =>
-                            setEvidenceByCarId((m) => ({
-                              ...m,
-                              [c.id]: { ...ev, year: normDigits(e.target.value, { max: 2100, maxLen: 4 }) },
-                            }))
-                          }
-                          placeholder="Например: 2019"
-                        />
-                      </div>
-                      <div className="field">
-                        <div className="field__top">
-                          <span className="field__label">Цвет</span>
-                        </div>
-                        <Input
-                          className="input"
-                          value={ev.color}
-                          onChange={(e) =>
-                            setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, color: e.target.value } }))
-                          }
-                          placeholder="Например: Чёрный"
-                        />
-                      </div>
-                    </div>
-                  </Card>
-                )
-              })}
-            </div>
-          </div>
-        ) : null}
-      </Card>
+      <OwnerVinClaimSection ownerEmail={ownerEmail} sectionId="owner-vin-claim" style={{ marginTop: 12 }} />
     </div>
   )
 }

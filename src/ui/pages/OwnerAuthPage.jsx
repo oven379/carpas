@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { BackNav, Button, Card, Field, Input } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { clearSession, setSessionOwner } from '../auth.js'
-import { OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
+import { clearSession, ownerToSessionSnapshot, setSessionOwner } from '../auth.js'
+import { OWNER_PASSWORD_MIN_LEN, formatPhoneRuInput } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function OwnerAuthPage() {
@@ -33,11 +33,18 @@ export default function OwnerAuthPage() {
       <div className="authSplit">
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
-            <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to="/auth" title="К выбору входа" />
-              <h1 className="h1" style={{ margin: 0 }}>
-                Мой гараж
-              </h1>
+            <div id="owner-auth-hint-scope" className="serviceHint__pageBlock">
+              <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
+                <BackNav to="/auth" title="К выбору входа" />
+                <h1 className="h1">Гараж</h1>
+                <ServiceHint scopeId="owner-auth-hint-scope" variant="compact" label="Справка: вход и регистрация">
+                  <p className="serviceHint__panelText">
+                    Укажите почту и пароль (не короче {OWNER_PASSWORD_MIN_LEN} символов). Имя и телефон — по желанию. Отметьте согласие с
+                    политикой и правилами: существующий аккаунт откроется по паролю, новый создастся автоматически. Данные на этом устройстве
+                    хранятся в браузере.
+                  </p>
+                </ServiceHint>
+              </div>
             </div>
             <div className="authSplit__lede">
               <p className="authSplit__tagline">Создавайте историю своего автомобиля</p>
@@ -46,11 +53,6 @@ export default function OwnerAuthPage() {
                 <li>Фото и документы к работам, понятная хронология обслуживания.</li>
                 <li>Публичная ссылка на историю — когда нужно показать авто партнёру или покупателю, без доступа к кабинету.</li>
               </ul>
-              <p className="muted small authSplit__note">
-                Укажите почту и пароль (не короче {OWNER_PASSWORD_MIN_LEN} символов). Имя и телефон — по желанию. Отметьте
-                согласие с политикой и правилами — и вы попадёте в гараж: существующий аккаунт откроется по паролю, новый
-                создастся автоматически. Данные аккаунта на этом устройстве хранятся в браузере.
-              </p>
             </div>
           </div>
         </aside>
@@ -69,11 +71,15 @@ export default function OwnerAuthPage() {
                   placeholder="you@example.com"
                 />
               </Field>
-              <Field
-                className="field--full"
-                label="Пароль"
-                hint={`Не короче ${OWNER_PASSWORD_MIN_LEN} символов — для нового аккаунта или для входа`}
-              >
+              <div className="field field--full serviceHint__fieldWrap" id="owner-auth-password-hint">
+                <div className="field__top serviceHint__fieldTop">
+                  <span className="field__label">Пароль</span>
+                  <ServiceHint scopeId="owner-auth-password-hint" label="Справка: пароль">
+                    <p className="serviceHint__panelText">
+                      Не короче {OWNER_PASSWORD_MIN_LEN} символов — используется и для входа в существующий аккаунт, и при создании нового.
+                    </p>
+                  </ServiceHint>
+                </div>
                 <Input
                   ref={ownPasswordRef}
                   className="input mono"
@@ -83,7 +89,7 @@ export default function OwnerAuthPage() {
                   onChange={(e) => setOwnPassword(e.target.value)}
                   placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
                 />
-              </Field>
+              </div>
               <Field className="field--full" label="Имя (необязательно)">
                 <Input
                   className="input"
@@ -97,7 +103,7 @@ export default function OwnerAuthPage() {
                 <Input
                   className="input"
                   value={ownPhone}
-                  onChange={(e) => setOwnPhone(e.target.value)}
+                  onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
                   placeholder="+7 …"
                   autoComplete="tel"
                   inputMode="tel"
@@ -146,11 +152,7 @@ export default function OwnerAuthPage() {
                   }
                   const loginRes = r.loginOwner({ email: em, password: pwd })
                   if (loginRes?.ok) {
-                    setSessionOwner({
-                      email: loginRes.owner.email,
-                      name: loginRes.owner.name,
-                      phone: loginRes.owner.phone,
-                    })
+                    setSessionOwner(ownerToSessionSnapshot(loginRes.owner))
                     invalidateRepo()
                     nav(nextAfterAuth, { replace: true })
                     return
@@ -163,13 +165,12 @@ export default function OwnerAuthPage() {
                   if (reason === 'not_found') {
                     const reg = r.registerOwner({ email: em, password: pwd, name: ownName, phone: ownPhone })
                     if (reg?.ok) {
-                      setSessionOwner({
-                        email: reg.owner.email,
-                        name: reg.owner.name,
-                        phone: reg.owner.phone,
-                      })
+                      setSessionOwner(ownerToSessionSnapshot(reg.owner))
                       invalidateRepo()
-                      nav(nextAfterAuth, { replace: true })
+                      nav('/garage/settings?setup=1', {
+                        replace: true,
+                        state: { afterGarageSetup: nextAfterAuth },
+                      })
                       return
                     }
                     const rr = reg?.reason

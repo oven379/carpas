@@ -25,6 +25,7 @@ function createMockApi() {
     addEvent: (...a) => r.addEvent(...a),
     updateEvent: (...a) => r.updateEvent(...a),
     deleteEvent: (...a) => r.deleteEvent(...a),
+    syncCarWashPhotosFromLatestEvent: (...a) => r.syncCarWashPhotosFromLatestEvent(...a),
 
     listDocs: (...a) => r.listDocs(...a),
     addDoc: (...a) => r.addDoc(...a),
@@ -44,9 +45,11 @@ function createMockApi() {
 
     listOwners: (...a) => r.listOwners(...a),
     getOwner: (...a) => r.getOwner(...a),
+    getOwnerByGarageSlug: (...a) => r.getOwnerByGarageSlug(...a),
     registerOwner: (...a) => r.registerOwner(...a),
     loginOwner: (...a) => r.loginOwner(...a),
     updateOwner: (...a) => r.updateOwner(...a),
+    touchOwnerLastVisit: (...a) => r.touchOwnerLastVisit?.(...a),
 
     resetLocalDemo: () => r.resetLocalDemo(),
   }

@@ -5,9 +5,11 @@ import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import { fmtDateTime } from '../../lib/format.js'
+import { DOCS_UPLOAD_BATCH_MAX } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 
 export default function DocsPage() {
   const { id } = useParams()
@@ -43,16 +45,17 @@ export default function DocsPage() {
           <div className="breadcrumbs">
             <Link to={carCardHref}>Карточка авто</Link>
             <span> / </span>
-            <span>Документы</span>
+            <span>Документы автомобиля</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav to={carCardHref} title="К карточке авто" />
             <h1 className="h1" style={{ margin: 0 }}>
-              Документы / фото
+              Документы и фото автомобиля
             </h1>
           </div>
           <p className="muted">
-            Здесь — дополнительные фото и документы. Фото моек/обслуживания смотрите в разделе «История».
+            Здесь — дополнительные фото и документы. Фото моек/обслуживания смотрите в разделе «История». За одну загрузку — не
+            более {DOCS_UPLOAD_BATCH_MAX} файлов (можно добавить ещё партией). {PHOTO_LANDSCAPE_HINT_SENTENCE}
           </p>
         </div>
       </div>
@@ -84,7 +87,18 @@ export default function DocsPage() {
                   accept="image/*"
                   multiple
                   ref={docsFileInputRef}
-                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files || [])
+                    if (picked.length > DOCS_UPLOAD_BATCH_MAX) {
+                      alert(
+                        `За один раз можно загрузить не более ${DOCS_UPLOAD_BATCH_MAX} файлов. Выбраны первые ${DOCS_UPLOAD_BATCH_MAX}.`,
+                      )
+                      setFiles(picked.slice(0, DOCS_UPLOAD_BATCH_MAX))
+                    } else {
+                      setFiles(picked)
+                    }
+                    e.target.value = ''
+                  }}
                 />
                 <button
                   type="button"
@@ -110,7 +124,7 @@ export default function DocsPage() {
                     alert('Выберите один или несколько файлов.')
                     return
                   }
-                  for (const f of files) {
+                  for (const f of files.slice(0, DOCS_UPLOAD_BATCH_MAX)) {
                     try {
                       const url = await compressImageFile(f, {
                         maxW: 1600,

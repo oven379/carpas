@@ -2,7 +2,7 @@
 
 Документ описывает расхождения между фронтендом (React), заглушкой `VITE_API_MODE=real` в `src/api/index.js` и текущим Laravel API (`backend/routes/api.php`). Его можно переслать как есть.
 
-**Дата актуализации:** 2026-04-02
+**Дата актуализации:** 2026-04-03
 
 ---
 
@@ -27,7 +27,7 @@
 - владелец: `listOwners`, `getOwner`, `registerOwner`, `loginOwner`, `updateOwner`
 - заявки (VIN / привязка): `findCarsByVin`, `findCarsByPlate`, `listClaimsForOwner`, `listClaimsForDetailing`, `createClaim`, `reviewClaim`
 
-Сценарии «Мой гараж», заявки, модерация у партнёра в режиме **real** этим слоем не покрыты.
+Сценарии «Гараж», заявки, модерация у партнёра в режиме **real** этим слоем не покрыты.
 
 ### 1.4. Разные сигнатуры mock vs real stub
 

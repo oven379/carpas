@@ -1,17 +1,42 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, Field, Input, Textarea } from '../components.jsx'
-import { clampVisitTitle, fmtDateTime, fmtKm, normDigits, VISIT_TITLE_MAX_LEN } from '../../lib/format.js'
+import { BackNav, Button, Card, Field, Input, ServiceHint, Textarea } from '../components.jsx'
+import {
+  clampVisitTitle,
+  clampVisitTitleInput,
+  fmtDateTime,
+  fmtKm,
+  normDigits,
+  VISIT_CARE_TIP_MAX_LEN,
+  VISIT_TITLE_MAX_LEN,
+} from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
+  dedupeOfferedStrings,
   DETAILING_SERVICES,
   MAINTENANCE_SERVICES,
   splitWashDetailingServices,
-  WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
+import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
+import {
+  FORM_ADD_PHOTOS_HINT,
+  FORM_CARE_IMPORTANT_HINT,
+  FORM_CARE_TIPS_SECTION_HINT,
+  FORM_MILEAGE_HINT,
+  FORM_PHOTOS_EDIT_HINT,
+  FORM_SERVICES_DET_HINT,
+  FORM_SERVICES_TO_HINT,
+  FORM_TITLE_HINT,
+  HISTORY_PAGE_HINT,
+  formMileageHintText,
+  formPhotosEditHintText,
+  formServicesToHintText,
+  formTitleHintText,
+  historyPageHintText,
+} from '../../lib/historyVisitHints.js'
 import { detailingBrandHref } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
@@ -158,11 +183,37 @@ function countSelected(services, items) {
   return n
 }
 
-function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange, disabled = false }) {
+function ServicePicker({
+  label,
+  hint,
+  hintScopeId,
+  hintLabel,
+  ariaLabel,
+  catalog,
+  itemsFromProfile = null,
+  value,
+  onChange,
+  disabled = false,
+}) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const rootRef = useRef(null)
   const selected = Array.isArray(value) ? value : []
+
+  const effectiveCatalog = useMemo(() => {
+    if (itemsFromProfile == null) return catalog
+    const profile = Array.isArray(itemsFromProfile) ? itemsFromProfile : []
+    // Пустой профиль в настройках лендинга — не блокируем визит: показываем полный справочник
+    if (!profile.length) return catalog
+    const profileSet = new Set(profile.map((s) => String(s).toLowerCase()))
+    const orphanSelected = selected.filter((s) => !profileSet.has(String(s).toLowerCase()))
+    const items = dedupeOfferedStrings([...profile, ...orphanSelected])
+    if (!items.length) return []
+    return [{ group: 'Из профиля сервиса', items }]
+  }, [itemsFromProfile, catalog, selected])
+
+  const listCatalog = itemsFromProfile != null ? effectiveCatalog : catalog
+  const catalogEmpty = !listCatalog.some((g) => (Array.isArray(g.items) ? g.items.length : 0) > 0)
 
   useEffect(() => {
     if (!open) return
@@ -178,9 +229,8 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange, disab
     if (disabled && open) setOpen(false)
   }, [disabled, open])
 
-  return (
-    <Field label={label} hint={hint}>
-      <div className="svcdd" ref={rootRef}>
+  const picker = (
+    <div className="svcdd" ref={rootRef}>
         <div className="svcdd__anchor">
           <button
             type="button"
@@ -242,46 +292,55 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange, disab
               </div>
 
               <div className="svcdd__list">
-                {catalog.map((g) => {
-                  const qq = String(q || '').trim().toLowerCase()
-                  const items = qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq)) : g.items
-                  if (!items.length) return null
-                  return (
-                    <details key={g.group} className="svcdd__group" open>
-                      <summary className="svcdd__title">
-                        <span>{g.group}</span>
-                        <span className="svcdd__count">
-                          {countSelected(selected, g.items)}/{g.items.length}
-                        </span>
-                      </summary>
-                      <div className="svcdd__grid">
-                        {items.map((it) => {
-                          const checked = selected.includes(it)
-                          return (
-                            <button
-                              type="button"
-                              key={it}
-                              className={`svcdd__item ${checked ? 'is-on' : ''}`}
-                              disabled={disabled}
-                              onClick={() => onChange(toggle(selected, it))}
-                            >
-                              <span className="svcdd__check">{checked ? '✓' : ''}</span>
-                              <span>{it}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </details>
-                  )
-                })}
-                {(() => {
-                  const qq = String(q || '').trim()
-                  const hasAny = catalog.some((g) =>
-                    (qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq.toLowerCase())) : g.items).length,
-                  )
-                  if (hasAny) return null
-                  return <div className="muted small">Ничего не найдено.</div>
-                })()}
+                {catalogEmpty ? (
+                  <div className="muted small" style={{ padding: '10px 12px', lineHeight: 1.45 }}>
+                    В профиле сервиса пока нет услуг в этом разделе. Откройте «Настройки лендинга» и добавьте позиции из
+                    справочника или свою строку.
+                  </div>
+                ) : (
+                  <>
+                    {listCatalog.map((g) => {
+                      const qq = String(q || '').trim().toLowerCase()
+                      const items = qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq)) : g.items
+                      if (!items.length) return null
+                      return (
+                        <details key={g.group} className="svcdd__group" open>
+                          <summary className="svcdd__title">
+                            <span>{g.group}</span>
+                            <span className="svcdd__count">
+                              {countSelected(selected, g.items)}/{g.items.length}
+                            </span>
+                          </summary>
+                          <div className="svcdd__grid">
+                            {items.map((it) => {
+                              const checked = selected.includes(it)
+                              return (
+                                <button
+                                  type="button"
+                                  key={it}
+                                  className={`svcdd__item ${checked ? 'is-on' : ''}`}
+                                  disabled={disabled}
+                                  onClick={() => onChange(toggle(selected, it))}
+                                >
+                                  <span className="svcdd__check">{checked ? '✓' : ''}</span>
+                                  <span>{it}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </details>
+                      )
+                    })}
+                    {(() => {
+                      const qq = String(q || '').trim()
+                      const hasAny = listCatalog.some((g) =>
+                        (qq ? g.items.filter((x) => String(x).toLowerCase().includes(qq.toLowerCase())) : g.items).length,
+                      )
+                      if (hasAny) return null
+                      return <div className="muted small">Ничего не найдено.</div>
+                    })()}
+                  </>
+                )}
               </div>
             </div>
           ) : null}
@@ -307,8 +366,46 @@ function ServicePicker({ label, hint, ariaLabel, catalog, value, onChange, disab
           </div>
         ) : null}
       </div>
+  )
+
+  if (hintScopeId) {
+    return (
+      <div className="field field--full serviceHint__fieldWrap" id={hintScopeId}>
+        <div className="field__top serviceHint__fieldTop">
+          <span className="field__label">{label}</span>
+          <ServiceHint scopeId={hintScopeId} label={hintLabel || 'Справка'}>
+            {typeof hint === 'string' ? <p className="serviceHint__panelText">{hint}</p> : hint}
+          </ServiceHint>
+        </div>
+        {picker}
+      </div>
+    )
+  }
+
+  return (
+    <Field label={label} hint={hint}>
+      {picker}
     </Field>
   )
+}
+
+const EMPTY_CARE_DRAFT = {
+  careImportant: '',
+  careTip1: '',
+  careTip2: '',
+  careTip3: '',
+}
+
+function careDraftFromEvent(evt) {
+  const ct = evt?.careTips
+  if (!ct || typeof ct !== 'object') return { ...EMPTY_CARE_DRAFT }
+  const tips = Array.isArray(ct.tips) ? ct.tips : []
+  return {
+    careImportant: String(ct.important || ''),
+    careTip1: String(tips[0] || ''),
+    careTip2: String(tips[1] || ''),
+    careTip3: String(tips[2] || ''),
+  }
 }
 
 export default function HistoryPage() {
@@ -319,9 +416,6 @@ export default function HistoryPage() {
   const car = r.getCar(id, scope)
   const baseMileageKm = car ? Number(car.mileageKm) || 0 : 0
   const [sp, setSp] = useSearchParams()
-  const nav = useNavigate()
-  const fromRaw = sp.get('from') || ''
-  const from = fromRaw ? decodeURIComponent(fromRaw) : ''
   const wantNew = sp.get('new') === '1'
   const editParam = sp.get('edit')
 
@@ -346,8 +440,9 @@ export default function HistoryPage() {
     services: [],
     maintenanceServices: [],
     type: 'visit',
+    ...EMPTY_CARE_DRAFT,
   })
-  const [files, setFiles] = useState([])
+  const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
   const [photoLb, setPhotoLb] = useState(null)
@@ -400,14 +495,14 @@ export default function HistoryPage() {
       setEditingId(e.id)
       setShowNew(true)
       setDraft({
-        title: clampVisitTitle(e.title || ''),
+        title: clampVisitTitleInput(e.title || ''),
         mileageKm: e.mileageKm || '',
         note: e.note || '',
         services: Array.isArray(e.services) ? e.services : [],
         maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
         type: e.type || 'visit',
+        ...careDraftFromEvent(e),
       })
-      setFiles([])
       const next = new URLSearchParams(sp)
       next.set('new', '1')
       next.set('edit', e.id)
@@ -435,14 +530,14 @@ export default function HistoryPage() {
         if (evt && canOpen(evt)) {
           setEditingId(editParam)
           setDraft({
-            title: clampVisitTitle(evt.title || ''),
+            title: clampVisitTitleInput(evt.title || ''),
             mileageKm: evt.mileageKm || '',
             note: evt.note || '',
             services: Array.isArray(evt.services) ? evt.services : [],
             maintenanceServices: Array.isArray(evt.maintenanceServices) ? evt.maintenanceServices : [],
             type: evt.type || 'visit',
+            ...careDraftFromEvent(evt),
           })
-          setFiles([])
         } else {
           setShowNew(false)
           setEditingId(null)
@@ -453,8 +548,15 @@ export default function HistoryPage() {
         }
       } else {
         setEditingId(null)
-        setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
-        setFiles([])
+        setDraft({
+          title: '',
+          mileageKm: '',
+          note: '',
+          services: [],
+          maintenanceServices: [],
+          type: 'visit',
+          ...EMPTY_CARE_DRAFT,
+        })
       }
     }
   }, [wantNew, editParam, events, mode, canOpen, setSp, sp])
@@ -476,6 +578,14 @@ export default function HistoryPage() {
     return nm.slice(0, 2).toUpperCase()
   }, [detForBadge?.name])
 
+  const visitServiceProfile = useMemo(() => {
+    if (mode !== 'detailing' || !detailing) return { det: [], maint: [] }
+    return {
+      det: Array.isArray(detailing.detailingServicesOffered) ? detailing.detailingServicesOffered : [],
+      maint: Array.isArray(detailing.maintenanceServicesOffered) ? detailing.maintenanceServicesOffered : [],
+    }
+  }, [mode, detailing])
+
   const visibleEvents =
     mode === 'owner'
       ? tab === 'owner'
@@ -495,6 +605,112 @@ export default function HistoryPage() {
   const isEditing = Boolean(editingId)
   const formLocked = isEditing && !editAllowed
   const editingPhotos = editingId && editAllowed ? r.listDocs(id, scope, { eventId: editingId }) : []
+  const visitPhotosAddBlocked = Boolean(editingId && editAllowed && editingPhotos.length >= VISIT_MAX_PHOTOS)
+  const visitPhotosRoom = editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
+
+  const buildVisitPayload = () => ({
+    title: clampVisitTitle(draft.title),
+    mileageKm: draft.mileageKm,
+    note: draft.note,
+    services: Array.isArray(draft.services) ? draft.services : [],
+    maintenanceServices: Array.isArray(draft.maintenanceServices) ? draft.maintenanceServices : [],
+    ...(mode === 'detailing'
+      ? {
+          careTips: {
+            important: draft.careImportant,
+            tips: [draft.careTip1, draft.careTip2, draft.careTip3],
+          },
+        }
+      : {}),
+  })
+
+  const ingestPickedVisitPhotos = async (picked) => {
+    if (formLocked || visitPhotoBusy || !picked.length) return
+    let room = VISIT_MAX_PHOTOS
+    if (editingId && editAllowed) {
+      room = Math.max(0, VISIT_MAX_PHOTOS - (r.listDocs(id, scope, { eventId: editingId }) || []).length)
+    }
+    let batch = picked
+    if (picked.length > room) {
+      if (room === 0) {
+        alert(
+          `У этого визита уже ${VISIT_MAX_PHOTOS} фото. Удалите лишние на снимках выше, чтобы добавить новые.`,
+        )
+        return
+      }
+      alert(
+        `Можно прикрепить не более ${VISIT_MAX_PHOTOS} фото к одному визиту. Сейчас доступно ещё ${room}. Добавляем первые ${room}.`,
+      )
+      batch = picked.slice(0, room)
+    }
+    setVisitPhotoBusy(true)
+    try {
+      let eventId = editingId
+      if (!eventId) {
+        const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+        if (baseMileageKm && nextMileage < baseMileageKm) {
+          alert(`Пробег не может быть меньше текущего (${baseMileageKm} км). Укажите корректный пробег и попробуйте снова.`)
+          return
+        }
+        const payload = buildVisitPayload()
+        const evt = r.addEvent(scope, id, { type: 'visit', ...payload })
+        if (!evt?.id) {
+          alert('Не удалось создать визит для фото (нет прав).')
+          return
+        }
+        eventId = evt.id
+        initFormKeyRef.current = `new=1&edit=${evt.id}`
+        setEditingId(evt.id)
+        const next = new URLSearchParams(sp)
+        next.set('new', '1')
+        next.set('edit', evt.id)
+        if (mode === 'owner') next.set('t', 'owner')
+        setSp(next, { replace: true })
+      }
+      const priorPhotoCount = (r.listDocs(id, scope, { eventId: eventId }) || []).length
+      const maxNew = Math.max(0, VISIT_MAX_PHOTOS - priorPhotoCount)
+      const toAdd = batch.slice(0, maxNew)
+      if (batch.length > maxNew && maxNew === 0) {
+        alert(
+          `У визита уже ${VISIT_MAX_PHOTOS} фото — новые файлы не добавлены. Удалите лишние в списке выше.`,
+        )
+      } else if (batch.length > maxNew) {
+        alert(
+          `Добавлено только ${maxNew} из ${batch.length} файлов — на визит не более ${VISIT_MAX_PHOTOS} фото.`,
+        )
+      }
+      for (const f of toAdd) {
+        try {
+          const url = await compressImageFile(f, {
+            maxW: 1600,
+            maxH: 1600,
+            quality: 0.84,
+            maxBytes: 2 * 1024 * 1024,
+          })
+          if (!url) continue
+          r.addDoc(scope, id, {
+            title: f.name || 'Фото',
+            kind: 'photo',
+            url,
+            eventId,
+          })
+        } catch {
+          // ignore single-file read errors
+        }
+      }
+      r.syncCarWashPhotosFromLatestEvent(id, scope)
+      invalidateRepo()
+    } catch (err) {
+      const msg = String(err?.message || err || '')
+      if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
+        alert('Не удалось сохранить фото: переполнено хранилище браузера.')
+      } else {
+        alert('Не удалось добавить фото. Попробуйте ещё раз.')
+      }
+    } finally {
+      setVisitPhotoBusy(false)
+    }
+  }
 
   return (
     <div className="container">
@@ -503,21 +719,22 @@ export default function HistoryPage() {
           <div className="breadcrumbs">
             <Link to={carCardHref}>Карточка авто</Link>
             <span> / </span>
-            <span>История</span>
+            <span>История автомобиля</span>
           </div>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav to={carCardHref} title="К карточке авто" />
-            <h1 className="h1" style={{ margin: 0 }}>
-              {title}
-            </h1>
+          <div id={HISTORY_PAGE_HINT.scopeId} className="serviceHint__pageBlock">
+            <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
+              <BackNav to={carCardHref} title="К карточке авто" />
+              <h1 className="h1">{title}</h1>
+              <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
+                <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
+              </ServiceHint>
+            </div>
           </div>
-          <p className="muted">События: ТО, ремонты, детейлинг, заметки.</p>
         </div>
       </div>
 
       <div className="row spread gap" style={{ marginTop: 10 }}>
         <div className="row gap wrap">
-          <div className="muted small">История обслуживания автомобиля.</div>
           {mode === 'owner' && serviceEvents.length > 0 && ownerEvents.length > 0 ? (
             <div className="row gap wrap" aria-label="Фильтр истории">
               <button
@@ -565,8 +782,15 @@ export default function HistoryPage() {
           onClick={() => {
             setShowNew(true)
             setEditingId(null)
-            setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
-            setFiles([])
+            setDraft({
+              title: '',
+              mileageKm: '',
+              note: '',
+              services: [],
+              maintenanceServices: [],
+              type: 'visit',
+              ...EMPTY_CARE_DRAFT,
+            })
             const next = new URLSearchParams(sp)
             next.set('new', '1')
             next.delete('edit')
@@ -747,22 +971,31 @@ export default function HistoryPage() {
             </div>
           ) : null}
           <div className="formGrid historyFormGrid">
-            <Field
-              label="Заголовок"
-              hint={`до ${VISIT_TITLE_MAX_LEN} символов, пробелы считаются`}
-            >
+            <div className="field serviceHint__fieldWrap" id={FORM_TITLE_HINT.scopeId}>
+              <div className="field__top serviceHint__fieldTop">
+                <span className="field__label">Заголовок</span>
+                <ServiceHint scopeId={FORM_TITLE_HINT.scopeId} label={FORM_TITLE_HINT.label}>
+                  <p className="serviceHint__panelText">{formTitleHintText(VISIT_TITLE_MAX_LEN)}</p>
+                </ServiceHint>
+              </div>
               <Input
                 className="input"
                 value={draft.title}
                 maxLength={VISIT_TITLE_MAX_LEN}
                 onChange={(e) =>
-                  setDraft((d) => ({ ...d, title: clampVisitTitle(e.target.value) }))
+                  setDraft((d) => ({ ...d, title: clampVisitTitleInput(e.target.value) }))
                 }
                 placeholder="ТО-2 / Визит…"
                 disabled={formLocked}
               />
-            </Field>
-            <Field label="Пробег (км)" hint={baseMileageKm ? `мин. ${baseMileageKm} км` : undefined}>
+            </div>
+            <div className="field serviceHint__fieldWrap" id={FORM_MILEAGE_HINT.scopeId}>
+              <div className="field__top serviceHint__fieldTop">
+                <span className="field__label">Пробег (км)</span>
+                <ServiceHint scopeId={FORM_MILEAGE_HINT.scopeId} label={FORM_MILEAGE_HINT.label}>
+                  <p className="serviceHint__panelText">{formMileageHintText(baseMileageKm)}</p>
+                </ServiceHint>
+              </div>
               <Input
                 className="input"
                 inputMode="numeric"
@@ -779,11 +1012,13 @@ export default function HistoryPage() {
                 placeholder={baseMileageKm ? String(baseMileageKm) : '20000'}
                 disabled={formLocked}
               />
-            </Field>
+            </div>
             {mode === 'owner' ? (
               <ServicePicker
                 label="Услуги ТО"
-                hint="Выберите услуги из выпадающего списка"
+                hint={formServicesToHintText(mode)}
+                hintScopeId={FORM_SERVICES_TO_HINT.scopeId}
+                hintLabel={FORM_SERVICES_TO_HINT.label}
                 ariaLabel="Выбор услуг ТО"
                 catalog={MAINTENANCE_SERVICES}
                 value={draft.maintenanceServices}
@@ -791,17 +1026,42 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             ) : null}
-            <ServicePicker
-              label="Детейлинг"
-              hint="Можно выбрать несколько услуг из списка"
-              ariaLabel="Выбор услуг детейлинга"
-              catalog={DETAILING_SERVICES}
-              value={draft.services}
-              onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
-              disabled={formLocked}
-            />
+            {mode === 'detailing' ? (
+              <>
+                <ServicePicker
+                  label="Детейлинг"
+                  hint={FORM_SERVICES_DET_HINT.textDetailing}
+                  hintScopeId={FORM_SERVICES_DET_HINT.scopeId}
+                  hintLabel={FORM_SERVICES_DET_HINT.label}
+                  ariaLabel="Выбор услуг детейлинга"
+                  catalog={DETAILING_SERVICES}
+                  itemsFromProfile={visitServiceProfile.det}
+                  value={draft.services}
+                  onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+                  disabled={formLocked}
+                />
+                <ServicePicker
+                  label="ТО"
+                  hint={formServicesToHintText(mode)}
+                  hintScopeId={FORM_SERVICES_TO_HINT.scopeId}
+                  hintLabel={FORM_SERVICES_TO_HINT.label}
+                  ariaLabel="Выбор услуг ТО"
+                  catalog={MAINTENANCE_SERVICES}
+                  itemsFromProfile={visitServiceProfile.maint}
+                  value={draft.maintenanceServices}
+                  onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+                  disabled={formLocked}
+                />
+              </>
+            ) : null}
             {editingId ? (
-              <Field label="Фото визита" hint={editingPhotos.length ? `загружено: ${editingPhotos.length}` : 'пока нет фото'}>
+              <div className="field field--full serviceHint__fieldWrap" id={FORM_PHOTOS_EDIT_HINT.scopeId}>
+                <div className="field__top serviceHint__fieldTop">
+                  <span className="field__label">Фото визита</span>
+                  <ServiceHint scopeId={FORM_PHOTOS_EDIT_HINT.scopeId} label={FORM_PHOTOS_EDIT_HINT.label}>
+                    <p className="serviceHint__panelText">{formPhotosEditHintText(editingPhotos.length)}</p>
+                  </ServiceHint>
+                </div>
                 {editingPhotos.length ? (
                   <div className="thumbs thumbs--big" style={{ marginTop: 6 }}>
                     {editingPhotos.map((d) => (
@@ -823,6 +1083,7 @@ export default function HistoryPage() {
                         type="button"
                         className="btn"
                         data-variant="outline"
+                        disabled={visitPhotosAddBlocked}
                         onClick={() => visitPhotosInputRef.current?.click?.()}
                       >
                         Добавить фото
@@ -832,16 +1093,14 @@ export default function HistoryPage() {
                     )}
                   </div>
                 )}
-              </Field>
+              </div>
             ) : null}
-            <Field
-              label={
-                <span>
-                  Добавить <span className="textAccent">фото</span>
-                </span>
-              }
-              hint="можно выбрать несколько файлов"
-            >
+            <div className="field field--full serviceHint__fieldWrap" id={FORM_ADD_PHOTOS_HINT.scopeId}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <ServiceHint scopeId={FORM_ADD_PHOTOS_HINT.scopeId} label={FORM_ADD_PHOTOS_HINT.label}>
+                  <p className="serviceHint__panelText">{FORM_ADD_PHOTOS_HINT.text}</p>
+                </ServiceHint>
+              </div>
               <div className="filePick">
                 <input
                   id={visitPhotosInputId}
@@ -850,27 +1109,89 @@ export default function HistoryPage() {
                   accept="image/*"
                   multiple
                   ref={visitPhotosInputRef}
-                  onChange={(e) => setFiles(Array.from(e.target.files || []))}
-                  disabled={formLocked}
+                  onChange={(e) => {
+                    const picked = Array.from(e.target.files || [])
+                    e.target.value = ''
+                    void ingestPickedVisitPhotos(picked)
+                  }}
+                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy}
                 />
                 <button
                   type="button"
                   className="btn filePick__btn"
                   data-variant="outline"
                   onClick={() => visitPhotosInputRef.current?.click?.()}
-                  disabled={formLocked}
+                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy}
                 >
-                  Выбрать файлы
+                  Добавить фото
                 </button>
-                <span className="filePick__status" title={files.map((f) => f.name).join(', ')}>
-                  {!files.length
-                    ? 'Файл не выбран'
-                    : files.length === 1
-                      ? files[0].name || '1 файл'
-                      : `Выбрано файлов: ${files.length}`}
+                <span className="filePick__status">
+                  {visitPhotoBusy
+                    ? 'Сохраняем фото…'
+                    : visitPhotosAddBlocked
+                      ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
+                      : editingId && editAllowed && visitPhotosRoom < VISIT_MAX_PHOTOS
+                        ? `Можно ещё ${visitPhotosRoom} фото`
+                        : 'Файлы прикрепятся сразу после выбора'}
                 </span>
               </div>
-            </Field>
+            </div>
+            {mode === 'detailing' ? (
+              <>
+                <div className="historyCareTips topBorder">
+                  <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_IMPORTANT_HINT.scopeId}>
+                    <div className="field__top serviceHint__fieldTop">
+                      <span className="field__label">
+                        Важно <span className="pill" data-tone="accent">важно</span>
+                      </span>
+                      <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} label={FORM_CARE_IMPORTANT_HINT.label}>
+                        <p className="serviceHint__panelText">{FORM_CARE_IMPORTANT_HINT.text}</p>
+                      </ServiceHint>
+                    </div>
+                    <Input
+                      className="input"
+                      value={draft.careImportant}
+                      maxLength={VISIT_CARE_TIP_MAX_LEN}
+                      placeholder="Необязательно: что важно донести клиенту…"
+                      disabled={formLocked}
+                      onChange={(e) => setDraft((d) => ({ ...d, careImportant: e.target.value }))}
+                    />
+                  </div>
+                  <div className="field field--full serviceHint__fieldWrap historyCareTips__sectionHead">
+                    <div className="field__top serviceHint__fieldTop">
+                      <span className="field__label">Советы по уходу</span>
+                      <ServiceHint
+                        scopeId={FORM_CARE_TIPS_SECTION_HINT.scopeId}
+                        label={FORM_CARE_TIPS_SECTION_HINT.label}
+                      >
+                        <p className="serviceHint__panelText">{FORM_CARE_TIPS_SECTION_HINT.text}</p>
+                      </ServiceHint>
+                    </div>
+                  </div>
+                  {[
+                    { key: 'careTip1', n: 1 },
+                    { key: 'careTip2', n: 2 },
+                    { key: 'careTip3', n: 3 },
+                  ].map(({ key, n }) => (
+                    <div key={key} className="field field--full">
+                      <div className="field__top field__top--solo">
+                        <span className="field__label">
+                          Совет {n} <span className="pill" data-tone="neutral">совет</span>
+                        </span>
+                      </div>
+                      <Input
+                        className="input"
+                        value={draft[key]}
+                        maxLength={VISIT_CARE_TIP_MAX_LEN}
+                        placeholder="Необязательно"
+                        disabled={formLocked}
+                        onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : null}
             <Field label="Добавить комментарий">
               <Textarea
                 className="textarea"
@@ -898,18 +1219,7 @@ export default function HistoryPage() {
                     alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
                     return
                   }
-                  const payload = {
-                    title: clampVisitTitle(draft.title),
-                    mileageKm: draft.mileageKm,
-                    note: draft.note,
-                    services: Array.isArray(draft.services) ? draft.services : [],
-                    maintenanceServices:
-                      mode === 'owner'
-                        ? Array.isArray(draft.maintenanceServices)
-                          ? draft.maintenanceServices
-                          : []
-                        : [],
-                  }
+                  const payload = buildVisitPayload()
 
                   const evt = editingId
                     ? r.updateEvent(editingId, payload, scope)
@@ -920,40 +1230,17 @@ export default function HistoryPage() {
                     return
                   }
 
-                  const hasWash =
-                    Array.isArray(draft.services) && draft.services.some((s) => WASH_SERVICE_MARKERS.has(s))
+                  r.syncCarWashPhotosFromLatestEvent(id, scope)
 
-                  if (files.length) {
-                    const urls = []
-                    for (const f of files) {
-                      try {
-                        const url = await compressImageFile(f, {
-                          maxW: 1600,
-                          maxH: 1600,
-                          quality: 0.84,
-                          maxBytes: 2 * 1024 * 1024,
-                        })
-                        if (url) urls.push(url)
-                        r.addDoc(scope, id, {
-                          title: f.name || 'Фото',
-                          kind: 'photo',
-                          url,
-                          eventId: evt.id,
-                        })
-                      } catch {
-                        // ignore single-file read errors
-                      }
-                    }
-                  }
-
-                  if (hasWash) {
-                    // Всегда обновляем блок "последняя мойка" фото этого визита (если они есть).
-                    const existing = r.listDocs(id, scope, { eventId: evt.id }).map((d) => d.url).filter(Boolean)
-                    if (existing.length) r.updateCar(id, { washPhotos: existing.slice(0, 12) }, scope)
-                  }
-
-                  setDraft({ title: '', mileageKm: '', note: '', services: [], maintenanceServices: [], type: 'visit' })
-                  setFiles([])
+                  setDraft({
+                    title: '',
+                    mileageKm: '',
+                    note: '',
+                    services: [],
+                    maintenanceServices: [],
+                    type: 'visit',
+                    ...EMPTY_CARE_DRAFT,
+                  })
                   invalidateRepo()
                   setShowNew(false)
                   setEditingId(null)
@@ -1009,83 +1296,6 @@ export default function HistoryPage() {
                 }}
               >
                 Удалить
-              </button>
-            ) : null}
-            {mode === 'detailing' && from ? (
-              <button
-                className="btn"
-                data-variant="outline"
-                onClick={async () => {
-                  // Сохраняем и возвращаемся в список авто (удобно для потока по нескольким авто)
-                  try {
-                    const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                    if (baseMileageKm && nextMileage < baseMileageKm) {
-                      alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
-                      return
-                    }
-                    const payload = {
-                      title: clampVisitTitle(draft.title),
-                      mileageKm: draft.mileageKm,
-                      note: draft.note,
-                      services: Array.isArray(draft.services) ? draft.services : [],
-                      maintenanceServices: [],
-                    }
-
-                    const evt = editingId
-                      ? r.updateEvent(editingId, payload, scope)
-                      : r.addEvent(scope, id, { type: 'visit', ...payload })
-
-                    if (!evt || !evt.id) {
-                      alert(editingId ? 'Не удалось сохранить (нет прав).' : 'Не удалось добавить событие.')
-                      return
-                    }
-
-                    const hasWash =
-                      Array.isArray(draft.services) && draft.services.some((s) => WASH_SERVICE_MARKERS.has(s))
-
-                    if (files.length) {
-                      const urls = []
-                      for (const f of files) {
-                        try {
-                          const url = await compressImageFile(f, {
-                            maxW: 1600,
-                            maxH: 1600,
-                            quality: 0.84,
-                            maxBytes: 2 * 1024 * 1024,
-                          })
-                          if (url) urls.push(url)
-                          r.addDoc(scope, id, {
-                            title: f.name || 'Фото',
-                            kind: 'photo',
-                            url,
-                            eventId: evt.id,
-                          })
-                        } catch {
-                          // ignore single-file read errors
-                        }
-                      }
-                    }
-
-                    if (hasWash) {
-                      const existing = r.listDocs(id, scope, { eventId: evt.id }).map((d) => d.url).filter(Boolean)
-                      if (existing.length) r.updateCar(id, { washPhotos: existing.slice(0, 12) }, scope)
-                    }
-
-                    invalidateRepo()
-                    nav(from)
-                  } catch (err) {
-                    const msg = String(err?.message || err || '')
-                    if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
-                      alert(
-                        'Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте локальные данные на экране входа.',
-                      )
-                    } else {
-                      alert('Не удалось сохранить историю. Попробуйте ещё раз.')
-                    }
-                  }
-                }}
-              >
-                Сохранить и назад
               </button>
             ) : null}
             <button

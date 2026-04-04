@@ -82,8 +82,17 @@ export async function compressImageDataUrl(
   return await blobToDataUrl(last)
 }
 
-export async function compressImageFile(file, opts) {
+function inferOutputMime(file, explicitMime) {
+  if (explicitMime != null && String(explicitMime).trim() !== '') return explicitMime
+  const t = String(file?.type || '').toLowerCase()
+  if (t === 'image/png' || t === 'image/webp') return t
+  return 'image/jpeg'
+}
+
+export async function compressImageFile(file, opts = {}) {
+  const { mime: explicitMime, ...rest } = opts
   const raw = await fileToDataUrl(file)
-  return await compressImageDataUrl(raw, opts)
+  const mime = inferOutputMime(file, explicitMime)
+  return await compressImageDataUrl(raw, { ...rest, mime })
 }
 

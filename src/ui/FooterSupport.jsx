@@ -1,15 +1,25 @@
-import { Link, useMatch } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import { useDetailing } from './useDetailing.js'
+import { isAuthed } from './auth.js'
+import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SUPPORT_LINK_HREF } from './supportConfig.js'
 
+function isOwnerGarageRoute(pathname) {
+  return pathname === '/garage' || pathname === '/garage/settings'
+}
+
 /**
- * В футере: текстовые ссылки на политику и правила (как на /auth/owner), плюс «Поддержка».
- * На странице истории авто кнопка «Поддержка» скрыта — поддержка в шапке; ссылки на /about остаются.
+ * Футер: слева политика и правила, справа кнопка «Поддержка» (outline).
+ * Выпадающее меню — только на страницах гаража владельца; везде иначе — ссылка на поддержку.
  */
 export default function FooterSupport() {
-  const onCarHistory = useMatch({ path: '/car/:id/history', end: true })
+  const { mode } = useDetailing()
+  const { pathname } = useLocation()
+  const footerSupportMenu =
+    mode === 'owner' && isAuthed() && isOwnerGarageRoute(pathname)
 
   return (
-    <>
+    <div className="footer__bar">
       <nav className="footerLegal" aria-label="Правовая информация">
         <Link className="authConsent__legalLink" to="/about">
           Политика конфиденциальности
@@ -21,8 +31,10 @@ export default function FooterSupport() {
           Согласие с правилами сервиса
         </Link>
       </nav>
-      {!onCarHistory ? (
-        <div className="footerHelpDd">
+      <div className="footerSupportSlot">
+        {footerSupportMenu ? (
+          <OwnerSupportDropdown placement="footer" />
+        ) : (
           <a
             className="btn footerHelpDd__link"
             data-variant="outline"
@@ -32,8 +44,8 @@ export default function FooterSupport() {
           >
             Поддержка
           </a>
-        </div>
-      ) : null}
-    </>
+        )}
+      </div>
+    </div>
   )
 }

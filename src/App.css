@@ -35,23 +35,33 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
 }
 
-.brandMarkImgWrap {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 1px solid color-mix(in oklab, var(--border) 70%, #6b5ce7 18%);
-  background: #0a0a0a;
-  overflow: hidden;
+/* Логотип + слоган колонкой, слоган плотно под вордмарком */
+.nav__brandStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  line-height: 1.12;
+  min-width: 0;
 }
 
-.brandMarkImg {
+/* Слоган сдвинут на толщину рамки + padding вордмарка — вровень первой буквы */
+.nav__brandTagline {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  margin: 0;
+  padding: 1px 0 0 calc(1px + 6px);
+  max-width: 56vw;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
 }
 
 /* Вордмарк: тёмный фон под белую часть логотипа */
@@ -59,8 +69,8 @@
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  padding: 4px 10px;
-  border-radius: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
   border: 1px solid color-mix(in oklab, var(--border) 70%, #6b5ce7 18%);
   background: #0a0a0a;
   line-height: 0;
@@ -69,22 +79,15 @@
 .brandWordmarkImg {
   display: block;
   width: auto;
+  height: auto;
+  max-width: 100%;
   vertical-align: middle;
 }
 
-.brandTitle {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.brandTagline {
-  font-size: 12px;
-  font-weight: 650;
-  letter-spacing: 0.18px;
-  color: var(--text);
-  line-height: 1.2;
+/* Вордмарк в шапке: единый размер на десктопе (перекрывает width/height у <img>) */
+.nav__brand .brandWordmarkImg {
+  height: 18px;
+  width: auto;
 }
 
 .nav__links {
@@ -107,6 +110,10 @@
   justify-content: flex-end;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.nav__linksScroll--partnerTools {
+  flex-wrap: nowrap;
 }
 
 .nav__linksPersist {
@@ -182,9 +189,32 @@ button.nav__action {
   box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-  flex-wrap: wrap;
+  justify-content: stretch;
+  gap: 0;
+  flex-wrap: nowrap;
+}
+
+/* Ссылки слева (колонка с переносами), «Поддержка» всегда в правой колонке — в т.ч. на узком экране */
+.footer__bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+/* «Войти» на публичных витринах /g/ /d/: явно прозрачный фон, серая обводка */
+.nav__action.nav__action--showcaseLogin {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--muted) 55%, var(--border));
+  color: var(--text-h);
+}
+
+.nav__action.nav__action--showcaseLogin:hover {
+  background: color-mix(in oklab, var(--muted) 8%, transparent);
+  border-color: color-mix(in oklab, var(--muted) 40%, var(--border));
+  color: var(--text-h);
 }
 
 .footerLegal {
@@ -195,6 +225,19 @@ button.nav__action {
   font-size: 13px;
   line-height: 1.4;
   min-width: 0;
+  justify-content: flex-start;
+}
+
+.footerSupportSlot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+  flex-shrink: 0;
+}
+
+.footerSupportSlot .footerHelpDd {
+  margin: 0;
 }
 
 .footerLegal__sep {
@@ -245,6 +288,35 @@ button.nav__action {
 
 .carPage__meta--emph {
   font-weight: 600;
+}
+
+/* Публичная витрина гаража: ссылки в строке меты, без рамки как у .link */
+.publicGarage__textLink {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  font-weight: inherit;
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  word-break: break-all;
+  cursor: pointer;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+.publicGarage__textLink:hover {
+  color: var(--text-h);
+}
+
+.publicGarage__textLink:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Простая кликабельная ссылка (не кнопка) */
@@ -397,6 +469,7 @@ button[data-variant]:focus-visible,
 .input,
 .textarea {
   width: 100%;
+  min-width: 0;
   box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -509,6 +582,8 @@ button[data-variant]:focus-visible,
   border-radius: 16px;
   background: color-mix(in oklab, var(--bg) 96%, var(--code-bg));
   box-shadow: var(--shadow);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .pad {
@@ -524,6 +599,7 @@ button[data-variant]:focus-visible,
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 
 .field__top {
@@ -536,6 +612,14 @@ button[data-variant]:focus-visible,
 .field__label {
   color: var(--text-h);
   font-size: 14px;
+}
+
+/* Блок выбора услуг: заголовок заметнее подписей групп и строк справочника */
+.field__label.field__label--servicesLead {
+  font-size: clamp(17px, 4.2vw, 20px);
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
 }
 
 .field__hint {
@@ -608,6 +692,25 @@ button[data-variant]:focus-visible,
 .pill[data-tone='accent'] {
   background: color-mix(in oklab, var(--accent) 18%, var(--bg));
   border-color: color-mix(in oklab, var(--accent) 40%, var(--border));
+}
+
+/* Статусы заявок / доступа: заметная обводка цветом сервиса */
+.pill.pill--statusRing {
+  border-width: 1.5px;
+  border-color: color-mix(in oklab, var(--accent) 58%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 24%, transparent);
+}
+
+.pill.pill--statusRing[data-tone='accent'] {
+  background: color-mix(in oklab, var(--accent) 20%, var(--bg));
+  border-color: color-mix(in oklab, var(--accent) 65%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 28%, transparent);
+}
+
+.pill.pill--statusRing[data-tone='neutral'] {
+  color: var(--text-h);
+  border-color: color-mix(in oklab, var(--accent) 52%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
 }
 
 .hero2 {
@@ -818,7 +921,7 @@ button[data-variant]:focus-visible,
 .list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-top: 12px;
 }
 
@@ -873,11 +976,11 @@ button[data-variant]:focus-visible,
 .rowItem {
   display: grid;
   grid-template-columns: 84px 1fr auto;
-  gap: 12px;
-  align-items: center;
+  gap: 14px;
+  align-items: start;
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 10px;
+  padding: 14px 16px;
   text-decoration: none;
   color: inherit;
   background: var(--bg);
@@ -888,6 +991,172 @@ button[data-variant]:focus-visible,
   display: contents;
   color: inherit;
   text-decoration: none;
+}
+
+.rowItem--ownerPeek {
+  grid-template-columns: 84px 1fr auto auto;
+}
+
+.rowItem__ownerPeek {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 2px;
+}
+
+.rowItem__ownerPeekLink {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  background: color-mix(in oklab, var(--bg) 88%, var(--code-bg));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 16%, transparent);
+  transition:
+    border-color 120ms ease,
+    filter 120ms ease,
+    transform 120ms ease;
+}
+
+.rowItem__ownerPeekLink:hover:not(.rowItem__ownerPeekLink--disabled) {
+  border-color: color-mix(in oklab, var(--accent) 75%, var(--border));
+  filter: brightness(1.06);
+}
+
+.rowItem__ownerPeekLink:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.rowItem__ownerPeekLink img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rowItem__ownerPeekFallback {
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: -0.3px;
+  line-height: 1;
+  color: var(--text-h);
+}
+
+.rowItem__ownerPeekLink--disabled {
+  cursor: default;
+  opacity: 0.52;
+  filter: grayscale(0.12);
+}
+
+/* Мобильная карточка: блок владельца с аватаром и контекстом (десктоп — скрыт) */
+.rowItem__ownerSummary {
+  display: none;
+}
+
+.rowItem__ownerSummaryAvatar {
+  box-sizing: border-box;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: inherit;
+  border: 1.5px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  background: color-mix(in oklab, var(--bg) 88%, var(--code-bg));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 14%, transparent);
+  transition:
+    border-color 120ms ease,
+    filter 120ms ease;
+}
+
+.rowItem__ownerSummaryAvatar:hover:not(.rowItem__ownerSummaryAvatar--disabled) {
+  border-color: color-mix(in oklab, var(--accent) 75%, var(--border));
+  filter: brightness(1.06);
+}
+
+.rowItem__ownerSummaryAvatar:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.rowItem__ownerSummaryAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.rowItem__ownerSummaryAvatar--disabled {
+  cursor: default;
+  opacity: 0.5;
+  filter: grayscale(0.12);
+}
+
+.rowItem__ownerSummaryFallback {
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.35px;
+  line-height: 1;
+  color: var(--text-h);
+}
+
+.rowItem__ownerSummaryBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rowItem__ownerSummaryTitle {
+  font-weight: 650;
+  color: var(--text-h);
+  font-size: 15px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.rowItem__ownerSummaryPhone {
+  display: inline;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+  text-decoration: none;
+  word-break: break-all;
+  -webkit-tap-highlight-color: color-mix(in oklab, var(--accent) 22%, transparent);
+  cursor: pointer;
+}
+
+.rowItem__ownerSummaryPhone:hover {
+  color: var(--text-h);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rowItem__ownerSummaryPhone:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .rowItem__img {
@@ -914,10 +1183,155 @@ button[data-variant]:focus-visible,
 .rowItem__meta {
   color: var(--text);
   font-size: 13px;
-  margin-top: 2px;
+  margin-top: 5px;
   min-width: 0;
-  line-height: 1.4;
+  line-height: 1.45;
   overflow-wrap: break-word;
+}
+
+/* Заявки на привязку (кабинет детейлинга): аватар владельца у блока «Владелец», кнопки справа/снизу */
+.requestsCard__row {
+  align-items: stretch;
+  flex-wrap: wrap;
+}
+
+.requestsCard__body {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.requestsCard__ownerBlock {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.requestsCard__ownerMeta {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.requestsCard__vin {
+  margin-top: 6px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.requestsCard__actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 152px;
+}
+
+.requestsCard__ownerLine {
+  line-height: 1.5;
+}
+
+.requestsCard__ownerLineSep {
+  color: color-mix(in oklab, var(--text) 55%, var(--text-h));
+}
+
+.requestsCard__ownerPublicLink {
+  font-size: 13px;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--accent) 78%, white);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.requestsCard__ownerPublicLink:hover {
+  color: var(--accent);
+}
+
+.requestsCard__ownerAvatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--bg) 82%, var(--code-bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.requestsCard__ownerAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.requestsCard__ownerAvatarFallback {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.35px;
+  line-height: 1;
+  color: var(--text-h);
+}
+
+.requestsCard__actionBtns {
+  margin-top: auto;
+  justify-content: center;
+  padding-top: 10px;
+}
+
+.requestsCard__ownerPlain {
+  word-break: break-all;
+}
+
+.requestsCard__carpasIdTag {
+  font-size: 0.92em;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .requestsCard__ownerBlock {
+    gap: 10px;
+    margin-top: 8px;
+    align-items: flex-start;
+  }
+
+  .requestsCard__ownerAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .requestsCard__ownerAvatarFallback {
+    font-size: 14px;
+  }
+
+  .requestsCard__ownerPublicLink {
+    display: inline;
+    word-break: break-word;
+  }
+
+  .requestsCard__actions {
+    width: 100%;
+    flex-direction: row;
+    justify-content: center;
+    padding-top: 16px;
+    margin-top: 6px;
+    border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+    min-height: 0;
+    box-sizing: border-box;
+  }
+
+  .requestsCard__actionBtns {
+    margin-top: 0;
+    padding-top: 0;
+    justify-content: center;
+    width: 100%;
+  }
 }
 
 .eventMeta__when {
@@ -943,13 +1357,21 @@ button[data-variant]:focus-visible,
 .rowItem__sub {
   color: var(--text);
   font-size: 12px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .rowItem__lastEvt {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
   gap: 10px;
+  min-width: 0;
+}
+
+.rowItem__lastEvtTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .rowItem__lastEvtPhoto {
@@ -965,6 +1387,7 @@ button[data-variant]:focus-visible,
 
 .rowItem__lastEvtText {
   min-width: 0;
+  flex: 1;
 }
 
 .rowItem__lastEvtTitle {
@@ -988,19 +1411,20 @@ button[data-variant]:focus-visible,
 }
 
 .rowItem__lastEvtMeta {
-  margin-top: 6px;
+  margin-top: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   opacity: 0.92;
+  padding-bottom: 2px;
 }
 
 .rowItem__lastEvtLine {
   font-size: 12px;
-  line-height: 1.4;
+  line-height: 1.55;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 8;
   -webkit-box-orient: vertical;
 }
 
@@ -1016,6 +1440,8 @@ button[data-variant]:focus-visible,
 
 .rowItem__aside {
   text-align: right;
+  align-self: start;
+  padding-top: 4px;
 }
 
 .price {
@@ -1384,6 +1810,58 @@ a.backNav {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M6 7h12l-1 14H7L6 7zm3-3h6l1 2H8l1-2zm-4 2h14v2H5V6z'/%3E%3C/svg%3E");
 }
 
+.carPage__icon--close {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z'/%3E%3C/svg%3E");
+}
+
+.carPage__icon--car {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+}
+
+/* Гараж владельца: на узких экранах — «VIN» и кнопка «добавить авто» иконкой */
+.garageVinClaimBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.garageVinClaimBtn__short {
+  display: none;
+}
+
+.garageAddCarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.garageAddCarBtn__icon {
+  display: none;
+  flex-shrink: 0;
+}
+
+/* «Сервис и доступ»: ссылка на детейлинг без плашки, как обычный текст */
+.carPage__serviceDetNameLink {
+  display: inline;
+  color: color-mix(in oklab, var(--accent) 72%, var(--text-h));
+  font-weight: 650;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  border: none;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.carPage__serviceDetNameLink:hover {
+  color: color-mix(in oklab, var(--accent) 88%, white);
+}
+
 /* Карточка авто: больше воздуха между заголовком и обложкой */
 .carPage__head + .carHero {
   margin-top: 22px;
@@ -1483,7 +1961,8 @@ a.backNav {
 
 .detHero__logo {
   position: absolute;
-  left: 16px;
+  right: 16px;
+  left: auto;
   bottom: 14px;
   width: 56px;
   height: 56px;
@@ -1543,6 +2022,13 @@ a.backNav {
   background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
 }
 
+/* Публичный гараж /g/…: тот же угол, что и у детейлинга (логотип внизу справа на баннере) */
+.garageHero .detHero__logo {
+  right: 16px;
+  left: auto;
+  bottom: 14px;
+}
+
 /* Гараж владельца: заголовок страницы + имя поменьше */
 .garagePage__ownerName {
   margin: 8px 0 0;
@@ -1558,7 +2044,244 @@ a.backNav {
   margin-top: 6px;
 }
 
-/* Герой гаража: кнопки баннера как у обложки карточки авто + иконка настроек */
+/* Страница гаража: баннер сразу под шапкой сайта, без блока заголовка над ним */
+.garagePage .detHero.detHero--card.garageHero {
+  margin-top: 0;
+  height: 300px;
+}
+
+/* Карточка-профиль гаража: «Гараж», мета, кнопка «Добавить автомобиль» внизу справа */
+.garageProfileCard.card {
+  display: flex;
+  flex-direction: column;
+}
+
+.garageProfileCard__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.garageProfileCard__footer {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.garageProfileCard__footerActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-left: auto;
+}
+
+/* Неактивные «кнопки»-заглушки (лимиты гаража) */
+.btn.btn--asDisabled,
+a.btn.btn--asDisabled {
+  opacity: 0.48;
+  pointer-events: none;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+  box-shadow: none;
+}
+
+.garageProfileCard__detAvatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  overflow: hidden;
+  background: color-mix(in oklab, var(--bg) 82%, var(--code-bg));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-h);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  transition:
+    border-color 120ms ease,
+    filter 120ms ease,
+    transform 120ms ease;
+}
+
+.garageProfileCard__detAvatar:hover {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  filter: brightness(1.04);
+}
+
+.garageProfileCard__detAvatar:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.garageProfileCard__detAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.garageProfileCard__detAvatarFallback {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.35px;
+  line-height: 1;
+}
+
+.garageProfileCard__addCarBtn {
+  flex-shrink: 0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+.garageProfileCard__main {
+  min-width: 0;
+}
+
+.garageProfileCard__avatarCol {
+  flex-shrink: 0;
+}
+
+.garageProfileCard__avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+
+.garageProfileCard__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.garageProfileCard__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.4px;
+  color: var(--text-h);
+}
+
+.garageProfileCard__h1 {
+  margin: 0;
+  font-family: var(--heading);
+  font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+  letter-spacing: -0.45px;
+  line-height: 1.2;
+  color: var(--text-h);
+  font-weight: 650;
+}
+
+.garageProfileCard__name.h2 {
+  margin: 6px 0 0;
+  font-size: clamp(0.98rem, 2.1vw, 1.2rem);
+  font-weight: 520;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
+  overflow-wrap: anywhere;
+}
+
+.garageProfileCard__nameAction {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 6px 0 0;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  font-size: clamp(0.98rem, 2.1vw, 1.2rem);
+  font-weight: 520;
+  line-height: 1.3;
+  letter-spacing: -0.2px;
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  transition: color 120ms ease;
+}
+
+.garageProfileCard__nameAction:hover {
+  color: color-mix(in oklab, var(--accent) 82%, var(--text-h));
+}
+
+.garageProfileCard__nameAction:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.garageProfileCard__copyStatus {
+  margin: 6px 0 0;
+}
+
+.garageProfileCard__meta {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.garageProfileCard__metaLine {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.garageProfileCard__metaKey {
+  font-weight: 650;
+  color: color-mix(in oklab, var(--text) 72%, var(--text-h));
+}
+
+.garageProfileCard__lead {
+  margin: 10px 0 0;
+  line-height: 1.45;
+}
+
+.garageProfileCard__actions {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .garageProfileCard__top {
+    gap: 12px;
+  }
+
+  .garageProfileCard__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 16px;
+  }
+
+  .garageProfileCard__avatar--fallback {
+    font-size: 20px;
+  }
+
+  .garageProfileCard__h1 {
+    font-size: 1.35rem;
+    letter-spacing: -0.35px;
+  }
+
+  .garageProfileCard__name.h2,
+  .garageProfileCard__nameAction {
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+}
+
+/* Герой гаража: иконка настроек; баннер меняется в /garage/settings */
 .detHero__overlay--garageOwner {
   flex-direction: column;
   align-items: stretch;
@@ -1571,8 +2294,19 @@ a.backNav {
   gap: 10px;
 }
 
-.garageHero__bannerBtns {
+.garageHero__bannerRow {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   justify-content: flex-end;
+  gap: 10px 14px;
+}
+
+.garageHero__bannerRow .detHero__pills {
+  justify-content: flex-end;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .garageHero--noBanner .detHero__overlay--card {
@@ -1632,19 +2366,48 @@ a.backNav {
   padding: 14px;
 }
 
+/* Липкая панель: поиск и «Добавить авто» остаются под шапкой при длинном списке */
+.detSearchCard--sticky {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 52px);
+  z-index: 4;
+  background: color-mix(in oklab, var(--bg) 96%, var(--code-bg));
+  box-shadow: var(--shadow);
+}
+
 .detSearchCard__row {
   align-items: center;
   flex-wrap: nowrap;
 }
 
+/* Поле поиска слева (ограниченная ширина), справа — подсказка + кнопка */
+.detSearchCard__row--main {
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
 .detSearchCard__input {
-  flex: 1;
-  max-width: none;
-  min-width: 220px;
+  flex: 0 1 auto;
+  width: min(100%, 420px);
+  max-width: 420px;
+  min-width: 0;
+}
+
+.detSearchCard__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px 14px;
+  margin-left: auto;
+  flex: 1 1 auto;
+  min-width: min(100%, 280px);
 }
 
 .detSearchCard__addBtn {
-  margin-left: auto;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
@@ -1678,31 +2441,26 @@ a.backNav {
 }
 
 @media (max-width: 768px) {
-  .detSearchCard__row {
-    flex-wrap: wrap;
+  .detSearchCard__row--main {
+    flex-direction: column;
+    align-items: stretch;
   }
+
   .detSearchCard__input {
-    max-width: 100%;
+    width: 100%;
+    max-width: none;
+  }
+
+  .detSearchCard__actions {
+    margin-left: 0;
+    justify-content: space-between;
     min-width: 0;
   }
+
   .detSearchCard__addBtn {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
   }
-}
-
-.detLogoPreview {
-  width: 86px;
-  height: 86px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-  background: color-mix(in oklab, var(--code-bg) 60%, var(--bg));
-}
-
-.detLogoPreview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 /* Настройки гаража: воздух под шапкой, отступы у блоков медиа */
@@ -1718,41 +2476,210 @@ a.backNav {
 
 .garageSettings__card {
   margin-top: clamp(20px, 4vw, 32px);
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
 }
 
-.garageSettings__mediaWrap {
-  margin-top: 14px;
-  padding-top: 12px;
+.garageSettings__formAfterMedia {
+  padding-top: 14px;
+  min-width: 0;
+  max-width: 100%;
 }
 
-.garageSettings__mediaHeading {
-  margin: 0 0 6px;
+/* Подсказки по полям и у заголовков (ServiceHint) */
+.serviceHint__fieldWrap {
+  position: relative;
+  overflow: visible;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.serviceHint__fieldTop {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.serviceHint__fieldTop > .field__label {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+}
+
+.serviceHint__fieldTop > .serviceHint__btn {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+}
+
+.serviceHint__fieldTop > .serviceHint__panel {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  position: relative;
+  width: 100%;
+  max-width: min(100%, calc(100vw - 24px));
+  min-width: 0;
+  top: auto;
+  right: auto;
+  left: auto;
+  box-sizing: border-box;
+}
+
+.serviceHint__pageBlockRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.serviceHint__pageBlockRow > .h1 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.serviceHint__pageBlockRow > .serviceHint__panel--dropdown {
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: min(100%, calc(100vw - 24px));
+  min-width: 0;
+  margin-top: 2px;
+  box-sizing: border-box;
+}
+
+.serviceHint__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid color-mix(in oklab, var(--border) 80%, var(--accent));
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--bg) 90%, var(--code-bg));
+  color: var(--text-h);
+  cursor: pointer;
+  transition:
+    border-color 0.12s ease,
+    background-color 0.12s ease;
+}
+
+.serviceHint__btn:hover {
+  border-color: var(--accent);
+}
+
+.serviceHint__btn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  outline-offset: 2px;
+}
+
+.serviceHint__btn[aria-expanded='true'] {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--bg));
+}
+
+.serviceHint__panel {
+  z-index: 4;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 88%, var(--code-bg));
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  animation: serviceHintIn 0.18s ease;
+  cursor: pointer;
+  max-width: min(100%, calc(100vw - 24px));
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.serviceHint__panel--dropdown {
+  position: relative;
+}
+
+.serviceHint__panelInner {
+  max-height: min(45vh, 280px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.serviceHint__panelTapHint {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--text);
+  opacity: 0.85;
+}
+
+.serviceHint__panelText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.serviceHint__panelText + .serviceHint__panelText {
+  margin-top: 10px;
+}
+
+@keyframes serviceHintIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Баннер + аватар: настройки гаража и лендинга детейлинга (MediaBannerAvatarBlock.jsx) */
+.mediaHeroForm {
+  margin-bottom: 14px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.mediaHeroForm__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.mediaHeroForm__title {
+  margin: 0;
   font-size: 15px;
   font-weight: 650;
   letter-spacing: -0.2px;
   color: var(--text-h);
 }
 
-.garageSettings__mediaLead {
-  margin: 0 0 12px;
-  line-height: 1.45;
-}
-
-.garageSettings__mediaCols {
-  display: grid;
-  grid-template-columns: 108px minmax(0, 1fr);
-  gap: 12px 14px;
-  align-items: start;
-}
-
-.garageSettings__mediaCol {
+.mediaHeroForm__stack {
   display: flex;
-  min-width: 0;
   flex-direction: column;
-  gap: 6px;
+  gap: 18px;
 }
 
-.garageSettings__mediaSublabel {
+.mediaHeroForm__section {
+  min-width: 0;
+}
+
+.mediaHeroForm__sublabel {
+  margin: 0 0 6px;
   font-size: 11px;
   font-weight: 650;
   letter-spacing: 0.06em;
@@ -1760,7 +2687,83 @@ a.backNav {
   color: var(--text-h);
 }
 
-.garageSettings__thumb {
+.mediaHeroForm__thumbWrap {
+  position: relative;
+  align-self: flex-start;
+}
+
+.mediaHeroForm__thumbWrap--banner {
+  width: 100%;
+  min-width: 0;
+}
+
+.mediaHeroForm__thumbWrap--avatar {
+  width: 96px;
+  height: 96px;
+  flex-shrink: 0;
+}
+
+.mediaHeroForm__overlayBtn {
+  position: absolute;
+  z-index: 4;
+  display: inline-grid;
+  place-items: center;
+  margin: 0;
+  padding: 0;
+  cursor: pointer;
+  border: 1px solid color-mix(in oklab, white 14%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--bg) 38%, transparent);
+  color: var(--text-h);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background-color 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.mediaHeroForm__overlayBtn:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  color: var(--accent);
+  background: color-mix(in oklab, var(--bg) 52%, transparent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
+}
+
+.mediaHeroForm__overlayBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.mediaHeroForm__overlayBtn--banner {
+  top: 10px;
+  right: 10px;
+  width: 40px;
+  height: 40px;
+}
+
+.mediaHeroForm__overlayBtn--avatar {
+  top: 4px;
+  right: 4px;
+  width: 30px;
+  height: 30px;
+}
+
+.mediaHeroForm__overlayBtnIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.mediaHeroForm__overlayBtn--avatar .mediaHeroForm__overlayBtnIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.mediaHeroForm__thumb {
   position: relative;
   display: block;
   width: 100%;
@@ -1777,23 +2780,23 @@ a.backNav {
     background-color 120ms ease;
 }
 
-.garageSettings__thumb:hover {
+.mediaHeroForm__thumb:hover {
   border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
   background: color-mix(in oklab, var(--accent) 7%, var(--bg));
 }
 
-.garageSettings__thumb:focus-visible {
+.mediaHeroForm__thumb:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
   outline-offset: 2px;
 }
 
-.garageSettings__thumb--banner {
-  aspect-ratio: 16 / 9;
-  min-height: 84px;
-  max-height: 128px;
+.mediaHeroForm__thumb--banner {
+  aspect-ratio: 3 / 1;
+  min-height: 88px;
+  max-height: 148px;
 }
 
-.garageSettings__thumb--banner img {
+.mediaHeroForm__thumb--banner img {
   position: absolute;
   inset: 0;
   display: block;
@@ -1803,15 +2806,14 @@ a.backNav {
   object-position: center;
 }
 
-.garageSettings__thumb--avatar {
+.mediaHeroForm__thumb--avatar {
   width: 96px;
   height: 96px;
   flex-shrink: 0;
-  border-radius: 16px;
+  border-radius: 50%;
 }
 
-/* Заполняем квадрат целиком (иначе в <button> картинка центрируется и видны «тёмные поля») */
-.garageSettings__thumb--avatar img {
+.mediaHeroForm__thumb--avatar img {
   position: absolute;
   inset: 0;
   display: block;
@@ -1822,7 +2824,7 @@ a.backNav {
   border-radius: inherit;
 }
 
-.garageSettings__thumbEmpty {
+.mediaHeroForm__thumbEmpty {
   display: flex;
   min-height: 100%;
   align-items: center;
@@ -1835,26 +2837,9 @@ a.backNav {
   box-sizing: border-box;
 }
 
-.garageSettings__mediaRemove {
-  align-self: flex-start;
-  margin-top: 2px;
-  padding: 5px 0;
-  font-size: 13px;
-}
-
 @media (max-width: 560px) {
-  .garageSettings__mediaCols {
-    grid-template-columns: 1fr;
-  }
-
-  .garageSettings__mediaCol--avatar {
-    flex-flow: row wrap;
-    align-items: flex-start;
-    column-gap: 14px;
-  }
-
-  .garageSettings__mediaCol--avatar .garageSettings__mediaSublabel {
-    flex: 1 0 100%;
+  .mediaHeroForm__thumb--banner {
+    max-height: none;
   }
 }
 
@@ -1921,17 +2906,55 @@ a.backNav {
   align-self: stretch;
 }
 
-@media (max-width: 520px) {
-  .garageSettings__urlComposerInner {
+/* Узкая ширина: одна строка префикс + slug, кнопка снизу во всю ширину (без «шеста» у копирования) */
+@media (max-width: 640px) {
+  .serviceHint__btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .garageSettings__urlComposer {
     flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .garageSettings__urlComposerInner {
+    flex-direction: row;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .garageSettings__urlPrefix {
-    max-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    white-space: normal;
-    word-break: break-all;
+    flex: 0 1 38%;
+    min-width: 0;
+    max-width: none;
+    padding: 8px 8px 8px 10px;
+    font-size: 11px;
+    line-height: 1.3;
+    border-right: 1px solid var(--border);
+    border-bottom: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    align-self: stretch;
+  }
+
+  .garageSettings__urlSlugInput {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 16px;
+    line-height: 1.35;
+  }
+
+  .garageSettings__urlCopyBtn {
+    align-self: stretch;
+    width: 100%;
+    min-height: 44px;
+    flex: 0 0 auto;
   }
 }
 
@@ -1957,19 +2980,6 @@ a.backNav {
   width: 18px;
   height: 18px;
   accent-color: var(--accent);
-}
-
-.detCoverPreview {
-  height: 130px;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
 }
 
 .split {
@@ -2021,28 +3031,25 @@ a.backNav {
   margin-top: 12px;
 }
 
-/* /auth: хотим, чтобы правая карточка начиналась напротив строки «Вход в сервис» */
+/* /auth: логотип только в шапке; слева сразу «Вход в сервис», справа карточка на одной линии */
 .authSplit--hub {
-  grid-template-rows: auto 1fr;
-}
-
-.authSplit--hub .authHub__brand {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.authHub__logoHeading {
-  line-height: 0;
+  grid-template-rows: auto;
 }
 
 .authSplit--hub .authHub__info {
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 1;
+  align-self: start;
 }
 
 .authSplit--hub .authHub__actions {
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 1;
+  align-self: start;
+}
+
+.authSplit--hub .authSplit__lede {
+  margin-top: 0;
 }
 
 .authSplit__aside {
@@ -2141,7 +3148,7 @@ a.backNav {
   color: var(--text);
 }
 
-a.authConsent__legalLink {
+.authConsent__legalLink {
   display: inline;
   padding: 0;
   margin: 0;
@@ -2162,12 +3169,17 @@ a.authConsent__legalLink {
     filter 120ms ease;
 }
 
-a.authConsent__legalLink:hover {
+.authConsent__legalLink:hover {
   color: var(--accent);
   text-decoration-color: var(--accent);
   filter: brightness(1.12);
   transform: none;
   box-shadow: none;
+}
+
+/* Владелец: шеврон в outline-кнопке «Поддержка» в футере */
+.ownerSupportDd__footerBtn .footerHelpDd__chev {
+  margin-left: 2px;
 }
 
 /* /auth: отступ до колонок (у общего правила + .card сюда не попадает) */
@@ -2295,6 +3307,11 @@ a.authConsent__legalLink:hover {
 .kv__v {
   color: var(--text-h);
   font-size: 13px;
+}
+
+.kv__v--prewrap {
+  white-space: pre-wrap;
+  line-height: 1.45;
 }
 
 .miniList {
@@ -2647,6 +3664,12 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+
+.formGrid > * {
+  min-width: 0;
 }
 
 .historyFormGrid {
@@ -2847,6 +3870,69 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   filter: brightness(1.06);
 }
 
+/* Выбранные услуги в настройках лендинга / заявке партнёра */
+.offeredSvcTagsBlock {
+  margin-top: 10px;
+  margin-bottom: 2px;
+}
+
+.offeredSvcTagsMeta {
+  font-weight: 500;
+}
+
+.offeredSvcTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.offeredSvcTagsEmpty {
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+.offeredSvcTag {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  color: var(--text-h);
+  padding: 6px 10px 6px 12px;
+  cursor: pointer;
+  font: 13px/1.2 var(--sans);
+  text-align: left;
+}
+
+.offeredSvcTag:hover {
+  border-color: color-mix(in oklab, var(--accent) 70%, var(--border));
+  filter: brightness(1.05);
+}
+
+.offeredSvcTag__text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.offeredSvcTag__x {
+  flex-shrink: 0;
+  opacity: 0.75;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Баннер после первого сохранения лендинга (партнёр → публичная /d/…?from=setup) */
+.detPublicSetupBanner {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  background: color-mix(in oklab, var(--accent) 6%, var(--bg));
+}
+
 .authFormGrid {
   margin-top: 10px;
 }
@@ -2904,6 +3990,26 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   margin-top: 16px;
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+/* Форма визита (детейлинг): советы для блока рекомендаций на карточке авто */
+.historyCareTips {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historyCareTips .field__label .pill {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.historyCareTips__sectionHead {
+  padding-bottom: 0;
+}
+
+.historyCareTips__sectionHead .field__label {
+  font-weight: 650;
 }
 
 .link {
@@ -2967,37 +4073,136 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   margin-top: 6px;
 }
 
-/* Рекомендации: сворачиваемый список */
-.carPage__recsToggle {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  margin: 0;
-  color: inherit;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
+/* Карточка авто: рекомендации — раскрытие, подсказка «i», кнопка визита на всю ширину */
+.carPage__recsHeader {
+  width: 100%;
 }
 
-.carPage__recsToggle:hover {
+.carPage__recsHeaderMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  width: 100%;
+}
+
+.carPage__recsExpandTrigger {
+  flex: 1 1 min(100%, 260px);
+  min-width: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease;
+}
+
+.carPage__recsExpandTrigger:hover {
   color: var(--text-h);
 }
 
-.carPage__chev {
+.carPage__recsExpandTrigger:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 3px;
+}
+
+.carPage__recsExpandTitle {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.carPage__recsChev {
+  flex-shrink: 0;
   width: 10px;
   height: 10px;
   border: solid currentColor;
   border-width: 0 3px 3px 0;
   display: inline-block;
   transform: rotate(-45deg);
-  transition: transform 140ms ease;
-  opacity: 0.9;
+  opacity: 0.88;
+  transition: transform 0.4s cubic-bezier(0.33, 1, 0.68, 1), opacity 0.2s ease;
 }
 
-.carPage__chev.is-open {
+.carPage__recsChev.is-open {
   transform: rotate(45deg);
+}
+
+.carPage__recsHintWrap {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Плавное раскрытие списка рекомендаций */
+.carPage__recsCollapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.carPage__recsCollapse--open {
+  grid-template-rows: 1fr;
+}
+
+.carPage__recsCollapseInner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 0.3s ease 0.05s,
+    transform 0.4s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.carPage__recsCollapse--open .carPage__recsCollapseInner {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.carPage__recsList.recList {
+  margin-top: 12px;
+}
+
+.carPage__recsEmpty {
+  margin: 12px 0 0;
+  line-height: 1.5;
+}
+
+.carPage__recsAddVisitWrap {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+}
+
+a.btn.carPage__recsAddVisitFull,
+.btn.carPage__recsAddVisitFull {
+  width: 100%;
+  box-sizing: border-box;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carPage__recsCollapse {
+    transition-duration: 0.01ms;
+  }
+
+  .carPage__recsCollapseInner {
+    transition-duration: 0.01ms;
+    transition-delay: 0s;
+  }
+
+  .carPage__recsChev {
+    transition-duration: 0.01ms;
+  }
 }
 
 @media (max-width: 980px) {
@@ -3016,7 +4221,6 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
     grid-template-rows: auto;
   }
 
-  .authSplit--hub .authHub__brand,
   .authSplit--hub .authHub__info,
   .authSplit--hub .authHub__actions {
     grid-column: 1;
@@ -3118,17 +4322,13 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
     flex-direction: column;
   }
 
-  .authSplit--hub .authHub__brand {
-    order: 1;
-  }
-
   .authSplit--hub .authHub__info {
-    order: 2;
-    margin-top: 6px;
+    order: 1;
+    margin-top: 0;
   }
 
   .authSplit--hub .authHub__actions {
-    order: 3;
+    order: 2;
     margin-top: 10px;
     width: 100%;
     display: flex;
@@ -3301,6 +4501,23 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
     flex: 0 0 auto;
   }
 
+  .nav__brand .brandWordmarkWrap {
+    padding: 2px 5px;
+    border-radius: 7px;
+  }
+
+  .nav__brand .brandWordmarkImg {
+    height: 15px;
+    width: auto;
+  }
+
+  .nav__brandTagline {
+    padding-left: calc(1px + 5px);
+    max-width: min(200px, 46vw);
+    font-size: 10px;
+    letter-spacing: 0.01em;
+  }
+
   .nav__links {
     flex: 1;
     min-width: 0;
@@ -3327,6 +4544,10 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
 
   .nav__linksScroll::-webkit-scrollbar {
     display: none;
+  }
+
+  .nav__linksScroll--partnerTools {
+    flex-wrap: nowrap;
   }
 
   .nav__linksPersist {
@@ -3358,6 +4579,78 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
     height: 200px;
   }
 
+  .garagePage .detHero.detHero--card.garageHero {
+    height: 240px;
+  }
+
+  .garageHero__bannerRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .garageProfileCard__footer {
+    margin-top: 12px;
+    padding-top: 10px;
+  }
+
+  .garageProfileCard__detAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+
+  .garageProfileCard__detAvatarFallback {
+    font-size: 15px;
+  }
+
+  .garageProfileCard__addCarBtn {
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .garageVinClaimBtn__full {
+    display: none;
+  }
+
+  .garageVinClaimBtn__short {
+    display: inline;
+  }
+
+  .garageAddCarBtn.garageProfileCard__addCarBtn {
+    min-width: 44px;
+    width: 44px;
+    padding-left: 0;
+    padding-right: 0;
+    gap: 0;
+  }
+
+  .garageAddCarBtn__text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .garageAddCarBtn__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .garageAddCarBtn__icon .carPage__icon--car {
+    width: 22px;
+    height: 22px;
+  }
+
+  .garageHero__bannerRow .detHero__pills {
+    justify-content: flex-start;
+  }
+
   .detHero__overlay--card {
     padding: 10px;
   }
@@ -3385,15 +4678,18 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   }
 
   .detHero__logo {
-    left: 12px;
+    right: 12px;
+    left: auto;
     bottom: 12px;
     width: 48px;
     height: 48px;
     border-radius: 14px;
   }
 
-  .detCoverPreview {
-    height: 110px;
+  .garageHero .detHero__logo {
+    right: 12px;
+    left: auto;
+    bottom: 12px;
   }
 
   /* Герой карточки: цвет / год / пробег (и владелец, и детейлинг; без VIN и номера на обложке) */
@@ -3445,14 +4741,15 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   /* Карточки в списках авто: колонка, превью на всю ширину */
   .rowItem {
     grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 12px;
+    gap: 12px;
+    padding: 14px 16px;
   }
 
   .rowItem__img {
     width: 100%;
     height: 140px;
     max-width: none;
+    border-radius: 14px;
   }
 
   .rowItem__aside {
@@ -3467,6 +4764,25 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   .rowItem__aside .openAction {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Дашборд детейлинга: вместо отдельной колонки — полоса «аватар + контекст» над кнопкой */
+  .rowItem--ownerPeek .rowItem__ownerPeek {
+    display: none !important;
+  }
+
+  .rowItem__ownerSummary {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
   }
 
   .eventRow.row.spread {

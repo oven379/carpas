@@ -10,6 +10,8 @@ import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SUPPORT_LINK_HREF } from './supportConfig.js'
 
+export { default as ServiceHint } from './ServiceHint.jsx'
+
 export function Button({ variant = 'primary', ...props }) {
   return <button data-variant={variant} {...props} />
 }
@@ -65,9 +67,10 @@ export function OpenAction({ to, asSpan, className = '', children = 'Откры�
   )
 }
 
-/** Назад: шеврон влево. С `to` — `<Link>` (надёжный переход в роутере); без `to` — кнопка «шаг назад» по истории. */
-export function BackNav({ className = '', title = 'Назад', to }) {
+/** Назад: шеврон влево. С `to` — `<Link>`; без `to` — шаг по истории. При `idx <= 0` сначала `location.state[stateFromKey]` (безопасный путь), иначе `fallbackTo`. */
+export function BackNav({ className = '', title = 'Назад', to, fallbackTo, stateFromKey }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const cn = `backNav ${className}`.trim()
   const svg = (
     <svg className="backNav__svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
@@ -88,8 +91,30 @@ export function BackNav({ className = '', title = 'Назад', to }) {
       </Link>
     )
   }
+  const goBack = () => {
+    if (typeof window !== 'undefined') {
+      const idx = window.history.state?.idx
+      if (typeof idx === 'number' && idx > 0) {
+        navigate(-1)
+        return
+      }
+    }
+    if (stateFromKey) {
+      const raw = location.state?.[stateFromKey]
+      const f = typeof raw === 'string' ? raw.trim() : ''
+      if (f.startsWith('/') && !f.startsWith('//') && !f.includes('..')) {
+        navigate(f)
+        return
+      }
+    }
+    if (fallbackTo) {
+      navigate(fallbackTo, { replace: true })
+      return
+    }
+    navigate(-1)
+  }
   return (
-    <button type="button" className={cn} aria-label={title} title={title} onClick={() => navigate(-1)}>
+    <button type="button" className={cn} aria-label={title} title={title} onClick={goBack}>
       {svg}
     </button>
   )
@@ -102,46 +127,50 @@ export function TopNav() {
   const { detailingId, mode } = useDetailing()
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
   const onAuthHub = loc.pathname === '/auth' || loc.pathname.startsWith('/auth/')
-  /** Публичный лендинг детейлинга: только регистрация и поддержка (без входа/выхода в шапке) */
+  /** Публичная витрина /g/ и /d/: в шапке «Войти» (прозрачная кнопка с обводкой) */
   const isPublicDetailingPage = /^\/d\/[^/]+\/?$/.test(loc.pathname)
   const isPublicGaragePage = /^\/g\/[^/]+\/?$/.test(loc.pathname)
   const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
+  const isDetailingCabinet = mode === 'detailing' && !isPublicDetailingPage
   let pendingClaims = 0
-  if (mode === 'detailing' && detailingId && r.listClaimsForDetailing) {
+  if (isDetailingCabinet && detailingId && r.listClaimsForDetailing) {
     const res = safeSyncRepo(() => r.listClaimsForDetailing(detailingId))
     if (res.ok && Array.isArray(res.value)) {
       pendingClaims = res.value.filter((x) => x.status === 'pending').length
     }
   }
+  const logout = () => {
+    clearSession()
+    invalidateRepo()
+    nav('/auth', { replace: true })
+  }
   return (
     <header className="nav">
       <div className="nav__inner">
-        <NavLink to="/" className="nav__brand">
-          <Logo size={26} />
+        <NavLink to="/" className="nav__brand" aria-label="КарПас — на главную">
+          <span className="nav__brandStack">
+            <Logo />
+            <span className="nav__brandTagline">История Вашего автомобиля</span>
+          </span>
         </NavLink>
         <nav className="nav__links">
-          <div className="nav__linksScroll">
-            {mode === 'detailing' && !isPublicDetailingPage ? (
-              <NavLink to="/requests" className={linkClass}>
-                Заявки{pendingClaims ? ` (${pendingClaims})` : ''}
-              </NavLink>
-            ) : null}
-            {mode === 'detailing' && !isPublicDetailingPage ? (
-              <NavLink to="/detailing" className={linkClass}>
-                Кабинет
-              </NavLink>
+          <div className={`nav__linksScroll${isDetailingCabinet ? ' nav__linksScroll--partnerTools' : ''}`}>
+            {isDetailingCabinet ? (
+              <>
+                <NavLink to="/requests" className={linkClass}>
+                  Заявки ({pendingClaims})
+                </NavLink>
+                <button type="button" className="nav__action" onClick={logout}>
+                  Выйти
+                </button>
+              </>
             ) : null}
           </div>
           <div className="nav__linksPersist">
             {isPublicShowcasePage ? (
-              <>
-                <Link className="nav__action" to="/auth/owner">
-                  Зарегистрироваться
-                </Link>
-                <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
-                  Поддержка
-                </a>
-              </>
+              <Link className="nav__action nav__action--showcaseLogin" to="/auth">
+                Войти
+              </Link>
             ) : (
               <>
                 {onAuthHub ? (
@@ -149,24 +178,18 @@ export function TopNav() {
                     О сервисе
                   </Link>
                 ) : null}
-                {mode === 'owner' && isAuthed() ? <OwnerSupportDropdown /> : null}
+                {mode === 'owner' && isAuthed() ? (
+                  <>
+                    <OwnerSupportDropdown />
+                    <button type="button" className="nav__action" onClick={logout}>
+                      Выйти
+                    </button>
+                  </>
+                ) : null}
                 {mode === 'guest' && !onAuthHub ? (
                   <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
                     Поддержка
                   </a>
-                ) : null}
-                {mode !== 'guest' ? (
-                  <button
-                    type="button"
-                    className="nav__action"
-                    onClick={() => {
-                      clearSession()
-                      invalidateRepo()
-                      nav('/')
-                    }}
-                  >
-                    Выйти
-                  </button>
                 ) : null}
               </>
             )}
