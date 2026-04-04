@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { useRepo } from '../useRepo.js'
@@ -6,9 +7,29 @@ import { fmtInt } from '../../lib/format.js'
 
 export default function HomePage() {
   const r = useRepo()
-  const cars = r.listCars()
-  const total = cars.length
-  const top = cars.slice(0, 3)
+  const [total, setTotal] = useState(0)
+  const [top, setTop] = useState([])
+
+  useEffect(() => {
+    let c = false
+    ;(async () => {
+      try {
+        const st = await r.publicStats()
+        if (!c) setTotal(Number(st?.cars) || 0)
+      } catch {
+        if (!c) setTotal(0)
+      }
+      try {
+        const recent = await r.publicCarsRecent({ limit: 6 })
+        if (!c) setTop(Array.isArray(recent) ? recent.slice(0, 3) : [])
+      } catch {
+        if (!c) setTop([])
+      }
+    })()
+    return () => {
+      c = true
+    }
+  }, [r, r._version])
 
   return (
     <div className="container">
@@ -117,7 +138,10 @@ export default function HomePage() {
         <div className="grid">
           {top.map((c) => (
             <Link key={c.id} className="tile" to={`/car/${c.id}`}>
-              <div className="tile__media" style={{ backgroundImage: `url(${c.hero})` }} />
+              <div
+                className="tile__media"
+                style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
+              />
               <div className="tile__body">
                 <div className="tile__title">
                   {c.make} {c.model}
@@ -156,15 +180,7 @@ export default function HomePage() {
           <details className="faqItem">
             <summary>Можно ли отозвать публичную ссылку?</summary>
             <div className="faqBody muted small">
-              Да: ссылку можно отозвать или пересоздать. В текущей сборке удобнее выпустить новую ссылку — при подключении
-              сервера появится явный отзыв токена.
-            </div>
-          </details>
-          <details className="faqItem">
-            <summary>Это приложение уже подключено к серверу?</summary>
-            <div className="faqBody muted small">
-              Данные могут храниться локально в браузере или на сервере — зависит от конфигурации. Подключение бэкенда
-              переключается режимом API без смены интерфейса.
+              Да: ссылку можно отозвать в кабинете или выпустить новую — старые токены перестанут работать.
             </div>
           </details>
         </div>
@@ -172,4 +188,3 @@ export default function HomePage() {
     </div>
   )
 }
-

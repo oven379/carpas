@@ -1,14 +1,14 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { BackNav, Button, Card, Field, Input, ServiceHint } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { clearSession, ownerToSessionSnapshot, setSessionOwner } from '../auth.js'
-import { OWNER_PASSWORD_MIN_LEN, formatPhoneRuInput } from '../../lib/format.js'
+import { debugAuth, hasDetailingSession, hasOwnerSession, setSessionOwner } from '../auth.js'
+import { OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const [ownEmail, setOwnEmail] = useState('')
   const [ownPassword, setOwnPassword] = useState('')
   const [ownName, setOwnName] = useState('')
@@ -22,9 +22,12 @@ export default function OwnerAuthPage() {
   const nextAfterAuth =
     typeof f === 'string' && f.startsWith('/') && !f.startsWith('/auth') ? (f === '/' ? '/garage' : f) : '/garage'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/garage" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) {
+    debugAuth('OwnerAuthPage: уже есть сессия владельца → редирект', { to: nextAfterAuth })
+    return <Navigate to={nextAfterAuth} replace />
+  }
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
@@ -33,18 +36,11 @@ export default function OwnerAuthPage() {
       <div className="authSplit">
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
-            <div id="owner-auth-hint-scope" className="serviceHint__pageBlock">
-              <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
-                <BackNav to="/auth" title="К выбору входа" />
-                <h1 className="h1">Гараж</h1>
-                <ServiceHint scopeId="owner-auth-hint-scope" variant="compact" label="Справка: вход и регистрация">
-                  <p className="serviceHint__panelText">
-                    Укажите почту и пароль (не короче {OWNER_PASSWORD_MIN_LEN} символов). Имя и телефон — по желанию. Отметьте согласие с
-                    политикой и правилами: существующий аккаунт откроется по паролю, новый создастся автоматически. Данные на этом устройстве
-                    хранятся в браузере.
-                  </p>
-                </ServiceHint>
-              </div>
+            <div className="row gap wrap" style={{ alignItems: 'center' }}>
+              <BackNav to="/auth" title="К выбору входа" />
+              <h1 className="h1" style={{ margin: 0 }}>
+                Мой гараж
+              </h1>
             </div>
             <div className="authSplit__lede">
               <p className="authSplit__tagline">Создавайте историю своего автомобиля</p>
@@ -53,6 +49,10 @@ export default function OwnerAuthPage() {
                 <li>Фото и документы к работам, понятная хронология обслуживания.</li>
                 <li>Публичная ссылка на историю — когда нужно показать авто партнёру или покупателю, без доступа к кабинету.</li>
               </ul>
+              <p className="muted small authSplit__note">
+                Укажите почту и пароль (не короче {OWNER_PASSWORD_MIN_LEN} символов). Имя и телефон — по желанию. Отметьте
+                согласие с политикой и правилами — существующий аккаунт откроется по паролю, новый создастся автоматически.
+              </p>
             </div>
           </div>
         </aside>
@@ -71,15 +71,11 @@ export default function OwnerAuthPage() {
                   placeholder="you@example.com"
                 />
               </Field>
-              <div className="field field--full serviceHint__fieldWrap" id="owner-auth-password-hint">
-                <div className="field__top serviceHint__fieldTop">
-                  <span className="field__label">Пароль</span>
-                  <ServiceHint scopeId="owner-auth-password-hint" label="Справка: пароль">
-                    <p className="serviceHint__panelText">
-                      Не короче {OWNER_PASSWORD_MIN_LEN} символов — используется и для входа в существующий аккаунт, и при создании нового.
-                    </p>
-                  </ServiceHint>
-                </div>
+              <Field
+                className="field--full"
+                label="Пароль"
+                hint={`Не короче ${OWNER_PASSWORD_MIN_LEN} символов — для нового аккаунта или для входа`}
+              >
                 <Input
                   ref={ownPasswordRef}
                   className="input mono"
@@ -89,7 +85,7 @@ export default function OwnerAuthPage() {
                   onChange={(e) => setOwnPassword(e.target.value)}
                   placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
                 />
-              </div>
+              </Field>
               <Field className="field--full" label="Имя (необязательно)">
                 <Input
                   className="input"
@@ -103,7 +99,7 @@ export default function OwnerAuthPage() {
                 <Input
                   className="input"
                   value={ownPhone}
-                  onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
+                  onChange={(e) => setOwnPhone(e.target.value)}
                   placeholder="+7 …"
                   autoComplete="tel"
                   inputMode="tel"
@@ -133,7 +129,7 @@ export default function OwnerAuthPage() {
               <Button
                 className="btn authOwner__submitGarage"
                 variant="primary"
-                onClick={() => {
+                onClick={async () => {
                   const em = (ownEmail || ownEmailRef.current?.value || '').trim()
                   const pwd = (ownPassword || ownPasswordRef.current?.value || '').trim()
                   if (!agreedToTerms) {
@@ -144,45 +140,62 @@ export default function OwnerAuthPage() {
                     alert('Укажите почту и пароль')
                     return
                   }
-                  if (!r.loginOwner || !r.registerOwner) {
-                    alert(
-                      'Вход владельца в режиме API пока не настроен. Отключите VITE_API_MODE=real для локальной работы.',
-                    )
+                  if (pwd.length < OWNER_PASSWORD_MIN_LEN) {
+                    alert(`Пароль слишком короткий: не менее ${OWNER_PASSWORD_MIN_LEN} символов.`)
                     return
                   }
-                  const loginRes = r.loginOwner({ email: em, password: pwd })
-                  if (loginRes?.ok) {
-                    setSessionOwner(ownerToSessionSnapshot(loginRes.owner))
-                    invalidateRepo()
-                    nav(nextAfterAuth, { replace: true })
-                    return
-                  }
-                  const reason = loginRes?.reason
-                  if (reason === 'bad_password') {
-                    alert('Неверный пароль для этой почты.')
-                    return
-                  }
-                  if (reason === 'not_found') {
-                    const reg = r.registerOwner({ email: em, password: pwd, name: ownName, phone: ownPhone })
-                    if (reg?.ok) {
-                      setSessionOwner(ownerToSessionSnapshot(reg.owner))
+                  try {
+                    const loginRes = await r.loginOwner({ email: em, password: pwd })
+                    debugAuth('OwnerAuth: ответ loginOwner', { ok: loginRes?.ok, reason: loginRes?.reason })
+                    if (loginRes?.ok) {
+                      setSessionOwner(
+                        {
+                          email: loginRes.owner.email,
+                          name: loginRes.owner.name,
+                          phone: loginRes.owner.phone,
+                        },
+                        loginRes.token,
+                      )
                       invalidateRepo()
-                      nav('/garage/settings?setup=1', {
-                        replace: true,
-                        state: { afterGarageSetup: nextAfterAuth },
-                      })
+                      debugAuth('OwnerAuth: после setSessionOwner, перед navigate', { nextAfterAuth })
+                      nav(nextAfterAuth, { replace: true })
                       return
                     }
-                    const rr = reg?.reason
-                    if (rr === 'email_taken') alert('Эта почта уже занята — попробуйте войти с паролем.')
-                    else if (rr === 'bad_email') alert('Укажите корректную почту')
-                    else if (rr === 'bad_password')
-                      alert(`Пароль слишком короткий: не менее ${OWNER_PASSWORD_MIN_LEN} символов.`)
-                    else alert('Не удалось создать аккаунт')
-                    return
+                    const reason = loginRes?.reason
+                    if (reason === 'bad_password') {
+                      alert('Неверный пароль для этой почты.')
+                      return
+                    }
+                    if (reason === 'not_found') {
+                      try {
+                        const reg = await r.registerOwner({
+                          email: em,
+                          password: pwd,
+                          name: ownName,
+                          phone: ownPhone,
+                        })
+                        setSessionOwner(
+                          {
+                            email: reg.owner.email,
+                            name: reg.owner.name,
+                            phone: reg.owner.phone,
+                          },
+                          reg.token,
+                        )
+                        invalidateRepo()
+                        debugAuth('OwnerAuth: регистрация ok, перед navigate', { nextAfterAuth })
+                        nav(nextAfterAuth, { replace: true })
+                        return
+                      } catch {
+                        alert('Не удалось создать аккаунт. Возможно, почта уже занята — попробуйте войти.')
+                        return
+                      }
+                    }
+                    if (reason === 'bad_credentials') alert('Укажите почту и пароль')
+                    else alert('Не удалось войти')
+                  } catch {
+                    alert('Ошибка сети или сервера. Проверьте VITE_API_BASE_URL и что бэкенд запущен.')
                   }
-                  if (reason === 'bad_credentials') alert('Укажите почту и пароль')
-                  else alert('Не удалось войти')
                 }}
               >
                 Войти в гараж
@@ -191,38 +204,6 @@ export default function OwnerAuthPage() {
           </Card>
         </div>
       </div>
-
-      <Card className="card pad authPage__single" style={{ marginTop: 16 }}>
-        <h2 className="h2">Локальные данные в браузере</h2>
-        <p className="muted small" style={{ marginBottom: 12 }}>
-          Сброс удалит авто, историю, фото и заявки из локального хранилища и разлогинит. Полный сброс доступен и на экране{' '}
-          <Link className="link" to="/auth">
-            выбора входа
-          </Link>
-          .
-        </p>
-        <button
-          type="button"
-          className="btn"
-          data-variant="danger"
-          onClick={() => {
-            if (r.mode !== 'mock') {
-              alert('Включён режим API: сброс локальных данных в браузере недоступен.')
-              return
-            }
-            const ok = confirm(
-              'Удалить все данные КарПас из этого браузера и восстановить начальный набор?\n\nСессия будет завершена.',
-            )
-            if (!ok) return
-            r.resetLocalDemo()
-            clearSession()
-            invalidateRepo()
-            window.location.assign('/')
-          }}
-        >
-          Сбросить локальные данные
-        </button>
-      </Card>
     </div>
   )
 }

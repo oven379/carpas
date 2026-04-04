@@ -1,24 +1,18 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { safeSyncRepo } from '../../lib/syncRepoCall.js'
 import { BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { getSessionDetailingId, setSessionDetailingId } from '../auth.js'
+import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function PartnerLoginPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const currentId = getSessionDetailingId()
   const current =
-    currentId && r.getDetailing
-      ? (() => {
-          const res = safeSyncRepo(() => r.getDetailing(currentId))
-          return res.ok ? res.value ?? null : null
-        })()
-      : null
-  const [email, setEmail] = useState('test@test')
+    currentId && detailing && String(detailing.id) === String(currentId) ? detailing : null
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const detEmailRef = useRef(null)
@@ -27,9 +21,9 @@ export default function PartnerLoginPage() {
   const loc = useLocation()
   const from = loc.state?.from || '/'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/cars" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/cars" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
@@ -49,7 +43,7 @@ export default function PartnerLoginPage() {
               <ul className="authSplit__benefits">
                 <li>Заявки и статусы по авто на обслуживании — в одном окне.</li>
                 <li>Профиль организации, визиты и материалы к работам для прозрачности к клиенту.</li>
-                <li>После входа — список авто и заявки; кабинет использует данные, сохранённые в браузере на этом устройстве.</li>
+                <li>После входа данные подгружаются с сервера.</li>
               </ul>
             </div>
           </div>
@@ -82,7 +76,7 @@ export default function PartnerLoginPage() {
                   autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="test@test"
+                  placeholder="studio@example.com"
                 />
               </Field>
               <Field className="field--full" label="Пароль">
@@ -93,7 +87,7 @@ export default function PartnerLoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="1111"
+                  placeholder="••••••••"
                 />
               </Field>
               <label className="authConsent field--full">
@@ -120,30 +114,33 @@ export default function PartnerLoginPage() {
               <Button
                 className="btn"
                 variant="primary"
-                onClick={() => {
+                onClick={async () => {
                   if (!agreedToTerms) {
                     alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
                     return
                   }
                   const em = (email || detEmailRef.current?.value || '').trim()
                   const pwd = (password || detPasswordRef.current?.value || '').trim()
-                  const res = r.loginDetailing({ email: em, password: pwd })
-                  if (!res?.ok) {
-                    alert(partnerLoginErrorMessage(res?.reason))
-                    return
-                  }
-                  setSessionDetailingId(res.detailing.id)
-                  invalidateRepo()
-                  const det = r.getDetailing?.(res.detailing.id)
-                  if (det && det.profileCompleted === false) {
-                    nav('/detailing/landing', { replace: true })
-                  } else {
-                    const fromStr = typeof from === 'string' ? from : ''
-                    const okFrom =
-                      fromStr.startsWith('/detailing') ||
-                      fromStr.startsWith('/car/') ||
-                      fromStr.startsWith('/requests')
-                    nav(okFrom ? fromStr : '/detailing')
+                  try {
+                    const res = await r.loginDetailing({ email: em, password: pwd })
+                    if (!res?.ok) {
+                      alert(partnerLoginErrorMessage(res?.reason))
+                      return
+                    }
+                    setSessionDetailingId(String(res.detailing.id), res.token)
+                    invalidateRepo()
+                    if (res.detailing.profileCompleted === false) {
+                      nav('/detailing/landing', { replace: true })
+                    } else {
+                      const fromStr = typeof from === 'string' ? from : ''
+                      const okFrom =
+                        fromStr.startsWith('/detailing') ||
+                        fromStr.startsWith('/car/') ||
+                        fromStr.startsWith('/requests')
+                      nav(okFrom ? fromStr : '/detailing')
+                    }
+                  } catch {
+                    alert('Не удалось войти. Проверьте данные, что бэкенд запущен и VITE_API_BASE_URL указан верно.')
                   }
                 }}
               >

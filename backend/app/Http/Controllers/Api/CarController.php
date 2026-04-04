@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\ApiResources;
 use App\Models\Car;
 use App\Models\Detailing;
+use App\Models\Owner;
 use Illuminate\Http\Request;
 
 class CarController extends Controller
@@ -15,18 +17,20 @@ class CarController extends Controller
         $d = $request->user();
         $cars = Car::query()
             ->where('detailing_id', $d->id)
+            ->with('owner')
             ->orderByDesc('updated_at')
             ->get();
 
-        return response()->json($cars->map(fn ($c) => $this->car($c))->values());
+        return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
     }
 
     public function show(Request $request, $id)
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $car = Car::query()->where('detailing_id', $d->id)->findOrFail($id);
-        return response()->json($this->car($car));
+        $car = Car::query()->where('detailing_id', $d->id)->with('owner')->findOrFail($id);
+
+        return response()->json(ApiResources::car($car));
     }
 
     public function store(Request $request)
@@ -37,6 +41,7 @@ class CarController extends Controller
         $data = $request->validate([
             'vin' => ['nullable', 'string'],
             'plate' => ['nullable', 'string'],
+            'plateRegion' => ['nullable', 'string'],
             'make' => ['nullable', 'string'],
             'model' => ['nullable', 'string'],
             'year' => ['nullable'],
@@ -47,12 +52,18 @@ class CarController extends Controller
             'hero' => ['nullable', 'string'],
             'segment' => ['nullable', 'string'],
             'seller' => ['nullable'],
+            'ownerPhone' => ['nullable', 'string'],
+            'clientName' => ['nullable', 'string'],
+            'clientPhone' => ['nullable', 'string'],
+            'clientEmail' => ['nullable', 'string'],
         ]);
 
         $car = Car::query()->create([
             'detailing_id' => $d->id,
+            'owner_id' => null,
             'vin' => trim((string) ($data['vin'] ?? '')),
             'plate' => trim((string) ($data['plate'] ?? '')),
+            'plate_region' => trim((string) ($data['plateRegion'] ?? '')),
             'make' => trim((string) ($data['make'] ?? '')),
             'model' => trim((string) ($data['model'] ?? '')),
             'year' => isset($data['year']) ? (int) $data['year'] : null,
@@ -62,23 +73,28 @@ class CarController extends Controller
             'city' => trim((string) ($data['city'] ?? '')),
             'hero' => isset($data['hero']) ? (string) $data['hero'] : null,
             'segment' => trim((string) ($data['segment'] ?? 'mass')) ?: 'mass',
-            'seller' => $data['seller'] ?? null,
+            'seller' => $data['seller'] ?? ['id' => (string) $d->id, 'name' => $d->name, 'type' => 'service'],
+            'owner_phone' => trim((string) ($data['ownerPhone'] ?? '')),
+            'client_name' => trim((string) ($data['clientName'] ?? '')),
+            'client_phone' => trim((string) ($data['clientPhone'] ?? '')),
+            'client_email' => trim((string) ($data['clientEmail'] ?? '')),
+            'wash_photos' => [],
         ]);
 
-        return response()->json($this->car($car));
+        return response()->json(ApiResources::car($car->load('owner')));
     }
 
     public function update(Request $request, $id)
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $car = Car::query()->where('detailing_id', $d->id)->findOrFail($id);
+        $car = Car::query()->where('detailing_id', $d->id)->with('owner')->findOrFail($id);
 
         $data = $request->all();
-        $patch = [];
         $map = [
             'vin' => 'vin',
             'plate' => 'plate',
+            'plateRegion' => 'plate_region',
             'make' => 'make',
             'model' => 'model',
             'color' => 'color',
@@ -86,20 +102,51 @@ class CarController extends Controller
             'hero' => 'hero',
             'segment' => 'segment',
         ];
-        foreach ($map as $k => $col) {
-            if (array_key_exists($k, $data)) {
-                $patch[$col] = is_string($data[$k]) ? trim($data[$k]) : $data[$k];
+        foreach ($map as $json => $col) {
+            if (array_key_exists($json, $data)) {
+                $car->{$col} = is_string($data[$json]) ? trim($data[$json]) : $data[$json];
             }
         }
-        if (array_key_exists('year', $data)) $patch['year'] = $data['year'] === null ? null : (int) $data['year'];
-        if (array_key_exists('mileageKm', $data)) $patch['mileage_km'] = (int) ($data['mileageKm'] ?? 0);
-        if (array_key_exists('priceRub', $data)) $patch['price_rub'] = (int) ($data['priceRub'] ?? 0);
-        if (array_key_exists('seller', $data)) $patch['seller'] = $data['seller'];
+        if (array_key_exists('year', $data)) {
+            $car->year = $data['year'] === null ? null : (int) $data['year'];
+        }
+        if (array_key_exists('mileageKm', $data)) {
+            $car->mileage_km = (int) ($data['mileageKm'] ?? 0);
+        }
+        if (array_key_exists('priceRub', $data)) {
+            $car->price_rub = (int) ($data['priceRub'] ?? 0);
+        }
+        if (array_key_exists('seller', $data)) {
+            $car->seller = $data['seller'];
+        }
+        if (array_key_exists('ownerPhone', $data)) {
+            $car->owner_phone = trim((string) $data['ownerPhone']);
+        }
+        if (array_key_exists('clientName', $data)) {
+            $car->client_name = trim((string) $data['clientName']);
+        }
+        if (array_key_exists('clientPhone', $data)) {
+            $car->client_phone = trim((string) $data['clientPhone']);
+        }
+        if (array_key_exists('clientEmail', $data)) {
+            $car->client_email = trim((string) $data['clientEmail']);
+        }
+        if (array_key_exists('washPhotos', $data) && is_array($data['washPhotos'])) {
+            $car->wash_photos = array_slice(array_values(array_filter(array_map('strval', $data['washPhotos']))), 0, 12);
+        }
+        if (array_key_exists('ownerEmail', $data)) {
+            $em = mb_strtolower(trim((string) $data['ownerEmail']));
+            if ($em === '') {
+                $car->owner_id = null;
+            } else {
+                $owner = Owner::query()->where('email', $em)->first();
+                $car->owner_id = $owner?->id;
+            }
+        }
 
-        $car->fill($patch);
         $car->save();
 
-        return response()->json($this->car($car->fresh()));
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 
     public function destroy(Request $request, $id)
@@ -108,28 +155,7 @@ class CarController extends Controller
         $d = $request->user();
         $car = Car::query()->where('detailing_id', $d->id)->findOrFail($id);
         $car->delete();
-        return response()->json(['ok' => true]);
-    }
 
-    private function car(Car $c): array
-    {
-        return [
-            'id' => (string) $c->id,
-            'detailingId' => (string) $c->detailing_id,
-            'vin' => $c->vin ?? '',
-            'plate' => $c->plate ?? '',
-            'make' => $c->make ?? '',
-            'model' => $c->model ?? '',
-            'year' => $c->year,
-            'mileageKm' => (int) ($c->mileage_km ?? 0),
-            'priceRub' => (int) ($c->price_rub ?? 0),
-            'color' => $c->color ?? '',
-            'city' => $c->city ?? '',
-            'hero' => $c->hero,
-            'segment' => $c->segment ?? 'mass',
-            'seller' => $c->seller,
-            'createdAt' => optional($c->created_at)->toISOString(),
-            'updatedAt' => optional($c->updated_at)->toISOString(),
-        ];
+        return response()->json(['ok' => true]);
     }
 }

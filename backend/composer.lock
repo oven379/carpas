@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a631e37f773beaf826225aa58d04041a",
+    "content-hash": "2aee601bbe2fa1975dba7ee27ccd78ec",
     "packages": [
         {
             "name": "brick/math",
@@ -2400,6 +2400,69 @@
                 }
             ],
             "time": "2025-12-27T19:41:33+00:00"
+        },
+        {
+            "name": "predis/predis",
+            "version": "v3.4.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/predis/predis.git",
+                "reference": "2033429520d8997a7815a2485f56abe6d2d0e075"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/predis/predis/zipball/2033429520d8997a7815a2485f56abe6d2d0e075",
+                "reference": "2033429520d8997a7815a2485f56abe6d2d0e075",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7.2 || ^8.0",
+                "psr/http-message": "^1.0|^2.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.3",
+                "phpstan/phpstan": "^1.9",
+                "phpunit/phpcov": "^6.0 || ^8.0",
+                "phpunit/phpunit": "^8.0 || ~9.4.4"
+            },
+            "suggest": {
+                "ext-relay": "Faster connection with in-memory caching (>=0.6.2)"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Predis\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Till Krüss",
+                    "homepage": "https://till.im",
+                    "role": "Maintainer"
+                }
+            ],
+            "description": "A flexible and feature-complete Redis/Valkey client for PHP.",
+            "homepage": "http://github.com/predis/predis",
+            "keywords": [
+                "nosql",
+                "predis",
+                "redis"
+            ],
+            "support": {
+                "issues": "https://github.com/predis/predis/issues",
+                "source": "https://github.com/predis/predis/tree/v3.4.2"
+            },
+            "funding": [
+                {
+                    "url": "https://github.com/sponsors/tillkruss",
+                    "type": "github"
+                }
+            ],
+            "time": "2026-03-09T20:33:04+00:00"
         },
         {
             "name": "psr/clock",
@@ -5351,6 +5414,65 @@
             "time": "2026-01-01T13:34:06+00:00"
         },
         {
+            "name": "tigusigalpa/yandex-id-oauth-php",
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/tigusigalpa/yandex-id-oauth-php.git",
+                "reference": "abeeb0fbbb21d0b4822b00e4fee27eb4ae87b907"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/tigusigalpa/yandex-id-oauth-php/zipball/abeeb0fbbb21d0b4822b00e4fee27eb4ae87b907",
+                "reference": "abeeb0fbbb21d0b4822b00e4fee27eb4ae87b907",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.8",
+                "illuminate/support": "^8.0|^9.0|^10.0|^11.0|^12.0",
+                "php": "^7.4|^8.0|^8.1|^8.2",
+                "psr/log": "^1.1|^2.0|^3.0"
+            },
+            "require-dev": {
+                "mockery/mockery": "^1.4|^2.0",
+                "phpstan/phpstan": "^1.10",
+                "phpunit/phpunit": "^9.0|^10.0|^11.0",
+                "squizlabs/php_codesniffer": "^3.7"
+            },
+            "type": "library",
+            "extra": {
+                "laravel": {
+                    "aliases": {
+                        "YandexID": "Tigusigalpa\\YandexID\\Facades\\YandexId"
+                    },
+                    "providers": [
+                        "Tigusigalpa\\YandexID\\YandexIdServiceProvider"
+                    ]
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Tigusigalpa\\YandexID\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Igor Sazonov",
+                    "email": "sovletig@gmail.com"
+                }
+            ],
+            "description": "Yandex ID OAuth client for PHP with Laravel 8-12 integration",
+            "support": {
+                "issues": "https://github.com/tigusigalpa/yandex-id-oauth-php/issues",
+                "source": "https://github.com/tigusigalpa/yandex-id-oauth-php/tree/v1.0.0"
+            },
+            "time": "2025-11-23T06:11:30+00:00"
+        },
+        {
             "name": "tijsverkoyen/css-to-inline-styles",
             "version": "v2.4.0",
             "source": {
@@ -8186,5 +8308,5 @@
     "platform-overrides": {
         "php": "8.2.30"
     },
-    "plugin-api-version": "2.9.0"
+    "plugin-api-version": "2.6.0"
 }

@@ -12,11 +12,14 @@ class CarEvent extends Model
     protected $fillable = [
         'detailing_id',
         'car_id',
+        'owner_id',
+        'source',
         'at',
         'type',
         'title',
         'mileage_km',
         'services',
+        'maintenance_services',
         'note',
     ];
 
@@ -24,5 +27,6 @@ class CarEvent extends Model
         'at' => 'datetime',
         'mileage_km' => 'integer',
         'services' => 'array',
+        'maintenance_services' => 'array',
     ];
 }

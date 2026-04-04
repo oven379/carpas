@@ -14,6 +14,8 @@ class CarDoc extends Model
     protected $fillable = [
         'detailing_id',
         'car_id',
+        'owner_id',
+        'source',
         'event_id',
         'title',
         'kind',

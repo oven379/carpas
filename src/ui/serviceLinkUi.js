@@ -6,18 +6,16 @@ function normEmail(s) {
     .toLowerCase()
 }
 
-export function resolveServiceDisplayName(r, car) {
+export function resolveServiceDisplayName(car) {
   if (!car?.detailingId) return ''
-  const det = r.getDetailing?.(car.detailingId)
-  const n = String(det?.name || car.seller?.name || '').trim()
-  return n || 'Сервис'
+  return String(car.detailingName || car.seller?.name || '').trim() || 'Сервис'
 }
 
 /**
  * Для владельца: статус связи с сервисом по машине и заявкам.
- * @returns {{ kind: 'no_service' } | { kind: 'service', serviceName: string, ownerLink: 'approved'|'pending'|'rejected'|'implicit' }}
+ * @param {Array} ownerClaimsList — результат listClaimsForOwner()
  */
-export function ownerServiceLinkSummary(r, car, ownerEmail) {
+export function ownerServiceLinkSummary(car, ownerEmail, ownerClaimsList) {
   const em = normEmail(ownerEmail)
   if (!car || !em) return { kind: 'no_service' }
 
@@ -25,8 +23,8 @@ export function ownerServiceLinkSummary(r, car, ownerEmail) {
     return { kind: 'no_service' }
   }
 
-  const serviceName = resolveServiceDisplayName(r, car)
-  const claims = (r.listClaimsForOwner?.(em) || []).filter((x) => x.carId === car.id)
+  const serviceName = resolveServiceDisplayName(car)
+  const claims = (ownerClaimsList || []).filter((x) => String(x.carId) === String(car.id))
   const claim = claims[0] || null
 
   if (claim?.status === 'pending') {
@@ -45,10 +43,9 @@ export function ownerServiceLinkSummary(r, car, ownerEmail) {
 }
 
 /** Статус строки в списке детейлинга: учёт только у сервиса vs владелец в приложении vs заявка. */
-export function detailingCarAccessBadge(r, car, detailingId) {
+export function detailingCarAccessBadge(car, detailingId, inboxClaims) {
   if (!car) return { label: '', tone: 'neutral' }
-  const detId = String(detailingId || '')
-  const claims = (r.listClaimsForDetailing?.(detId) || []).filter((x) => x.carId === car.id)
+  const claims = (inboxClaims || []).filter((x) => String(x.carId) === String(car.id))
   const pending = claims.some((x) => x.status === 'pending')
   if (pending && !normEmail(car.ownerEmail)) {
     return { label: 'Заявка владельца', tone: 'accent' }

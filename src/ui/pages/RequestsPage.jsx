@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Card, Pill, ServiceHint } from '../components.jsx'
@@ -14,11 +15,55 @@ export default function RequestsPage() {
   const r = useRepo()
   const loc = useLocation()
   const { detailingId, detailing, mode } = useDetailing()
+  const [claims, setClaims] = useState([])
+  const [carsById, setCarsById] = useState({})
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (mode !== 'detailing' || !detailingId) {
+        setClaims([])
+        setCarsById({})
+        setReady(true)
+        return
+      }
+      setReady(false)
+      try {
+        const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+        if (cancelled) return
+        setClaims(Array.isArray(cl) ? cl : [])
+        const map = {}
+        for (const car of Array.isArray(carList) ? carList : []) {
+          map[String(car.id)] = car
+        }
+        setCarsById(map)
+      } catch {
+        if (!cancelled) {
+          setClaims([])
+          setCarsById({})
+        }
+      } finally {
+        if (!cancelled) setReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [r, r._version, mode, detailingId])
+
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
 
-  const claims = r.listClaimsForDetailing(detailingId)
   const pending = claims.filter((x) => x.status === 'pending')
+
+  if (!ready) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
 
   return (
     <div className="container">
@@ -48,7 +93,7 @@ export default function RequestsPage() {
 
       <div className="list">
         {claims.map((x) => {
-          const car = r.getCar(x.carId, { detailingId })
+          const car = carsById[String(x.carId)] || null
           const ev = x.evidence || {}
           const mYear = eqNorm(ev.year, car?.year)
           const mColor = eqNorm(ev.color, car?.color)
@@ -139,37 +184,51 @@ export default function RequestsPage() {
                   </div>
                 </div>
                 {x.status === 'pending' ? (
-                  <div className="requestsCard__actions">
-                    <div className="requestsCard__actionBtns row gap wrap">
-                      <button
-                        className="btn"
-                        data-variant="primary"
-                        onClick={() => {
-                          const done = r.reviewClaim(x.id, { status: 'approved' })
-                          if (!done) {
-                            alert('Не удалось подтвердить заявку.')
-                            return
-                          }
+                  <div className="row gap">
+                    <button
+                      className="btn"
+                      data-variant="primary"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await r.reviewClaim(x.id, { status: 'approved' })
                           invalidateRepo()
-                        }}
-                      >
-                        Подтвердить
-                      </button>
-                      <button
-                        className="btn"
-                        data-variant="danger"
-                        onClick={() => {
-                          const done = r.reviewClaim(x.id, { status: 'rejected' })
-                          if (!done) {
-                            alert('Не удалось отклонить заявку.')
-                            return
+                          const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+                          setClaims(Array.isArray(cl) ? cl : [])
+                          const map = {}
+                          for (const c of Array.isArray(carList) ? carList : []) {
+                            map[String(c.id)] = c
                           }
+                          setCarsById(map)
+                        } catch {
+                          alert('Не удалось подтвердить заявку.')
+                        }
+                      }}
+                    >
+                      Подтвердить
+                    </button>
+                    <button
+                      className="btn"
+                      data-variant="danger"
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await r.reviewClaim(x.id, { status: 'rejected' })
                           invalidateRepo()
-                        }}
-                      >
-                        Отклонить
-                      </button>
-                    </div>
+                          const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+                          setClaims(Array.isArray(cl) ? cl : [])
+                          const map = {}
+                          for (const c of Array.isArray(carList) ? carList : []) {
+                            map[String(c.id)] = c
+                          }
+                          setCarsById(map)
+                        } catch {
+                          alert('Не удалось отклонить заявку.')
+                        }
+                      }}
+                    >
+                      Отклонить
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -185,4 +244,3 @@ export default function RequestsPage() {
     </div>
   )
 }
-

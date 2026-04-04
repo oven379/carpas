@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from 'react'
-import { createApi } from '../api/index.js'
+import { getApi } from '../api/index.js'
 
-const API = createApi()
+const API = getApi()
 const listeners = new Set()
 let version = 0
 
@@ -14,16 +14,16 @@ export function invalidateRepo() {
   emit()
 }
 
-export function useRepo() {
-  useSyncExternalStore(
-    (cb) => {
-      listeners.add(cb)
-      return () => listeners.delete(cb)
-    },
-    () => version,
-    () => version,
-  )
-
-  return useMemo(() => API, [])
+export function subscribeRepo(cb) {
+  listeners.add(cb)
+  return () => listeners.delete(cb)
 }
 
+export function getRepoVersion() {
+  return version
+}
+
+export function useRepo() {
+  const v = useSyncExternalStore(subscribeRepo, getRepoVersion, getRepoVersion)
+  return useMemo(() => ({ ...API, _version: v }), [v])
+}

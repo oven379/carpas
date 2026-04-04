@@ -1,87 +1,40 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { BackNav, Button, Card, Field, Input, ServiceHint, Textarea } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { setSessionDetailingId } from '../auth.js'
+import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import { DETAILING_WORKING_HOURS_MAX_LEN, formatPhoneRuInput } from '../../lib/format.js'
-import { DETAILING_ADDRESS_YANDEX_HINT } from '../../lib/mapsLinks.js'
-import {
-  dedupeOfferedStrings,
-  DETAILING_SERVICES,
-  MAINTENANCE_SERVICES,
-  OFFERED_SERVICE_MAX_LEN,
-} from '../../lib/serviceCatalogs.js'
-import OfferedServiceTagsRow from '../OfferedServiceTagsRow.jsx'
+import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 
 export default function PartnerApplyPage() {
   const r = useRepo()
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
   const [regName, setRegName] = useState('')
   const [regContactName, setRegContactName] = useState('')
   const [regEmail, setRegEmail] = useState('')
   const [regPhone, setRegPhone] = useState('')
   const [regCity, setRegCity] = useState('')
   const [regAddress, setRegAddress] = useState('')
-  const [regWorkingHours, setRegWorkingHours] = useState('')
-  const [regDetailingServices, setRegDetailingServices] = useState([])
-  const [regMaintenanceServices, setRegMaintenanceServices] = useState([])
-  const [regCustomDet, setRegCustomDet] = useState('')
-  const [regCustomMaint, setRegCustomMaint] = useState('')
+  const [regServicesOffered, setRegServicesOffered] = useState([])
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const nav = useNavigate()
   const loc = useLocation()
   const from = loc.state?.from || '/'
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/cars" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/cars" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
-  function toggleService(bucket, item) {
+  function toggleService(item) {
     const v = String(item || '').trim()
     if (!v) return
-    if (bucket === 'det') {
-      setRegDetailingServices((cur) => {
-        const has = cur.includes(v)
-        return has ? cur.filter((x) => x !== v) : [...cur, v]
-      })
-    } else {
-      setRegMaintenanceServices((cur) => {
-        const has = cur.includes(v)
-        return has ? cur.filter((x) => x !== v) : [...cur, v]
-      })
-    }
-  }
-
-  function addCustom(bucket) {
-    const raw = bucket === 'det' ? regCustomDet : regCustomMaint
-    const v = String(raw || '')
-      .trim()
-      .slice(0, OFFERED_SERVICE_MAX_LEN)
-    if (!v) return
-    const lower = v.toLowerCase()
-    if (bucket === 'det') {
-      setRegDetailingServices((cur) =>
-        cur.some((x) => String(x).toLowerCase() === lower) ? cur : [...cur, v],
-      )
-      setRegCustomDet('')
-    } else {
-      setRegMaintenanceServices((cur) =>
-        cur.some((x) => String(x).toLowerCase() === lower) ? cur : [...cur, v],
-      )
-      setRegCustomMaint('')
-    }
-  }
-
-  function removeFromReg(bucket, label) {
-    if (bucket === 'det') {
-      setRegDetailingServices((cur) => cur.filter((x) => x !== label))
-    } else {
-      setRegMaintenanceServices((cur) => cur.filter((x) => x !== label))
-    }
+    setRegServicesOffered((cur) => {
+      const has = cur.includes(v)
+      return has ? cur.filter((x) => x !== v) : [...cur, v]
+    })
   }
 
   return (
@@ -102,24 +55,16 @@ export default function PartnerApplyPage() {
                 <li>Единая картина обслуживания повышает доверие и снижает вопросы «что делали раньше».</li>
                 <li>После заявки откроется профиль организации; пароль для первого входа задаётся автоматически.</li>
               </ul>
+              <p className="muted small authSplit__note">
+                Укажите название, контакты, город и адрес, отметьте услуги детейлинга и/или ТО. Стартовый пароль входа:{' '}
+                <strong>1111</strong>. После отправки — настройка лендинга и работа в кабинете.
+              </p>
             </div>
           </div>
         </aside>
 
         <div className="authSplit__formCol">
           <Card className="card pad authSplit__formCard">
-            <div id="partner-apply-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 14 }}>
-              <div className="cardTitle" style={{ margin: 0 }}>
-                Заявка партнёра
-              </div>
-              <ServiceHint scopeId="partner-apply-hint" variant="compact" label="Справка по заявке">
-                <p className="serviceHint__panelText">
-                  Заполните название, контакты, город и адрес, отметьте услуги детейлинга и/или ТО (можно дописать свою
-                  строку). Этот список потом попадёт в выпадающие поля при оформлении визитов. Стартовый пароль входа:{' '}
-                  <strong>1111</strong>. После отправки откроется настройка лендинга и кабинет.
-                </p>
-              </ServiceHint>
-            </div>
             <div className="formGrid authFormGrid authFormGrid--owner">
               <Field className="field--full" label="Название">
                 <Input
@@ -130,7 +75,7 @@ export default function PartnerApplyPage() {
                   autoComplete="organization"
                 />
               </Field>
-              <Field className="field--full" label="Имя">
+              <Field className="field--full" label="Имя" hint="контактное лицо">
                 <Input
                   className="input"
                   value={regContactName}
@@ -156,7 +101,7 @@ export default function PartnerApplyPage() {
                   autoComplete="tel"
                   inputMode="tel"
                   value={regPhone}
-                  onChange={(e) => setRegPhone(formatPhoneRuInput(e.target.value))}
+                  onChange={(e) => setRegPhone(e.target.value)}
                   placeholder="+7 …"
                 />
               </Field>
@@ -169,44 +114,19 @@ export default function PartnerApplyPage() {
                   autoComplete="address-level2"
                 />
               </Field>
-              <div className="field field--full serviceHint__fieldWrap" id="partner-apply-hint-address">
-                <div className="field__top serviceHint__fieldTop">
-                  <span className="field__label">Адрес</span>
-                  <ServiceHint scopeId="partner-apply-hint-address" label="Справка: адрес и Яндекс.Карты">
-                    <p className="serviceHint__panelText">{DETAILING_ADDRESS_YANDEX_HINT}</p>
-                  </ServiceHint>
-                </div>
+              <Field className="field--full" label="Адрес" hint="улица, дом">
                 <Input
                   className="input"
                   value={regAddress}
                   onChange={(e) => setRegAddress(e.target.value)}
-                  placeholder="Улица, дом или ссылка из Яндекс.Карт"
+                  placeholder="Улица, дом"
                   autoComplete="street-address"
                 />
-              </div>
-              <Field
-                className="field--full"
-                label="Режим работы"
-                hint="Необязательно при заявке; потом можно заполнить в настройках лендинга. На витрине /d/… показывается клиентам."
-              >
-                <Textarea
-                  className="textarea"
-                  rows={2}
-                  value={regWorkingHours}
-                  maxLength={DETAILING_WORKING_HOURS_MAX_LEN}
-                  onChange={(e) => setRegWorkingHours(e.target.value)}
-                  placeholder="Например: Пн–Пт 9:00–20:00, Сб 10:00–18:00"
-                />
               </Field>
-              <div className="field field--full serviceHint__fieldWrap" id="partner-apply-services-hint">
-                <div className="field__top serviceHint__fieldTop">
-                  <span className="field__label field__label--servicesLead">Услуги</span>
-                  <ServiceHint scopeId="partner-apply-services-hint" label="Справка: услуги">
-                    <p className="serviceHint__panelText">
-                      Отметьте детейлинг и/или ТО. Нет в списке — введите название ниже и нажмите «Добавить»: строка
-                      сохранится в профиле и появится при выборе услуг в визите.
-                    </p>
-                  </ServiceHint>
+              <div className="field field--full">
+                <div className="field__top">
+                  <span className="field__label">Услуги</span>
+                  <span className="field__hint">детейлинг и ТО — отметьте, что предлагаете</span>
                 </div>
                 <p className="muted small" style={{ margin: '0 0 8px' }}>
                   Детейлинг
@@ -214,7 +134,7 @@ export default function PartnerApplyPage() {
                 <div className="svc svc--compact">
                   {DETAILING_SERVICES.map((g) => {
                     const items = Array.isArray(g.items) ? g.items : []
-                    const selected = items.filter((x) => regDetailingServices.includes(x)).length
+                    const selected = items.filter((x) => regServicesOffered.includes(x)).length
                     return (
                       <details key={`d-${g.group}`} className="svc__group" open={selected > 0}>
                         <summary className="svc__title">
@@ -223,10 +143,10 @@ export default function PartnerApplyPage() {
                         </summary>
                         <div className="svc__grid">
                           {items.map((it) => {
-                            const checked = regDetailingServices.includes(it)
+                            const checked = regServicesOffered.includes(it)
                             return (
                               <label key={it} className="svc__item">
-                                <input type="checkbox" checked={checked} onChange={() => toggleService('det', it)} />
+                                <input type="checkbox" checked={checked} onChange={() => toggleService(it)} />
                                 <span>{it}</span>
                               </label>
                             )
@@ -236,32 +156,13 @@ export default function PartnerApplyPage() {
                     )
                   })}
                 </div>
-                <OfferedServiceTagsRow
-                  items={regDetailingServices}
-                  onRemove={(s) => removeFromReg('det', s)}
-                  emptyHint="Пока ничего не выбрано — отметьте услуги в списке выше или добавьте свою строку ниже."
-                  ariaLabel="Выбранные услуги детейлинга"
-                />
-                <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
-                  <Input
-                    className="input"
-                    style={{ flex: 1, minWidth: 160 }}
-                    value={regCustomDet}
-                    onChange={(e) => setRegCustomDet(e.target.value)}
-                    maxLength={OFFERED_SERVICE_MAX_LEN}
-                    placeholder="Своя услуга детейлинга, если нет в списке"
-                  />
-                  <button type="button" className="btn" data-variant="outline" onClick={() => addCustom('det')}>
-                    Добавить
-                  </button>
-                </div>
                 <p className="muted small" style={{ margin: '14px 0 8px' }}>
                   ТО и ремонт
                 </p>
                 <div className="svc svc--compact">
                   {MAINTENANCE_SERVICES.map((g) => {
                     const items = Array.isArray(g.items) ? g.items : []
-                    const selected = items.filter((x) => regMaintenanceServices.includes(x)).length
+                    const selected = items.filter((x) => regServicesOffered.includes(x)).length
                     return (
                       <details key={`m-${g.group}`} className="svc__group" open={selected > 0}>
                         <summary className="svc__title">
@@ -270,10 +171,10 @@ export default function PartnerApplyPage() {
                         </summary>
                         <div className="svc__grid">
                           {items.map((it) => {
-                            const checked = regMaintenanceServices.includes(it)
+                            const checked = regServicesOffered.includes(it)
                             return (
                               <label key={it} className="svc__item">
-                                <input type="checkbox" checked={checked} onChange={() => toggleService('maint', it)} />
+                                <input type="checkbox" checked={checked} onChange={() => toggleService(it)} />
                                 <span>{it}</span>
                               </label>
                             )
@@ -282,25 +183,6 @@ export default function PartnerApplyPage() {
                       </details>
                     )
                   })}
-                </div>
-                <OfferedServiceTagsRow
-                  items={regMaintenanceServices}
-                  onRemove={(s) => removeFromReg('maint', s)}
-                  emptyHint="Пока ничего не выбрано — отметьте услуги ТО в списке выше или добавьте свою строку ниже."
-                  ariaLabel="Выбранные услуги ТО"
-                />
-                <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
-                  <Input
-                    className="input"
-                    style={{ flex: 1, minWidth: 160 }}
-                    value={regCustomMaint}
-                    onChange={(e) => setRegCustomMaint(e.target.value)}
-                    maxLength={OFFERED_SERVICE_MAX_LEN}
-                    placeholder="Своя услуга ТО, если нет в списке"
-                  />
-                  <button type="button" className="btn" data-variant="outline" onClick={() => addCustom('maint')}>
-                    Добавить
-                  </button>
                 </div>
               </div>
               <label className="authConsent field--full" style={{ marginTop: 8 }}>
@@ -327,35 +209,31 @@ export default function PartnerApplyPage() {
                   className="btn"
                   variant="primary"
                   style={{ width: '100%' }}
-                  onClick={() => {
+                  onClick={async () => {
                     if (!agreedToTerms) {
                       alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
                       return
                     }
-                    const detList = dedupeOfferedStrings(regDetailingServices)
-                    const maintList = dedupeOfferedStrings(regMaintenanceServices)
-                    if (!detList.length && !maintList.length) {
-                      alert('Выберите хотя бы одну услугу детейлинга и/или ТО или добавьте свою строку.')
-                      return
+                    try {
+                      const res = await r.registerDetailing({
+                        name: regName,
+                        contactName: regContactName,
+                        email: regEmail,
+                        phone: regPhone,
+                        city: regCity,
+                        address: regAddress,
+                        servicesOffered: regServicesOffered,
+                      })
+                      setSessionDetailingId(String(res.detailing.id), res.token)
+                      invalidateRepo()
+                      nav('/detailing/landing', { replace: true })
+                    } catch (e) {
+                      const body = e?.body
+                      const emailErr = body?.errors?.email
+                      const first = Array.isArray(emailErr) ? emailErr[0] : emailErr
+                      if (first === 'email_taken') alert(partnerApplyErrorMessage('email_taken'))
+                      else alert('Не удалось отправить заявку. Проверьте поля и доступность сервера.')
                     }
-                    const d = r.registerDetailing({
-                      name: regName,
-                      contactName: regContactName,
-                      email: regEmail,
-                      phone: regPhone,
-                      city: regCity,
-                      address: regAddress,
-                      workingHours: regWorkingHours,
-                      detailingServicesOffered: detList,
-                      maintenanceServicesOffered: maintList,
-                    })
-                    if (d?.error) {
-                      alert(partnerApplyErrorMessage(d.error))
-                      return
-                    }
-                    setSessionDetailingId(d.id)
-                    invalidateRepo()
-                    nav('/detailing/landing', { replace: true })
                   }}
                 >
                   Подать заявку

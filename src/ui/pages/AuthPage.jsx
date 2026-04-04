@@ -1,36 +1,47 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
-import { useRepo, invalidateRepo } from '../useRepo.js'
-import { clearSession } from '../auth.js'
+import Logo from '../Logo.jsx'
+import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function AuthPage() {
-  const r = useRepo()
   const loc = useLocation()
   const from = loc.state?.from || '/'
-  const { mode, detailing, owner } = useDetailing()
+  const { detailing } = useDetailing()
 
-  if (mode === 'owner' && owner?.email) return <Navigate to="/garage" replace />
-  if (mode === 'detailing') {
-    if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (hasOwnerSession()) return <Navigate to="/garage" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
   return (
     <div className="container authPage">
       <div className="authSplit authSplit--hub">
+        <div className="authHub__brand authPage__head authPage__head--splitAside">
+          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+            <div className="brandTitle">
+              <h1 className="h1 authHub__logoHeading" aria-label="КарПас" style={{ margin: 0 }}>
+                <Logo size={34} />
+              </h1>
+              <div className="brandTagline">История Вашего автомобиля</div>
+            </div>
+          </div>
+        </div>
+
         <div className="authHub__info authSplit__lede">
           <div id="auth-hub-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
-            <h1 className="authSplit__tagline" style={{ margin: 0 }}>
+            <p className="authSplit__tagline" style={{ margin: 0 }}>
               Вход в сервис
-            </h1>
+            </p>
             <ServiceHint scopeId="auth-hub-hint" variant="compact" label="Справка: вход и данные">
               <p className="serviceHint__panelText">
-                Выберите роль: владелец или партнёр (детейлинг / СТО). Данные этого устройства хранятся в браузере; при необходимости их
-                можно сбросить — блок внизу страницы.
+                Выберите роль: владелец или партнёр (детейлинг / СТО). Сессия хранится в браузере; выход и смена аккаунта — через меню в
+                шапке после входа.
               </p>
             </ServiceHint>
           </div>
+          <p className="muted authHub__intro">Выберите роль: владелец или партнёрская сеть (детейлинг / СТО).</p>
           <ul className="authSplit__benefits">
             <li>История работ и визитов по авто в одном месте — с пробегом, фото и документами.</li>
             <li>Гараж владельца и кабинет сервиса дополняют друг друга: прозрачность для клиента и порядок в работе.</li>
@@ -45,7 +56,7 @@ export default function AuthPage() {
             </p>
             <div className="authHub">
               <Link className="btn authHub__btn authHub__btn--neutral" to="/auth/owner" state={{ from }}>
-                Гараж
+                Мой гараж
               </Link>
               <Link className="btn authHub__btn authHub__btn--accent" to="/auth/partner" state={{ from }}>
                 Партнёр
@@ -57,41 +68,6 @@ export default function AuthPage() {
           </Card>
         </div>
       </div>
-
-      <Card className="card pad authPage__single" style={{ marginTop: 28 }}>
-        <div id="auth-reset-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 12 }}>
-          <h2 className="h2" style={{ margin: 0 }}>
-            Локальные данные в браузере
-          </h2>
-          <ServiceHint scopeId="auth-reset-hint" variant="compact" label="Справка: сброс данных">
-            <p className="serviceHint__panelText">
-              Сброс удалит авто, историю, фото и заявки из памяти браузера на этом устройстве, подгрузит стартовый набор данных и завершит
-              сессию входа.
-            </p>
-          </ServiceHint>
-        </div>
-        <button
-          type="button"
-          className="btn"
-          data-variant="danger"
-          onClick={() => {
-            if (r.mode !== 'mock') {
-              alert('Включён режим API: сброс локальных данных в браузере недоступен.')
-              return
-            }
-            const ok = confirm(
-              'Удалить все данные КарПас из этого браузера и восстановить начальный набор?\n\nСессия будет завершена.',
-            )
-            if (!ok) return
-            r.resetLocalDemo()
-            clearSession()
-            invalidateRepo()
-            window.location.assign('/about')
-          }}
-        >
-          Сбросить локальные данные
-        </button>
-      </Card>
     </div>
   )
 }

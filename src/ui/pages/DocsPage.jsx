@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Button, Card, Field, Input } from '../components.jsx'
@@ -16,24 +16,51 @@ export default function DocsPage() {
   const [sp] = useSearchParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode } = useDetailing()
-  const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-  const car = r.getCar(id, scope)
+  const [car, setCar] = useState(null)
+  const [docs, setDocs] = useState([])
+  const [dataReady, setDataReady] = useState(false)
   const [draft, setDraft] = useState({ title: '' })
   const [files, setFiles] = useState([])
   const [photoLb, setPhotoLb] = useState(null)
   const docsFileInputId = useId()
   const docsFileInputRef = useRef(null)
 
-  const docs = useMemo(() => {
-    if (!car) return []
-    const sc = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-    // Документы/фото здесь — только "прочие" файлы без привязки к визиту.
-    // Фото моек/обслуживания остаются в Истории (там они привязаны к eventId).
-    return (r.listDocs(id, sc) || []).filter((d) => !d.eventId)
-  }, [car, id, r, mode, owner?.email, detailingId])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!id) return
+      setDataReady(false)
+      try {
+        const cr = await r.getCar(id)
+        if (cancelled) return
+        setCar(cr)
+        const dc = await r.listDocs(id)
+        if (cancelled) return
+        setDocs((Array.isArray(dc) ? dc : []).filter((d) => !d.eventId))
+      } catch {
+        if (!cancelled) {
+          setCar(null)
+          setDocs([])
+        }
+      } finally {
+        if (!cancelled) setDataReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, r, r._version])
+
   const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
 
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!dataReady) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
@@ -138,7 +165,7 @@ export default function DocsPage() {
                           : draft.title.trim()
                             ? `${draft.title.trim()} · ${f.name || 'файл'}`
                             : f.name || 'Фото'
-                      r.addDoc(scope, id, { title, url, kind: 'photo' })
+                      await r.addDoc(null, id, { title, url, kind: 'photo' })
                     } catch {
                       // ignore
                     }
@@ -146,6 +173,12 @@ export default function DocsPage() {
                   setDraft({ title: '' })
                   setFiles([])
                   invalidateRepo()
+                  try {
+                    const dc = await r.listDocs(id)
+                    setDocs((Array.isArray(dc) ? dc : []).filter((d) => !d.eventId))
+                  } catch {
+                    /* ignore */
+                  }
                 }}
               >
                 Добавить
@@ -195,12 +228,16 @@ export default function DocsPage() {
                     }
                     const ok = confirm('Удалить этот файл?\n\nВосстановить будет невозможно.')
                     if (!ok) return
-                    const ok2 = r.deleteDoc(d.id, scope)
-                    if (!ok2) {
-                      alert('Не удалось удалить файл (нет доступа).')
-                      return
-                    }
-                    invalidateRepo()
+                    ;(async () => {
+                      try {
+                        await r.deleteDoc(id, d.id)
+                        invalidateRepo()
+                        const dc = await r.listDocs(id)
+                        setDocs((Array.isArray(dc) ? dc : []).filter((x) => !x.eventId))
+                      } catch {
+                        alert('Не удалось удалить файл (нет доступа).')
+                      }
+                    })()
                   }}
                 >
                   <span className="thumbX__icon" aria-hidden="true">

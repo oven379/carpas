@@ -79,8 +79,32 @@ export default function CarEditPage({ mode }) {
   const [sp] = useSearchParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode: who } = useDetailing()
-  const scope = who === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-  const car = mode === 'edit' ? r.getCar(id, scope) : null
+  const [car, setCar] = useState(null)
+  const [carReady, setCarReady] = useState(mode !== 'edit')
+
+  useEffect(() => {
+    let cancelled = false
+    if (mode !== 'edit' || !id) {
+      setCar(null)
+      setCarReady(true)
+      return undefined
+    }
+    setCarReady(false)
+    ;(async () => {
+      try {
+        const cr = await r.getCar(id)
+        if (!cancelled) setCar(cr)
+      } catch {
+        if (!cancelled) setCar(null)
+      } finally {
+        if (!cancelled) setCarReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, id, r, r._version])
+
   const baseMileageKm = mode === 'edit' && car ? Number(car.mileageKm) || 0 : 0
   const makes = useMemo(() => {
     const labels = (Array.isArray(carBrands) ? carBrands : [])
@@ -224,8 +248,17 @@ export default function CarEditPage({ mode }) {
   }, [draft.make, brandIdByMake])
 
   if (detailingOnboardingPending(who, detailing)) return <Navigate to="/detailing/landing" replace />
-  if (mode === 'edit' && !car) {
-    return <Navigate to={who === 'detailing' ? '/detailing' : '/cars'} replace />
+  if (mode === 'edit') {
+    if (!carReady) {
+      return (
+        <div className="container muted" style={{ padding: '24px 0' }}>
+          Загрузка…
+        </div>
+      )
+    }
+    if (!car) {
+      return <Navigate to={who === 'detailing' ? '/detailing' : '/cars'} replace />
+    }
   }
   if (mode === 'edit' && who === 'owner' && car?.detailingId) {
     return <Navigate to={`/car/${id}${buildCarFromQuery(sp.get('from') || '')}`} replace />
@@ -482,7 +515,7 @@ export default function CarEditPage({ mode }) {
             <Button
               className="btn"
               variant="primary"
-              onClick={() => {
+              onClick={async () => {
                 try {
                   if (mode === 'edit') {
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
@@ -490,55 +523,60 @@ export default function CarEditPage({ mode }) {
                       alert(`Пробег не может быть меньше исходного (${baseMileageKm} км).`)
                       return
                     }
-                    const saved = r.updateCar(id, draft, scope)
-                    if (!saved) {
+                    try {
+                      await r.updateCar(id, draft)
+                    } catch {
                       alert('Не удалось сохранить изменения: нет доступа к этой карточке (проверьте, что вы вошли в правильный аккаунт).')
                       return
                     }
+                    invalidateRepo()
+                    if (who === 'owner') nav(listReturn)
+                    else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
                   } else {
                     const vin = normVin(draft.vin)
-                    if (vin) {
-                      const matches = r.findCarsByVin ? r.findCarsByVin(vin) : []
-                      if (Array.isArray(matches) && matches.length) {
-                        const msg =
-                          'Похоже, авто с таким VIN уже есть в сервисе.\n\n' +
-                          'Это может быть дубль. Обычно в этом случае лучше запросить доступ по VIN и пройти модерацию у детейлинга.\n\n' +
-                          'Создать новую карточку всё равно?'
-                        if (!confirm(msg)) return
+                    if (vin && r.findCarsByVin) {
+                      try {
+                        const matches = await r.findCarsByVin(vin)
+                        if (Array.isArray(matches) && matches.length) {
+                          const msg =
+                            'Похоже, авто с таким VIN уже есть в сервисе.\n\n' +
+                            'Это может быть дубль. Обычно в этом случае лучше запросить доступ по VIN и пройти модерацию у детейлинга.\n\n' +
+                            'Создать новую карточку всё равно?'
+                          if (!confirm(msg)) return
+                        }
+                      } catch {
+                        /* ignore duplicate check */
                       }
                     }
                     const plateKey =
                       draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
                     if (plateKey && r.findCarsByPlate) {
-                      const matches2 = r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion }) || []
-                      if (Array.isArray(matches2) && matches2.length) {
-                        const msg =
-                          'Похоже, авто с таким госномером уже есть в сервисе.\n\n' +
-                          'Это может быть дубль.\n\n' +
-                          'Создать новую карточку всё равно?'
-                        if (!confirm(msg)) return
+                      try {
+                        const matches2 = await r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion })
+                        if (Array.isArray(matches2) && matches2.length) {
+                          const msg =
+                            'Похоже, авто с таким госномером уже есть в сервисе.\n\n' +
+                            'Это может быть дубль.\n\n' +
+                            'Создать новую карточку всё равно?'
+                          if (!confirm(msg)) return
+                        }
+                      } catch {
+                        /* ignore duplicate check */
                       }
                     }
-                    const created = r.createCar(scope, draft)
-                    if (!created) {
+                    const created = await r.createCar(null, draft)
+                    if (!created?.id) {
                       alert(
-                        'Достигнут лимит гаража: вручную не больше 2 авто, всего не больше 5. Остальные авто добавляются через «Найти авто по VIN» в сервисе.',
+                        'Не удалось создать карточку: возможен лимит гаража или ошибка сервера. Дополнительные авто — через поиск по VIN.',
                       )
                       return
                     }
+                    invalidateRepo()
                     nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
-                  }
-                  invalidateRepo()
-                  if (mode === 'edit') {
-                    if (who === 'owner') nav(listReturn)
-                    else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
                   }
                 } catch (e) {
                   console.error(e)
-                  alert(
-                    'Не удалось сохранить. Скорее всего, браузеру не хватает места для хранения фото (localStorage).\n\n' +
-                      'Попробуйте: уменьшить фото или сбросить локальные данные на экране входа, чтобы освободить место.',
-                  )
+                  alert('Не удалось сохранить. Проверьте данные и подключение к серверу.')
                 }
               }}
             >
@@ -548,9 +586,7 @@ export default function CarEditPage({ mode }) {
               Отмена
             </Link>
           </div>
-          <div className="muted small">
-            Подсказка: потом легко заменим localStorage на API.
-          </div>
+          <div className="muted small">Данные сохраняются на сервере.</div>
         </div>
       </Card>
     </div>

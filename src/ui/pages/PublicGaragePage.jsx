@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card } from '../components.jsx'
 import {
@@ -15,25 +15,48 @@ import {
 export default function PublicGaragePage() {
   const { slug } = useParams()
   const r = useRepo()
+  const [data, setData] = useState(undefined)
 
-  const owner = useMemo(() => {
-    const s = String(slug || '').trim()
-    if (!s || !r.getOwnerByGarageSlug) return null
-    return r.getOwnerByGarageSlug(s)
-  }, [slug, r])
+  const slugNorm = useMemo(() => String(slug || '').trim(), [slug])
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!slugNorm) {
+        setData(null)
+        return
+      }
+      try {
+        const res = await r.publicGarage(slugNorm)
+        if (!cancelled) setData(res || null)
+      } catch {
+        if (!cancelled) setData(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [slugNorm, r, r._version])
+
+  if (!slugNorm) return <Navigate to="/about" replace />
+
+  if (data === undefined) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
+  if (!data?.owner) return <Navigate to="/about" replace />
+
+  const owner = data.owner
+  const cars = Array.isArray(data.cars) ? data.cars : []
   const socialLinks = useMemo(() => {
     if (!ownerPublicFlagTrue(owner?.showSocialPublic)) return []
     return parseGarageSocialLines(owner.garageSocial)
       .map((line) => ({ line, href: normalizeHttpUrl(line) }))
       .filter((x) => x.href)
-  }, [owner?.showSocialPublic, owner?.garageSocial])
-
-  if (!slug?.trim()) return <Navigate to="/about" replace />
-  if (!owner) return <Navigate to="/about" replace />
-
-  const ownerEmail = owner.email
-  const cars = r.listCars({ ownerEmail }) || []
+  }, [owner])
   const displayName = String(owner.name || '').trim() || 'Гараж'
   const showCityPublic = ownerCityPublicFlag(owner.showCityPublic)
   const cityLabel = showCityPublic ? String(owner.garageCity || '').trim() : ''

@@ -1,10 +1,9 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { safeSyncRepo } from '../lib/syncRepoCall.js'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
 import { useRepo } from './useRepo.js'
-import { clearSession, isAuthed } from './auth.js'
+import { clearSession, hasOwnerSession } from './auth.js'
 import { invalidateRepo } from './useRepo.js'
 import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
@@ -132,13 +131,27 @@ export function TopNav() {
   const isPublicGaragePage = /^\/g\/[^/]+\/?$/.test(loc.pathname)
   const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
   const isDetailingCabinet = mode === 'detailing' && !isPublicDetailingPage
-  let pendingClaims = 0
-  if (isDetailingCabinet && detailingId && r.listClaimsForDetailing) {
-    const res = safeSyncRepo(() => r.listClaimsForDetailing(detailingId))
-    if (res.ok && Array.isArray(res.value)) {
-      pendingClaims = res.value.filter((x) => x.status === 'pending').length
+  const [pendingClaims, setPendingClaims] = useState(0)
+  useEffect(() => {
+    if (!isDetailingCabinet || !detailingId) {
+      setPendingClaims(0)
+      return
     }
-  }
+    let c = false
+    ;(async () => {
+      try {
+        const list = await r.listClaimsForDetailing()
+        if (!c && Array.isArray(list)) {
+          setPendingClaims(list.filter((x) => x.status === 'pending').length)
+        }
+      } catch {
+        if (!c) setPendingClaims(0)
+      }
+    })()
+    return () => {
+      c = true
+    }
+  }, [isDetailingCabinet, detailingId, r, r._version])
   const logout = () => {
     clearSession()
     invalidateRepo()
@@ -178,7 +191,7 @@ export function TopNav() {
                     О сервисе
                   </Link>
                 ) : null}
-                {mode === 'owner' && isAuthed() ? (
+                {hasOwnerSession() ? (
                   <>
                     <OwnerSupportDropdown />
                     <button type="button" className="nav__action" onClick={logout}>

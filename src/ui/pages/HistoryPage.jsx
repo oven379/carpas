@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Button, Card, Field, Input, ServiceHint, Textarea } from '../components.jsx'
 import {
@@ -11,6 +11,7 @@ import {
   VISIT_CARE_TIP_MAX_LEN,
   VISIT_TITLE_MAX_LEN,
 } from '../../lib/format.js'
+import { getSessionOwner } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
@@ -18,6 +19,7 @@ import {
   DETAILING_SERVICES,
   MAINTENANCE_SERVICES,
   splitWashDetailingServices,
+  WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
@@ -100,7 +102,7 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
 }
 
 /** Фото визита в форме редактирования: битая ссылка → замена/удаление записи. */
-function EditingVisitPhoto({ doc, editAllowed, scope, r, onPickFiles, onDeleted }) {
+function EditingVisitPhoto({ doc, editAllowed, onPickFiles, onDeleted, onDeleteDoc }) {
   const [broken, setBroken] = useState(() => !String(doc?.url || '').trim())
   if (broken) {
     return (
@@ -115,16 +117,16 @@ function EditingVisitPhoto({ doc, editAllowed, scope, r, onPickFiles, onDeleted 
                 type="button"
                 className="btn historyEditPhotoDel"
                 data-variant="ghost"
-                onClick={(ev) => {
+                onClick={async (ev) => {
                   ev.preventDefault()
                   const ok = confirm('Удалить эту запись о фото?')
                   if (!ok) return
-                  const ok2 = r.deleteDoc(doc.id, scope)
-                  if (!ok2) {
+                  try {
+                    await onDeleteDoc(doc.id)
+                    onDeleted()
+                  } catch {
                     alert('Не удалось удалить (нет доступа или время редактирования истекло).')
-                    return
                   }
-                  onDeleted()
                 }}
               >
                 Удалить запись
@@ -147,17 +149,17 @@ function EditingVisitPhoto({ doc, editAllowed, scope, r, onPickFiles, onDeleted 
           type="button"
           className="thumbX"
           title="Удалить фото"
-          onClick={(ev) => {
+          onClick={async (ev) => {
             ev.preventDefault()
             ev.stopPropagation()
             const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
             if (!ok) return
-            const ok2 = r.deleteDoc(doc.id, scope)
-            if (!ok2) {
+            try {
+              await onDeleteDoc(doc.id)
+              onDeleted()
+            } catch {
               alert('Не удалось удалить фото (нет доступа или время редактирования истекло).')
-              return
             }
-            onDeleted()
           }}
         >
           <span className="thumbX__icon" aria-hidden="true">
@@ -412,18 +414,57 @@ export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode } = useDetailing()
-  const scope = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-  const car = r.getCar(id, scope)
+  const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const scope = mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }
+  const [car, setCar] = useState(null)
+  const [events, setEvents] = useState([])
+  const [allDocs, setAllDocs] = useState([])
+  const [dataReady, setDataReady] = useState(false)
   const baseMileageKm = car ? Number(car.mileageKm) || 0 : 0
   const [sp, setSp] = useSearchParams()
+  const nav = useNavigate()
+  const fromRaw = sp.get('from') || ''
+  const from = fromRaw ? decodeURIComponent(fromRaw) : ''
   const wantNew = sp.get('new') === '1'
   const editParam = sp.get('edit')
 
-  const events = useMemo(() => {
-    if (!car) return []
-    const sc = mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }
-    return r.listEvents(id, sc)
-  }, [car, id, r, mode, owner?.email, detailingId])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      setDataReady(false)
+      try {
+        const cr = await r.getCar(id)
+        if (cancelled) return
+        setCar(cr)
+        const ev = await r.listEvents(id)
+        if (cancelled) return
+        setEvents(Array.isArray(ev) ? ev : [])
+        const dc = await r.listDocs(id)
+        if (cancelled) return
+        setAllDocs(Array.isArray(dc) ? dc : [])
+      } catch {
+        if (!cancelled) {
+          setCar(null)
+          setEvents([])
+          setAllDocs([])
+        }
+      } finally {
+        if (!cancelled) setDataReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, r, r._version])
+
+  const docsForEvent = useCallback(
+    (evId) => {
+      if (!evId) return []
+      return allDocs.filter((d) => String(d.eventId) === String(evId))
+    },
+    [allDocs],
+  )
+
   const serviceEvents = useMemo(() => events.filter((e) => e.source === 'service'), [events])
   const ownerEvents = useMemo(() => events.filter((e) => e.source === 'owner'), [events])
   const [tab, setTab] = useState('all') // all|service|owner
@@ -569,9 +610,14 @@ export default function HistoryPage() {
   const title = useMemo(() => (car ? `${car.make} ${car.model}` : ''), [car])
   const detForBadge = useMemo(() => {
     const detId = car?.detailingId
-    if (!detId || !r.getDetailing) return null
-    return r.getDetailing(detId) || null
-  }, [car?.detailingId, r])
+    if (!detId) return null
+    return {
+      id: detId,
+      name: String(car.detailingName || car.seller?.name || 'Сервис').trim() || 'Сервис',
+      logo: null,
+      website: car.detailingWebsite || '',
+    }
+  }, [car])
   const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
   const detBadgeInitials = useMemo(() => {
     const nm = String(detForBadge?.name || 'Д').trim()
@@ -596,6 +642,13 @@ export default function HistoryPage() {
       : events
 
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!dataReady) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
@@ -604,9 +657,13 @@ export default function HistoryPage() {
   const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
   const isEditing = Boolean(editingId)
   const formLocked = isEditing && !editAllowed
-  const editingPhotos = editingId && editAllowed ? r.listDocs(id, scope, { eventId: editingId }) : []
+  const editingPhotos = useMemo(() => {
+    if (!editingId || !editAllowed) return []
+    return docsForEvent(editingId)
+  }, [editingId, editAllowed, docsForEvent, allDocs])
   const visitPhotosAddBlocked = Boolean(editingId && editAllowed && editingPhotos.length >= VISIT_MAX_PHOTOS)
-  const visitPhotosRoom = editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
+  const visitPhotosRoom =
+    editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
   const buildVisitPayload = () => ({
     title: clampVisitTitle(draft.title),
@@ -628,7 +685,7 @@ export default function HistoryPage() {
     if (formLocked || visitPhotoBusy || !picked.length) return
     let room = VISIT_MAX_PHOTOS
     if (editingId && editAllowed) {
-      room = Math.max(0, VISIT_MAX_PHOTOS - (r.listDocs(id, scope, { eventId: editingId }) || []).length)
+      room = Math.max(0, VISIT_MAX_PHOTOS - docsForEvent(editingId).length)
     }
     let batch = picked
     if (picked.length > room) {
@@ -649,11 +706,12 @@ export default function HistoryPage() {
       if (!eventId) {
         const nextMileage = Number(String(draft.mileageKm || '0')) || 0
         if (baseMileageKm && nextMileage < baseMileageKm) {
-          alert(`Пробег не может быть меньше текущего (${baseMileageKm} км). Укажите корректный пробег и попробуйте снова.`)
+          alert(
+            `Пробег не может быть меньше текущего (${baseMileageKm} км). Укажите корректный пробег и попробуйте снова.`,
+          )
           return
         }
-        const payload = buildVisitPayload()
-        const evt = r.addEvent(scope, id, { type: 'visit', ...payload })
+        const evt = await r.addEvent(scope, id, { type: 'visit', ...buildVisitPayload() })
         if (!evt?.id) {
           alert('Не удалось создать визит для фото (нет прав).')
           return
@@ -666,8 +724,20 @@ export default function HistoryPage() {
         next.set('edit', evt.id)
         if (mode === 'owner') next.set('t', 'owner')
         setSp(next, { replace: true })
+      } else {
+        try {
+          await r.updateEvent(id, eventId, buildVisitPayload())
+        } catch {
+          alert('Не удалось сохранить текст визита перед добавлением фото.')
+          return
+        }
       }
-      const priorPhotoCount = (r.listDocs(id, scope, { eventId: eventId }) || []).length
+
+      const dcFresh = await r.listDocs(id)
+      const forEvent = (Array.isArray(dcFresh) ? dcFresh : []).filter(
+        (d) => String(d.eventId) === String(eventId),
+      )
+      const priorPhotoCount = forEvent.length
       const maxNew = Math.max(0, VISIT_MAX_PHOTOS - priorPhotoCount)
       const toAdd = batch.slice(0, maxNew)
       if (batch.length > maxNew && maxNew === 0) {
@@ -688,7 +758,7 @@ export default function HistoryPage() {
             maxBytes: 2 * 1024 * 1024,
           })
           if (!url) continue
-          r.addDoc(scope, id, {
+          await r.addDoc(scope, id, {
             title: f.name || 'Фото',
             kind: 'photo',
             url,
@@ -698,7 +768,21 @@ export default function HistoryPage() {
           // ignore single-file read errors
         }
       }
-      r.syncCarWashPhotosFromLatestEvent(id, scope)
+
+      const hasWash =
+        Array.isArray(draft.services) && draft.services.some((s) => WASH_SERVICE_MARKERS.has(s))
+      if (hasWash) {
+        const freshDocs = await r.listDocs(id)
+        const existing = (Array.isArray(freshDocs) ? freshDocs : [])
+          .filter((d) => String(d.eventId) === String(eventId))
+          .map((d) => d.url)
+          .filter(Boolean)
+        if (existing.length) await r.updateCar(id, { washPhotos: existing.slice(0, 12) })
+      }
+
+      if (typeof r.syncCarWashPhotosFromLatestEvent === 'function') {
+        r.syncCarWashPhotosFromLatestEvent(id, scope)
+      }
       invalidateRepo()
     } catch (err) {
       const msg = String(err?.message || err || '')
@@ -856,7 +940,7 @@ export default function HistoryPage() {
                   </div>
                 ) : null}
                 {(() => {
-                  const photos = r.listDocs(id, scope, { eventId: e.id })
+                  const photos = docsForEvent(e.id)
                   const canPhoto = canEditAny(e)
                   if (!photos.length) {
                     return (
@@ -1069,10 +1153,9 @@ export default function HistoryPage() {
                         key={d.id}
                         doc={d}
                         editAllowed={editAllowed}
-                        scope={scope}
-                        r={r}
                         onPickFiles={() => visitPhotosInputRef.current?.click?.()}
                         onDeleted={() => invalidateRepo()}
+                        onDeleteDoc={(docId) => r.deleteDoc(id, docId)}
                       />
                     ))}
                   </div>
@@ -1222,15 +1305,28 @@ export default function HistoryPage() {
                   const payload = buildVisitPayload()
 
                   const evt = editingId
-                    ? r.updateEvent(editingId, payload, scope)
-                    : r.addEvent(scope, id, { type: 'visit', ...payload })
+                    ? await r.updateEvent(id, editingId, payload)
+                    : await r.addEvent(scope, id, { type: 'visit', ...payload })
 
                   if (!evt || !evt.id) {
                     alert(editingId ? 'Не удалось сохранить (нет прав).' : 'Не удалось добавить событие.')
                     return
                   }
 
-                  r.syncCarWashPhotosFromLatestEvent(id, scope)
+                  const hasWashSave =
+                    Array.isArray(draft.services) && draft.services.some((s) => WASH_SERVICE_MARKERS.has(s))
+                  if (hasWashSave) {
+                    const freshDocs = await r.listDocs(id)
+                    const existing = (Array.isArray(freshDocs) ? freshDocs : [])
+                      .filter((d) => String(d.eventId) === String(evt.id))
+                      .map((d) => d.url)
+                      .filter(Boolean)
+                    if (existing.length) await r.updateCar(id, { washPhotos: existing.slice(0, 12) })
+                  }
+
+                  if (typeof r.syncCarWashPhotosFromLatestEvent === 'function') {
+                    r.syncCarWashPhotosFromLatestEvent(id, scope)
+                  }
 
                   setDraft({
                     title: '',
@@ -1254,11 +1350,7 @@ export default function HistoryPage() {
                   setSp(next, { replace: true })
                 } catch (err) {
                   const msg = String(err?.message || err || '')
-                  if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
-                    alert('Не удалось сохранить: переполнено хранилище браузера. Удалите часть фото/событий или сбросьте локальные данные на экране входа.')
-                  } else {
-                    alert('Не удалось сохранить историю. Попробуйте ещё раз.')
-                  }
+                  alert('Не удалось сохранить историю. Попробуйте ещё раз.')
                 }
               }}
             >
@@ -1270,15 +1362,16 @@ export default function HistoryPage() {
                 data-variant="danger"
                 type="button"
                 disabled={!editAllowed}
-                onClick={() => {
+                onClick={async () => {
                   if (!editAllowed) {
                     alert('Удаление доступно только в течение 3 часов с момента последнего сохранения визита.')
                     return
                   }
                   const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
                   if (!ok) return
-                  const res = r.deleteEvent(editingId, scope)
-                  if (!res) {
+                  try {
+                    await r.deleteEvent(id, editingId)
+                  } catch {
                     alert('Нельзя удалить это событие.')
                     return
                   }
@@ -1296,6 +1389,57 @@ export default function HistoryPage() {
                 }}
               >
                 Удалить
+              </button>
+            ) : null}
+            {mode === 'detailing' && from ? (
+              <button
+                className="btn"
+                data-variant="outline"
+                onClick={async () => {
+                  try {
+                    if (editingId && !editAllowed) {
+                      alert('Редактирование визита доступно только в течение 3 часов с момента последнего сохранения.')
+                      return
+                    }
+                    const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                    if (baseMileageKm && nextMileage < baseMileageKm) {
+                      alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
+                      return
+                    }
+                    const payload = { ...buildVisitPayload(), maintenanceServices: [] }
+
+                    const evt = editingId
+                      ? await r.updateEvent(id, editingId, payload)
+                      : await r.addEvent(scope, id, { type: 'visit', ...payload })
+
+                    if (!evt || !evt.id) {
+                      alert(editingId ? 'Не удалось сохранить (нет прав).' : 'Не удалось добавить событие.')
+                      return
+                    }
+
+                    const hasWashBack =
+                      Array.isArray(draft.services) && draft.services.some((s) => WASH_SERVICE_MARKERS.has(s))
+                    if (hasWashBack) {
+                      const freshDocs = await r.listDocs(id)
+                      const existing = (Array.isArray(freshDocs) ? freshDocs : [])
+                        .filter((d) => String(d.eventId) === String(evt.id))
+                        .map((d) => d.url)
+                        .filter(Boolean)
+                      if (existing.length) await r.updateCar(id, { washPhotos: existing.slice(0, 12) })
+                    }
+
+                    if (typeof r.syncCarWashPhotosFromLatestEvent === 'function') {
+                      r.syncCarWashPhotosFromLatestEvent(id, scope)
+                    }
+
+                    invalidateRepo()
+                    nav(from)
+                  } catch {
+                    alert('Не удалось сохранить историю. Попробуйте ещё раз.')
+                  }
+                }}
+              >
+                Сохранить и назад
               </button>
             ) : null}
             <button

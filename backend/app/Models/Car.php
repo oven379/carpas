@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Car extends Model
 {
@@ -11,8 +12,10 @@ class Car extends Model
 
     protected $fillable = [
         'detailing_id',
+        'owner_id',
         'vin',
         'plate',
+        'plate_region',
         'make',
         'model',
         'year',
@@ -23,6 +26,11 @@ class Car extends Model
         'hero',
         'segment',
         'seller',
+        'owner_phone',
+        'client_name',
+        'client_phone',
+        'client_email',
+        'wash_photos',
     ];
 
     protected $casts = [
@@ -30,5 +38,16 @@ class Car extends Model
         'mileage_km' => 'integer',
         'price_rub' => 'integer',
         'seller' => 'array',
+        'wash_photos' => 'array',
     ];
+
+    public function detailing(): BelongsTo
+    {
+        return $this->belongsTo(Detailing::class, 'detailing_id');
+    }
+
+    public function owner(): BelongsTo
+    {
+        return $this->belongsTo(Owner::class, 'owner_id');
+    }
 }

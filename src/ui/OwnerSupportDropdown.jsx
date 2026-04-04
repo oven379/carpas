@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useMatch, useNavigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { useDetailing } from './useDetailing.js'
-import { isAuthed } from './auth.js'
+import { bumpSessionRefresh, hasOwnerSession, isAuthed } from './auth.js'
 import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 
 /**
@@ -12,16 +12,36 @@ import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 export default function OwnerSupportDropdown({ placement = 'nav' }) {
   const r = useRepo()
   const nav = useNavigate()
-  const loc = useLocation()
   const { detailingId, owner, mode } = useDetailing()
-  const carId = useMemo(() => {
-    const m = /^\/car\/([^/]+)/.exec(loc.pathname)
-    return m ? m[1] : undefined
-  }, [loc.pathname])
-  const scope = { ownerEmail: owner?.email }
-  const car =
-    carId && isAuthed() && mode === 'owner' ? r.getCar(carId, scope) : null
-  const shares = carId && r.listShares ? r.listShares(carId) : []
+  const match = useMatch({ path: '/car/:id', end: true })
+  const carId = match?.params?.id
+  const [car, setCar] = useState(null)
+  const [shares, setShares] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!carId || !isAuthed() || !hasOwnerSession()) {
+        setCar(null)
+        setShares([])
+        return
+      }
+      try {
+        const [cr, sh] = await Promise.all([r.getCar(carId), r.listShares(carId)])
+        if (cancelled) return
+        setCar(cr)
+        setShares(Array.isArray(sh) ? sh : [])
+      } catch {
+        if (!cancelled) {
+          setCar(null)
+          setShares([])
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [carId, mode, r, r._version])
   const activeShare = shares.find((s) => !s.revokedAt) || null
 
   const [open, setOpen] = useState(false)
@@ -90,7 +110,7 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
                 className="footerHelpDd__item"
                 onClick={async () => {
                   setOpen(false)
-                  const share = activeShare || (await r.createShare(carId, { ownerEmail: owner?.email }))
+                  const share = activeShare || (await r.createShare(carId))
                   if (!share) {
                     alert('Не удалось создать ссылку (нет доступа к авто).')
                     return
@@ -111,7 +131,7 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
                 type="button"
                 role="menuitem"
                 className="footerHelpDd__item"
-                onClick={() => {
+                onClick={async () => {
                   setOpen(false)
                   const nextEmail = prompt('Введите почту нового владельца', '')
                   const em = String(nextEmail || '').trim().toLowerCase()
@@ -121,14 +141,15 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
                     `Новый владелец: ${em}\n\n` +
                     'После передачи это авто исчезнет из вашего гаража.'
                   if (!confirm(msg)) return
-                  const ok = r.updateCar(carId, { ownerEmail: em }, { ownerEmail: owner?.email })
-                  if (!ok) {
+                  try {
+                    await r.updateCar(carId, { ownerEmail: em })
+                    invalidateRepo()
+                    alert('Авто передано новому владельцу.')
+                    const list = await r.listCars()
+                    nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
+                  } catch {
                     alert('Не удалось передать авто (нет доступа к карточке).')
-                    return
                   }
-                  invalidateRepo()
-                  alert('Авто передано новому владельцу.')
-                  nav(getPathAfterCarRemovedFromScope(r, { mode, owner, detailingId }), { replace: true })
                 }}
               >
                 Передать авто
@@ -157,19 +178,21 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
             type="button"
             role="menuitem"
             className="footerHelpDd__item"
-            onClick={() => {
+            onClick={async () => {
               setOpen(false)
-              if (!owner?.email || !r.updateOwner) {
+              if (!owner?.email || !r.updateOwnerMe) {
                 alert('Не удалось обновить тариф.')
                 return
               }
-              const next = r.updateOwner(owner.email, { isPremium: !owner.isPremium })
-              if (!next) {
+              try {
+                const next = await r.updateOwnerMe({ isPremium: !owner.isPremium })
+                invalidateRepo()
+                bumpSessionRefresh()
+                const prem = Boolean(next?.owner?.isPremium)
+                alert(prem ? 'Premium включён.' : 'Premium выключен.')
+              } catch {
                 alert('Не удалось обновить тариф.')
-                return
               }
-              invalidateRepo()
-              alert(next.isPremium ? 'Premium включён.' : 'Premium выключен.')
             }}
           >
             {owner?.isPremium ? 'Отключить Premium' : 'Подключить Premium'}

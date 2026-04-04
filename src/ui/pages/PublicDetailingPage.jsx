@@ -1,23 +1,16 @@
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { BackNav, Card, Pill, ServiceHint } from '../components.jsx'
+import { Card, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
-import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
-import {
-  detailingNavGeocodeQuery,
-  detailingYandexMapsWebHref,
-  isWholeLineYandexMapsUrl,
-} from '../../lib/mapsLinks.js'
 
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
   if (/^https?:\/\//i.test(s)) return s
   if (s.startsWith('//')) return `https:${s}`
-  // allow plain domains
   return `https://${s}`
 }
 
@@ -39,68 +32,63 @@ function socialHref(label, value) {
 
 export default function PublicDetailingPage() {
   const { id } = useParams()
-  const r = useRepo()
-  const nav = useNavigate()
   const [sp] = useSearchParams()
+  const r = useRepo()
   const { detailingId: sessionDetailingId, mode } = useDetailing()
   const [photoLb, setPhotoLb] = useState(null)
+  const [payload, setPayload] = useState(undefined)
 
-  const fromSetup = sp.get('from') === 'setup'
-  const isOwnerViewingOwnPage =
-    mode === 'detailing' && sessionDetailingId && id && String(sessionDetailingId) === String(id)
-  const showSetupSuccess = Boolean(fromSetup && isOwnerViewingOwnPage)
+  const idNorm = String(id || '').trim()
 
-  const det = useMemo(() => (id && r.getDetailing ? r.getDetailing(id) : null), [id, r])
-  const detId = det?.id ? String(det.id) : ''
-  const lastWorkPhotos = useMemo(() => {
-    if (!detId) return []
-    const cars = r.listCars?.(detId) || []
-    const best = []
-    for (const c of Array.isArray(cars) ? cars : []) {
-      const carId = c?.id
-      if (!carId) continue
-      const evts = r.listEvents?.(carId, { detailingId: detId }) || []
-      const lastServiceEvt = (Array.isArray(evts) ? evts : []).find((e) => e?.source === 'service') || null
-      if (!lastServiceEvt?.id) continue
-      const docs = r.listDocs?.(carId, { detailingId: detId }, { eventId: lastServiceEvt.id }) || []
-      const firstUrl = (Array.isArray(docs) ? docs : []).find((d) => d?.url)?.url || ''
-      const ts = lastServiceEvt.at || lastServiceEvt.updatedAt || lastServiceEvt.createdAt || ''
-      if (firstUrl) best.push({ url: firstUrl, ts })
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!idNorm) {
+        setPayload(null)
+        return
+      }
+      try {
+        const data = await r.publicDetailingShowcase(idNorm)
+        if (!cancelled) setPayload(data || null)
+      } catch {
+        if (!cancelled) setPayload(null)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-    best.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
-    const uniq = []
-    const seen = new Set()
-    for (const x of best) {
-      const u = String(x.url || '')
-      if (!u || seen.has(u)) continue
-      seen.add(u)
-      uniq.push(u)
-      if (uniq.length >= 10) break
-    }
-    return uniq
-  }, [r, detId])
+  }, [idNorm, r, r._version])
+
+  const det = payload?.detailing ?? null
+  const carsCount = typeof payload?.carsCount === 'number' ? payload.carsCount : 0
+  const lastWorkPhotos = Array.isArray(payload?.lastWorkPhotos) ? payload.lastWorkPhotos : []
 
   const workGalleryItems = useMemo(
     () => urlsToPhotoItems(lastWorkPhotos, 'Фото работы'),
     [lastWorkPhotos],
   )
 
-  if (!id) return <Navigate to="/about" replace />
+  if (!idNorm) return <Navigate to="/about" replace />
+
+  if (payload === undefined) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!det) return <Navigate to="/about" replace />
 
-  const carsCount = (r.listCars?.(det.id) || []).length
-  const addrRaw = String(det.address || '').trim()
-  const addressIsYandexUrl = isWholeLineYandexMapsUrl(addrRaw)
+  const fromSetup = sp.get('from') === 'setup'
+  const isOwnerViewingOwnPage =
+    mode === 'detailing' && sessionDetailingId && idNorm && String(sessionDetailingId) === String(idNorm)
+  const showSetupSuccess = Boolean(fromSetup && isOwnerViewingOwnPage)
+
   const addressText = [det.city, det.address].filter(Boolean).join(', ')
-  const mapsHref = detailingYandexMapsWebHref(det)
-  const geoQuery = detailingNavGeocodeQuery(det)
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
   const isIOS = /iPhone|iPad|iPod/i.test(ua)
-  const navHref = geoQuery ? (isIOS ? `maps://?q=${encodeURIComponent(geoQuery)}` : `geo:0,0?q=${encodeURIComponent(geoQuery)}`) : ''
-  const addressLinkLabel = addressIsYandexUrl
-    ? 'Открыть точку и построить маршрут'
-    : det.address || addressText
-  const showAddressLink = Boolean(mapsHref)
+  const mapsHref = addressText ? `https://yandex.ru/maps/?text=${encodeURIComponent(addressText)}` : ''
+  const navHref = addressText ? (isIOS ? `maps://?q=${encodeURIComponent(addressText)}` : `geo:0,0?q=${encodeURIComponent(addressText)}`) : ''
   const phoneDigits = String(det.phone || '').replace(/[^\d+]/g, '')
   const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
   const services = Array.isArray(det.servicesOffered) ? det.servicesOffered : []
@@ -112,6 +100,16 @@ export default function PublicDetailingPage() {
 
   return (
     <div className="container">
+      {showSetupSuccess ? (
+        <Card className="card pad" style={{ marginBottom: 16 }}>
+          <div className="cardTitle" style={{ marginBottom: 6 }}>
+            Публичная страница готова
+          </div>
+          <p className="muted small" style={{ margin: 0 }}>
+            Настройки сохранены. Эту страницу можно отправить клиентам как витрину сервиса.
+          </p>
+        </Card>
+      ) : null}
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
@@ -120,7 +118,6 @@ export default function PublicDetailingPage() {
             <span>Страница детейлинга</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
-            <BackNav fallbackTo="/auth" title="Назад" />
             <h1 className="h1" style={{ margin: 0 }}>
               {det.name || 'Детейлинг / СТО'}
             </h1>
@@ -138,37 +135,6 @@ export default function PublicDetailingPage() {
         </div>
       </div>
 
-      {showSetupSuccess ? (
-        <Card className="card pad detPublicSetupBanner" style={{ marginTop: 12 }}>
-          <div className="row spread gap wrap" style={{ alignItems: 'center' }}>
-            <div style={{ minWidth: 0 }}>
-              <div className="cardTitle" style={{ margin: 0 }}>
-                Страница готова
-              </div>
-              <p className="muted small" style={{ margin: '8px 0 0', maxWidth: '58ch', lineHeight: 1.5 }}>
-                Так клиенты видят вашу витрину. Добавьте автомобиль в кабинете — оно появится в списке на обслуживании.
-              </p>
-            </div>
-            <div className="row gap wrap detPublicSetupBanner__actions">
-              <Link className="btn" data-variant="primary" to="/create">
-                Добавить автомобиль
-              </Link>
-              <Link className="btn" data-variant="outline" to="/detailing">
-                Кабинет
-              </Link>
-              <button
-                type="button"
-                className="btn"
-                data-variant="ghost"
-                onClick={() => nav(`/d/${encodeURIComponent(String(id))}`, { replace: true })}
-              >
-                Скрыть
-              </button>
-            </div>
-          </div>
-        </Card>
-      ) : null}
-
       <div
         className="detHero detHero--card"
         style={det.cover ? { backgroundImage: `url("${String(det.cover).replaceAll('"', '%22')}")` } : undefined}
@@ -179,12 +145,18 @@ export default function PublicDetailingPage() {
               <img alt="Логотип" src={det.logo} />
             </div>
           ) : null}
+          <div className="detHero__bottomRow">
+            <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
+              <Pill tone="accent">Авто на обслуживании: {carsCount}</Pill>
+              {services.length ? <Pill>{`Услуг: ${services.length}`}</Pill> : null}
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="split" style={{ marginTop: 12 }}>
         <Card className="card pad">
-          <h2 className="h2">Адрес и контакты сервиса</h2>
+          <h2 className="h2">Информация</h2>
           <div className="kv">
             <div className="kv__row">
               <span className="kv__k">Город</span>
@@ -193,14 +165,14 @@ export default function PublicDetailingPage() {
             <div className="kv__row">
               <span className="kv__k">Адрес</span>
               <span className="kv__v">
-                {showAddressLink ? (
+                {addressText ? (
                   <a
-                    href={addressIsYandexUrl ? mapsHref : navHref || mapsHref}
-                    target={addressIsYandexUrl || !navHref ? '_blank' : undefined}
-                    rel={addressIsYandexUrl || !navHref ? 'noopener noreferrer' : undefined}
-                    title={addressIsYandexUrl ? 'Яндекс.Карты: точка и маршрут' : 'Открыть в навигаторе'}
+                    href={navHref || mapsHref}
+                    target={navHref ? undefined : '_blank'}
+                    rel={navHref ? undefined : 'noreferrer'}
+                    title="Открыть в навигаторе"
                     onClick={(e) => {
-                      if (addressIsYandexUrl || !navHref) return
+                      if (!navHref) return
                       e.preventDefault()
                       try {
                         window.location.href = navHref
@@ -216,17 +188,11 @@ export default function PublicDetailingPage() {
                       }, 450)
                     }}
                   >
-                    {addressLinkLabel}
+                    {det.address || addressText}
                   </a>
                 ) : (
                   '—'
                 )}
-              </span>
-            </div>
-            <div className="kv__row">
-              <span className="kv__k">Режим работы</span>
-              <span className="kv__v kv__v--prewrap">
-                {String(det.workingHours || '').trim() || '—'}
               </span>
             </div>
             <div className="kv__row">
@@ -253,8 +219,7 @@ export default function PublicDetailingPage() {
               </p>
             ) : (
               <p className="muted small">
-                Описание пока не заполнено. Режим работы задаётся отдельным полем выше; здесь обычно указывают специализацию,
-                гарантию и отличия сервиса.
+                Описание пока не заполнено. Обычно здесь пишут специализацию, режим работы, гарантию и чем вы отличаетесь.
               </p>
             )}
           </div>
@@ -266,8 +231,7 @@ export default function PublicDetailingPage() {
                   Фото работ
                 </div>
                 <div className="muted small" style={{ marginTop: 6 }}>
-                  До 10 последних фото из новых обслуженных авто (с появлением новых старые скрываются).{' '}
-                  {PHOTO_LANDSCAPE_HINT_SENTENCE}
+                  До 10 последних фото из новых обслуженных авто (с появлением новых старые скрываются).
                 </div>
               </div>
             </div>
@@ -303,7 +267,7 @@ export default function PublicDetailingPage() {
           <Card className="card pad">
             <div className="row spread gap" style={{ alignItems: 'center' }}>
               <div className="cardTitle" style={{ marginBottom: 0 }}>
-                Услуги сервиса
+                Услуги
               </div>
               {services.length ? <Pill tone="accent">{services.length}</Pill> : <Pill>—</Pill>}
             </div>
@@ -324,16 +288,10 @@ export default function PublicDetailingPage() {
           <Card className="card pad">
             <div className="row spread gap" style={{ alignItems: 'center' }}>
               <div>
-                <div className="row gap wrap" style={{ alignItems: 'center' }}>
-                  <div className="cardTitle" style={{ marginBottom: 0 }}>
-                    Связаться с сервисом
-                  </div>
-                  <ServiceHint scopeId="public-detailing-call-hint" variant="compact" label="Справка: звонок">
-                    <p className="serviceHint__panelText">
-                      Нажмите «Позвонить», чтобы связаться с детейлингом по указанному номеру телефона.
-                    </p>
-                  </ServiceHint>
+                <div className="cardTitle" style={{ marginBottom: 0 }}>
+                  Связаться
                 </div>
+                <div className="muted small">Нажмите, чтобы позвонить в детейлинг.</div>
               </div>
               {det.phone ? (
                 <a className="btn" data-variant="primary" href={phoneHref} style={{ whiteSpace: 'nowrap' }}>
@@ -376,7 +334,7 @@ export default function PublicDetailingPage() {
           <Card className="card pad">
             <div className="row spread gap">
               <div className="cardTitle" style={{ marginBottom: 0 }}>
-                Автомобили в сервисе
+                Статистика
               </div>
               <Pill tone="accent">{carsCount}</Pill>
             </div>
@@ -395,4 +353,3 @@ export default function PublicDetailingPage() {
     </div>
   )
 }
-

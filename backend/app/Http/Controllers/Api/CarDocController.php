@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\ApiResources;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\Detailing;
@@ -22,7 +23,7 @@ class CarDocController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        return response()->json($docs->map(fn ($doc) => $this->doc($doc))->values());
+        return response()->json($docs->map(fn ($doc) => ApiResources::doc($doc))->values());
     }
 
     public function store(Request $request, $carId)
@@ -41,14 +42,17 @@ class CarDocController extends Controller
         $doc = CarDoc::query()->create([
             'detailing_id' => $d->id,
             'car_id' => $carId,
+            'owner_id' => null,
+            'source' => 'service',
             'event_id' => isset($data['eventId']) && $data['eventId'] !== '' ? (int) $data['eventId'] : null,
             'title' => trim((string) ($data['title'] ?? 'Файл')) ?: 'Файл',
             'kind' => trim((string) ($data['kind'] ?? 'photo')) ?: 'photo',
             'url' => $data['url'] ?? null,
             'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
-        return response()->json($this->doc($doc));
+        return response()->json(ApiResources::doc($doc));
     }
 
     public function destroy(Request $request, $id)
@@ -57,20 +61,7 @@ class CarDocController extends Controller
         $d = $request->user();
         $doc = CarDoc::query()->where('detailing_id', $d->id)->findOrFail($id);
         $doc->delete();
-        return response()->json(['ok' => true]);
-    }
 
-    private function doc(CarDoc $d): array
-    {
-        return [
-            'id' => (string) $d->id,
-            'detailingId' => (string) $d->detailing_id,
-            'carId' => (string) $d->car_id,
-            'title' => $d->title ?? 'Файл',
-            'kind' => $d->kind ?? 'photo',
-            'url' => $d->url ?? '',
-            'eventId' => $d->event_id ? (string) $d->event_id : null,
-            'createdAt' => optional($d->created_at)->toISOString(),
-        ];
+        return response()->json(['ok' => true]);
     }
 }

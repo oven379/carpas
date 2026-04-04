@@ -1,9 +1,9 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { detailingCarAccessBadge } from '../serviceLinkUi.js'
-import { fmtDate, fmtPlateFull, normVin, ownerPublicFlagTrue, parsePlateFull } from '../../lib/format.js'
+import { fmtDate, fmtPlateFull, normVin, parsePlateFull } from '../../lib/format.js'
 import {
   detailingNavGeocodeQuery,
   detailingYandexMapsWebHref,
@@ -90,25 +90,67 @@ export default function DetailingDashboardPage() {
   const [sp, setSp] = useSearchParams()
   const q = sp.get('q') || ''
 
-  const { detailingId, mode } = useDetailing()
+  const { detailingId, mode, detailing, loading } = useDetailing()
+  const [cars, setCars] = useState([])
+  const [inboxClaims, setInboxClaims] = useState([])
+  const [lastVisitByCarId, setLastVisitByCarId] = useState({})
 
-  const det = useMemo(() => {
-    if (!detailingId) return null
-    return r.getDetailing?.(detailingId) || null
-  }, [r, detailingId])
-
-  const cars = useMemo(() => {
-    if (!detailingId) return []
-    return r.listCars(detailingId) || []
-  }, [r, detailingId])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!detailingId || mode !== 'detailing') {
+        setCars([])
+        setInboxClaims([])
+        setLastVisitByCarId({})
+        return
+      }
+      try {
+        const [carList, claims] = await Promise.all([r.listCars(), r.listClaimsForDetailing()])
+        if (cancelled) return
+        const cl = Array.isArray(carList) ? carList : []
+        setCars(cl)
+        setInboxClaims(Array.isArray(claims) ? claims : [])
+        const entries = await Promise.all(
+          cl.map(async (car) => {
+            try {
+              const ev = await r.listEvents(car.id)
+              const at = Array.isArray(ev) && ev.length ? ev[0]?.at : null
+              return [car.id, at]
+            } catch {
+              return [car.id, null]
+            }
+          }),
+        )
+        if (cancelled) return
+        setLastVisitByCarId(Object.fromEntries(entries))
+      } catch {
+        if (!cancelled) {
+          setCars([])
+          setInboxClaims([])
+          setLastVisitByCarId({})
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [r, r._version, detailingId, mode])
 
   const filtered = useMemo(() => cars.filter((c) => matches(c, q)), [cars, q])
   const strictHits = useMemo(() => cars.filter((c) => isStrictHit(c, q)), [cars, q])
   const quickTargetCar = strictHits.length === 1 ? strictHits[0] : null
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
-  if (det && det.profileCompleted === false) return <Navigate to="/detailing/landing" replace />
+  if (loading) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
+  if (detailing?.profileCompleted === false) return <Navigate to="/detailing/landing" replace />
 
+  const det = detailing
   const initials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addrRaw = String(det?.address || '').trim()
   const addressIsYandexUrl = isWholeLineYandexMapsUrl(addrRaw)
@@ -269,20 +311,18 @@ export default function DetailingDashboardPage() {
 
       <div className="list" style={{ marginTop: 12 }}>
         {filtered.map((c) => {
-          const lastVisitAt = r.listEvents(c.id, { detailingId })[0]?.at || null
           const fromDash = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
+          const lastVisitAt = lastVisitByCarId[c.id] || null
           const carHref = `/car/${c.id}?from=${encodeURIComponent(fromDash)}`
-          const access = detailingCarAccessBadge(r, c, detailingId)
+          const access = detailingCarAccessBadge(c, detailingId, inboxClaims)
           const ownerInApp = access.label === 'Владелец в приложении'
-          const listOwner = ownerInApp && c.ownerEmail && r.getOwner ? r.getOwner(c.ownerEmail) : null
-          const ownerSlug = String(listOwner?.garageSlug || '').trim()
-          const ownerAvatar = String(listOwner?.garageAvatar || '').trim()
-          const ownerPeekLabel = String(listOwner?.name || c.ownerEmail || '').trim()
+          const ownerPeekLabel = String(c.ownerEmail || '').trim() || 'Владелец'
           const ownerPeekInitials = ownerPeekLabel.slice(0, 2).toUpperCase() || '?'
-          const ownerPhoneRaw = String(listOwner?.phone || '').trim()
-          const ownerPhoneDigits = ownerPhoneRaw.replace(/[^\d+]/g, '')
-          const ownerPhoneHref = ownerPhoneDigits ? `tel:${ownerPhoneDigits}` : ''
-          const ownerPhonePublic = ownerPublicFlagTrue(listOwner?.showPhonePublic)
+          const ownerSlug = ''
+          const ownerAvatar = ''
+          const ownerPhoneRaw = ''
+          const ownerPhoneHref = ''
+          const ownerPhonePublic = false
           return (
             <div key={c.id} className={`rowItem${ownerInApp ? ' rowItem--ownerPeek' : ''}`}>
               <Link
