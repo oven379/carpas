@@ -1,7 +1,8 @@
 import { Link, Navigate } from 'react-router-dom'
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Pill } from '../components.jsx'
+import { bumpSessionRefresh } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import { compressImageFile } from '../../lib/imageCompression.js'
@@ -9,6 +10,7 @@ import { compressImageFile } from '../../lib/imageCompression.js'
 export default function OwnerGaragePage() {
   const r = useRepo()
   const { owner, mode } = useDetailing()
+  const [cars, setCars] = useState([])
   const bannerFileRef = useRef(null)
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -16,11 +18,30 @@ export default function OwnerGaragePage() {
     return `${window.location.origin}/g/${slug}`
   }, [slug])
 
+  const ownerEmail = owner?.email || ''
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (mode !== 'owner' || !ownerEmail) {
+        setCars([])
+        return
+      }
+      try {
+        const cl = await r.listCars()
+        if (!cancelled) setCars(Array.isArray(cl) ? cl : [])
+      } catch {
+        if (!cancelled) setCars([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, ownerEmail, r, r._version])
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth/owner" replace />
 
-  const ownerEmail = owner.email
-  const cars = r.listCars({ ownerEmail })
   const displayName = String(owner.name || '').trim() || ownerEmail
   const initials = displayName.slice(0, 2).toUpperCase()
 
@@ -36,26 +57,28 @@ export default function OwnerGaragePage() {
         maxBytes: 2.5 * 1024 * 1024,
       })
       if (!url) return
-      const next = r.updateOwner(ownerEmail, { garageBanner: url })
-      if (!next) {
+      try {
+        await r.updateOwnerMe({ garageBanner: url })
+        invalidateRepo()
+        bumpSessionRefresh()
+      } catch {
         alert('Не удалось сохранить баннер.')
-        return
       }
-      invalidateRepo()
     } catch {
       alert('Не удалось обработать файл. Попробуйте другое изображение.')
     }
   }
 
-  function removeBanner() {
+  async function removeBanner() {
     if (!owner.garageBanner) return
     if (!confirm('Убрать баннер гаража?')) return
-    const next = r.updateOwner(ownerEmail, { garageBanner: '' })
-    if (!next) {
+    try {
+      await r.updateOwnerMe({ garageBanner: '' })
+      invalidateRepo()
+      bumpSessionRefresh()
+    } catch {
       alert('Не удалось убрать баннер.')
-      return
     }
-    invalidateRepo()
   }
 
   return (

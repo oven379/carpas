@@ -1,6 +1,5 @@
-import { forwardRef } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
-import { safeSyncRepo } from '../lib/syncRepoCall.js'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
 import { useRepo } from './useRepo.js'
@@ -106,13 +105,27 @@ export function TopNav() {
   const isPublicDetailingPage = /^\/d\/[^/]+\/?$/.test(loc.pathname)
   const isPublicGaragePage = /^\/g\/[^/]+\/?$/.test(loc.pathname)
   const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
-  let pendingClaims = 0
-  if (mode === 'detailing' && detailingId && r.listClaimsForDetailing) {
-    const res = safeSyncRepo(() => r.listClaimsForDetailing(detailingId))
-    if (res.ok && Array.isArray(res.value)) {
-      pendingClaims = res.value.filter((x) => x.status === 'pending').length
+  const [pendingClaims, setPendingClaims] = useState(0)
+  useEffect(() => {
+    if (mode !== 'detailing' || !detailingId) {
+      setPendingClaims(0)
+      return
     }
-  }
+    let c = false
+    ;(async () => {
+      try {
+        const list = await r.listClaimsForDetailing()
+        if (!c && Array.isArray(list)) {
+          setPendingClaims(list.filter((x) => x.status === 'pending').length)
+        }
+      } catch {
+        if (!c) setPendingClaims(0)
+      }
+    })()
+    return () => {
+      c = true
+    }
+  }, [mode, detailingId, r, r._version])
   return (
     <header className="nav">
       <div className="nav__inner">

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRepo } from './useRepo.js'
 import { OpenAction } from './components.jsx'
@@ -8,17 +9,61 @@ import { buildCarFromQuery } from './carNav.js'
 /** Список авто владельца (как на витрине /cars), с единым `from` для возврата из карточки. */
 export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
   const r = useRepo()
-  const cars = r.listCars({ ownerEmail })
-  const listScope = { ownerEmail }
+  const [rows, setRows] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!ownerEmail) {
+        setRows([])
+        setLoading(false)
+        return
+      }
+      setLoading(true)
+      try {
+        const cars = await r.listCars()
+        const list = Array.isArray(cars) ? cars : []
+        const enriched = await Promise.all(
+          list.map(async (car) => {
+            const evtsRaw = await r.listEvents(car.id)
+            const evts = Array.isArray(evtsRaw) ? evtsRaw : []
+            const lastEvt = evts[0] || null
+            let lastEvtPhotos = []
+            if (lastEvt?.id) {
+              const allDocs = await r.listDocs(car.id)
+              const docs = Array.isArray(allDocs) ? allDocs : []
+              lastEvtPhotos = docs.filter((d) => String(d.eventId || '') === String(lastEvt.id))
+            }
+            return { car, evts, lastEvtPhotos }
+          }),
+        )
+        if (!cancelled) setRows(enriched)
+      } catch {
+        if (!cancelled) setRows([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [ownerEmail, r, r._version])
+
   const fromQ = buildCarFromQuery(fromPath)
+
+  if (loading) {
+    return (
+      <div className="muted" style={{ padding: '12px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
 
   return (
     <div className="list">
-      {cars.map((c) => {
-        const evts = r.listEvents(c.id, listScope)
+      {rows.map(({ car: c, evts, lastEvtPhotos }) => {
         const lastEvt = evts[0] || null
-        const lastEvtPhotos =
-          lastEvt && lastEvt.id ? r.listDocs(c.id, listScope, { eventId: lastEvt.id }) : []
         const lastEvtPhotoUrl = lastEvtPhotos[0]?.url || ''
         const lastEvtMs = Array.isArray(lastEvt?.maintenanceServices) ? lastEvt.maintenanceServices : []
         const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(lastEvt?.services)

@@ -21,27 +21,62 @@ export default function CarPage() {
   const [recsOpen, setRecsOpen] = useState(false)
   const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode } = useDetailing()
-  const scope = useMemo(
-    () => (mode === 'owner' ? { ownerEmail: owner?.email } : { detailingId }),
-    [mode, owner?.email, detailingId],
-  )
-  const car = r.getCar(id, scope)
+  const [car, setCar] = useState(null)
+  const [docs, setDocs] = useState([])
+  const [allEvents, setAllEvents] = useState([])
+  const [ownerClaims, setOwnerClaims] = useState([])
+  const [inboxClaims, setInboxClaims] = useState([])
+  const [dataReady, setDataReady] = useState(false)
 
-  const docs = useMemo(() => {
-    if (!id) return []
-    return (r.listDocs(id, scope) || []).filter((d) => !d.eventId).slice(0, 6)
-  }, [id, r, scope])
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!id) return
+      setDataReady(false)
+      try {
+        const [cr, d, ev] = await Promise.all([r.getCar(id), r.listDocs(id), r.listEvents(id)])
+        if (cancelled) return
+        setCar(cr)
+        setDocs((Array.isArray(d) ? d : []).filter((x) => !x.eventId).slice(0, 6))
+        setAllEvents(Array.isArray(ev) ? ev : [])
+        let oc = []
+        let ib = []
+        if (mode === 'owner' && owner?.email) {
+          oc = await r.listClaimsForOwner()
+        } else if (mode === 'detailing' && detailingId) {
+          ib = await r.listClaimsForDetailing()
+        }
+        if (cancelled) return
+        setOwnerClaims(Array.isArray(oc) ? oc : [])
+        setInboxClaims(Array.isArray(ib) ? ib : [])
+      } catch {
+        if (!cancelled) {
+          setCar(null)
+          setDocs([])
+          setAllEvents([])
+          setOwnerClaims([])
+          setInboxClaims([])
+        }
+      } finally {
+        if (!cancelled) setDataReady(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [id, r, r._version, mode, owner?.email, detailingId])
+
   const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
 
   const ownerServiceSummary = useMemo(() => {
     if (mode !== 'owner' || !owner?.email || !car) return null
-    return ownerServiceLinkSummary(r, car, owner.email)
-  }, [mode, owner?.email, car, r])
+    return ownerServiceLinkSummary(car, owner.email, ownerClaims)
+  }, [mode, owner?.email, car, ownerClaims])
 
   const detailingAccess = useMemo(() => {
     if (mode !== 'detailing' || !car) return null
-    return detailingCarAccessBadge(r, car, detailingId)
-  }, [mode, car, r, detailingId])
+    return detailingCarAccessBadge(car, detailingId, inboxClaims)
+  }, [mode, car, detailingId, inboxClaims])
 
   const washPhotos = useMemo(() => {
     if (!car) return []
@@ -55,6 +90,13 @@ export default function CarPage() {
   }, [washPhotosKey])
 
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if (!dataReady) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!car) {
     return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
   }
@@ -63,7 +105,6 @@ export default function CarPage() {
   const listReturn = resolveCarListReturnPath(mode, fromParam)
   const backTitle = mode === 'detailing' ? 'К кабинету' : 'В гараж'
 
-  const allEvents = r.listEvents(id, scope)
   const lastWashEvent =
     allEvents.find((e) => Array.isArray(e?.services) && e.services.some((s) => WASH_SERVICE_MARKERS.has(s))) || null
   const recs = getCareRecommendations({ car, events: allEvents })
@@ -125,19 +166,20 @@ export default function CarPage() {
               data-variant="danger"
               aria-label="Удалить"
               title="Удалить"
-              onClick={() => {
+              onClick={async () => {
                 const msg =
                   'Удалить авто навсегда?\n\n' +
                   'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
                   'Альтернатива: вместо удаления вы можете передать авто другому хозяину.'
                 if (!confirm(msg)) return
-                const ok = r.deleteCar(id, scope)
-                if (!ok) {
+                try {
+                  await r.deleteCar(id)
+                  invalidateRepo()
+                  const list = await r.listCars()
+                  nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
+                } catch {
                   alert('Не удалось удалить авто (нет доступа).')
-                  return
                 }
-                invalidateRepo()
-                nav(getPathAfterCarRemovedFromScope(r, { mode, owner, detailingId }), { replace: true })
               }}
             >
               <span className="carPage__icon carPage__icon--trash" aria-hidden="true" />

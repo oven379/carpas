@@ -1,10 +1,20 @@
 import { Link, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { HttpError } from '../../api/http.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, Input, Pill } from '../components.jsx'
 import { normDigits, normVin } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
+
+function claimAlreadyPending(err) {
+  if (!(err instanceof HttpError) || err.status !== 422) return false
+  const carIdErr = err.body?.errors?.carId
+  if (Array.isArray(carIdErr)) {
+    return carIdErr.some((x) => String(x).includes('already_pending'))
+  }
+  return false
+}
 
 export default function MarketPage() {
   const r = useRepo()
@@ -12,13 +22,38 @@ export default function MarketPage() {
   const [vin, setVin] = useState('')
   const [vinResults, setVinResults] = useState([])
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
+  const [cars, setCars] = useState([])
+  const [ownerClaims, setOwnerClaims] = useState([])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (mode !== 'owner' || !owner?.email) {
+        setCars([])
+        setOwnerClaims([])
+        return
+      }
+      try {
+        const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
+        if (cancelled) return
+        setCars(Array.isArray(cl) ? cl : [])
+        setOwnerClaims(Array.isArray(claims) ? claims : [])
+      } catch {
+        if (!cancelled) {
+          setCars([])
+          setOwnerClaims([])
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [r, r._version, mode, owner?.email])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (mode !== 'owner' || !owner?.email) return <Navigate to="/auth" replace />
 
   const ownerEmail = owner.email
-  const cars = r.listCars({ ownerEmail })
-  const ownerClaims = r.listClaimsForOwner(ownerEmail)
   const pendingClaims = ownerClaims.filter((x) => x.status === 'pending')
 
   return (
@@ -70,12 +105,17 @@ export default function MarketPage() {
           <button
             className="btn marketVinRow__btn"
             data-variant="primary"
-            onClick={() => {
+            type="button"
+            onClick={async () => {
               const v = normVin(vin)
               setVin(v)
-              const res = r.findCarsByVin(v)
-              setVinResults(res)
-              if (!res.length) alert('В сервисе пока нет авто с таким VIN.')
+              try {
+                const res = await r.findCarsByVin(v)
+                setVinResults(Array.isArray(res) ? res : [])
+                if (!res?.length) alert('В сервисе пока нет авто с таким VIN.')
+              } catch {
+                alert('Не удалось выполнить поиск. Проверьте сеть и авторизацию.')
+              }
             }}
           >
             Найти
@@ -114,19 +154,22 @@ export default function MarketPage() {
                       <button
                         className="btn"
                         data-variant="primary"
+                        type="button"
                         disabled={alreadyMine}
-                        onClick={() => {
-                          const claim = r.createClaim({ carId: c.id, ownerEmail, evidence: ev })
-                          if (claim?.error === 'already_pending') {
-                            alert('Заявка уже отправлена и ждёт подтверждения.')
-                            return
-                          }
-                          if (claim?.error) {
+                        onClick={async () => {
+                          try {
+                            await r.createClaim({ carId: c.id, evidence: ev })
+                            invalidateRepo()
+                            const claims = await r.listClaimsForOwner()
+                            setOwnerClaims(Array.isArray(claims) ? claims : [])
+                            alert('Заявка отправлена в детейлинг на подтверждение.')
+                          } catch (e) {
+                            if (claimAlreadyPending(e)) {
+                              alert('Заявка уже отправлена и ждёт подтверждения.')
+                              return
+                            }
                             alert('Не удалось отправить заявку.')
-                            return
                           }
-                          invalidateRepo()
-                          alert('Заявка отправлена в детейлинг на подтверждение.')
                         }}
                       >
                         {alreadyMine ? 'Уже в гараже' : 'Запросить доступ'}

@@ -209,27 +209,31 @@ export default function PartnerApplyPage() {
                   className="btn"
                   variant="primary"
                   style={{ width: '100%' }}
-                  onClick={() => {
+                  onClick={async () => {
                     if (!agreedToTerms) {
                       alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
                       return
                     }
-                    const d = r.registerDetailing({
-                      name: regName,
-                      contactName: regContactName,
-                      email: regEmail,
-                      phone: regPhone,
-                      city: regCity,
-                      address: regAddress,
-                      servicesOffered: regServicesOffered,
-                    })
-                    if (d?.error) {
-                      alert(partnerApplyErrorMessage(d.error))
-                      return
+                    try {
+                      const res = await r.registerDetailing({
+                        name: regName,
+                        contactName: regContactName,
+                        email: regEmail,
+                        phone: regPhone,
+                        city: regCity,
+                        address: regAddress,
+                        servicesOffered: regServicesOffered,
+                      })
+                      setSessionDetailingId(String(res.detailing.id), res.token)
+                      invalidateRepo()
+                      nav('/detailing/landing', { replace: true })
+                    } catch (e) {
+                      const body = e?.body
+                      const emailErr = body?.errors?.email
+                      const first = Array.isArray(emailErr) ? emailErr[0] : emailErr
+                      if (first === 'email_taken') alert(partnerApplyErrorMessage('email_taken'))
+                      else alert('Не удалось отправить заявку. Проверьте поля и доступность сервера.')
                     }
-                    setSessionDetailingId(d.id)
-                    invalidateRepo()
-                    nav('/detailing/landing', { replace: true })
                   }}
                 >
                   Подать заявку

@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\ApiResources;
 use App\Models\Car;
+use App\Models\CarDoc;
+use App\Models\CarEvent;
 use App\Models\CarShare;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
@@ -43,40 +46,48 @@ class CarShareController extends Controller
 
     public function revoke(Request $request, $token)
     {
+        /** @var Detailing $d */
+        $d = $request->user();
         $share = CarShare::query()->where('token', $token)->firstOrFail();
+        Car::query()->where('detailing_id', $d->id)->findOrFail($share->car_id);
         $share->revoked_at = now();
         $share->save();
+
         return response()->json(['ok' => true]);
     }
 
     public function byToken(Request $request, $token)
     {
         $share = CarShare::query()->where('token', $token)->whereNull('revoked_at')->first();
-        if (!$share) return response()->json(null, 404);
+        if (!$share) {
+            return response()->json(null, 404);
+        }
 
-        $car = Car::query()->find($share->car_id);
-        if (!$car) return response()->json(null, 404);
+        $car = Car::query()->with('owner')->find($share->car_id);
+        if (!$car) {
+            return response()->json(null, 404);
+        }
+
+        $ownerEvents = CarEvent::query()
+            ->where('car_id', $car->id)
+            ->where('source', 'owner')
+            ->orderByDesc('at')
+            ->get();
+
+        $ownerDocs = CarDoc::query()
+            ->where('car_id', $car->id)
+            ->where('source', 'owner')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $publicCar = ApiResources::car($car);
+        $publicCar['vin'] = '';
 
         return response()->json([
-            'car' => [
-                'id' => (string) $car->id,
-                'detailingId' => (string) $car->detailing_id,
-                'vin' => '', // публичная выдача без VIN (MVP)
-                'plate' => $car->plate ?? '',
-                'make' => $car->make ?? '',
-                'model' => $car->model ?? '',
-                'year' => $car->year,
-                'mileageKm' => (int) ($car->mileage_km ?? 0),
-                'priceRub' => (int) ($car->price_rub ?? 0),
-                'color' => $car->color ?? '',
-                'city' => $car->city ?? '',
-                'hero' => $car->hero,
-                'segment' => $car->segment ?? 'mass',
-                'seller' => $car->seller,
-                'createdAt' => optional($car->created_at)->toISOString(),
-                'updatedAt' => optional($car->updated_at)->toISOString(),
-            ],
+            'car' => $publicCar,
             'share' => $this->share($share),
+            'ownerEvents' => $ownerEvents->map(fn ($e) => ApiResources::event($e))->values(),
+            'ownerDocs' => $ownerDocs->map(fn ($d) => ApiResources::doc($d))->values(),
         ]);
     }
 

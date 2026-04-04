@@ -1,6 +1,7 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { BackNav, Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
+import { bumpSessionRefresh } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
@@ -9,12 +10,8 @@ import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatal
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
   const r = useRepo()
-  const { detailingId, mode } = useDetailing()
-
-  const detailing = useMemo(() => {
-    if (!detailingId) return null
-    return r.getDetailing?.(detailingId) || null
-  }, [r, detailingId])
+  const { detailingId, mode, detailing, loading } = useDetailing()
+  const [carsCount, setCarsCount] = useState(0)
 
   const [draft, setDraft] = useState(() => ({
     name: '',
@@ -33,28 +30,47 @@ export default function DetailingSettingsPage() {
   const coverRef = useRef(null)
 
   useEffect(() => {
-    if (!detailingId) return
-    const d = r.getDetailing?.(detailingId)
-    if (!d) return
+    if (!detailing) return
     setDraft({
-      name: d.name || '',
-      servicesOffered: Array.isArray(d.servicesOffered) ? d.servicesOffered : [],
-      phone: d.phone || '',
-      city: d.city || '',
-      address: d.address || '',
-      description: d.description || '',
-      website: d.website || '',
-      telegram: d.telegram || '',
-      instagram: d.instagram || '',
-      logo: d.logo || '',
-      cover: d.cover || '',
+      name: detailing.name || '',
+      servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
+      phone: detailing.phone || '',
+      city: detailing.city || '',
+      address: detailing.address || '',
+      description: detailing.description || '',
+      website: detailing.website || '',
+      telegram: detailing.telegram || '',
+      instagram: detailing.instagram || '',
+      logo: detailing.logo || '',
+      cover: detailing.cover || '',
     })
-  }, [detailingId, r])
+  }, [detailing])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (mode !== 'detailing' || !detailingId) return
+      try {
+        const list = await r.listCars()
+        if (!cancelled) setCarsCount(Array.isArray(list) ? list.length : 0)
+      } catch {
+        if (!cancelled) setCarsCount(0)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, detailingId, r, r._version])
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (loading) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!detailing) return <Navigate to="/cars" replace />
-
-  const carsCount = (r.listCars?.(detailingId) || []).length
   const initials = String(draft.name || detailing.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addressText = [draft.city, draft.address].filter(Boolean).join(', ')
   const phoneDigits = String(draft.phone || '').replace(/[^\d+]/g, '')
@@ -408,7 +424,7 @@ export default function DetailingSettingsPage() {
           <Button
             className="btn"
             variant="primary"
-            onClick={() => {
+            onClick={async () => {
               if (!String(draft.name || '').trim()) {
                 alert('Укажите название')
                 return
@@ -425,17 +441,14 @@ export default function DetailingSettingsPage() {
                 alert('Выберите хотя бы одну услугу')
                 return
               }
-              const saved = r.updateDetailing?.(
-                detailingId,
-                { ...draft, profileCompleted: true },
-                { detailingId },
-              )
-              if (!saved) {
+              try {
+                await r.updateDetailingMe({ ...draft, profileCompleted: true })
+                invalidateRepo()
+                bumpSessionRefresh()
+                nav('/detailing', { replace: true })
+              } catch {
                 alert('Не удалось сохранить настройки (нет доступа).')
-                return
               }
-              invalidateRepo()
-              nav('/detailing', { replace: true })
             }}
           >
             Сохранить

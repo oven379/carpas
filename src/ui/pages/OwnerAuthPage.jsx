@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { BackNav, Button, Card, Field, Input } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { clearSession, setSessionOwner } from '../auth.js'
+import { setSessionOwner } from '../auth.js'
 import { OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -48,8 +48,7 @@ export default function OwnerAuthPage() {
               </ul>
               <p className="muted small authSplit__note">
                 Укажите почту и пароль (не короче {OWNER_PASSWORD_MIN_LEN} символов). Имя и телефон — по желанию. Отметьте
-                согласие с политикой и правилами — и вы попадёте в гараж: существующий аккаунт откроется по паролю, новый
-                создастся автоматически. Данные аккаунта на этом устройстве хранятся в браузере.
+                согласие с политикой и правилами — существующий аккаунт откроется по паролю, новый создастся автоматически.
               </p>
             </div>
           </div>
@@ -127,7 +126,7 @@ export default function OwnerAuthPage() {
               <Button
                 className="btn authOwner__submitGarage"
                 variant="primary"
-                onClick={() => {
+                onClick={async () => {
                   const em = (ownEmail || ownEmailRef.current?.value || '').trim()
                   const pwd = (ownPassword || ownPasswordRef.current?.value || '').trim()
                   if (!agreedToTerms) {
@@ -138,50 +137,59 @@ export default function OwnerAuthPage() {
                     alert('Укажите почту и пароль')
                     return
                   }
-                  if (!r.loginOwner || !r.registerOwner) {
-                    alert(
-                      'Вход владельца в режиме API пока не настроен. Отключите VITE_API_MODE=real для локальной работы.',
-                    )
+                  if (pwd.length < OWNER_PASSWORD_MIN_LEN) {
+                    alert(`Пароль слишком короткий: не менее ${OWNER_PASSWORD_MIN_LEN} символов.`)
                     return
                   }
-                  const loginRes = r.loginOwner({ email: em, password: pwd })
-                  if (loginRes?.ok) {
-                    setSessionOwner({
-                      email: loginRes.owner.email,
-                      name: loginRes.owner.name,
-                      phone: loginRes.owner.phone,
-                    })
-                    invalidateRepo()
-                    nav(nextAfterAuth, { replace: true })
-                    return
-                  }
-                  const reason = loginRes?.reason
-                  if (reason === 'bad_password') {
-                    alert('Неверный пароль для этой почты.')
-                    return
-                  }
-                  if (reason === 'not_found') {
-                    const reg = r.registerOwner({ email: em, password: pwd, name: ownName, phone: ownPhone })
-                    if (reg?.ok) {
-                      setSessionOwner({
-                        email: reg.owner.email,
-                        name: reg.owner.name,
-                        phone: reg.owner.phone,
-                      })
+                  try {
+                    const loginRes = await r.loginOwner({ email: em, password: pwd })
+                    if (loginRes?.ok) {
+                      setSessionOwner(
+                        {
+                          email: loginRes.owner.email,
+                          name: loginRes.owner.name,
+                          phone: loginRes.owner.phone,
+                        },
+                        loginRes.token,
+                      )
                       invalidateRepo()
                       nav(nextAfterAuth, { replace: true })
                       return
                     }
-                    const rr = reg?.reason
-                    if (rr === 'email_taken') alert('Эта почта уже занята — попробуйте войти с паролем.')
-                    else if (rr === 'bad_email') alert('Укажите корректную почту')
-                    else if (rr === 'bad_password')
-                      alert(`Пароль слишком короткий: не менее ${OWNER_PASSWORD_MIN_LEN} символов.`)
-                    else alert('Не удалось создать аккаунт')
-                    return
+                    const reason = loginRes?.reason
+                    if (reason === 'bad_password') {
+                      alert('Неверный пароль для этой почты.')
+                      return
+                    }
+                    if (reason === 'not_found') {
+                      try {
+                        const reg = await r.registerOwner({
+                          email: em,
+                          password: pwd,
+                          name: ownName,
+                          phone: ownPhone,
+                        })
+                        setSessionOwner(
+                          {
+                            email: reg.owner.email,
+                            name: reg.owner.name,
+                            phone: reg.owner.phone,
+                          },
+                          reg.token,
+                        )
+                        invalidateRepo()
+                        nav(nextAfterAuth, { replace: true })
+                        return
+                      } catch {
+                        alert('Не удалось создать аккаунт. Возможно, почта уже занята — попробуйте войти.')
+                        return
+                      }
+                    }
+                    if (reason === 'bad_credentials') alert('Укажите почту и пароль')
+                    else alert('Не удалось войти')
+                  } catch {
+                    alert('Ошибка сети или сервера. Проверьте VITE_API_BASE_URL и что бэкенд запущен.')
                   }
-                  if (reason === 'bad_credentials') alert('Укажите почту и пароль')
-                  else alert('Не удалось войти')
                 }}
               >
                 Войти в гараж
@@ -190,38 +198,6 @@ export default function OwnerAuthPage() {
           </Card>
         </div>
       </div>
-
-      <Card className="card pad authPage__single" style={{ marginTop: 16 }}>
-        <h2 className="h2">Локальные данные в браузере</h2>
-        <p className="muted small" style={{ marginBottom: 12 }}>
-          Сброс удалит авто, историю, фото и заявки из локального хранилища и разлогинит. Полный сброс доступен и на экране{' '}
-          <Link className="link" to="/auth">
-            выбора входа
-          </Link>
-          .
-        </p>
-        <button
-          type="button"
-          className="btn"
-          data-variant="danger"
-          onClick={() => {
-            if (r.mode !== 'mock') {
-              alert('Включён режим API: сброс локальных данных в браузере недоступен.')
-              return
-            }
-            const ok = confirm(
-              'Удалить все данные КарПас из этого браузера и восстановить начальный набор?\n\nСессия будет завершена.',
-            )
-            if (!ok) return
-            r.resetLocalDemo()
-            clearSession()
-            invalidateRepo()
-            window.location.assign('/')
-          }}
-        >
-          Сбросить локальные данные
-        </button>
-      </Card>
     </div>
   )
 }

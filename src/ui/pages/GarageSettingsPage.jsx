@@ -1,6 +1,7 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { BackNav, Card, Field, Input } from '../components.jsx'
+import { bumpSessionRefresh } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
@@ -269,22 +270,23 @@ export default function GarageSettingsPage() {
             type="button"
             className="btn"
             data-variant="primary"
-            onClick={() => {
+            onClick={async () => {
               const slug = normalizeGarageSlugInput(draft.garageSlug)
-              const next = r.updateOwner(email, {
-                name: draft.name.trim(),
-                phone: draft.phone.trim(),
-                garageSlug: slug,
-                showPhonePublic: draft.showPhonePublic,
-                garageBanner: draft.garageBanner,
-                garageAvatar: draft.garageAvatar,
-              })
-              if (!next) {
-                alert('Не удалось сохранить. Возможно, адрес страницы уже занят другим пользователем на этом устройстве.')
-                return
+              try {
+                await r.updateOwnerMe({
+                  name: draft.name.trim(),
+                  phone: draft.phone.trim(),
+                  garageSlug: slug,
+                  showPhonePublic: draft.showPhonePublic,
+                  garageBanner: draft.garageBanner,
+                  garageAvatar: draft.garageAvatar,
+                })
+                invalidateRepo()
+                bumpSessionRefresh()
+                navigate('/garage', { replace: true })
+              } catch {
+                alert('Не удалось сохранить. Возможно, адрес страницы уже занят.')
               }
-              invalidateRepo()
-              navigate('/garage', { replace: true })
             }}
           >
             Сохранить

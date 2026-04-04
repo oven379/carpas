@@ -5,6 +5,7 @@ import './index.css'
 import './App.css'
 import App from './App.jsx'
 import RootErrorBoundary from './ui/RootErrorBoundary.jsx'
+import { DetailingSessionProvider } from './ui/useDetailing.js'
 
 const rootEl = document.getElementById('root')
 if (!rootEl) {
@@ -14,9 +15,11 @@ if (!rootEl) {
 createRoot(rootEl).render(
   <StrictMode>
     <BrowserRouter>
-      <RootErrorBoundary>
-        <App />
-      </RootErrorBoundary>
+      <DetailingSessionProvider>
+        <RootErrorBoundary>
+          <App />
+        </RootErrorBoundary>
+      </DetailingSessionProvider>
     </BrowserRouter>
   </StrictMode>,
 )

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, Pill } from '../components.jsx'
@@ -21,18 +21,38 @@ export default function PublicCarPage() {
   const { token } = useParams()
   const r = useRepo()
   const [photoLb, setPhotoLb] = useState(null)
-  const data = r.getCarByShareToken(token)
-  const car = data?.car ?? null
+  const [payload, setPayload] = useState(undefined)
 
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const t = String(token || '').trim()
+      if (!t) {
+        setPayload(null)
+        return
+      }
+      try {
+        const data = await r.getCarByShareToken(t)
+        if (!cancelled) setPayload(data || null)
+      } catch {
+        if (!cancelled) setPayload(null)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, r, r._version])
+
+  const car = payload?.car ?? null
   const events = useMemo(() => {
-    if (!car) return []
-    return r.listEvents(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((e) => e.source === 'owner')
-  }, [car, r])
+    const ev = payload?.ownerEvents
+    return Array.isArray(ev) ? ev.filter((e) => e.source === 'owner') : []
+  }, [payload])
 
   const docs = useMemo(() => {
-    if (!car) return []
-    return r.listDocs(car.id, { ownerEmail: car.ownerEmail || 'public' }).filter((d) => d.source === 'owner')
-  }, [car, r])
+    const dc = payload?.ownerDocs
+    return Array.isArray(dc) ? dc.filter((d) => d.source === 'owner') : []
+  }, [payload])
 
   const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
 
@@ -41,7 +61,16 @@ export default function PublicCarPage() {
     return getCareRecommendations({ car, events })
   }, [car, events])
 
-  if (!data) return <Navigate to="/" replace />
+  if (payload === undefined) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
+  if (!payload || !car) return <Navigate to="/" replace />
+
+  const heroStyle = car.hero ? { backgroundImage: `url("${String(car.hero).replaceAll('"', '%22')}")` } : undefined
 
   return (
     <div className="container">
@@ -65,7 +94,7 @@ export default function PublicCarPage() {
         </Link>
       </div>
 
-      <div className="carHero" style={{ backgroundImage: `url(${car.hero})` }}>
+      <div className="carHero" style={heroStyle}>
         <div className="carHero__overlay">
           <div className="row gap wrap carHero__pills carHero__pills--public">
             <Pill>Цвет: {car.color || '—'}</Pill>
@@ -203,4 +232,3 @@ export default function PublicCarPage() {
     </div>
   )
 }
-

@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { Card, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
@@ -10,7 +10,6 @@ function ensureUrl(raw) {
   if (!s) return ''
   if (/^https?:\/\//i.test(s)) return s
   if (s.startsWith('//')) return `https:${s}`
-  // allow plain domains
   return `https://${s}`
 }
 
@@ -34,46 +33,50 @@ export default function PublicDetailingPage() {
   const { id } = useParams()
   const r = useRepo()
   const [photoLb, setPhotoLb] = useState(null)
+  const [payload, setPayload] = useState(undefined)
 
-  const det = useMemo(() => (id && r.getDetailing ? r.getDetailing(id) : null), [id, r])
-  const detId = det?.id ? String(det.id) : ''
-  const lastWorkPhotos = useMemo(() => {
-    if (!detId) return []
-    const cars = r.listCars?.(detId) || []
-    const best = []
-    for (const c of Array.isArray(cars) ? cars : []) {
-      const carId = c?.id
-      if (!carId) continue
-      const evts = r.listEvents?.(carId, { detailingId: detId }) || []
-      const lastServiceEvt = (Array.isArray(evts) ? evts : []).find((e) => e?.source === 'service') || null
-      if (!lastServiceEvt?.id) continue
-      const docs = r.listDocs?.(carId, { detailingId: detId }, { eventId: lastServiceEvt.id }) || []
-      const firstUrl = (Array.isArray(docs) ? docs : []).find((d) => d?.url)?.url || ''
-      const ts = lastServiceEvt.at || lastServiceEvt.updatedAt || lastServiceEvt.createdAt || ''
-      if (firstUrl) best.push({ url: firstUrl, ts })
+  const idNorm = String(id || '').trim()
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!idNorm) {
+        setPayload(null)
+        return
+      }
+      try {
+        const data = await r.publicDetailingShowcase(idNorm)
+        if (!cancelled) setPayload(data || null)
+      } catch {
+        if (!cancelled) setPayload(null)
+      }
+    })()
+    return () => {
+      cancelled = true
     }
-    best.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')))
-    const uniq = []
-    const seen = new Set()
-    for (const x of best) {
-      const u = String(x.url || '')
-      if (!u || seen.has(u)) continue
-      seen.add(u)
-      uniq.push(u)
-      if (uniq.length >= 10) break
-    }
-    return uniq
-  }, [r, detId])
+  }, [idNorm, r, r._version])
+
+  const det = payload?.detailing ?? null
+  const carsCount = typeof payload?.carsCount === 'number' ? payload.carsCount : 0
+  const lastWorkPhotos = Array.isArray(payload?.lastWorkPhotos) ? payload.lastWorkPhotos : []
 
   const workGalleryItems = useMemo(
     () => urlsToPhotoItems(lastWorkPhotos, 'Фото работы'),
     [lastWorkPhotos],
   )
 
-  if (!id) return <Navigate to="/about" replace />
+  if (!idNorm) return <Navigate to="/about" replace />
+
+  if (payload === undefined) {
+    return (
+      <div className="container muted" style={{ padding: '24px 0' }}>
+        Загрузка…
+      </div>
+    )
+  }
   if (!det) return <Navigate to="/about" replace />
 
-  const carsCount = (r.listCars?.(det.id) || []).length
+  const initials = String(det.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addressText = [det.city, det.address].filter(Boolean).join(', ')
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : ''
   const isIOS = /iPhone|iPad|iPod/i.test(ua)
@@ -333,4 +336,3 @@ export default function PublicDetailingPage() {
     </div>
   )
 }
-
