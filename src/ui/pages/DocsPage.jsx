@@ -15,7 +15,7 @@ export default function DocsPage() {
   const { id } = useParams()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const { detailingId, detailing, owner, mode } = useDetailing()
+  const { detailing, mode } = useDetailing()
   const [car, setCar] = useState(null)
   const [docs, setDocs] = useState([])
   const [dataReady, setDataReady] = useState(false)

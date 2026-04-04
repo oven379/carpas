@@ -1,5 +1,5 @@
 /**
- * Подпись крошки «назад к списку» для владельца: /garage — профиль и витрина, /cars — список машин.
+ * Подпись крошки «назад к списку» для владельца: /garage — профиль и улица, /cars — список машин.
  */
 export function ownerGarageListCrumbLabel(listReturnPath) {
   const p = String(listReturnPath || '')

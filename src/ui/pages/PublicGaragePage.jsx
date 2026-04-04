@@ -18,6 +18,13 @@ export default function PublicGaragePage() {
   const [data, setData] = useState(undefined)
 
   const slugNorm = useMemo(() => String(slug || '').trim(), [slug])
+  const ownerPreview = data?.owner
+  const socialLinks = useMemo(() => {
+    if (!ownerPreview || !ownerPublicFlagTrue(ownerPreview.showSocialPublic)) return []
+    return parseGarageSocialLines(ownerPreview.garageSocial || '')
+      .map((line) => ({ line, href: normalizeHttpUrl(line) }))
+      .filter((x) => x.href)
+  }, [ownerPreview])
 
   useEffect(() => {
     let cancelled = false
@@ -51,12 +58,6 @@ export default function PublicGaragePage() {
 
   const owner = data.owner
   const cars = Array.isArray(data.cars) ? data.cars : []
-  const socialLinks = useMemo(() => {
-    if (!ownerPublicFlagTrue(owner?.showSocialPublic)) return []
-    return parseGarageSocialLines(owner.garageSocial)
-      .map((line) => ({ line, href: normalizeHttpUrl(line) }))
-      .filter((x) => x.href)
-  }, [owner])
   const displayName = String(owner.name || '').trim() || 'Гараж'
   const showCityPublic = ownerCityPublicFlag(owner.showCityPublic)
   const cityLabel = showCityPublic ? String(owner.garageCity || '').trim() : ''
@@ -183,7 +184,7 @@ export default function PublicGaragePage() {
           </div>
         ) : (
           <Card className="card pad">
-            <div className="muted">В этом гараже пока нет автомобилей на витрине.</div>
+            <div className="muted">В этом гараже пока нет автомобилей на улице.</div>
           </Card>
         )}
       </div>

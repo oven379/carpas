@@ -6,7 +6,6 @@ import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
   formatPhoneRuInput,
-  IMAGE_UPLOAD_EMPTY_CTA,
   normDigits,
   normPlateBase,
   normPlateRegion,
@@ -24,12 +23,7 @@ import {
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import { ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
-
-function cssUrl(url) {
-  // data: URL может содержать символы, которые ломают url(...) без кавычек
-  const safe = String(url || '').replaceAll('"', '%22')
-  return `url("${safe}")`
-}
+import { formatHttpErrorMessage } from '../../api/http.js'
 
 function emptyDraft() {
   return {
@@ -78,7 +72,7 @@ export default function CarEditPage({ mode }) {
   const nav = useNavigate()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const { detailingId, detailing, owner, mode: who } = useDetailing()
+  const { detailing, owner, mode: who } = useDetailing()
   const [car, setCar] = useState(null)
   const [carReady, setCarReady] = useState(mode !== 'edit')
 
@@ -472,42 +466,41 @@ export default function CarEditPage({ mode }) {
           <p className="muted small" style={{ marginTop: 6, marginBottom: 10 }}>
             {PHOTO_LANDSCAPE_HINT_SENTENCE}
           </p>
-          <div
-            className={`carHero carHero--editCover${draft.hero ? '' : ' carHero--editCover--empty'}`}
-            style={draft.hero ? { backgroundImage: cssUrl(draft.hero) } : undefined}
+          <input
+            ref={heroCoverFileRef}
+            className="srOnly"
+            type="file"
+            accept="image/*"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (file) await applyHeroFromFile(file)
+              e.target.value = ''
+            }}
+          />
+          <button
+            type="button"
+            className="garageSettings__thumb garageSettings__thumb--banner carEditCoverBlock__thumb"
+            onClick={() => heroCoverFileRef.current?.click?.()}
+            aria-label={draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
           >
-            <div className="carHero__overlay carHero__overlay--editCover">
-              <input
-                ref={heroCoverFileRef}
-                className="srOnly"
-                type="file"
-                accept="image/*"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0]
-                  if (file) await applyHeroFromFile(file)
-                  e.target.value = ''
-                }}
-              />
-              <div className="carHero__editCoverBtns">
-                <button
-                  type="button"
-                  className="heroCoverBtn heroCoverBtn--replace"
-                  onClick={() => heroCoverFileRef.current?.click?.()}
-                >
-                  {draft.hero ? 'Заменить обложку' : IMAGE_UPLOAD_EMPTY_CTA}
-                </button>
-                {draft.hero ? (
-                  <button
-                    type="button"
-                    className="heroCoverBtn heroCoverBtn--remove"
-                    onClick={() => setDraft((d) => ({ ...d, hero: '' }))}
-                  >
-                    Убрать обложку
-                  </button>
-                ) : null}
-              </div>
-            </div>
-          </div>
+            {draft.hero ? (
+              <img alt="Превью обложки карточки" src={draft.hero} />
+            ) : (
+              <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
+                Нажмите для загрузки
+              </span>
+            )}
+          </button>
+          {draft.hero ? (
+            <button
+              type="button"
+              className="garageSettings__clearLink"
+              style={{ marginTop: 8 }}
+              onClick={() => setDraft((d) => ({ ...d, hero: '' }))}
+            >
+              Убрать обложку
+            </button>
+          ) : null}
         </div>
 
         <div className="row spread gap topBorder">
@@ -525,8 +518,13 @@ export default function CarEditPage({ mode }) {
                     }
                     try {
                       await r.updateCar(id, draft)
-                    } catch {
-                      alert('Не удалось сохранить изменения: нет доступа к этой карточке (проверьте, что вы вошли в правильный аккаунт).')
+                    } catch (e) {
+                      alert(
+                        formatHttpErrorMessage(
+                          e,
+                          'Не удалось сохранить изменения: нет доступа к этой карточке (проверьте, что вы вошли в правильный аккаунт).',
+                        ),
+                      )
                       return
                     }
                     invalidateRepo()
@@ -576,7 +574,9 @@ export default function CarEditPage({ mode }) {
                   }
                 } catch (e) {
                   console.error(e)
-                  alert('Не удалось сохранить. Проверьте данные и подключение к серверу.')
+                  alert(
+                    formatHttpErrorMessage(e, 'Не удалось сохранить. Проверьте данные и подключение к серверу.'),
+                  )
                 }
               }}
             >

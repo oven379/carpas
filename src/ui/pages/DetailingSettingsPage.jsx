@@ -1,11 +1,12 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { BackNav, Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
 import { bumpSessionRefresh } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { compressImageFile } from '../../lib/imageCompression.js'
+import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
+import { formatHttpErrorMessage } from '../../api/http.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -15,6 +16,7 @@ export default function DetailingSettingsPage() {
 
   const [draft, setDraft] = useState(() => ({
     name: '',
+    contactName: '',
     servicesOffered: [],
     phone: '',
     city: '',
@@ -26,13 +28,11 @@ export default function DetailingSettingsPage() {
     logo: '',
     cover: '',
   }))
-  const logoRef = useRef(null)
-  const coverRef = useRef(null)
-
   useEffect(() => {
     if (!detailing) return
     setDraft({
       name: detailing.name || '',
+      contactName: detailing.contactName || '',
       servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
       phone: detailing.phone || '',
       city: detailing.city || '',
@@ -181,91 +181,23 @@ export default function DetailingSettingsPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
-          <div className="cardTitle" style={{ marginBottom: 10 }}>
-            Внешний вид лендинга
-          </div>
           <p className="muted small" style={{ margin: '0 0 14px' }}>
             Логотип и обложка видны на публичной странице и в шапке кабинета.
           </p>
-          <div className="formGrid">
-            <Field label="Логотип" hint="PNG/JPG, квадрат лучше всего">
-              <div className="row gap wrap">
-                <input
-                  ref={logoRef}
-                  className="srOnly"
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    try {
-                      const url = await compressImageFile(file, {
-                        maxW: 360,
-                        maxH: 360,
-                        quality: 0.86,
-                        maxBytes: 512 * 1024,
-                      })
-                      setDraft((d) => ({ ...d, logo: url }))
-                    } catch {
-                      alert('Не удалось прочитать файл')
-                    }
-                  }}
-                />
-                <button type="button" className="btn" data-variant="outline" onClick={() => logoRef.current?.click?.()}>
-                  {draft.logo ? 'Заменить логотип' : 'Загрузить логотип'}
-                </button>
-                {draft.logo ? (
-                  <button type="button" className="btn" data-variant="ghost" onClick={() => setDraft((d) => ({ ...d, logo: '' }))}>
-                    Убрать
-                  </button>
-                ) : null}
-              </div>
-              {draft.logo ? (
-                <div className="detLogoPreview" style={{ marginTop: 10 }}>
-                  <img alt="Логотип" src={draft.logo} />
-                </div>
-              ) : null}
-            </Field>
-
-            <Field label="Обложка кабинета" hint="широкая картинка, например фасад/зал">
-              <div className="row gap wrap">
-                <input
-                  ref={coverRef}
-                  className="srOnly"
-                  type="file"
-                  accept="image/*"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0]
-                    e.target.value = ''
-                    if (!file) return
-                    try {
-                      const url = await compressImageFile(file, {
-                        maxW: 1400,
-                        maxH: 700,
-                        quality: 0.82,
-                        maxBytes: 1024 * 1024,
-                      })
-                      setDraft((d) => ({ ...d, cover: url }))
-                    } catch {
-                      alert('Не удалось прочитать файл')
-                    }
-                  }}
-                />
-                <button type="button" className="btn" data-variant="outline" onClick={() => coverRef.current?.click?.()}>
-                  {draft.cover ? 'Заменить обложку' : 'Загрузить обложку'}
-                </button>
-                {draft.cover ? (
-                  <button type="button" className="btn" data-variant="ghost" onClick={() => setDraft((d) => ({ ...d, cover: '' }))}>
-                    Убрать
-                  </button>
-                ) : null}
-              </div>
-              <div className="detCoverPreview" style={{ marginTop: 10, backgroundImage: draft.cover ? `url("${String(draft.cover).replaceAll('"', '%22')}")` : undefined }}>
-                {!draft.cover ? <div className="muted small">Обложка не задана</div> : null}
-              </div>
-            </Field>
-          </div>
+          <MediaBannerAvatarBlock
+            variant="detailing"
+            title="Внешний вид лендинга"
+            avatarLabel="Логотип"
+            bannerLabel="Обложка кабинета"
+            bannerUrl={draft.cover}
+            avatarUrl={draft.logo}
+            onBannerUrl={(url) => setDraft((d) => ({ ...d, cover: url }))}
+            onAvatarUrl={(url) => setDraft((d) => ({ ...d, logo: url }))}
+            avatarEmptyHint="Нажмите для загрузки"
+            bannerEmptyHint="Нажмите — широкое фото: фасад, зал или работа"
+            avatarRemoveLabel="Убрать логотип"
+            bannerRemoveLabel="Убрать обложку"
+          />
         </div>
 
         <div className="topBorder">
@@ -285,6 +217,15 @@ export default function DetailingSettingsPage() {
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
               placeholder="Название студии / СТО"
               autoComplete="organization"
+            />
+          </Field>
+          <Field label="Контактное лицо" hint="Как обращаться к представителю сервиса">
+            <Input
+              className="input"
+              value={draft.contactName}
+              onChange={(e) => setDraft((d) => ({ ...d, contactName: e.target.value }))}
+              placeholder="Имя"
+              autoComplete="name"
             />
           </Field>
           <Field label="Телефон">
@@ -446,8 +387,8 @@ export default function DetailingSettingsPage() {
                 invalidateRepo()
                 bumpSessionRefresh()
                 nav('/detailing', { replace: true })
-              } catch {
-                alert('Не удалось сохранить настройки (нет доступа).')
+              } catch (e) {
+                alert(formatHttpErrorMessage(e, 'Не удалось сохранить настройки.'))
               }
             }}
           >

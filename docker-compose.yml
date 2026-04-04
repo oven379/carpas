@@ -6,7 +6,8 @@ services:
       POSTGRES_USER: car_passport
       POSTGRES_PASSWORD: car_passport
     ports:
-      - "5432:5432"
+      # Внешний порт 5433, если локальный PostgreSQL уже слушает 5432
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -52,7 +53,8 @@ services:
   nginx:
     image: nginx:1.27-alpine
     ports:
-      - "8080:80"
+      # 8080 часто занят на Windows — 8088 снижает конфликты; Vite прокси смотрит сюда же
+      - "8088:80"
     volumes:
       - ./backend:/var/www/html
       - ./backend/docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro

@@ -1,5 +1,4 @@
 import { useRef } from 'react'
-import { IMAGE_UPLOAD_EMPTY_CTA } from '../lib/format.js'
 import { compressImageFile } from '../lib/imageCompression.js'
 
 const PRESETS = {
@@ -14,29 +13,28 @@ const PRESETS = {
 }
 
 /**
- * Единый блок: широкий баннер (удаление — корзина сверху справа) и круглый аватар (крестик сверху справа).
- * Используется в настройках гаража и лендинга детейлинга.
+ * Аватар слева, баннер справа: клик по превью — выбор файла; «Убрать» — текстовая ссылка под превью.
+ * Общий вид с настройками гаража (классы garageSettings__*).
  */
 export default function MediaBannerAvatarBlock({
   variant = 'garage',
-  title = 'Баннер и аватар',
+  title = '',
   bannerLabel = 'Баннер',
   avatarLabel = 'Аватар',
   bannerUrl = '',
   avatarUrl = '',
   onBannerUrl,
   onAvatarUrl,
-  bannerEmptyHint,
-  avatarEmptyHint,
+  bannerEmptyHint = 'Нажмите — здесь будет фото вашего автомобиля',
+  avatarEmptyHint = 'Нажмите для загрузки',
+  avatarRemoveLabel = 'Убрать аватар',
+  bannerRemoveLabel = 'Убрать баннер',
   headerExtra = null,
   className = '',
 }) {
   const bannerRef = useRef(null)
   const avatarRef = useRef(null)
   const preset = PRESETS[variant] || PRESETS.garage
-
-  const bEmpty = bannerEmptyHint || IMAGE_UPLOAD_EMPTY_CTA
-  const aEmpty = avatarEmptyHint || IMAGE_UPLOAD_EMPTY_CTA
 
   async function onBannerFile(e) {
     const f = e.target.files?.[0]
@@ -62,78 +60,74 @@ export default function MediaBannerAvatarBlock({
     }
   }
 
-  return (
-    <div className={`mediaHeroForm ${className}`.trim()}>
-      <div className="mediaHeroForm__header">
-        <div className="mediaHeroForm__title">{title}</div>
-        {headerExtra}
-      </div>
+  const showHeader = Boolean((title && String(title).trim()) || headerExtra)
 
-      <div className="mediaHeroForm__stack">
-        <div className="mediaHeroForm__section">
-          <div className="mediaHeroForm__sublabel">{bannerLabel}</div>
-          <div className="mediaHeroForm__thumbWrap mediaHeroForm__thumbWrap--banner">
-            <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />
+  return (
+    <div className={`mediaBannerAvatarBlock ${className}`.trim()}>
+      {showHeader ? (
+        <div className="garageSettings__mediaHeadRow" style={{ marginBottom: 12 }}>
+          {title ? <div className="garageSettings__mediaHeading">{title}</div> : <span style={{ flex: 1 }} />}
+          {headerExtra}
+        </div>
+      ) : null}
+
+      <div className="garageSettings__mediaCols">
+        <div className="garageSettings__mediaCol garageSettings__mediaCol--avatar">
+          <div className="garageSettings__mediaSublabel">{avatarLabel}</div>
+          <input ref={avatarRef} type="file" accept="image/*" className="srOnly" onChange={onAvatarFile} />
+          <button
+            type="button"
+            className="garageSettings__thumb garageSettings__thumb--avatar"
+            onClick={() => avatarRef.current?.click?.()}
+            aria-label={avatarUrl ? `Заменить ${avatarLabel.toLowerCase()}` : `Загрузить ${avatarLabel.toLowerCase()}`}
+          >
+            {avatarUrl ? (
+              <img alt={`Превью: ${avatarLabel}`} src={avatarUrl} />
+            ) : (
+              <span className="garageSettings__thumbEmpty">{avatarEmptyHint}</span>
+            )}
+          </button>
+          {avatarUrl ? (
             <button
               type="button"
-              className="mediaHeroForm__thumb mediaHeroForm__thumb--banner"
-              onClick={() => bannerRef.current?.click?.()}
-              aria-label={bannerUrl ? 'Заменить баннер' : IMAGE_UPLOAD_EMPTY_CTA}
+              className="garageSettings__clearLink"
+              onClick={(e) => {
+                e.stopPropagation()
+                onAvatarUrl?.('')
+              }}
             >
-              {bannerUrl ? (
-                <img alt="Превью баннера" src={bannerUrl} />
-              ) : (
-                <span className="mediaHeroForm__thumbEmpty">{bEmpty}</span>
-              )}
+              {avatarRemoveLabel}
             </button>
-            {bannerUrl ? (
-              <button
-                type="button"
-                className="mediaHeroForm__overlayBtn mediaHeroForm__overlayBtn--banner"
-                aria-label="Удалить баннер"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onBannerUrl?.('')
-                }}
-              >
-                <span className="carPage__icon carPage__icon--trash mediaHeroForm__overlayBtnIcon" aria-hidden />
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
 
-        <div className="mediaHeroForm__section">
-          <div className="mediaHeroForm__sublabel">{avatarLabel}</div>
-          <div className="mediaHeroForm__thumbWrap mediaHeroForm__thumbWrap--avatar">
-            <input ref={avatarRef} type="file" accept="image/*" className="srOnly" onChange={onAvatarFile} />
+        <div className="garageSettings__mediaCol garageSettings__mediaCol--banner">
+          <div className="garageSettings__mediaSublabel">{bannerLabel}</div>
+          <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />
+          <button
+            type="button"
+            className="garageSettings__thumb garageSettings__thumb--banner"
+            onClick={() => bannerRef.current?.click?.()}
+            aria-label={bannerUrl ? `Заменить ${bannerLabel.toLowerCase()}` : `Загрузить ${bannerLabel.toLowerCase()}`}
+          >
+            {bannerUrl ? (
+              <img alt={`Превью: ${bannerLabel}`} src={bannerUrl} />
+            ) : (
+              <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">{bannerEmptyHint}</span>
+            )}
+          </button>
+          {bannerUrl ? (
             <button
               type="button"
-              className="mediaHeroForm__thumb mediaHeroForm__thumb--avatar"
-              onClick={() => avatarRef.current?.click?.()}
-              aria-label={avatarUrl ? 'Заменить аватар' : IMAGE_UPLOAD_EMPTY_CTA}
+              className="garageSettings__clearLink"
+              onClick={(e) => {
+                e.stopPropagation()
+                onBannerUrl?.('')
+              }}
             >
-              {avatarUrl ? (
-                <img alt="Превью аватара" src={avatarUrl} />
-              ) : (
-                <span className="mediaHeroForm__thumbEmpty">{aEmpty}</span>
-              )}
+              {bannerRemoveLabel}
             </button>
-            {avatarUrl ? (
-              <button
-                type="button"
-                className="mediaHeroForm__overlayBtn mediaHeroForm__overlayBtn--avatar"
-                aria-label="Удалить аватар"
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  onAvatarUrl?.('')
-                }}
-              >
-                <span className="carPage__icon carPage__icon--close mediaHeroForm__overlayBtnIcon" aria-hidden />
-              </button>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
     </div>

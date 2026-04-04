@@ -204,7 +204,7 @@ button.nav__action {
   min-width: 0;
 }
 
-/* «Войти» на публичных витринах /g/ /d/: явно прозрачный фон, серая обводка */
+/* «Войти» на публичных страницах /g/ /d/ (на улице): явно прозрачный фон, серая обводка */
 .nav__action.nav__action--showcaseLogin {
   background: transparent;
   border-color: color-mix(in oklab, var(--muted) 55%, var(--border));
@@ -290,7 +290,7 @@ button.nav__action {
   font-weight: 600;
 }
 
-/* Публичная витрина гаража: ссылки в строке меты, без рамки как у .link */
+/* Публичная страница гаража на улице: ссылки в строке меты, без рамки как у .link */
 .publicGarage__textLink {
   display: inline;
   margin: 0;
@@ -2468,17 +2468,238 @@ a.btn.btn--asDisabled {
   margin-bottom: 6px;
 }
 
-.garageSettings__intro {
-  margin-top: 12px;
-  margin-bottom: 0;
-  line-height: 1.5;
-}
-
 .garageSettings__card {
   margin-top: clamp(20px, 4vw, 32px);
   min-width: 0;
   max-width: 100%;
   overflow: visible;
+}
+
+.garageSettings__card.card {
+  border-color: color-mix(in oklab, var(--border) 42%, var(--text-h) 20%);
+  box-shadow:
+    var(--shadow),
+    inset 0 0 0 1px color-mix(in oklab, var(--border) 38%, transparent);
+}
+
+.garageSettings__card .input,
+.garageSettings__card .textarea {
+  border-color: color-mix(in oklab, var(--border) 38%, var(--text-h) 14%);
+}
+
+.garageSettings__card .input:focus,
+.garageSettings__card .textarea:focus {
+  border-color: color-mix(in oklab, var(--accent) 58%, var(--border));
+}
+
+.garageSettings__card .garageSettings__urlComposerInner {
+  border-color: color-mix(in oklab, var(--border) 38%, var(--text-h) 14%);
+}
+
+.garageSettings__card .garageSettings__urlPrefix {
+  border-right-color: color-mix(in oklab, var(--border) 38%, var(--text-h) 14%);
+}
+
+.garageSettings__mediaWrap.topBorder {
+  border-top-color: color-mix(in oklab, var(--border) 42%, var(--text-h) 20%);
+}
+
+.garageSettings__mediaHeadRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.garageSettings__mediaHeading {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  color: var(--text-h);
+  margin: 0;
+}
+
+.garageSettings__mediaCols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.garageSettings__mediaCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.garageSettings__mediaCol--avatar {
+  flex: 0 0 auto;
+}
+
+.garageSettings__mediaCol--banner {
+  flex: 1 1 280px;
+  min-width: min(100%, 260px);
+}
+
+.garageSettings__mediaSublabel {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-h);
+}
+
+button.garageSettings__thumb {
+  appearance: none;
+  font: inherit;
+  position: relative;
+  display: block;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  cursor: pointer;
+  border-radius: 12px;
+  line-height: 0;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+  border: 1.5px solid color-mix(in oklab, var(--border) 38%, var(--accent) 26%);
+  background: color-mix(in oklab, var(--code-bg) 42%, var(--bg));
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--border) 30%, transparent);
+}
+
+button.garageSettings__thumb:hover {
+  border-color: color-mix(in oklab, var(--accent) 48%, var(--border));
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+}
+
+button.garageSettings__thumb:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
+  outline-offset: 2px;
+}
+
+.garageSettings__thumb--avatar {
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+.garageSettings__thumb--banner {
+  width: 100%;
+  aspect-ratio: 3 / 1;
+  min-height: 96px;
+  max-height: 160px;
+}
+
+.garageSettings__thumb--avatar img,
+.garageSettings__thumb--banner img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  border-radius: inherit;
+  display: block;
+}
+
+.garageSettings__thumbEmpty {
+  display: flex;
+  min-height: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: color-mix(in oklab, var(--muted) 75%, var(--text-h));
+  text-align: center;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.garageSettings__thumbEmpty--banner {
+  font-size: 12px;
+  padding: 14px 18px;
+}
+
+.garageSettings__clearLink {
+  align-self: flex-start;
+  margin: 2px 0 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.35;
+  color: color-mix(in oklab, var(--accent) 72%, var(--text));
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.garageSettings__clearLink:hover {
+  color: var(--accent);
+}
+
+.garageSettings__clearLink:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 60%, white);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.garageSettings__socialList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.garageSettings__socialRow {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 0;
+}
+
+.garageSettings__socialInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.garageSettings__socialAddBtn {
+  flex: 0 0 auto;
+  width: 44px;
+  min-width: 44px;
+  padding-left: 0;
+  padding-right: 0;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1;
+}
+
+@media (max-width: 520px) {
+  .garageSettings__mediaCols {
+    flex-direction: column;
+  }
+
+  .garageSettings__mediaCol--banner {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .garageSettings__thumb--banner {
+    max-height: none;
+  }
+
+  .garageSettings__mediaHeadRow {
+    align-items: flex-start;
+  }
 }
 
 .garageSettings__formAfterMedia {
@@ -2500,7 +2721,7 @@ a.btn.btn--asDisabled {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   column-gap: 8px;
-  row-gap: 8px;
+  row-gap: 0;
   min-width: 0;
   max-width: 100%;
 }
@@ -2515,19 +2736,12 @@ a.btn.btn--asDisabled {
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
+  align-self: start;
+  margin-top: 2px;
 }
 
-.serviceHint__fieldTop > .serviceHint__panel {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  position: relative;
-  width: 100%;
-  max-width: min(100%, calc(100vw - 24px));
-  min-width: 0;
-  top: auto;
-  right: auto;
-  left: auto;
-  box-sizing: border-box;
+.serviceHint__btn--compact {
+  flex-shrink: 0;
 }
 
 .serviceHint__pageBlockRow {
@@ -2560,9 +2774,9 @@ a.btn.btn--asDisabled {
   height: 36px;
   margin: 0;
   padding: 0;
-  border: 1px solid color-mix(in oklab, var(--border) 80%, var(--accent));
+  border: 1.5px solid color-mix(in oklab, var(--border) 55%, var(--accent) 32%);
   border-radius: 10px;
-  background: color-mix(in oklab, var(--bg) 90%, var(--code-bg));
+  background: color-mix(in oklab, var(--bg) 88%, var(--code-bg));
   color: var(--text-h);
   cursor: pointer;
   transition:
@@ -2588,9 +2802,11 @@ a.btn.btn--asDisabled {
   z-index: 4;
   padding: 12px 14px;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--bg) 88%, var(--code-bg));
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+  border: 1.5px solid color-mix(in oklab, var(--border) 50%, var(--text-h) 22%);
+  background: color-mix(in oklab, var(--bg) 86%, var(--code-bg));
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.32),
+    inset 0 0 0 1px color-mix(in oklab, var(--border) 35%, transparent);
   animation: serviceHintIn 0.18s ease;
   cursor: pointer;
   max-width: min(100%, calc(100vw - 24px));
@@ -2615,11 +2831,11 @@ a.btn.btn--asDisabled {
 .serviceHint__panelTapHint {
   margin: 10px 0 0;
   padding-top: 8px;
-  border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-top: 1px solid color-mix(in oklab, var(--border) 45%, var(--text-h) 18%);
   font-size: 11px;
   line-height: 1.35;
   color: var(--text);
-  opacity: 0.85;
+  opacity: 0.88;
 }
 
 .serviceHint__panelText {
@@ -2644,203 +2860,14 @@ a.btn.btn--asDisabled {
   }
 }
 
-/* Баннер + аватар: настройки гаража и лендинга детейлинга (MediaBannerAvatarBlock.jsx) */
-.mediaHeroForm {
-  margin-bottom: 14px;
+/* Аватар + баннер: MediaBannerAvatarBlock.jsx (классы превью — garageSettings__thumb*). */
+.mediaBannerAvatarBlock {
   min-width: 0;
   max-width: 100%;
 }
 
-.mediaHeroForm__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.mediaHeroForm__title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 650;
-  letter-spacing: -0.2px;
-  color: var(--text-h);
-}
-
-.mediaHeroForm__stack {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.mediaHeroForm__section {
-  min-width: 0;
-}
-
-.mediaHeroForm__sublabel {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-h);
-}
-
-.mediaHeroForm__thumbWrap {
-  position: relative;
-  align-self: flex-start;
-}
-
-.mediaHeroForm__thumbWrap--banner {
+.carEditCoverBlock__thumb {
   width: 100%;
-  min-width: 0;
-}
-
-.mediaHeroForm__thumbWrap--avatar {
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
-}
-
-.mediaHeroForm__overlayBtn {
-  position: absolute;
-  z-index: 4;
-  display: inline-grid;
-  place-items: center;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
-  border: 1px solid color-mix(in oklab, white 14%, var(--border));
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--bg) 38%, transparent);
-  color: var(--text-h);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    background-color 120ms ease,
-    color 120ms ease,
-    box-shadow 120ms ease;
-}
-
-.mediaHeroForm__overlayBtn:hover {
-  transform: translateY(-1px);
-  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
-  color: var(--accent);
-  background: color-mix(in oklab, var(--bg) 52%, transparent);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.32);
-}
-
-.mediaHeroForm__overlayBtn:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
-  outline-offset: 2px;
-}
-
-.mediaHeroForm__overlayBtn--banner {
-  top: 10px;
-  right: 10px;
-  width: 40px;
-  height: 40px;
-}
-
-.mediaHeroForm__overlayBtn--avatar {
-  top: 4px;
-  right: 4px;
-  width: 30px;
-  height: 30px;
-}
-
-.mediaHeroForm__overlayBtnIcon {
-  width: 18px;
-  height: 18px;
-}
-
-.mediaHeroForm__overlayBtn--avatar .mediaHeroForm__overlayBtnIcon {
-  width: 14px;
-  height: 14px;
-}
-
-.mediaHeroForm__thumb {
-  position: relative;
-  display: block;
-  width: 100%;
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
-  cursor: pointer;
-  border: 1px dashed color-mix(in oklab, var(--border) 82%, var(--accent) 14%);
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--code-bg) 48%, var(--bg));
-  line-height: 0;
-  transition:
-    border-color 120ms ease,
-    background-color 120ms ease;
-}
-
-.mediaHeroForm__thumb:hover {
-  border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
-  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
-}
-
-.mediaHeroForm__thumb:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 65%, white);
-  outline-offset: 2px;
-}
-
-.mediaHeroForm__thumb--banner {
-  aspect-ratio: 3 / 1;
-  min-height: 88px;
-  max-height: 148px;
-}
-
-.mediaHeroForm__thumb--banner img {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.mediaHeroForm__thumb--avatar {
-  width: 96px;
-  height: 96px;
-  flex-shrink: 0;
-  border-radius: 50%;
-}
-
-.mediaHeroForm__thumb--avatar img {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  border-radius: inherit;
-}
-
-.mediaHeroForm__thumbEmpty {
-  display: flex;
-  min-height: 100%;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 10px;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--muted);
-  text-align: center;
-  box-sizing: border-box;
-}
-
-@media (max-width: 560px) {
-  .mediaHeroForm__thumb--banner {
-    max-height: none;
-  }
 }
 
 /* Одно поле: префикс origin/g/ + редактируемый slug + копирование полного URL */

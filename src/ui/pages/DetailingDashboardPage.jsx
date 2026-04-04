@@ -385,8 +385,8 @@ export default function DetailingDashboardPage() {
                   ) : (
                     <span
                       className="rowItem__ownerSummaryAvatar rowItem__ownerSummaryAvatar--disabled"
-                      title="Публичная витрина не задана"
-                      aria-label="Публичная витрина не задана"
+                      title="Публичная улица не задана"
+                      aria-label="Публичная улица не задана"
                     >
                       {ownerAvatar ? (
                         <img src={ownerAvatar} alt="" />
@@ -402,8 +402,8 @@ export default function DetailingDashboardPage() {
                         {ownerPhoneRaw}
                       </a>
                     ) : ownerPhoneRaw && !ownerPhonePublic ? (
-                      <span className="muted small" title="Владелец не разрешил публикацию телефона на витрине">
-                        Телефон скрыт на витрине
+                      <span className="muted small" title="Владелец не разрешил публикацию телефона на улице">
+                        Телефон скрыт на улице
                       </span>
                     ) : (
                       <span className="muted small">Телефон в аккаунте не указан</span>

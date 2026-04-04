@@ -2,9 +2,9 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom'
 
 const AUTO_CLOSE_MS = 30000
-const STORAGE_KEY = 'carPass.serviceHint.usage.v1'
-const MAX_OPENS = 3
-const QUIET_MONTHS = 3
+const STORAGE_KEY_V2 = 'carPass.serviceHint.usage.v2'
+const STORAGE_KEY_V1 = 'carPass.serviceHint.usage.v1'
+const MAX_CLOSE_CYCLES = 3
 
 const PANEL_MARGIN = 12
 const PANEL_GAP = 8
@@ -13,7 +13,7 @@ const PANEL_MAX_WIDTH = 440
 function readAll() {
   if (typeof localStorage === 'undefined') return {}
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY_V2)
     return raw ? JSON.parse(raw) : {}
   } catch {
     return {}
@@ -23,49 +23,42 @@ function readAll() {
 function writeAll(all) {
   if (typeof localStorage === 'undefined') return
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all))
+    localStorage.setItem(STORAGE_KEY_V2, JSON.stringify(all))
   } catch {
     /* ignore quota */
   }
 }
 
-function quietUntilExpired(iso) {
-  if (!iso) return true
-  const t = new Date(iso).getTime()
-  return !Number.isFinite(t) || Date.now() >= t
-}
-
-/** После даты тишины — снова даём MAX_OPENS показов. */
-function normalizeScopeState(raw) {
-  const opens = typeof raw?.opens === 'number' && raw.opens >= 0 ? raw.opens : 0
-  let quietUntil = typeof raw?.quietUntil === 'string' ? raw.quietUntil : null
-  if (quietUntil && quietUntilExpired(quietUntil)) {
-    quietUntil = null
-    return { opens: 0, quietUntil: null, wasReset: true }
+function migrateV1IfNeeded(scopeId, all) {
+  if (!scopeId || all[scopeId]) return
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_V1)
+    if (!raw) return
+    const v1 = JSON.parse(raw)
+    const prev = v1?.[scopeId]
+    const opens = typeof prev?.opens === 'number' ? prev.opens : 0
+    if (opens >= 3) {
+      all[scopeId] = { cycles: 3, permanent: true }
+      writeAll(all)
+    }
+  } catch {
+    /* ignore */
   }
-  return { opens, quietUntil, wasReset: false }
 }
 
 function loadUsage(scopeId) {
-  if (!scopeId) return { opens: 0, quietUntil: null }
-  const all = readAll()
-  const prev = all[scopeId]
-  const { opens, quietUntil, wasReset } = normalizeScopeState(prev)
-  if (wasReset) {
-    all[scopeId] = { opens: 0, quietUntil: null }
-    writeAll(all)
-  }
-  return { opens, quietUntil }
+  if (!scopeId) return { cycles: 0, permanent: false }
+  const snapshot = readAll()
+  migrateV1IfNeeded(scopeId, snapshot)
+  const cur = readAll()[scopeId]
+  if (!cur) return { cycles: 0, permanent: false }
+  const cycles = typeof cur.cycles === 'number' ? cur.cycles : 0
+  const permanent = Boolean(cur.permanent || cycles >= MAX_CLOSE_CYCLES)
+  return { cycles, permanent }
 }
 
-function addMonthsFromNow(months) {
-  const d = new Date()
-  d.setMonth(d.getMonth() + months)
-  return d.toISOString()
-}
-
-/** Позиция панели компактной подсказки в пределах вьюпорта (в т.ч. узкий телефон). */
-function computeCompactPlacement(btnEl, panelEl) {
+/** Позиция панели в пределах вьюпорта (в т.ч. узкий телефон). */
+function computeDropdownPlacement(btnEl, panelEl) {
   if (!btnEl || !panelEl) return null
   const br = btnEl.getBoundingClientRect()
   const vw = window.innerWidth
@@ -85,15 +78,14 @@ function computeCompactPlacement(btnEl, panelEl) {
 }
 
 /**
- * Справка по полю (сетка) или компактная кнопка у заголовка.
- * Закрытие: снаружи, Escape, клик по панели, автоматически через 30 с.
- * Кнопка «i» срабатывает MAX_OPENS раз; после этого скрывается на QUIET_MONTHS календарных месяцев.
- * Компактная панель рендерится в document.body с position: fixed, чтобы не обрезалась и не вылезала за экран.
+ * Подсказка: кнопка «i» + выпадающая панель (портал в body).
+ * Закрытие: клик по панели, снаружи, Escape, кнопка «i»; авто через 30 с (не считается в лимит).
+ * После MAX_CLOSE_CYCLES осмысленных закрытий (после открытия) кнопка скрывается навсегда для scopeId.
  */
 export default function ServiceHint({ scopeId, label, children, variant = 'field' }) {
   const [open, setOpen] = useState(false)
   const [usage, setUsage] = useState(() => loadUsage(scopeId))
-  const [compactStyle, setCompactStyle] = useState(null)
+  const [dropdownStyle, setDropdownStyle] = useState(null)
   const btnRef = useRef(null)
   const panelRef = useRef(null)
 
@@ -103,11 +95,25 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
 
   const showButton = useMemo(() => {
     if (!scopeId) return true
-    if (usage.quietUntil && !quietUntilExpired(usage.quietUntil)) return false
-    return true
-  }, [scopeId, usage.quietUntil])
+    return !usage.permanent
+  }, [scopeId, usage.permanent])
 
-  const close = useCallback(() => setOpen(false), [])
+  const closeTimer = useCallback(() => setOpen(false), [])
+
+  const closeUser = useCallback(() => {
+    setOpen((prev) => {
+      if (prev && scopeId) {
+        const all = readAll()
+        const cur = all[scopeId] || {}
+        const cycles = (typeof cur.cycles === 'number' ? cur.cycles : 0) + 1
+        const permanent = cycles >= MAX_CLOSE_CYCLES
+        all[scopeId] = { cycles, permanent }
+        writeAll(all)
+        queueMicrotask(() => setUsage(loadUsage(scopeId)))
+      }
+      return false
+    })
+  }, [scopeId])
 
   useEffect(() => {
     if (!open || !scopeId) return undefined
@@ -116,10 +122,10 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
       if (btnRef.current?.contains(t) || panelRef.current?.contains(t)) return
       const byIdRoot = document.getElementById(scopeId)
       if (byIdRoot?.contains(t)) return
-      close()
+      closeUser()
     }
     const onKey = (e) => {
-      if (e.key === 'Escape') close()
+      if (e.key === 'Escape') closeUser()
     }
     document.addEventListener('mousedown', onDoc)
     document.addEventListener('keydown', onKey)
@@ -129,82 +135,70 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('touchstart', onDoc)
     }
-  }, [open, scopeId, close])
+  }, [open, scopeId, closeUser])
 
   useEffect(() => {
     if (!open) return undefined
-    const t = window.setTimeout(close, AUTO_CLOSE_MS)
+    const t = window.setTimeout(closeTimer, AUTO_CLOSE_MS)
     return () => window.clearTimeout(t)
-  }, [open, close])
+  }, [open, closeTimer])
 
-  const applyCompactPlacement = useCallback(() => {
-    if (variant !== 'compact' || !open) return
+  const applyDropdownPlacement = useCallback(() => {
+    if (!open) return
     const btn = btnRef.current
     const panel = panelRef.current
     if (!btn || !panel) return
-    const next = computeCompactPlacement(btn, panel)
-    if (next) setCompactStyle(next)
-  }, [variant, open])
+    const next = computeDropdownPlacement(btn, panel)
+    if (next) setDropdownStyle(next)
+  }, [open])
 
   useLayoutEffect(() => {
-    if (!open || variant !== 'compact') {
-      setCompactStyle(null)
+    if (!open) {
+      setDropdownStyle(null)
       return undefined
     }
-    applyCompactPlacement()
-    const raf = requestAnimationFrame(() => applyCompactPlacement())
-    window.addEventListener('resize', applyCompactPlacement)
-    window.addEventListener('scroll', applyCompactPlacement, true)
+    applyDropdownPlacement()
+    const raf = requestAnimationFrame(() => applyDropdownPlacement())
+    window.addEventListener('resize', applyDropdownPlacement)
+    window.addEventListener('scroll', applyDropdownPlacement, true)
     return () => {
       cancelAnimationFrame(raf)
-      window.removeEventListener('resize', applyCompactPlacement)
-      window.removeEventListener('scroll', applyCompactPlacement, true)
+      window.removeEventListener('resize', applyDropdownPlacement)
+      window.removeEventListener('scroll', applyDropdownPlacement, true)
     }
-  }, [open, variant, applyCompactPlacement, children])
+  }, [open, applyDropdownPlacement, children, variant])
 
   const onToggle = useCallback(
     (e) => {
       e.stopPropagation()
-      if (!open) {
-        if (scopeId) {
-          const all = readAll()
-          const cur = normalizeScopeState(all[scopeId])
-          if (cur.quietUntil && !quietUntilExpired(cur.quietUntil)) return
-          const opens = cur.opens + 1
-          const next =
-            opens >= MAX_OPENS
-              ? { opens, quietUntil: addMonthsFromNow(QUIET_MONTHS) }
-              : { opens, quietUntil: null }
-          all[scopeId] = next
-          writeAll(all)
-          setUsage(next)
-        }
-        setOpen(true)
-      } else {
-        setOpen(false)
+      if (open) {
+        closeUser()
+        return
       }
+      if (scopeId) {
+        const u = loadUsage(scopeId)
+        if (u.permanent) return
+      }
+      setOpen(true)
     },
-    [open, scopeId],
+    [open, scopeId, closeUser],
   )
 
-  const panelClass =
-    variant === 'compact' ? 'serviceHint__panel serviceHint__panel--dropdown' : 'serviceHint__panel'
-
-  const compactFixedStyle =
-    variant === 'compact' && open
-      ? compactStyle
+  const dropdownFixedStyle =
+    open && dropdownStyle
+      ? {
+          position: 'fixed',
+          zIndex: 6000,
+          top: dropdownStyle.top,
+          left: dropdownStyle.left,
+          width: dropdownStyle.width,
+          maxWidth: dropdownStyle.width,
+          margin: 0,
+          opacity: 1,
+          pointerEvents: 'auto',
+        }
+      : open
         ? {
-            position: 'fixed',
-            zIndex: 6000,
-            top: compactStyle.top,
-            left: compactStyle.left,
-            width: compactStyle.width,
-            maxWidth: compactStyle.width,
-            margin: 0,
-            opacity: 1,
-            pointerEvents: 'auto',
-          }
-        : {
             position: 'fixed',
             zIndex: 6000,
             top: PANEL_MARGIN,
@@ -221,17 +215,17 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
             opacity: 0,
             pointerEvents: 'none',
           }
-      : undefined
+        : undefined
 
   const panelInner = (
     <div
       ref={panelRef}
-      className={panelClass}
+      className="serviceHint__panel serviceHint__panel--dropdown"
       id={scopeId ? `${scopeId}-panel` : undefined}
       role="region"
       aria-label={label}
-      onClick={close}
-      style={variant === 'compact' && open ? compactFixedStyle : undefined}
+      onClick={closeUser}
+      style={open ? dropdownFixedStyle : undefined}
     >
       <div className="serviceHint__panelInner">{children}</div>
       <div className="serviceHint__panelTapHint">Нажмите, чтобы закрыть</div>
@@ -242,7 +236,7 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
     <button
       ref={btnRef}
       type="button"
-      className="serviceHint__btn"
+      className={`serviceHint__btn${variant === 'compact' ? ' serviceHint__btn--compact' : ''}`.trim()}
       aria-expanded={open}
       aria-controls={open && scopeId ? `${scopeId}-panel` : undefined}
       aria-label={label}
@@ -257,20 +251,12 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
     </button>
   ) : null
 
-  if (variant === 'compact') {
-    const portaled = open && typeof document !== 'undefined' ? createPortal(panelInner, document.body) : null
-    return (
-      <>
-        {btn}
-        {portaled}
-      </>
-    )
-  }
+  const portaled = open && typeof document !== 'undefined' ? createPortal(panelInner, document.body) : null
 
   return (
     <>
       {btn}
-      {open ? panelInner : null}
+      {portaled}
     </>
   )
 }

@@ -641,6 +641,18 @@ export default function HistoryPage() {
           : events
       : events
 
+  const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
+  const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
+  const isEditing = Boolean(editingId)
+  const formLocked = isEditing && !editAllowed
+  const editingPhotos = useMemo(() => {
+    if (!editingId || !editAllowed) return []
+    return docsForEvent(editingId)
+  }, [editingId, editAllowed, docsForEvent])
+  const visitPhotosAddBlocked = Boolean(editingId && editAllowed && editingPhotos.length >= VISIT_MAX_PHOTOS)
+  const visitPhotosRoom =
+    editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
+
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
   if (!dataReady) {
     return (
@@ -652,18 +664,6 @@ export default function HistoryPage() {
   if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
-
-  const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
-  const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
-  const isEditing = Boolean(editingId)
-  const formLocked = isEditing && !editAllowed
-  const editingPhotos = useMemo(() => {
-    if (!editingId || !editAllowed) return []
-    return docsForEvent(editingId)
-  }, [editingId, editAllowed, docsForEvent, allDocs])
-  const visitPhotosAddBlocked = Boolean(editingId && editAllowed && editingPhotos.length >= VISIT_MAX_PHOTOS)
-  const visitPhotosRoom =
-    editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
   const buildVisitPayload = () => ({
     title: clampVisitTitle(draft.title),
@@ -1348,8 +1348,7 @@ export default function HistoryPage() {
                     setTab('all')
                   }
                   setSp(next, { replace: true })
-                } catch (err) {
-                  const msg = String(err?.message || err || '')
+                } catch {
                   alert('Не удалось сохранить историю. Попробуйте ещё раз.')
                 }
               }}

@@ -4,11 +4,11 @@ export const VISIT_TITLE_MAX_LEN = 40
 /** Советы по уходу из визита детейлинга (поля «Важно» / «Совет 1–3»). */
 export const VISIT_CARE_TIP_MAX_LEN = 240
 
-/** Режим работы детейлинга/СТО (публичная витрина и кабинет). */
+/** Режим работы детейлинга/СТО (публичная страница на улице и кабинет). */
 export const DETAILING_WORKING_HOURS_MAX_LEN = 200
 
 /** Подпись в пустых зонах выбора изображения (баннер, аватар, обложка карточки). */
-export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажми чтобы загрузить'
+export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажмите для загрузки'
 
 /** Демо: раньше был единый пароль; оставлен для совместимости со старыми подсказками в коде партнёров. */
 export const OWNER_DEMO_PASSWORD = '1111'
@@ -252,7 +252,7 @@ export function normalizeGarageSlugInput(raw) {
     .slice(0, 40)
 }
 
-/** Публичная витрина: не показываем полный VIN. */
+/** Публичная страница на улице: не показываем полный VIN. */
 export function fmtVinPublic(vin) {
   const v = normVin(vin)
   if (!v) return '—'
@@ -274,7 +274,7 @@ export function formatPhoneRuInput(raw) {
   return `+7${d}`
 }
 
-/** Публичная витрина: не показываем полный номер. */
+/** Публичная страница на улице: не показываем полный номер. */
 export function fmtPlatePublic(plate, plateRegion) {
   const full = fmtPlateFull(plate, plateRegion)
   if (!full) return '—'
@@ -314,7 +314,7 @@ export function firstGarageSocialLine(raw) {
 }
 
 /**
- * Флаги публичности витрины владельца: `Boolean("false")` в JS даёт true — явный разбор.
+ * Флаги публичности «улицы» владельца: `Boolean("false")` в JS даёт true — явный разбор.
  */
 export function ownerPublicFlagTrue(value) {
   if (value === true || value === 1) return true
@@ -327,7 +327,7 @@ export function ownerPublicFlagTrue(value) {
   return false
 }
 
-/** Город на публичной витрине: если поля не было — считаем включённым (миграция со старых данных). */
+/** Город на публичной улице: если поля не было — считаем включённым (миграция со старых данных). */
 export function ownerCityPublicFlag(value) {
   if (value == null) return true
   return ownerPublicFlagTrue(value)

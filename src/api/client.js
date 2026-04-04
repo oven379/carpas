@@ -4,7 +4,13 @@ import { getDetailingToken, getOwnerToken } from '../ui/auth.js'
 function baseUrl() {
   const u = import.meta.env.VITE_API_BASE_URL
   if (u && String(u).trim()) return String(u).replace(/\/+$/, '')
-  return 'http://localhost:8080/api'
+  // `npm run dev` и `vite preview`: прокси /api → nginx (порт см. vite.config.js / docker-compose)
+  if (import.meta.env.DEV) return '/api'
+  if (typeof window !== 'undefined') {
+    const h = window.location.hostname
+    if (h === 'localhost' || h === '127.0.0.1') return '/api'
+  }
+  return 'http://localhost:8088/api'
 }
 
 function joinQuery(path, query) {

@@ -227,11 +227,11 @@ export default function CarPage() {
             <>
               <p className="muted small" style={{ margin: 0 }}>
                 Карточка только в вашем гараже: обслуживание у партнёра ещё не привязано. Записи «от сервиса» появятся после
-                привязки через витрину или когда детейлинг заведёт авто на ваш аккаунт.
+                привязки через улицу или когда детейлинг заведёт авто на ваш аккаунт.
               </p>
               <div className="row gap wrap" style={{ marginTop: 10 }}>
                 <Link className="btn" data-variant="primary" to="/market">
-                  Открыть витрину
+                  Открыть улицу
                 </Link>
               </div>
             </>
@@ -262,11 +262,11 @@ export default function CarPage() {
                 <Pill tone="neutral">Заявка отклонена</Pill>
               </div>
               <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-                Уточните данные и попробуйте снова через витрину или свяжитесь с сервисом напрямую.
+                Уточните данные и попробуйте снова через улицу или свяжитесь с сервисом напрямую.
               </p>
               <div className="row gap wrap" style={{ marginTop: 10 }}>
                 <Link className="btn" data-variant="primary" to="/market">
-                  Витрина
+                  Улица
                 </Link>
               </div>
             </>
@@ -284,7 +284,7 @@ export default function CarPage() {
           </div>
           {detailingAccess.label === 'Учёт в сервисе' ? (
             <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-              Личный кабинет владельца не подключён — карточка ведётся только у вас. Клиент может подать заявку с витрины,
+              Личный кабинет владельца не подключён — карточка ведётся только у вас. Клиент может подать заявку с улицы,
               чтобы привязать аккаунт.
             </p>
           ) : null}

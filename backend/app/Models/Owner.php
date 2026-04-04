@@ -18,6 +18,12 @@ class Owner extends Authenticatable
         'password',
         'name',
         'phone',
+        'garage_city',
+        'show_city_public',
+        'garage_website',
+        'show_website_public',
+        'garage_social',
+        'show_social_public',
         'garage_slug',
         'garage_banner',
         'garage_avatar',
@@ -31,6 +37,9 @@ class Owner extends Authenticatable
     ];
 
     protected $casts = [
+        'show_city_public' => 'boolean',
+        'show_website_public' => 'boolean',
+        'show_social_public' => 'boolean',
         'show_phone_public' => 'boolean',
         'is_premium' => 'boolean',
     ];

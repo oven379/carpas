@@ -65,7 +65,7 @@ export function debugAuth(phase, data = {}) {
 }
 
 export function isAuthed() {
-  return Boolean(getSessionDetailingId() || getSessionOwner())
+  return hasOwnerSession() || hasDetailingSession()
 }
 
 export function setSessionDetailingId(id, token = null) {

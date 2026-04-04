@@ -96,6 +96,25 @@ class OwnerAuthController extends Controller
         if (array_key_exists('phone', $patch)) {
             $o->phone = trim((string) $patch['phone']);
         }
+        if (array_key_exists('garageCity', $patch)) {
+            $o->garage_city = trim((string) $patch['garageCity']);
+        }
+        if (array_key_exists('showCityPublic', $patch)) {
+            $o->show_city_public = (bool) $patch['showCityPublic'];
+        }
+        if (array_key_exists('garageWebsite', $patch)) {
+            $o->garage_website = trim((string) $patch['garageWebsite']);
+        }
+        if (array_key_exists('showWebsitePublic', $patch)) {
+            $o->show_website_public = (bool) $patch['showWebsitePublic'];
+        }
+        if (array_key_exists('garageSocial', $patch)) {
+            $v = $patch['garageSocial'];
+            $o->garage_social = $v === null || $v === '' ? null : (string) $v;
+        }
+        if (array_key_exists('showSocialPublic', $patch)) {
+            $o->show_social_public = (bool) $patch['showSocialPublic'];
+        }
         if (array_key_exists('garageSlug', $patch)) {
             $slug = trim((string) $patch['garageSlug']);
             if ($slug !== '') {
@@ -104,7 +123,9 @@ class OwnerAuthController extends Controller
                     ->where('id', '!=', $o->id)
                     ->exists();
                 if ($taken) {
-                    throw ValidationException::withMessages(['garageSlug' => 'slug_taken']);
+                    throw ValidationException::withMessages([
+                        'garageSlug' => 'Этот адрес страницы уже занят. Укажите другой.',
+                    ]);
                 }
             }
             $o->garage_slug = $slug === '' ? null : $slug;
