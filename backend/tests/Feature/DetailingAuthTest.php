@@ -12,6 +12,10 @@ class DetailingAuthTest extends FeatureTestCase
             'name' => 'Мой детейлинг',
             'email' => 'new@example.test',
             'password' => 'pass1234',
+            'contactName' => 'Иван',
+            'phone' => '+7 900 123-45-67',
+            'city' => 'Москва',
+            'address' => 'ул. Примерная, 1',
         ];
 
         $response = $this->postJson('/api/detailings', $payload);
@@ -29,8 +33,13 @@ class DetailingAuthTest extends FeatureTestCase
         $this->detailing(['email' => 'dup@example.test']);
 
         $this->postJson('/api/detailings', [
+            'name' => 'Дубль',
             'email' => 'dup@example.test',
             'password' => 'pass1234',
+            'contactName' => 'Иван',
+            'phone' => '+7 900 000-00-00',
+            'city' => 'Москва',
+            'address' => 'ул. Тест, 1',
         ])->assertStatus(422);
     }
 

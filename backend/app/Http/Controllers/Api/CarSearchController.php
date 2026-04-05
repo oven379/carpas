@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -57,7 +58,8 @@ class CarSearchController extends Controller
      */
     public function duplicateCandidatesForDetailing(Request $request)
     {
-        $vin = mb_strtolower(trim((string) $request->query('vin', '')));
+        $vinNorm = VinPlateValidator::normalizeVin(trim((string) $request->query('vin', '')));
+        $vin = mb_strtolower($vinNorm, 'UTF-8');
         $phoneRaw = trim((string) $request->query('clientPhone', ''));
         $email = mb_strtolower(trim((string) $request->query('clientEmail', '')));
 
@@ -99,7 +101,8 @@ class CarSearchController extends Controller
 
     public function byVin(Request $request)
     {
-        $vin = mb_strtolower(trim((string) $request->query('vin', '')));
+        $vinNorm = VinPlateValidator::normalizeVin(trim((string) $request->query('vin', '')));
+        $vin = mb_strtolower($vinNorm, 'UTF-8');
         if ($vin === '') {
             return response()->json([]);
         }

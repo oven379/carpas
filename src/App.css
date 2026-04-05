@@ -2972,13 +2972,6 @@ a.btn.btn--asDisabled {
 }
 
 @media (max-width: 520px) {
-  .marketVinRow {
-    flex-wrap: wrap;
-  }
-  .marketVinRow__btn {
-    width: 100%;
-  }
-
   /* Владелец: карточка открывается тапом по всей строке */
   .rowItem__aside--hint {
     display: none;
@@ -2986,6 +2979,17 @@ a.btn.btn--asDisabled {
 }
 
 @media (max-width: 768px) {
+  /* Как у детейлинга: поле VIN + кнопка столбиком на планшетах и телефонах */
+  .marketVinRow {
+    flex-wrap: wrap;
+  }
+
+  .marketVinRow__btn {
+    width: 100%;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
   .detSearchCard__row--main {
     flex-direction: column;
     align-items: stretch;
@@ -4809,7 +4813,7 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   margin-top: 6px;
 }
 
-/* Карточка авто: «Рекомендации» слева, «Добавить визит» справа; на мобилке — иконка паспорта */
+/* Карточка авто: «Рекомендации» слева, «Добавить визит» справа; на мобилке — квадрат с «+» */
 .carPage__recsBar {
   display: flex;
   flex-direction: row;
@@ -4820,7 +4824,8 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   width: 100%;
 }
 
-.carPage__recsAddVisitBtn {
+a.btn.carPage__recsAddVisitBtn,
+.btn.carPage__recsAddVisitBtn {
   flex: 0 0 auto;
   align-self: stretch;
   display: inline-flex;
@@ -4829,21 +4834,45 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   gap: 8px;
   white-space: nowrap;
   box-sizing: border-box;
+  background: transparent !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in oklab, var(--accent) 58%, var(--border)) !important;
+  font-weight: 700;
 }
 
-.carPage__recsPassportIcon {
+a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
+.btn.carPage__recsAddVisitBtn:not(:disabled):hover {
+  background: color-mix(in oklab, var(--accent) 9%, transparent) !important;
+  color: var(--accent) !important;
+  border-color: color-mix(in oklab, var(--accent) 78%, var(--border)) !important;
+  filter: none;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.carPage__recsPlusIcon {
   display: none;
-  width: 22px;
-  height: 22px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  font-size: 26px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: 0;
 }
 
 @media (max-width: 640px) {
-  .carPage__recsAddVisitBtn {
+  a.btn.carPage__recsAddVisitBtn,
+  .btn.carPage__recsAddVisitBtn {
     position: relative;
     min-width: 44px;
-    padding-left: 12px;
-    padding-right: 12px;
+    width: 44px;
+    padding-left: 0;
+    padding-right: 0;
+    border-radius: 12px;
   }
 
   .carPage__recsAddVisitText {
@@ -4858,8 +4887,8 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
     border: 0;
   }
 
-  .carPage__recsPassportIcon {
-    display: block;
+  .carPage__recsPlusIcon {
+    display: flex;
   }
 }
 

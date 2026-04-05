@@ -377,12 +377,10 @@ export default function CarEditPage({ mode }) {
               <span className="field__label">VIN</span>
               <ServiceHint scopeId="car-edit-vin-hint" variant="compact" label="Справка: VIN">
                 <p className="serviceHint__panelText">
-                  Ровно 17 символов: латиница (A–Z) и цифры. Буквы I, O и Q в VIN не используются — при вводе они
-                  отбрасываются.
+                  Ровно 17 символов: латиница (A–Z) и цифры. Пробелы и дефисы при вводе убираются автоматически.
                 </p>
                 <p className="serviceHint__panelText">
-                  9-й символ — контрольный (проверка по ISO 3779 / NHTSA). Поле можно оставить пустым, если VIN пока
-                  неизвестен.
+                  Поле можно оставить пустым, если VIN пока неизвестен.
                 </p>
               </ServiceHint>
             </div>
@@ -390,6 +388,11 @@ export default function CarEditPage({ mode }) {
               className="input mono"
               value={draft.vin}
               maxLength={17}
+              autoComplete="off"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="text"
               onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />
@@ -595,9 +598,11 @@ export default function CarEditPage({ mode }) {
                             const plateLine = fmtPlateFull(c.plate, c.plateRegion)
                             const more =
                               dupes.length > 1 ? `\n\nЕщё совпадений в базе: ${dupes.length - 1}.` : ''
+                            const vinLine = c.vin ? `\nVIN: ${c.vin}` : ''
                             const msg =
                               'Найдена существующая карточка по VIN и/или телефону и почте клиента:\n\n' +
                               `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
+                              vinLine +
                               (plateLine ? `\nГосномер: ${plateLine}` : '') +
                               (c.detailingName ? `\nСервис: ${c.detailingName}` : '') +
                               `${more}\n\n` +

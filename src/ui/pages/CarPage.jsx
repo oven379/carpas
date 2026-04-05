@@ -794,29 +794,15 @@ export default function CarPage() {
               </button>
               <Link
                 className="btn carPage__recsAddVisitBtn"
-                data-variant="primary"
+                data-variant="outline"
                 to={buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })}
                 aria-label="Добавить визит"
                 title="Добавить визит"
               >
                 <span className="carPage__recsAddVisitText">+ Добавить визит</span>
-                <svg
-                  className="carPage__recsPassportIcon"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
-                >
-                  <path
-                    fill="currentColor"
-                    d="M4 6.5C4 5.12 5.12 4 6.5 4H11v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Zm2.25 2a.75.75 0 1 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5ZM6.25 11h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Zm0 2.5h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Z"
-                  />
-                  <path
-                    fill="currentColor"
-                    fillOpacity="0.88"
-                    d="M13 4h4.5C18.88 4 20 5.12 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H13V4Zm2.25 3.25h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Zm0 2.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Zm0 2.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Z"
-                  />
-                </svg>
+                <span className="carPage__recsPlusIcon" aria-hidden="true">
+                  +
+                </span>
               </Link>
             </div>
             {recsOpen ? (

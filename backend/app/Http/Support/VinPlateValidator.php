@@ -3,23 +3,14 @@
 namespace App\Http\Support;
 
 /**
- * Правила как на фронте (src/lib/format.js): VIN ISO 3779 + контрольная цифра;
- * госномер РФ — только буквы АВЕКМНОРСТУХ (латиница на табличке).
+ * Правила как на фронте (src/lib/format.js): VIN — 17 символов A–Z и 0–9;
+ * контрольная цифра на 9-й позиции не проверяется. Госномер РФ — буквы АВЕКМНОРСТУХ.
  */
 final class VinPlateValidator
 {
     private const RU_PLATE_LETTERS = 'ABEKMHOPCTYX';
 
     private const PLATE_BASE_PATTERN = '/^[ABEKMHOPCTYX]\d{3}[ABEKMHOPCTYX]{2}$/';
-
-    /** @var array<string, int> */
-    private const VIN_LETTER_VALUES = [
-        'A' => 1, 'B' => 2, 'C' => 3, 'D' => 4, 'E' => 5, 'F' => 6, 'G' => 7, 'H' => 8,
-        'J' => 1, 'K' => 2, 'L' => 3, 'M' => 4, 'N' => 5, 'P' => 7, 'R' => 9,
-        'S' => 2, 'T' => 3, 'U' => 4, 'V' => 5, 'W' => 6, 'X' => 7, 'Y' => 8, 'Z' => 9,
-    ];
-
-    private const VIN_WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2];
 
     public static function normalizeVin(string $raw): string
     {
@@ -32,9 +23,6 @@ final class VinPlateValidator
             }
             $ch = mb_substr($s, $i, 1, 'UTF-8');
             if (in_array($ch, [' ', '-', '_', "\n", "\r", "\t"], true)) {
-                continue;
-            }
-            if ($ch === 'I' || $ch === 'O' || $ch === 'Q') {
                 continue;
             }
             if (strlen($ch) === 1 && ctype_digit($ch)) {
@@ -92,10 +80,7 @@ final class VinPlateValidator
             return null;
         }
         if (strlen($normalized) !== 17) {
-            return 'VIN — ровно 17 символов латиницы и цифр (без I, O, Q) либо оставьте поле пустым.';
-        }
-        if (! self::vinCheckDigitValid($normalized)) {
-            return '9-й символ VIN — контрольный: он не совпадает с расчётом по стандарту. Проверьте опечатки. Буквы I, O, Q в VIN не используются.';
+            return 'VIN — ровно 17 символов латиницы (A–Z) и цифр либо оставьте поле пустым.';
         }
 
         return null;
@@ -118,31 +103,6 @@ final class VinPlateValidator
         }
 
         return null;
-    }
-
-    public static function vinCheckDigitValid(string $normalized17): bool
-    {
-        $v = strtoupper($normalized17);
-        if (strlen($v) !== 17) {
-            return false;
-        }
-        $sum = 0;
-        for ($i = 0; $i < 17; $i++) {
-            $c = $v[$i];
-            if ($c >= '0' && $c <= '9') {
-                $n = ord($c) - 48;
-            } else {
-                $n = self::VIN_LETTER_VALUES[$c] ?? null;
-            }
-            if ($n === null) {
-                return false;
-            }
-            $sum += $n * self::VIN_WEIGHTS[$i];
-        }
-        $mod = $sum % 11;
-        $expected = $mod === 10 ? 'X' : (string) $mod;
-
-        return $v[8] === $expected;
     }
 
     private static function plateCharToLatinUpper(string $ch): string

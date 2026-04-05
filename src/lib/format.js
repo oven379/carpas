@@ -83,22 +83,20 @@ export function fmtDateTime(iso) {
   return time ? `${date} · ${time}` : date
 }
 
-// VIN: 17 символов, только A-Z и 0-9, запрещены I/O/Q (ISO 3779)
-// Нормализуем ввод: верхний регистр, выкидываем пробелы/дефисы/прочие символы,
-// не пропускаем I/O/Q, ограничиваем длину.
+// VIN: 17 символов, латиница A–Z и цифры (как в международной записи идентификатора).
+// Нормализуем ввод: верхний регистр, убираем пробелы/дефисы/прочие символы, ограничиваем длину.
+// Контрольная цифра на 9-й позиции (NHTSA) не проверяем — в разных юрисдикциях правила расходятся.
 export function normVin(raw, { maxLen = 17 } = {}) {
   const s = String(raw || '')
   if (!s) return ''
   let out = ''
   for (const ch of s.toUpperCase()) {
     if (out.length >= maxLen) break
-    // часто вставляют с пробелами/дефисами
     if (ch === ' ' || ch === '-' || ch === '_' || ch === '\n' || ch === '\t' || ch === '\r') continue
     const code = ch.charCodeAt(0)
     const isDigit = code >= 48 && code <= 57
     const isUpper = code >= 65 && code <= 90
     if (!isDigit && !isUpper) continue
-    if (ch === 'I' || ch === 'O' || ch === 'Q') continue
     out += ch
   }
   return out
@@ -170,60 +168,12 @@ export function normPlateBase(raw, { maxLen = 6 } = {}) {
   return out
 }
 
-const VIN_VALUE_BY_LETTER = {
-  A: 1,
-  B: 2,
-  C: 3,
-  D: 4,
-  E: 5,
-  F: 6,
-  G: 7,
-  H: 8,
-  J: 1,
-  K: 2,
-  L: 3,
-  M: 4,
-  N: 5,
-  P: 7,
-  R: 9,
-  S: 2,
-  T: 3,
-  U: 4,
-  V: 5,
-  W: 6,
-  X: 7,
-  Y: 8,
-  Z: 9,
-}
-const VIN_WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2]
-
-/** Контрольный знак VIN (ISO 3779 / NHTSA): позиция 9, веса по 17 позициям. */
-export function vinCheckDigitValid(normalized17) {
-  const v = String(normalized17 || '').toUpperCase()
-  if (v.length !== 17) return false
-  let sum = 0
-  for (let i = 0; i < 17; i++) {
-    const c = v[i]
-    let n
-    if (c >= '0' && c <= '9') n = c.charCodeAt(0) - 48
-    else n = VIN_VALUE_BY_LETTER[c]
-    if (n == null) return false
-    sum += n * VIN_WEIGHTS[i]
-  }
-  const mod = sum % 11
-  const expected = mod === 10 ? 'X' : String(mod)
-  return v[8] === expected
-}
-
 /** null — ок (пустой VIN допустим). Иначе текст ошибки для пользователя. */
 export function describeVinValidationError(normalizedVin) {
   const vin = normVin(normalizedVin)
   if (!vin) return null
   if (vin.length !== 17) {
-    return 'VIN — ровно 17 символов латиницы и цифр (без I, O, Q) либо оставьте поле пустым.'
-  }
-  if (!vinCheckDigitValid(vin)) {
-    return '9-й символ VIN — контрольный: он не совпадает с расчётом по стандарту. Проверьте опечатки. Буквы I, O, Q в VIN не используются.'
+    return 'VIN — ровно 17 символов латиницы (A–Z) и цифр либо оставьте поле пустым.'
   }
   return null
 }

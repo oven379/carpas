@@ -24,6 +24,7 @@ class CarApiTest extends FeatureTestCase
             'model' => 'Camry',
             'year' => 2020,
             'plate' => 'A123BC',
+            'plateRegion' => '77',
         ]);
         $create->assertOk();
         $create->assertJsonPath('make', 'Toyota');

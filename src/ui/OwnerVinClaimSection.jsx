@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
-import { Card, Input, ServiceHint } from './components.jsx'
-import { describeVinValidationError, fmtKm, normDigits, normVin } from '../lib/format.js'
+import { Card, ComboBox, Input, ServiceHint } from './components.jsx'
+import {
+  describeVinValidationError,
+  fmtKm,
+  formatPhoneRuInput,
+  normDigits,
+  normVin,
+} from '../lib/format.js'
+import { RUSSIAN_MILLION_PLUS_CITIES } from '../lib/russianMillionCities.js'
 import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
 
 function claimAlreadyPending(err) {
@@ -14,9 +22,76 @@ function claimAlreadyPending(err) {
   return false
 }
 
+function normCityForMatch(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function buildYearOptions(carYear) {
+  const end = new Date().getFullYear() + 1
+  const start = 1980
+  const set = new Set()
+  const y = Number(carYear)
+  if (Number.isFinite(y) && y >= start && y <= end) set.add(y)
+  for (let i = end; i >= start; i--) set.add(i)
+  return [...set].sort((a, b) => b - a).map(String)
+}
+
+function evidenceVerified(car, ev, evidenceMode) {
+  if (evidenceMode === 'compact') {
+    const yr = String(ev.year || '').trim()
+    const yearOk = yr !== '' && String(car.year ?? '') === yr
+    const c1 = normCityForMatch(ev.city)
+    const c2 = normCityForMatch(car.city)
+    const cityOk = c1 !== '' && c2 !== '' && c1 === c2
+    return yearOk || cityOk
+  }
+  const mk = String(ev.make || '').trim().toLowerCase()
+  const yr = String(ev.year || '').trim()
+  const cl = String(ev.color || '').trim().toLowerCase()
+  const makeOk = mk !== '' && mk === String(car.make || '').trim().toLowerCase()
+  const yearOk = yr !== '' && String(car.year ?? '') === yr
+  const colorOk =
+    cl !== '' && cl === String(car.color || '').trim().toLowerCase()
+  return makeOk && yearOk && colorOk
+}
+
+function phoneVerified(ev) {
+  const p = formatPhoneRuInput(ev.phone || '')
+  return p.length === 12
+}
+
+function buildClaimEvidence(car, ev, evidenceMode) {
+  const verified = evidenceVerified(car, ev, evidenceMode)
+  const phoneOk = phoneVerified(ev)
+  if (!verified && !phoneOk) return null
+  const base =
+    evidenceMode === 'compact'
+      ? {
+          year: String(ev.year || '').trim(),
+          city: String(ev.city || '').trim(),
+        }
+      : {
+          make: String(ev.make || '').trim(),
+          year: String(ev.year || '').trim(),
+          color: String(ev.color || '').trim(),
+        }
+  if (!verified && phoneOk) {
+    base.contactPhone = formatPhoneRuInput(ev.phone)
+    base.verification = 'phone'
+  } else {
+    base.verification = 'facts'
+  }
+  return base
+}
+
 /**
  * Поиск авто по VIN и заявка на привязку к гаражу владельца.
  * Если переданы `cars` и `ownerClaims`, лишний запрос за списками не выполняется.
+ *
+ * Поиск на бэкенде: только карточки партнёрских сервисов (не «личный» кабинет детейлинга).
  */
 export default function OwnerVinClaimSection({
   ownerEmail,
@@ -29,10 +104,16 @@ export default function OwnerVinClaimSection({
   title: titleProp,
 }) {
   const r = useRepo()
+  const location = useLocation()
   const controlled = carsProp !== undefined && ownerClaimsProp !== undefined
 
   const [internalCars, setInternalCars] = useState([])
   const [internalClaims, setInternalClaims] = useState([])
+
+  const createCarHref = useMemo(() => {
+    const from = String(location?.pathname || '/garage') || '/garage'
+    return `/create?from=${encodeURIComponent(from)}`
+  }, [location?.pathname])
 
   useEffect(() => {
     if (controlled) return undefined
@@ -69,12 +150,19 @@ export default function OwnerVinClaimSection({
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
   const [searching, setSearching] = useState(false)
   const [claimingId, setClaimingId] = useState(null)
+  const [showNoVinHits, setShowNoVinHits] = useState(false)
 
   const title =
     titleProp ?? (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN')
 
   const emptyEvidence = () =>
-    evidenceMode === 'full' ? { make: '', year: '', color: '' } : { year: '', color: '' }
+    evidenceMode === 'full'
+      ? { make: '', year: '', color: '', phone: '' }
+      : { year: '', city: '', phone: '' }
+
+  useEffect(() => {
+    setShowNoVinHits(false)
+  }, [vin])
 
   async function refreshLocalLists() {
     if (controlled) {
@@ -96,16 +184,19 @@ export default function OwnerVinClaimSection({
     const vinErr = describeVinValidationError(v)
     if (vinErr) {
       alert(vinErr)
+      setShowNoVinHits(false)
       return
     }
     setSearching(true)
+    setShowNoVinHits(false)
     try {
       const res = await r.findCarsByVin(v)
       const list = Array.isArray(res) ? res : []
       setVinResults(list)
-      if (!list.length) alert('В сервисе пока нет авто с таким VIN.')
+      setShowNoVinHits(list.length === 0)
     } catch {
       alert('Не удалось выполнить поиск. Проверьте сеть и авторизацию.')
+      setShowNoVinHits(false)
     } finally {
       setSearching(false)
     }
@@ -113,9 +204,18 @@ export default function OwnerVinClaimSection({
 
   async function onSubmitClaim(car) {
     const ev = evidenceByCarId[car.id] || emptyEvidence()
+    const payload = buildClaimEvidence(car, ev, evidenceMode)
+    if (!payload) {
+      alert(
+        evidenceMode === 'compact'
+          ? 'Совпадение не подтверждено: укажите верный год или город из карточки сервиса, либо полный номер телефона (+7 и 10 цифр).'
+          : 'Совпадение не подтверждено: заполните марку, год и цвет как в карточке сервиса, либо укажите номер телефона (+7 и 10 цифр).',
+      )
+      return
+    }
     setClaimingId(car.id)
     try {
-      await r.createClaim({ carId: car.id, evidence: ev })
+      await r.createClaim({ carId: car.id, evidence: payload })
       invalidateRepo()
       await refreshLocalLists()
       alert('Заявка отправлена в детейлинг на подтверждение.')
@@ -150,15 +250,16 @@ export default function OwnerVinClaimSection({
           <p className="serviceHint__panelText">
             {evidenceMode === 'full' ? (
               <>
-                Если детейлинг уже вёл карточку, укажите полный VIN (17 символов, без I/O/Q, с верным контрольным знаком в
-                9-й позиции) и подтвердите признаки авто — заявка уйдёт на модерацию в детейлинг.
+                Укажите полный VIN (17 символов, латиница и цифры) и подтвердите марку, год и цвет как в карточке сервиса — тогда
+                кнопка «Запросить доступ» станет активной. Если не удаётся совпасть по данным, введите номер телефона в
+                формате +7 и 10 цифр — заявка уйдёт с пометкой для проверки по телефону.
               </>
             ) : (
               <>
-                Если детейлинг уже вёл карточку, укажите полный VIN (17 символов, без I/O/Q, с верным контрольным знаком) и
-                подтвердите год и цвет — заявка уйдёт на проверку. После
-                одобрения машина появится в вашем гараже: вы сможете вести свою историю и документы; редактировать саму
-                карточку (марка, VIN, обложка и т.д.) можно только в сервисе.
+                Ищем только карточки, заведённые в кабинетах партнёрских сервисов (не «личные» кабинеты). Укажите VIN и
+                подтвердите год выпуска и/или город как в карточке — кнопка «Отправить заявку» активируется. Если ни год,
+                ни город не совпали, введите свой мобильный: префикс +7, затем 10 цифр (как в номере 9XXXXXXXXX) — номер
+                сохранится для сверки на стороне сервиса.
               </>
             )}
           </p>
@@ -179,6 +280,11 @@ export default function OwnerVinClaimSection({
           placeholder="VIN…"
           value={vin}
           maxLength={17}
+          inputMode="text"
+          autoComplete="off"
+          autoCapitalize="characters"
+          autoCorrect="off"
+          spellCheck={false}
           disabled={!limits.canVinClaim || searching}
           onChange={(e) => setVin(normVin(e.target.value))}
         />
@@ -199,6 +305,18 @@ export default function OwnerVinClaimSection({
         </div>
       ) : null}
 
+      {showNoVinHits && limits.canVinClaim ? (
+        <div className="topBorder ownerVinClaim__noHits">
+          <p className="muted small" style={{ margin: '0 0 10px', lineHeight: 1.5 }}>
+            Автомобиля с таким VIN в сервисе не найдено. Вы можете завести новую карточку в гараже — затем вести историю и
+            документы самостоятельно.
+          </p>
+          <Link className="btn" data-variant="primary" to={createCarHref}>
+            Добавить автомобиль
+          </Link>
+        </div>
+      ) : null}
+
       {vinResults.length ? (
         <div className="topBorder">
           <div className="muted small" style={{ marginBottom: 10 }}>
@@ -209,17 +327,24 @@ export default function OwnerVinClaimSection({
               const alreadyMine = em && (c.ownerEmail || '').toLowerCase() === em.toLowerCase()
               const ev = evidenceByCarId[c.id] || emptyEvidence()
               const busy = claimingId === c.id
+              const verified = evidenceVerified(c, ev, evidenceMode)
+              const phoneOk = phoneVerified(ev)
+              const canSubmit = verified || phoneOk
+              const yearOpts = buildYearOptions(c.year)
               return (
                 <Card key={c.id} className="card pad">
                   <div className="muted small" style={{ marginBottom: 10 }}>
                     {evidenceMode === 'full'
-                      ? 'Подтвердите признаки авто (марка/год/цвет) — это уйдёт на модерацию в детейлинг.'
-                      : 'Подтвердите год и цвет — детейлинг сверит с карточкой (марка и модель уже указаны выше).'}
+                      ? 'Подтвердите марку, год и цвет как в карточке сервиса — или укажите телефон ниже.'
+                      : 'Подтвердите год и/или город как в карточке сервиса — или укажите телефон ниже.'}
                   </div>
-                  <div className="row spread gap">
-                    <div>
+                  <div className="row spread gap wrap">
+                    <div style={{ minWidth: 0 }}>
                       <div className="rowItem__title">
                         {c.make} {c.model}
+                      </div>
+                      <div className="rowItem__meta mono" style={{ marginTop: 4 }}>
+                        VIN: {c.vin || '—'}
                       </div>
                       <div className="rowItem__meta">
                         {evidenceMode === 'full' ? (
@@ -237,7 +362,7 @@ export default function OwnerVinClaimSection({
                       className="btn"
                       data-variant="primary"
                       type="button"
-                      disabled={alreadyMine || !limits.canVinClaim || busy}
+                      disabled={alreadyMine || !limits.canVinClaim || busy || !canSubmit}
                       onClick={() => void onSubmitClaim(c)}
                     >
                       {busy ? 'Отправка…' : alreadyMine ? 'Уже в гараже' : evidenceMode === 'full' ? 'Запросить доступ' : 'Отправить заявку'}
@@ -248,7 +373,7 @@ export default function OwnerVinClaimSection({
                     {evidenceMode === 'full' ? (
                       <div className="field">
                         <div className="field__top">
-                          <span className="field__label">Марка</span>
+                          <span className="field__label">Марка (как в карточке)</span>
                         </div>
                         <Input
                           className="input"
@@ -262,34 +387,94 @@ export default function OwnerVinClaimSection({
                     ) : null}
                     <div className="field">
                       <div className="field__top">
-                        <span className="field__label">Год</span>
+                        <span className="field__label">Год выпуска</span>
                       </div>
-                      <Input
-                        className="input"
-                        inputMode="numeric"
-                        value={ev.year}
-                        onChange={(e) =>
-                          setEvidenceByCarId((m) => ({
-                            ...m,
-                            [c.id]: { ...ev, year: normDigits(e.target.value, { max: 2100, maxLen: 4 }) },
-                          }))
-                        }
-                        placeholder="Например: 2019"
-                      />
+                      {evidenceMode === 'compact' ? (
+                        <ComboBox
+                          value={ev.year}
+                          options={yearOpts}
+                          placeholder="Выберите или введите год"
+                          onChange={(v) =>
+                            setEvidenceByCarId((m) => ({
+                              ...m,
+                              [c.id]: {
+                                ...ev,
+                                year: normDigits(String(v), { max: 2100, maxLen: 4 }),
+                              },
+                            }))
+                          }
+                        />
+                      ) : (
+                        <ComboBox
+                          value={ev.year}
+                          options={yearOpts}
+                          placeholder="Выберите или введите год"
+                          onChange={(v) =>
+                            setEvidenceByCarId((m) => ({
+                              ...m,
+                              [c.id]: {
+                                ...ev,
+                                year: normDigits(String(v), { max: 2100, maxLen: 4 }),
+                              },
+                            }))
+                          }
+                        />
+                      )}
                     </div>
-                    <div className="field">
-                      <div className="field__top">
-                        <span className="field__label">Цвет</span>
+                    {evidenceMode === 'compact' ? (
+                      <div className="field">
+                        <div className="field__top">
+                          <span className="field__label">Город</span>
+                        </div>
+                        <ComboBox
+                          value={ev.city}
+                          options={RUSSIAN_MILLION_PLUS_CITIES}
+                          placeholder="Как в карточке сервиса; можно ввести свой вариант"
+                          maxItems={24}
+                          onChange={(v) =>
+                            setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, city: v } }))
+                          }
+                        />
                       </div>
-                      <Input
-                        className="input"
-                        value={ev.color}
-                        onChange={(e) =>
-                          setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, color: e.target.value } }))
-                        }
-                        placeholder="Например: Чёрный"
-                      />
-                    </div>
+                    ) : (
+                      <div className="field">
+                        <div className="field__top">
+                          <span className="field__label">Цвет</span>
+                        </div>
+                        <Input
+                          className="input"
+                          value={ev.color}
+                          onChange={(e) =>
+                            setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, color: e.target.value } }))
+                          }
+                          placeholder="Например: Чёрный"
+                        />
+                      </div>
+                    )}
+                    {!verified ? (
+                      <div className="field field--full">
+                        <div className="field__top">
+                          <span className="field__label">Телефон для проверки</span>
+                        </div>
+                        <p className="muted small" style={{ margin: '0 0 8px', lineHeight: 1.45 }}>
+                          Если год{evidenceMode === 'compact' ? ', город' : ''} не совпали с карточкой, введите номер: после
+                          +7 должно быть 10 цифр (например вводите как 9887654321 — отобразится в формате +7…).
+                        </p>
+                        <Input
+                          className="input mono"
+                          inputMode="tel"
+                          autoComplete="tel"
+                          value={ev.phone || ''}
+                          onChange={(e) =>
+                            setEvidenceByCarId((m) => ({
+                              ...m,
+                              [c.id]: { ...ev, phone: formatPhoneRuInput(e.target.value) },
+                            }))
+                          }
+                          placeholder="+7 988 765 43 21"
+                        />
+                      </div>
+                    ) : null}
                   </div>
                 </Card>
               )
