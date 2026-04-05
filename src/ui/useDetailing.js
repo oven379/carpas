@@ -90,11 +90,16 @@ export function DetailingSessionProvider({ children }) {
     }
   }, [sessionKey])
 
-  const value = useMemo(() => {
-    const sid = getSessionDetailingId()
-    const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
-    return { detailingId: sid, detailing, owner, mode, loading }
-  }, [detailing, owner, loading, detailingId, dTok, oTok, ownerEmailKey, sessionEpoch])
+  const value = useMemo(
+    () => {
+      const sid = getSessionDetailingId()
+      const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
+      return { detailingId: sid, detailing, owner, mode, loading }
+    },
+    // sessionEpoch: смена сессии (другая вкладка), пока load() не обновил state
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [detailing, owner, loading, sessionEpoch],
+  )
 
   return createElement(DetailingSessionContext.Provider, { value }, children)
 }

@@ -32,7 +32,7 @@ docker compose up -d --build || exit /b 1
 echo Installing backend deps / key / migrate...
 docker compose exec -T backend composer install || exit /b 1
 docker compose exec -T backend php artisan key:generate --force || exit /b 1
-docker compose exec -T backend php artisan migrate --force || exit /b 1
+docker compose exec -T backend php artisan migrate --force --seed || exit /b 1
 
 echo Installing frontend deps...
 npm install || exit /b 1
@@ -40,7 +40,7 @@ npm install || exit /b 1
 echo.
 echo Done.
 echo UI:  http://localhost:5173   (run: npm run dev)
-echo API: http://localhost:8080
+echo API: http://localhost:8088  (demo: studio@demo.car / 1111, owner@demo.car / 1111, test@test / 1111)
 echo.
 endlocal
 

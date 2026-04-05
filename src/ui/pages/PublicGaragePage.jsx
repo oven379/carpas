@@ -1,7 +1,7 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card } from '../components.jsx'
+import { BackNav, Card, HeroCoverStat } from '../components.jsx'
 import {
   fmtKm,
   fmtPlatePublic,
@@ -70,6 +70,41 @@ export default function PublicGaragePage() {
   const websiteHref = websiteRaw ? normalizeHttpUrl(owner.garageWebsite) : ''
   const websiteLabel = websiteRaw
 
+  const metaParts = []
+  if (cityLabel) metaParts.push({ key: 'city', el: cityLabel })
+  if (phoneLabel) {
+    metaParts.push({
+      key: 'phone',
+      el: phoneHref ? (
+        <a className="publicGarage__textLink" href={phoneHref}>
+          {phoneLabel}
+        </a>
+      ) : (
+        phoneLabel
+      ),
+    })
+  }
+  if (websiteHref) {
+    metaParts.push({
+      key: 'web',
+      el: (
+        <a className="publicGarage__textLink" href={websiteHref} target="_blank" rel="noopener noreferrer">
+          {websiteLabel}
+        </a>
+      ),
+    })
+  }
+  socialLinks.forEach(({ line, href }, i) => {
+    metaParts.push({
+      key: `soc-${i}-${href}`,
+      el: (
+        <a className="publicGarage__textLink" href={href} target="_blank" rel="noopener noreferrer">
+          {line.length > 28 ? `${line.slice(0, 26)}…` : line}
+        </a>
+      ),
+    })
+  })
+
   return (
     <div className="container">
       <div className="row spread gap carPage__head">
@@ -85,43 +120,18 @@ export default function PublicGaragePage() {
               {displayName}
             </h1>
           </div>
-          <p className="muted carPage__meta carPage__meta--emph">
-            {cars.length} {cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в гараже
-            {cityLabel ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                {cityLabel}
-              </>
-            ) : null}
-            {phoneLabel ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                {phoneHref ? (
-                  <a className="publicGarage__textLink" href={phoneHref}>
-                    {phoneLabel}
-                  </a>
-                ) : (
-                  phoneLabel
-                )}
-              </>
-            ) : null}
-            {websiteHref ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                <a className="publicGarage__textLink" href={websiteHref} target="_blank" rel="noopener noreferrer">
-                  {websiteLabel}
-                </a>
-              </>
-            ) : null}
-            {socialLinks.map(({ line, href }, i) => (
-              <span key={`${i}-${href}`}>
-                <span aria-hidden="true"> · </span>
-                <a className="publicGarage__textLink" href={href} target="_blank" rel="noopener noreferrer">
-                  {line.length > 28 ? `${line.slice(0, 26)}…` : line}
-                </a>
-              </span>
-            ))}
-          </p>
+          {metaParts.length ? (
+            <p className="muted carPage__meta carPage__meta--emph">
+              {metaParts.map((p, i) => (
+                <span key={p.key}>
+                  {i > 0 ? <span aria-hidden="true"> · </span> : null}
+                  {p.el}
+                </span>
+              ))}
+            </p>
+          ) : (
+            <p className="muted small carPage__meta">Публичные контакты не указаны — см. число авто на обложке.</p>
+          )}
         </div>
       </div>
 
@@ -143,6 +153,17 @@ export default function PublicGaragePage() {
               {initials}
             </div>
           )}
+          <div className="detHero__bottomRow garageHero__bottomRow">
+            <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
+              <HeroCoverStat
+                kind="car"
+                variant="overlay"
+                value={cars.length}
+                label="на витрине"
+                title={`${cars.length} ${cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в гараже`}
+              />
+            </div>
+          </div>
         </div>
       </div>
 

@@ -1,18 +1,20 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Card, Pill, ServiceHint } from '../components.jsx'
+import { Card, HeroCoverStat, ServiceHint } from '../components.jsx'
 import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
-import { fmtDateTime } from '../../lib/format.js'
+import { fmtDateTime, fmtKm } from '../../lib/format.js'
 import {
   dedupeCarsById,
   OWNER_MAX_MANUAL_CARS,
   OWNER_MAX_TOTAL_CARS,
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
+import { buildCarSubRoutePath } from '../carNav.js'
+import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
 function pickBestDetailingId(cars, ownerClaims) {
   const score = new Map()
@@ -51,6 +53,9 @@ export default function OwnerGaragePage() {
   const [ownerClaims, setOwnerClaims] = useState([])
   const [linkedDetailing, setLinkedDetailing] = useState(null)
   const [copyHint, setCopyHint] = useState('')
+  /** Последний сохранённый визит по любому авто гаража (не черновик), для строки «Последний визит» в профиле */
+  const [garageLastVisit, setGarageLastVisit] = useState(null)
+  const [garageLastVisitLoading, setGarageLastVisitLoading] = useState(false)
 
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -83,18 +88,20 @@ export default function OwnerGaragePage() {
   const activityAt = useMemo(() => {
     const o = owner
     if (!o?.email) return ''
-    const a = o.lastVisitAt || o.createdAt || ''
+    const visit = String(o.lastVisitAt || '').trim()
+    if (!visit) return ''
+    const ta = Date.parse(visit) || 0
     const b = o.updatedAt || o.createdAt || ''
-    const ta = Date.parse(a) || 0
     const tb = Date.parse(b) || 0
-    return ta >= tb ? a : b
+    return ta >= tb ? visit : b
   }, [owner])
   const activityLabel = useMemo(() => {
     const o = owner
     if (!o?.email) return ''
-    const a = o.lastVisitAt || o.createdAt || ''
+    const visit = String(o.lastVisitAt || '').trim()
+    if (!visit) return 'Последний визит'
+    const ta = Date.parse(visit) || 0
     const b = o.updatedAt || o.createdAt || ''
-    const ta = Date.parse(a) || 0
     const tb = Date.parse(b) || 0
     return ta >= tb ? 'Последний визит' : 'Профиль обновлён'
   }, [owner])
@@ -164,6 +171,85 @@ export default function OwnerGaragePage() {
     }
   }, [cars, ownerClaims, r, r._version])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!ownerEmail || !cars.length) {
+      setGarageLastVisit(null)
+      setGarageLastVisitLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+    setGarageLastVisitLoading(true)
+    ;(async () => {
+      try {
+        let best = null
+        for (const c of cars) {
+          const evtsRaw = await r.listEvents(c.id)
+          const evts = Array.isArray(evtsRaw) ? evtsRaw : []
+          for (const e of evts) {
+            if (e?.isDraft) continue
+            const t = Date.parse(e?.at || '') || 0
+            if (!best || t >= best.ts) best = { carId: c.id, evt: e, ts: t, carEvents: evts }
+          }
+        }
+        if (cancelled) return
+        if (!best) {
+          setGarageLastVisit(null)
+          return
+        }
+        const e = best.evt
+        const evts = best.carEvents
+        const linkLabel =
+          e.source === 'owner'
+            ? String(e.title || '').trim() || 'Визит'
+            : String(e.detailingName || '').trim() || String(e.title || '').trim() || 'Сервис'
+        const headlineName = String(e.title || '').trim() || linkLabel || 'Визит'
+        const lastEvtMs = Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []
+        const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(e.services)
+        const lastEvtNote = String(e.note || '').trim()
+        const prevWashEvt =
+          lastEvtWash.length
+            ? null
+            : evts.find((ev) => Array.isArray(ev?.services) && ev.services.some((s) => WASH_SERVICE_MARKERS.has(s))) ||
+              null
+        const prevWashList = prevWashEvt ? splitWashDetailingServices(prevWashEvt.services).wash : []
+        let photoUrl = ''
+        try {
+          const allDocs = await r.listDocs(best.carId)
+          const docs = Array.isArray(allDocs) ? allDocs : []
+          const forEvt = docs.filter((d) => String(d.eventId || '') === String(e.id))
+          photoUrl = String(forEvt[0]?.url || '').trim()
+        } catch {
+          photoUrl = ''
+        }
+        if (cancelled) return
+        setGarageLastVisit({
+          carId: best.carId,
+          eventId: e.id,
+          linkLabel,
+          headlineName,
+          at: e.at || '',
+          mileageKm: e.mileageKm,
+          photoUrl,
+          maintenanceServices: lastEvtMs,
+          wash: lastEvtWash,
+          det: lastEvtDet,
+          note: lastEvtNote,
+          prevWashEvt,
+          prevWashList,
+        })
+      } catch {
+        if (!cancelled) setGarageLastVisit(null)
+      } finally {
+        if (!cancelled) setGarageLastVisitLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [ownerEmail, cars, r, r._version])
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession() || !ownerEmail) return <Navigate to="/auth/owner" replace />
 
@@ -229,8 +315,13 @@ export default function OwnerGaragePage() {
             <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
           </Link>
           <div className="detHero__bottomRow garageHero__bottomRow">
-            <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-              <Pill tone="accent">Авто в гараже: {cars.length}</Pill>
+            <div className="row gap wrap carHero__pills detHero__pills">
+              <HeroCoverStat
+                kind="car"
+                variant="overlay"
+                value={cars.length}
+                title={`${cars.length} ${cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в гараже`}
+              />
             </div>
           </div>
         </div>
@@ -292,10 +383,103 @@ export default function OwnerGaragePage() {
                   </>
                 )}
               </p>
-              <p className="muted small garageProfileCard__metaLine">
-                <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
-                {fmtDateTime(activityAt) || '—'}
-              </p>
+              {activityLabel === 'Профиль обновлён' ? (
+                <p className="muted small garageProfileCard__metaLine">
+                  <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
+                  {fmtDateTime(activityAt) || '—'}
+                </p>
+              ) : null}
+              {activityLabel === 'Последний визит' && garageLastVisitLoading ? (
+                <p className="muted small garageProfileCard__metaLine">
+                  <span className="garageProfileCard__metaKey">{activityLabel}:</span> Загрузка…
+                </p>
+              ) : null}
+              {activityLabel === 'Последний визит' && !garageLastVisitLoading && garageLastVisit ? (
+                <div className="garageProfileCard__lastVisit">
+                  <Link
+                    className="garageProfileCard__lastVisitHit"
+                    to={buildCarSubRoutePath(garageLastVisit.carId, 'history', '/garage', {
+                      visit: String(garageLastVisit.eventId),
+                    })}
+                    aria-label={`Открыть визит: ${garageLastVisit.headlineName}`}
+                  >
+                    <div className="rowItem__meta carPage__meta garageProfileCard__lastVisitHead">
+                      <span className="metaStrong">Последний визит</span>
+                      {garageLastVisit.at ? (
+                        <>
+                          <span aria-hidden="true"> · </span>
+                          <span className="eventMeta__when">{fmtDateTime(garageLastVisit.at)}</span>
+                        </>
+                      ) : null}
+                      {garageLastVisit.mileageKm != null && garageLastVisit.mileageKm !== '' ? (
+                        <>
+                          <span aria-hidden="true"> · </span>
+                          <span className="eventMeta__km">{fmtKm(garageLastVisit.mileageKm)}</span>
+                        </>
+                      ) : null}
+                    </div>
+                    <div className="rowItem__lastEvt">
+                      <div className="rowItem__lastEvtTop">
+                        {garageLastVisit.photoUrl ? (
+                          <span
+                            className="rowItem__lastEvtPhoto"
+                            aria-hidden="true"
+                            style={{
+                              backgroundImage: `url("${String(garageLastVisit.photoUrl).replaceAll('"', '%22')}")`,
+                            }}
+                          />
+                        ) : null}
+                        <div className="rowItem__lastEvtText">
+                          <div className="rowItem__lastEvtName">{garageLastVisit.headlineName}</div>
+                        </div>
+                      </div>
+                      <div className="rowItem__lastEvtMeta">
+                        {garageLastVisit.maintenanceServices.length ? (
+                          <div className="rowItem__lastEvtLine">
+                            <span className="eventLabel">ТО:</span> {garageLastVisit.maintenanceServices.join(', ')}
+                          </div>
+                        ) : null}
+                        {garageLastVisit.wash.length ? (
+                          <div className="rowItem__lastEvtLine">
+                            <span className="eventLabel">Уход:</span> {garageLastVisit.wash.join(', ')}
+                          </div>
+                        ) : null}
+                        {garageLastVisit.det.length ? (
+                          <div className="rowItem__lastEvtLine">
+                            <span className="eventLabel">Детейлинг:</span> {garageLastVisit.det.join(', ')}
+                          </div>
+                        ) : null}
+                        {!garageLastVisit.maintenanceServices.length &&
+                        !garageLastVisit.wash.length &&
+                        !garageLastVisit.det.length &&
+                        garageLastVisit.note ? (
+                          <div className="rowItem__lastEvtLine">
+                            <span className="eventLabel">Комментарий:</span> {garageLastVisit.note}
+                          </div>
+                        ) : null}
+                        {garageLastVisit.prevWashList.length ? (
+                          <div className="rowItem__lastEvtLine rowItem__lastEvtLine--prevWash">
+                            <span className="eventLabel">Уход</span>
+                            {garageLastVisit.prevWashEvt?.at ? (
+                              <span className="rowItem__lastEvtWashWhen">
+                                {` (${fmtDateTime(garageLastVisit.prevWashEvt.at)})`}
+                              </span>
+                            ) : null}
+                            <span>: </span>
+                            {garageLastVisit.prevWashList.join(', ')}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              ) : null}
+              {activityLabel === 'Последний визит' && !garageLastVisitLoading && !garageLastVisit ? (
+                <p className="muted small garageProfileCard__metaLine">
+                  <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
+                  {fmtDateTime(activityAt) || 'Нет истории'}
+                </p>
+              ) : null}
             </div>
             {!publicUrl ? (
               <>

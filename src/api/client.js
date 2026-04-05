@@ -1,14 +1,28 @@
 import { httpJson, HttpError } from './http.js'
 import { getDetailingToken, getOwnerToken } from '../ui/auth.js'
 
+/** Тот же хост, что у страницы: Vite проксирует /api → backend (см. vite.config.js). */
+function isSameOriginApiHost(hostname) {
+  if (!hostname) return false
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return true
+  // Телефон / другой ПК в LAN: http://192.168.x.x:5173 или :4173 — без этого запросы шли на localhost клиента
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true
+  const m = /^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/.exec(hostname)
+  if (m) {
+    const n = Number(m[1])
+    if (n >= 16 && n <= 31) return true
+  }
+  return false
+}
+
 function baseUrl() {
   const u = import.meta.env.VITE_API_BASE_URL
   if (u && String(u).trim()) return String(u).replace(/\/+$/, '')
   // `npm run dev` и `vite preview`: прокси /api → nginx (порт см. vite.config.js / docker-compose)
   if (import.meta.env.DEV) return '/api'
-  if (typeof window !== 'undefined') {
-    const h = window.location.hostname
-    if (h === 'localhost' || h === '127.0.0.1') return '/api'
+  if (typeof window !== 'undefined' && window.location.protocol !== 'file:') {
+    if (isSameOriginApiHost(window.location.hostname)) return '/api'
   }
   return 'http://localhost:8088/api'
 }

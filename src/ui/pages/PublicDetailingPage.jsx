@@ -2,7 +2,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { Card, Pill } from '../components.jsx'
+import { Card, HeroCoverStat, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 
@@ -61,7 +61,10 @@ export default function PublicDetailingPage() {
 
   const det = payload?.detailing ?? null
   const carsCount = typeof payload?.carsCount === 'number' ? payload.carsCount : 0
-  const lastWorkPhotos = Array.isArray(payload?.lastWorkPhotos) ? payload.lastWorkPhotos : []
+  const lastWorkPhotos = useMemo(
+    () => (Array.isArray(payload?.lastWorkPhotos) ? payload.lastWorkPhotos : []),
+    [payload],
+  )
 
   const workGalleryItems = useMemo(
     () => urlsToPhotoItems(lastWorkPhotos, 'Фото работы'),
@@ -147,8 +150,22 @@ export default function PublicDetailingPage() {
           ) : null}
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-              <Pill tone="accent">Авто на обслуживании: {carsCount}</Pill>
-              {services.length ? <Pill>{`Услуг: ${services.length}`}</Pill> : null}
+              <HeroCoverStat
+                kind="car"
+                variant="overlay"
+                value={carsCount}
+                label="на обслуживании"
+                title={`${carsCount} ${carsCount === 1 ? 'автомобиль' : carsCount < 5 ? 'автомобиля' : 'автомобилей'} на обслуживании`}
+              />
+              {services.length ? (
+                <HeroCoverStat
+                  kind="services"
+                  variant="overlay"
+                  value={services.length}
+                  label="услуг в каталоге"
+                  title={`${services.length} услуг в каталоге`}
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -269,7 +286,18 @@ export default function PublicDetailingPage() {
               <div className="cardTitle" style={{ marginBottom: 0 }}>
                 Услуги
               </div>
-              {services.length ? <Pill tone="accent">{services.length}</Pill> : <Pill>—</Pill>}
+              {services.length ? (
+                <HeroCoverStat
+                  kind="services"
+                  variant="card"
+                  layout="inline"
+                  value={services.length}
+                  label="в каталоге"
+                  title={`${services.length} услуг`}
+                />
+              ) : (
+                <span className="muted">—</span>
+              )}
             </div>
             {services.length ? (
               <div className="row gap wrap" style={{ marginTop: 12 }}>
@@ -332,14 +360,20 @@ export default function PublicDetailingPage() {
           </Card>
 
           <Card className="card pad">
-            <div className="row spread gap">
+            <div className="row spread gap" style={{ alignItems: 'center' }}>
               <div className="cardTitle" style={{ marginBottom: 0 }}>
                 Статистика
               </div>
-              <Pill tone="accent">{carsCount}</Pill>
+              <HeroCoverStat
+                kind="car"
+                variant="card"
+                value={carsCount}
+                label="на обслуживании"
+                title={`${carsCount} автомобилей в кабинете сервиса`}
+              />
             </div>
             <p className="muted small" style={{ marginTop: 10 }}>
-              Авто на обслуживании сейчас: <strong>{carsCount}</strong>.
+              Сколько карточек авто ведёт этот детейлинг в сервисе (то же число, что на обложке).
             </p>
           </Card>
         </div>

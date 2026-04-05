@@ -24,6 +24,13 @@ export default function OwnerAuthPage() {
   const nextAfterAuth =
     typeof f === 'string' && f.startsWith('/') && !f.startsWith('/auth') ? (f === '/' ? '/garage' : f) : '/garage'
 
+  /** После первой регистрации ведём в настройки гаража, если не было явного deep-link. */
+  function resolveAfterRegister() {
+    const d = String(nextAfterAuth || '/garage')
+    if (d === '/garage' || d === '/') return '/garage/settings'
+    return nextAfterAuth
+  }
+
   if (hasOwnerSession()) {
     debugAuth('OwnerAuthPage: уже есть сессия владельца → редирект', { to: nextAfterAuth })
     return <Navigate to={nextAfterAuth} replace />
@@ -37,6 +44,13 @@ export default function OwnerAuthPage() {
     const em = (ownEmail || ownEmailRef.current?.value || '').trim()
     const pwd = (ownPassword || ownPasswordRef.current?.value || '').trim()
     return { em, pwd }
+  }
+
+  /** Браузерный автозаполнитель часто меняет DOM без надёжного `change`; без этого controlled `value` затирает подставленный текст. */
+  function onAutofillAnimation(e, setter) {
+    if (e.animationName !== 'cp-autofill-sync') return
+    const v = e.currentTarget.value
+    if (typeof v === 'string') setter(v)
   }
 
   function requireConsent() {
@@ -116,8 +130,39 @@ export default function OwnerAuthPage() {
         return
       }
       if (reason === 'not_found') {
+        if (registerExpanded) {
+          const extra = requireNamePhoneForRegister()
+          if (extra) {
+            try {
+              const reg = await r.registerOwner({
+                email: em,
+                password: pwd,
+                name: extra.name,
+                phone: extra.phone,
+              })
+              setSessionOwner(
+                {
+                  email: reg.owner.email,
+                  name: reg.owner.name,
+                  phone: reg.owner.phone,
+                },
+                reg.token,
+              )
+              invalidateRepo()
+              debugAuth('OwnerAuth: вход → not_found → авто-регистрация', { to: resolveAfterRegister() })
+              nav(resolveAfterRegister(), { replace: true })
+              return
+            } catch (e) {
+              const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
+              const hint =
+                e instanceof HttpError && e.status === 422 ? ' Возможно, аккаунт уже существует — попробуйте «В гараж».' : ''
+              alert(`${base}${hint}`)
+              return
+            }
+          }
+        }
         alert(
-          'Аккаунт с такой почтой не найден. Нажмите «Регистрация», чтобы создать гараж, или проверьте адрес почты.',
+          'Аккаунт с такой почтой ещё не создан. Раскройте «Регистрация», заполните имя и телефон, затем снова нажмите «Регистрация» или «В гараж».',
         )
         return
       }
@@ -152,8 +197,9 @@ export default function OwnerAuthPage() {
         reg.token,
       )
       invalidateRepo()
-      debugAuth('OwnerAuth: регистрация ok, перед navigate', { nextAfterAuth })
-      nav(nextAfterAuth, { replace: true })
+      const dest = resolveAfterRegister()
+      debugAuth('OwnerAuth: регистрация ok, перед navigate', { dest })
+      nav(dest, { replace: true })
     } catch (e) {
       const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
       const hint =
@@ -186,12 +232,11 @@ export default function OwnerAuthPage() {
                 </span>
                 <ServiceHint scopeId="owner-auth-intro-hint" variant="compact" label="Справка: мой гараж">
                   <p className="serviceHint__panelText">
-                    Сначала видны только почта и пароль. <strong>«Регистрация»</strong> первый раз только раскрывает поля имя и
-                    телефон (для смены режима согласие не нужно). Если раскрыта регистрация, а почта или пароль ещё пустые,{' '}
-                    <strong>«В гараж»</strong> просто свернёт лишние поля к форме входа — без запроса согласия. Когда всё заполнено,
-                    отметьте галочку и нажмите <strong>«В гараж»</strong> для входа или <strong>«Регистрация»</strong> повторно — для
-                    создания аккаунта. Имя и телефон при регистрации обязательны. Пароль не короче {OWNER_PASSWORD_MIN_LEN}{' '}
-                    символов.
+                    Сначала видны только почта и пароль. Первый раз <strong>«Регистрация»</strong> только раскрывает имя и телефон.
+                    Когда поля заполнены и стоит галочка согласия, нажмите снова <strong>«Регистрация»</strong> (фиолетовая кнопка) —
+                    создастся аккаунт и откроются настройки гаража. Если форма регистрации уже раскрыта, кнопка{' '}
+                    <strong>«В гараж»</strong> при новой почте тоже создаст аккаунт (если имя и телефон заполнены), иначе выполнит
+                    вход существующего пользователя. Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
                   </p>
                 </ServiceHint>
               </div>
@@ -210,6 +255,9 @@ export default function OwnerAuthPage() {
                   autoComplete="username"
                   value={ownEmail}
                   onChange={(e) => setOwnEmail(e.target.value)}
+                  onInput={(e) => setOwnEmail(e.currentTarget.value)}
+                  onBlur={(e) => setOwnEmail(e.currentTarget.value)}
+                  onAnimationStart={(e) => onAutofillAnimation(e, setOwnEmail)}
                   placeholder="you@example.com"
                 />
               </Field>
@@ -225,6 +273,9 @@ export default function OwnerAuthPage() {
                   autoComplete={registerExpanded ? 'new-password' : 'current-password'}
                   value={ownPassword}
                   onChange={(e) => setOwnPassword(e.target.value)}
+                  onInput={(e) => setOwnPassword(e.currentTarget.value)}
+                  onBlur={(e) => setOwnPassword(e.currentTarget.value)}
+                  onAnimationStart={(e) => onAutofillAnimation(e, setOwnPassword)}
                   placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
                 />
               </Field>
@@ -266,10 +317,20 @@ export default function OwnerAuthPage() {
               <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
             <div className="row gap wrap authFormActions authFormActions--dual" style={{ marginTop: 14 }}>
-              <Button className="btn authOwner__submitGarage" variant="primary" type="button" onClick={() => void onEnterGarage()}>
+              <Button
+                className="btn authOwner__submitGarage"
+                variant={registerExpanded ? 'outline' : 'primary'}
+                type="button"
+                onClick={() => void onEnterGarage()}
+              >
                 В гараж
               </Button>
-              <Button className="btn" variant="outline" type="button" onClick={onRegisterClick}>
+              <Button
+                className="btn"
+                variant={registerExpanded ? 'primary' : 'outline'}
+                type="button"
+                onClick={() => void onRegisterClick()}
+              >
                 Регистрация
               </Button>
             </div>

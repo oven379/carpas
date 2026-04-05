@@ -7,7 +7,7 @@ import {
   OWNER_MAX_TOTAL_CARS,
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
-import { Pill, ServiceHint } from '../components.jsx'
+import { HeroCoverStat, Pill, ServiceHint } from '../components.jsx'
 import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
@@ -98,10 +98,17 @@ export default function MarketPage() {
               )}
             </div>
           </div>
-          <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
+          <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <span>Карточки, история визитов, заявка по VIN</span>
             <span aria-hidden="true"> · </span>
-            <span>{cars.length} авто</span>
+            <HeroCoverStat
+              kind="car"
+              variant="card"
+              layout="inline"
+              value={cars.length}
+              label="авто"
+              title={`${cars.length} ${cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в списке`}
+            />
             {owner?.isPremium ? <Pill tone="accent">Premium</Pill> : null}
           </div>
         </div>

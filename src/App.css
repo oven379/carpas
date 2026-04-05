@@ -359,6 +359,59 @@ button.nav__action {
   color: var(--text-h);
 }
 
+.carPage__ownerDataBar {
+  margin-bottom: 4px;
+}
+
+.carPage__ownerServiceExpand {
+  margin-bottom: 8px;
+}
+
+.carPage__ownerServiceSection {
+  margin-top: 2px;
+}
+
+.carPage__ownerLastVisitHit {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  padding: 8px 6px;
+  margin: 4px -6px 0;
+  transition: background 120ms ease;
+}
+
+.carPage__ownerLastVisitHit:hover {
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+}
+
+.carPage__ownerLastVisitHit:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, var(--border));
+  outline-offset: 2px;
+}
+
+.carPage__ownerLastVisitMeta {
+  flex-wrap: wrap;
+}
+
+.carPage__dataTitle {
+  margin: 0 0 10px;
+}
+
+.carPage__dataTitle--afterService {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.carPage__ownerDataCollapsed {
+  margin-top: 8px;
+}
+
+.carPage__ownerDataCollapsed .carPage__dataTitle {
+  margin-bottom: 8px;
+}
+
 .carPage__meta--emph {
   font-weight: 600;
 }
@@ -556,6 +609,21 @@ button[data-variant]:focus-visible,
   resize: vertical;
 }
 
+/* WebKit/Yandex: при автозаполнении запускаем кадры, чтобы в React поймать animationstart и подтянуть value в state (иначе controlled input затирает DOM). */
+@keyframes cp-autofill-sync {
+  from {
+    color: inherit;
+  }
+  to {
+    color: inherit;
+  }
+}
+
+input.input:-webkit-autofill {
+  animation-name: cp-autofill-sync;
+  animation-duration: 0.01s;
+}
+
 /* Утилита для акцентного текста (цвет как у primary-кнопки) */
 .textAccent {
   color: var(--accent);
@@ -595,12 +663,7 @@ button[data-variant]:focus-visible,
   white-space: nowrap;
 }
 
-.carEditCoverBlock__title {
-  margin-bottom: 10px;
-}
-
-.carEditCoverBlock__hint {
-  margin-top: 6px;
+.carEditCoverBlock__labelRow {
   margin-bottom: 10px;
 }
 
@@ -690,6 +753,8 @@ button[data-variant]:focus-visible,
 .field__label {
   color: var(--text-h);
   font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
 }
 
 /* Блок выбора услуг: заголовок заметнее подписей групп и строк справочника */
@@ -716,6 +781,15 @@ button[data-variant]:focus-visible,
 .cb {
   position: relative;
   width: 100%;
+}
+
+.cb__fieldWrap {
+  position: relative;
+  width: 100%;
+}
+
+.cb__input--withCaret {
+  padding-right: 44px;
 }
 
 .cb__menu {
@@ -789,6 +863,150 @@ button[data-variant]:focus-visible,
   color: var(--text-h);
   border-color: color-mix(in oklab, var(--accent) 52%, var(--border));
   box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+/* Метрика на баннере гаража / детейлинга: число + короткая подпись, не «таблетка» с длинным текстом */
+.heroCoverStat {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 14px 9px 11px;
+  border-radius: 14px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.heroCoverStat--overlay {
+  color: #fff;
+  background: color-mix(in oklab, #0c0c10 58%, transparent);
+  border: 1px solid color-mix(in oklab, white 16%, transparent);
+  box-shadow: 0 6px 28px color-mix(in oklab, black 45%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.heroCoverStat--card {
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--accent) 9%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border));
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.heroCoverStat__icon {
+  display: flex;
+  flex-shrink: 0;
+  opacity: 0.92;
+}
+
+.heroCoverStat--card .heroCoverStat__icon {
+  color: color-mix(in oklab, var(--accent) 72%, var(--text-h));
+}
+
+.heroCoverStat__svg {
+  display: block;
+}
+
+.heroCoverStat__body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.12;
+  min-width: 0;
+  gap: 6px;
+}
+
+/* Квадрат с цифрой; от 3 символов — растягивается по ширине */
+.heroCoverStat__valueBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 4px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.heroCoverStat__valueBox--wide {
+  width: auto;
+  min-width: 44px;
+  padding-left: 11px;
+  padding-right: 11px;
+}
+
+.heroCoverStat--overlay .heroCoverStat__valueBox {
+  border: 1px solid color-mix(in oklab, white 32%, transparent);
+  background: color-mix(in oklab, black 40%, white 10%);
+}
+
+.heroCoverStat--card .heroCoverStat__valueBox {
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, var(--border));
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+}
+
+.heroCoverStat__value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.heroCoverStat__label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  opacity: 0.86;
+  margin-top: 0;
+  max-width: 11rem;
+  line-height: 1.25;
+}
+
+.heroCoverStat--inline {
+  align-items: center;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.heroCoverStat--inline .heroCoverStat__body {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+
+.heroCoverStat--inline .heroCoverStat__valueBox {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+  padding: 0 3px;
+  border-radius: 8px;
+}
+
+.heroCoverStat--inline .heroCoverStat__valueBox--wide {
+  width: auto;
+  padding-left: 9px;
+  padding-right: 9px;
+}
+
+.heroCoverStat--inline .heroCoverStat__value {
+  font-size: 17px;
+}
+
+.heroCoverStat--inline .heroCoverStat__label {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.72;
+  max-width: none;
 }
 
 .hero2 {
@@ -1140,6 +1358,93 @@ button[data-variant]:focus-visible,
 .eventCard--draftVisit {
   border-style: dashed;
   border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+}
+
+.eventCard--collapsible {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Стрелка раскрытия: как «Назад» / «Открыть» — без рамки и заливки, серый stroke */
+.dropdownCaretBtn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.dropdownCaretBtn:hover {
+  color: color-mix(in oklab, var(--muted) 55%, var(--text-h));
+  background: color-mix(in oklab, var(--muted) 10%, transparent);
+}
+
+.dropdownCaretBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  outline-offset: 2px;
+}
+
+.dropdownCaretBtn:active {
+  opacity: 0.88;
+}
+
+.dropdownCaretBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dropdownCaretIcon__svg {
+  display: block;
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+
+.dropdownCaretBtn--floating {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  z-index: 25;
+  width: 44px;
+  height: 44px;
+}
+
+.dropdownCaretBtn--suffix {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  z-index: 2;
+}
+
+.svcdd__caretWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.svcdd__caretSvg {
+  width: 18px;
+  height: 18px;
 }
 
 .historyDraftCardBar {
@@ -1642,6 +1947,25 @@ button[data-variant]:focus-visible,
 .breadcrumbs a {
   color: var(--text);
   text-decoration: none;
+}
+
+/* История авто: «Новый визит» в одной строке с h1 */
+.historyPage__titleBar {
+  align-items: center;
+}
+
+.historyPage__titleBlock {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.historyPage__titleBlock .serviceHint__pageBlockRow > .h1 {
+  flex: 0 1 auto;
+}
+
+.historyPage__newVisitWrap {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .marketSearch {
@@ -2429,6 +2753,34 @@ a.btn.btn--asDisabled {
   color: color-mix(in oklab, var(--text) 72%, var(--text-h));
 }
 
+.garageProfileCard__lastVisit {
+  margin-top: 10px;
+}
+
+.garageProfileCard__lastVisitHit {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 12px;
+  padding: 10px 10px 10px 8px;
+  margin-left: -8px;
+  margin-right: -8px;
+  transition: background 120ms ease;
+}
+
+.garageProfileCard__lastVisitHit:hover {
+  background: color-mix(in oklab, var(--accent) 9%, var(--bg));
+}
+
+.garageProfileCard__lastVisitHit:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 65%, var(--border));
+  outline-offset: 2px;
+}
+
+.garageProfileCard__lastVisitHead {
+  margin-bottom: 8px;
+}
+
 .garageProfileCard__lead {
   margin: 10px 0 0;
   line-height: 1.45;
@@ -2470,6 +2822,15 @@ a.btn.btn--asDisabled {
   flex-direction: column;
   align-items: stretch;
   justify-content: flex-end;
+}
+
+/* Гараж владельца: счётчик авто — левый нижний угол (публичный /g/… без изменений) */
+.detHero__overlay--garageOwner .detHero__bottomRow {
+  justify-content: flex-start;
+}
+
+.detHero__overlay--garageOwner .garageHero__bottomRow {
+  align-items: flex-start;
 }
 
 .garageHero__bottomRow {
@@ -2727,13 +3088,79 @@ a.btn.btn--asDisabled {
   min-width: min(100%, 260px);
 }
 
+.garageSettings__mediaLabelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 10px;
+  min-width: 0;
+}
+
 .garageSettings__mediaSublabel {
   margin: 0;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 650;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: -0.01em;
   color: var(--text-h);
+}
+
+.garageSettings__thumbWrap {
+  position: relative;
+  width: 100%;
+  align-self: stretch;
+}
+
+.garageSettings__mediaCol--avatar .garageSettings__thumbWrap {
+  width: auto;
+  align-self: flex-start;
+}
+
+.mediaRemoveBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border: 1px solid color-mix(in oklab, var(--text-h) 28%, transparent);
+  background: color-mix(in oklab, var(--code-bg) 82%, black);
+  color: var(--text-h);
+  cursor: pointer;
+  box-shadow: 0 2px 12px color-mix(in oklab, black 45%, transparent);
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.12s ease;
+}
+
+.mediaRemoveBtn:hover {
+  background: color-mix(in oklab, var(--accent) 22%, var(--code-bg));
+  border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
+  color: var(--text-h);
+}
+
+.mediaRemoveBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 72%, white);
+  outline-offset: 2px;
+}
+
+.mediaRemoveBtn--square {
+  border-radius: 8px;
+}
+
+.mediaRemoveBtn--circle {
+  border-radius: 50%;
+}
+
+.mediaRemoveBtn__icon {
+  display: block;
 }
 
 button.garageSettings__thumb {
@@ -2810,31 +3237,6 @@ button.garageSettings__thumb:focus-visible {
 .garageSettings__thumbEmpty--banner {
   font-size: 12px;
   padding: 14px 18px;
-}
-
-.garageSettings__clearLink {
-  align-self: flex-start;
-  margin: 2px 0 0;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  font-size: 13px;
-  line-height: 1.35;
-  color: color-mix(in oklab, var(--accent) 72%, var(--text));
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.garageSettings__clearLink:hover {
-  color: var(--accent);
-}
-
-.garageSettings__clearLink:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 60%, white);
-  outline-offset: 2px;
-  border-radius: 4px;
 }
 
 .garageSettings__socialList {
@@ -3092,12 +3494,7 @@ button.garageSettings__thumb:focus-visible {
     margin-bottom: 8px;
   }
 
-  .carEditCoverBlock__title {
-    margin-bottom: 6px;
-  }
-
-  .carEditCoverBlock__hint {
-    margin-top: 4px;
+  .carEditCoverBlock__labelRow {
     margin-bottom: 8px;
   }
 }
@@ -4019,6 +4416,13 @@ button.thumbCard__img.thumbCard__img--btn:focus-visible {
   cursor: pointer;
 }
 
+.svcdd__btnRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .svcdd__meta {
   color: var(--text);
   font-size: 13px;
@@ -4890,6 +5294,19 @@ a.btn.carPage__recsAddVisitFull,
     gap: 14px;
   }
 
+  /* История: заголовок и «Новый визит» в одной линии и на телефоне */
+  .container > .row.spread.gap.historyPage__titleBar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .historyPage__newVisitWrap {
+    margin-left: auto;
+  }
+
   /* Карточка авто: кнопки рядом с названием, иконками */
   .container > .row.spread.gap.carPage__head {
     flex-direction: column;
@@ -5275,6 +5692,11 @@ a.btn.carPage__recsAddVisitFull,
     left: auto;
     width: auto;
     justify-content: flex-end;
+  }
+
+  .dropdownCaretBtn--floating {
+    top: 10px;
+    right: 12px;
   }
 
   .eventActions--topRight button[data-variant='ghost'] {

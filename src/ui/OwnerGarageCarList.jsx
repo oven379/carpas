@@ -2,10 +2,19 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRepo } from './useRepo.js'
 import { OpenAction } from './components.jsx'
-import { fmtDateTime, fmtKm, fmtPlateFull } from '../lib/format.js'
+import { fmtKm } from '../lib/format.js'
 import { dedupeCarsById } from '../lib/garageLimits.js'
-import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../lib/serviceCatalogs.js'
 import { buildCarFromQuery } from './carNav.js'
+
+function lastFinalizedEvent(evts) {
+  const list = Array.isArray(evts) ? evts.filter((e) => e && !e.isDraft) : []
+  if (!list.length) return null
+  return list.reduce((a, b) => {
+    const ta = Date.parse(a?.at || '') || 0
+    const tb = Date.parse(b?.at || '') || 0
+    return tb >= ta ? b : a
+  })
+}
 
 /** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
 export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
@@ -29,14 +38,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
           list.map(async (car) => {
             const evtsRaw = await r.listEvents(car.id)
             const evts = Array.isArray(evtsRaw) ? evtsRaw : []
-            const lastEvt = evts[0] || null
-            let lastEvtPhotos = []
-            if (lastEvt?.id) {
-              const allDocs = await r.listDocs(car.id)
-              const docs = Array.isArray(allDocs) ? allDocs : []
-              lastEvtPhotos = docs.filter((d) => String(d.eventId || '') === String(lastEvt.id))
-            }
-            return { car, evts, lastEvtPhotos }
+            return { car, evts }
           }),
         )
         if (!cancelled) setRows(enriched)
@@ -63,19 +65,10 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
 
   return (
     <div className="list">
-      {rows.map(({ car: c, evts, lastEvtPhotos }) => {
-        const lastEvt = evts[0] || null
-        const lastEvtPhotoUrl = lastEvtPhotos[0]?.url || ''
-        const lastEvtMs = Array.isArray(lastEvt?.maintenanceServices) ? lastEvt.maintenanceServices : []
-        const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(lastEvt?.services)
-        const lastEvtTitle = String(lastEvt?.title || '').trim()
-        const lastEvtNote = String(lastEvt?.note || '').trim()
-        const prevWashEvt =
-          lastEvt && !lastEvtWash.length
-            ? evts.find((e) => Array.isArray(e?.services) && e.services.some((s) => WASH_SERVICE_MARKERS.has(s))) ||
-              null
-            : null
-        const prevWashList = prevWashEvt ? splitWashDetailingServices(prevWashEvt.services).wash : []
+      {rows.map(({ car: c, evts }) => {
+        const lastEvt = lastFinalizedEvent(evts)
+        const mileageKm = lastEvt != null && lastEvt.mileageKm != null && lastEvt.mileageKm !== '' ? lastEvt.mileageKm : c.mileageKm
+        const yearStr = c.year != null && c.year !== '' ? String(c.year) : '—'
         return (
           <Link key={c.id} className="rowItem" to={`/car/${c.id}${fromQ}`}>
             <div
@@ -87,87 +80,9 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
                 {c.make} {c.model}
               </div>
               <div className="rowItem__meta carPage__meta">
-                {lastEvt ? (
-                  <>
-                    <span className="metaStrong">Последний визит</span>
-                    <span aria-hidden="true"> · </span>
-                    <span className="eventMeta__when">{lastEvt.at ? fmtDateTime(lastEvt.at) : '—'}</span>
-                    <span aria-hidden="true"> · </span>
-                    <span className="eventMeta__km">{fmtKm(lastEvt.mileageKm)}</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{c.city || '—'}</span>
-                    <span aria-hidden="true"> · </span>
-                    <span className="mono" title="Госномер">
-                      {fmtPlateFull(c.plate, c.plateRegion) || '—'}
-                    </span>
-                    <span aria-hidden="true"> · </span>
-                    <span>
-                      VIN: <span className="mono">{c.vin || '—'}</span>
-                    </span>
-                  </>
-                )}
-              </div>
-              <div className="rowItem__sub">
-                <div className="rowItem__lastEvt">
-                  <div className="rowItem__lastEvtTop">
-                    {lastEvtPhotoUrl ? (
-                      <span
-                        className="rowItem__lastEvtPhoto"
-                        aria-hidden="true"
-                        style={{ backgroundImage: `url("${String(lastEvtPhotoUrl).replaceAll('"', '%22')}")` }}
-                      />
-                    ) : null}
-                    <div className="rowItem__lastEvtText">
-                      {lastEvt ? (
-                        <div className="rowItem__lastEvtName">{lastEvtTitle || 'Визит'}</div>
-                      ) : (
-                        <div className="rowItem__lastEvtTitle">
-                          {`Цвет: ${c.color || '—'} · Год: ${
-                            c.year != null && c.year !== '' ? c.year : '—'
-                          } · Пробег: ${fmtKm(c.mileageKm)}`}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  {lastEvt ? (
-                    <div className="rowItem__lastEvtMeta">
-                      {lastEvtMs.length ? (
-                        <div className="rowItem__lastEvtLine">
-                          <span className="eventLabel">ТО:</span> {lastEvtMs.join(', ')}
-                        </div>
-                      ) : null}
-                      {lastEvtWash.length ? (
-                        <div className="rowItem__lastEvtLine">
-                          <span className="eventLabel">Уход:</span> {lastEvtWash.join(', ')}
-                        </div>
-                      ) : null}
-                      {lastEvtDet.length ? (
-                        <div className="rowItem__lastEvtLine">
-                          <span className="eventLabel">Детейлинг:</span> {lastEvtDet.join(', ')}
-                        </div>
-                      ) : null}
-                      {!lastEvtMs.length && !lastEvtWash.length && !lastEvtDet.length && lastEvtNote ? (
-                        <div className="rowItem__lastEvtLine">
-                          <span className="eventLabel">Комментарий:</span> {lastEvtNote}
-                        </div>
-                      ) : null}
-                      {prevWashList.length ? (
-                        <div className="rowItem__lastEvtLine rowItem__lastEvtLine--prevWash">
-                          <span className="eventLabel">Уход</span>
-                          {prevWashEvt?.at ? (
-                            <span className="rowItem__lastEvtWashWhen">
-                              {` (${fmtDateTime(prevWashEvt.at)})`}
-                            </span>
-                          ) : null}
-                          <span>: </span>
-                          {prevWashList.join(', ')}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
+                <span>{yearStr}</span>
+                <span aria-hidden="true"> · </span>
+                <span className="eventMeta__km">{fmtKm(mileageKm)}</span>
               </div>
             </div>
             <div className="rowItem__aside rowItem__aside--hint">

@@ -39,7 +39,7 @@ docker compose up -d --build
 Write-Host "Backend: composer install / key / migrate..." -ForegroundColor Cyan
 docker compose exec -T backend composer install
 docker compose exec -T backend php artisan key:generate --force
-docker compose exec -T backend php artisan migrate --force
+docker compose exec -T backend php artisan migrate --force --seed
 
 Write-Host "Frontend: npm install..." -ForegroundColor Cyan
 npm install
@@ -48,5 +48,5 @@ Write-Host ""
 Write-Host "Готово." -ForegroundColor Green
 Write-Host "Далее запустите: npm run dev"
 Write-Host "UI:  http://localhost:5173"
-Write-Host "API: http://localhost:8080"
+Write-Host "API: http://localhost:8088  (демо: studio@demo.car / 1111, owner@demo.car / 1111, test@test / 1111)"
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DropdownCaretIcon } from './DropdownCaretIcon.jsx'
 
 function norm(s) {
   return String(s || '').trim().toLowerCase()
@@ -56,45 +57,63 @@ export function ComboBox({
 
   return (
     <div className="cb" ref={rootRef}>
-      <input
-        ref={inputRef}
-        className="input cb__input"
-        value={query}
-        placeholder={placeholder}
-        disabled={disabled}
-        onFocus={() => setOpen(true)}
-        onBlur={() => onBlur?.()}
-        onChange={(e) => {
-          onChange?.(e.target.value)
-          setOpen(true)
-          setActiveIdx(-1)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Escape') {
-            setOpen(false)
+      <div className="cb__fieldWrap">
+        <input
+          ref={inputRef}
+          className="input cb__input cb__input--withCaret"
+          value={query}
+          placeholder={placeholder}
+          disabled={disabled}
+          onFocus={() => setOpen(true)}
+          onBlur={() => onBlur?.()}
+          onChange={(e) => {
+            onChange?.(e.target.value)
+            setOpen(true)
             setActiveIdx(-1)
-            return
-          }
-          if (e.key === 'ArrowDown') {
-            e.preventDefault()
-            setOpen(true)
-            setActiveIdx((i) => Math.min(filtered.length - 1, i + 1))
-            return
-          }
-          if (e.key === 'ArrowUp') {
-            e.preventDefault()
-            setOpen(true)
-            setActiveIdx((i) => Math.max(0, i - 1))
-            return
-          }
-          if (e.key === 'Enter') {
-            if (open && activeIdx >= 0 && activeIdx < filtered.length) {
-              e.preventDefault()
-              commit(filtered[activeIdx])
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setOpen(false)
+              setActiveIdx(-1)
+              return
             }
-          }
-        }}
-      />
+            if (e.key === 'ArrowDown') {
+              e.preventDefault()
+              setOpen(true)
+              setActiveIdx((i) => Math.min(filtered.length - 1, i + 1))
+              return
+            }
+            if (e.key === 'ArrowUp') {
+              e.preventDefault()
+              setOpen(true)
+              setActiveIdx((i) => Math.max(0, i - 1))
+              return
+            }
+            if (e.key === 'Enter') {
+              if (open && activeIdx >= 0 && activeIdx < filtered.length) {
+                e.preventDefault()
+                commit(filtered[activeIdx])
+              }
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="dropdownCaretBtn dropdownCaretBtn--suffix"
+          tabIndex={-1}
+          aria-expanded={open}
+          aria-label="Показать или скрыть список"
+          title="Список"
+          disabled={disabled}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setOpen((v) => !v)
+            requestAnimationFrame(() => inputRef.current?.focus())
+          }}
+        >
+          <DropdownCaretIcon open={open} />
+        </button>
+      </div>
 
       {open ? (
         <div className="cb__menu" role="listbox">
