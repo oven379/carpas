@@ -1,6 +1,6 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { BackNav, Button, Card, ComboBox, Field, Input, Pill, ServiceHint, Textarea } from '../components.jsx'
+import { BackNav, Button, Card, ComboBox, Field, HeroCoverStat, Input, Pill, ServiceHint, Textarea } from '../components.jsx'
 import { bumpSessionRefresh } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
@@ -8,6 +8,7 @@ import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -138,9 +139,21 @@ export default function DetailingSettingsPage() {
             )}
             <div className="detHero__bottomRow">
               <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-                <Pill tone="accent">Авто на обслуживании: {carsCount}</Pill>
+                <HeroCoverStat
+                  kind="car"
+                  variant="overlay"
+                  value={carsCount}
+                  label="на обслуживании"
+                  title={`${carsCount} автомобилей на обслуживании`}
+                />
                 {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
-                  <Pill>{`Услуг: ${draft.servicesOffered.length}`}</Pill>
+                  <HeroCoverStat
+                    kind="services"
+                    variant="overlay"
+                    value={draft.servicesOffered.length}
+                    label="услуг в каталоге"
+                    title={`${draft.servicesOffered.length} услуг в каталоге`}
+                  />
                 ) : null}
               </div>
             </div>
@@ -192,7 +205,7 @@ export default function DetailingSettingsPage() {
             variant="detailing"
             title="Внешний вид лендинга"
             avatarLabel="Логотип"
-            bannerLabel="Обложка кабинета"
+            bannerLabel="Настройка баннера"
             bannerUrl={draft.cover}
             avatarUrl={draft.logo}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, cover: url }))}
@@ -201,6 +214,11 @@ export default function DetailingSettingsPage() {
             bannerEmptyHint="Нажмите — широкое фото: фасад, зал или работа"
             avatarRemoveLabel="Убрать логотип"
             bannerRemoveLabel="Убрать обложку"
+            bannerHintSlot={
+              <ServiceHint scopeId="detailing-settings-banner-hint" variant="compact" label="Справка: баннер">
+                <p className="serviceHint__panelText">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
+              </ServiceHint>
+            }
           />
         </div>
 

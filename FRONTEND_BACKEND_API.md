@@ -10,11 +10,11 @@
 2. **`VITE_API_BASE_URL`** — базовый URL API **без** завершающего слэша, с префиксом `/api`, как в Laravel:
 
    ```env
-   VITE_API_BASE_URL=http://localhost:8080/api
+   VITE_API_BASE_URL=http://localhost:8088/api
    ```
 
-3. Если переменная не задана, клиент по умолчанию использует `http://localhost:8080/api` (см. `src/api/client.js`).
-4. Прокси в `vite.config.js` нет: браузер ходит на бэкенд напрямую. На бэке должны быть корректные **CORS**‑заголовки для origin dev‑сервера (например `http://localhost:5173`).
+3. В режиме `npm run dev` и `vite preview` без переменной запросы к API идут через **прокси** `/api` → `127.0.0.1:8088` (см. `vite.config.js`). Для production-сборки, открытой не с того же хоста, задайте `VITE_API_BASE_URL` или используется запасной `http://localhost:8088/api` (см. `src/api/client.js`).
+4. При прямых запросах с браузера на API без прокси на бэке нужны корректные **CORS** для origin dev‑сервера (например `http://localhost:5173`).
 
 ---
 

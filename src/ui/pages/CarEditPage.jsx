@@ -26,6 +26,7 @@ import {
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import { ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
+import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
 
 function emptyDraft() {
@@ -484,8 +485,17 @@ export default function CarEditPage({ mode }) {
         </div>
 
         <div className="topBorder carEditCoverBlock">
-          <div className="muted small carEditCoverBlock__title">Обложка карточки</div>
-          <p className="muted small carEditCoverBlock__hint">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
+          <div
+            className="field field--full serviceHint__fieldWrap carEditCoverBlock__field"
+            id="car-edit-hero-hint"
+          >
+            <div className="field__top serviceHint__fieldTop carEditCoverBlock__labelRow">
+              <span className="field__label">Настройка обложки</span>
+              <ServiceHint scopeId="car-edit-hero-hint" variant="compact" label="Справка: обложка карточки">
+                <p className="serviceHint__panelText">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
+              </ServiceHint>
+            </div>
+          </div>
           <input
             ref={heroCoverFileRef}
             className="srOnly"
@@ -497,30 +507,29 @@ export default function CarEditPage({ mode }) {
               e.target.value = ''
             }}
           />
-          <button
-            type="button"
-            className="garageSettings__thumb garageSettings__thumb--banner carEditCoverBlock__thumb"
-            onClick={() => heroCoverFileRef.current?.click?.()}
-            aria-label={draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
-          >
-            {draft.hero ? (
-              <img alt="Превью обложки карточки" src={draft.hero} />
-            ) : (
-              <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
-                Нажмите для загрузки
-              </span>
-            )}
-          </button>
-          {draft.hero ? (
+          <div className="garageSettings__thumbWrap carEditCoverBlock__thumbWrap">
             <button
               type="button"
-              className="garageSettings__clearLink"
-              style={{ marginTop: 8 }}
-              onClick={() => setDraft((d) => ({ ...d, hero: '' }))}
+              className="garageSettings__thumb garageSettings__thumb--banner carEditCoverBlock__thumb"
+              onClick={() => heroCoverFileRef.current?.click?.()}
+              aria-label={draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
             >
-              Убрать обложку
+              {draft.hero ? (
+                <img alt="Превью обложки карточки" src={draft.hero} />
+              ) : (
+                <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
+                  Нажмите для загрузки
+                </span>
+              )}
             </button>
-          ) : null}
+            {draft.hero ? (
+              <MediaThumbRemoveButton
+                shape="square"
+                aria-label="Убрать обложку"
+                onRemove={() => setDraft((d) => ({ ...d, hero: '' }))}
+              />
+            ) : null}
+          </div>
         </div>
 
         <div className="row spread gap topBorder">

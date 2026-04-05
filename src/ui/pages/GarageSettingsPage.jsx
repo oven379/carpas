@@ -9,6 +9,7 @@ import { normalizeGarageSlugInput, parseGarageSocialLines } from '../../lib/form
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
+import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 
 export default function GarageSettingsPage() {
   const navigate = useNavigate()
@@ -298,14 +299,18 @@ export default function GarageSettingsPage() {
             <div className="garageSettings__mediaHeading">Аватар и баннер</div>
             <ServiceHint scopeId="garage-settings-media" variant="compact" label="Справка: фото гаража">
               <p className="serviceHint__panelText">
-                Нажмите на область превью, чтобы выбрать или заменить фото. Аватар — квадрат, до ~1&nbsp;МБ (до 512×512); баннер
-                — широкий, до ~2,5&nbsp;МБ (до 2000×1200). Если фото уже есть, внизу можно убрать его текстовой ссылкой.
+                Нажмите на превью, чтобы выбрать или заменить фото. Аватар — квадрат, до ~1&nbsp;МБ (до 512×512); баннер — широкий,
+                до ~2,5&nbsp;МБ (до 2000×1200). Чтобы сбросить фото, нажмите крестик в углу превью: круг у аватара, квадрат у баннера.
+              </p>
+              <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
+                {PHOTO_LANDSCAPE_HINT_SENTENCE}
               </p>
             </ServiceHint>
           </div>
           <MediaBannerAvatarBlock
             variant="garage"
             title=""
+            bannerLabel="Настройка баннера"
             bannerUrl={draft.garageBanner}
             avatarUrl={draft.garageAvatar}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, garageBanner: url }))}

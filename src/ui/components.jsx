@@ -24,6 +24,7 @@ export function Textarea(props) {
 }
 
 export { ComboBox }
+export { DropdownCaretIcon } from './DropdownCaretIcon.jsx'
 
 /** Единый блок согласия с политикой и правилами на формах входа и регистрации. */
 export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onChange, className = '', style }) {
@@ -72,6 +73,78 @@ export function Pill({ children, tone = 'neutral', className = '' }) {
     <span className={`pill ${className}`.trim()} data-tone={tone}>
       {children}
     </span>
+  )
+}
+
+function HeroCoverStatIcon({ kind }) {
+  if (kind === 'services') {
+    return (
+      <svg
+        className="heroCoverStat__svg"
+        viewBox="0 0 24 24"
+        width="22"
+        height="22"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="m14.5 4.5 4.5 4.5a2 2 0 010 2.8l-6.2 6.2a2 2 0 01-2.8 0l-4.5-4.5a2 2 0 010-2.8l6.2-6.2a2 2 0 012.8 0z" />
+        <path d="M3 21l3.5-3.5M8 16l-1.5-1.5" />
+      </svg>
+    )
+  }
+  /* Заливочный силуэт авто (24dp), контрастнее прежнего однотонного контура */
+  return (
+    <svg className="heroCoverStat__svg heroCoverStat__svg--glyph" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16C5.67 16 5 15.33 5 14.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"
+      />
+    </svg>
+  )
+}
+
+/**
+ * Счётчик на обложке (гараж / детейлинг) или компактно в карточке.
+ * `variant="overlay"` — стекло поверх фото; `variant="card"` — на светлом фоне.
+ * `layout="inline"` — одна строка (например под заголовком списка).
+ */
+export function HeroCoverStat({
+  value,
+  label,
+  kind = 'car',
+  variant = 'overlay',
+  layout = 'stack',
+  title,
+  className = '',
+}) {
+  const v = value == null ? '—' : String(value)
+  const labelStr = label != null && String(label).trim() ? String(label).trim() : ''
+  const aria = (title ?? (labelStr ? `${v} ${labelStr}` : `${v}`)).trim()
+  const valueWide = v.length >= 3
+  const mods = [
+    'heroCoverStat',
+    variant === 'card' ? 'heroCoverStat--card' : 'heroCoverStat--overlay',
+    layout === 'inline' ? 'heroCoverStat--inline' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  return (
+    <div className={mods} role="group" aria-label={aria}>
+      <span className="heroCoverStat__icon" aria-hidden="true">
+        <HeroCoverStatIcon kind={kind} />
+      </span>
+      <div className="heroCoverStat__body">
+        <span className={`heroCoverStat__valueBox${valueWide ? ' heroCoverStat__valueBox--wide' : ''}`}>
+          <span className="heroCoverStat__value">{v}</span>
+        </span>
+        {labelStr ? <span className="heroCoverStat__label">{labelStr}</span> : null}
+      </div>
+    </div>
   )
 }
 

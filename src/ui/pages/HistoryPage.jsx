@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, Field, Input, ServiceHint, Textarea } from '../components.jsx'
+import { BackNav, Button, Card, DropdownCaretIcon, Field, Input, ServiceHint, Textarea } from '../components.jsx'
 import {
   clampVisitTitle,
   clampVisitTitleInput,
@@ -18,6 +18,7 @@ import {
   dedupeOfferedStrings,
   DETAILING_SERVICES,
   MAINTENANCE_SERVICES,
+  OFFERED_SERVICE_MAX_LEN,
   splitWashDetailingServices,
   WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
@@ -262,6 +263,10 @@ function countSelected(services, items) {
   return n
 }
 
+function visitCardKey(e) {
+  return String(e?.id ?? '')
+}
+
 function ServicePicker({
   label,
   hint,
@@ -277,7 +282,7 @@ function ServicePicker({
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
   const rootRef = useRef(null)
-  const selected = Array.isArray(value) ? value : []
+  const selected = useMemo(() => (Array.isArray(value) ? value : []), [value])
 
   const effectiveCatalog = useMemo(() => {
     if (itemsFromProfile == null) return catalog
@@ -329,7 +334,12 @@ function ServicePicker({
             }}
           >
             <span>Выбрать услуги</span>
-            <span className="svcdd__meta">{selected.length ? `(${selected.length})` : '(0)'}</span>
+            <span className="svcdd__btnRight">
+              <span className="svcdd__meta">{selected.length ? `(${selected.length})` : '(0)'}</span>
+              <span className="svcdd__caretWrap" aria-hidden="true">
+                <DropdownCaretIcon open={open} className="svcdd__caretSvg" />
+              </span>
+            </span>
           </button>
 
           {open ? (
@@ -492,7 +502,10 @@ export default function HistoryPage() {
   const r = useRepo()
   const { detailingId, detailing, owner, mode } = useDetailing()
   const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
-  const scope = mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }
+  const scope = useMemo(
+    () => (mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }),
+    [mode, ownerEmailResolved, detailingId],
+  )
   const [car, setCar] = useState(null)
   const [events, setEvents] = useState([])
   const [allDocs, setAllDocs] = useState([])
@@ -504,7 +517,9 @@ export default function HistoryPage() {
   const from = fromRaw ? decodeURIComponent(fromRaw) : ''
   const wantNew = sp.get('new') === '1'
   const editParam = sp.get('edit')
+  const visitFocusId = String(sp.get('visit') || '').trim()
   const prevHistoryCarIdRef = useRef(null)
+  const visitDeepLinkDoneRef = useRef('')
 
   useEffect(() => {
     if (!id) return
@@ -545,6 +560,64 @@ export default function HistoryPage() {
   const serviceEvents = useMemo(() => events.filter((e) => e.source === 'service'), [events])
   const ownerEvents = useMemo(() => events.filter((e) => e.source === 'owner'), [events])
   const [tab, setTab] = useState('all') // all|service|owner
+  /** id → явно развёрнута (true) / свёрнута (false); если нет ключа — дефолт: свёрнуто, кроме черновика визита в кабинете детейлинга */
+  const [visitCardExpandMap, setVisitCardExpandMap] = useState(() => ({}))
+
+  const visitCardIsExpanded = useCallback(
+    (e) => {
+      const k = visitCardKey(e)
+      if (!k) return Boolean(e?.isDraft && mode === 'detailing')
+      const v = visitCardExpandMap[k]
+      if (v === true) return true
+      if (v === false) return false
+      return Boolean(e?.isDraft && mode === 'detailing')
+    },
+    [visitCardExpandMap, mode],
+  )
+
+  const toggleVisitCardExpand = useCallback((e) => {
+    const k = visitCardKey(e)
+    if (!k) return
+    setVisitCardExpandMap((prev) => {
+      const cur =
+        prev[k] === true ? true : prev[k] === false ? false : Boolean(e?.isDraft && mode === 'detailing')
+      return { ...prev, [k]: !cur }
+    })
+  }, [mode])
+
+  useEffect(() => {
+    setVisitCardExpandMap({})
+  }, [id])
+
+  useEffect(() => {
+    visitDeepLinkDoneRef.current = ''
+  }, [id, visitFocusId])
+
+  useEffect(() => {
+    if (!dataReady || !visitFocusId || !id) return
+    const sig = `${id}:${visitFocusId}`
+    if (visitDeepLinkDoneRef.current === sig) return
+    const evt = events.find((x) => String(x.id) === String(visitFocusId))
+    if (!evt || evt.isDraft) return
+    visitDeepLinkDoneRef.current = sig
+    if (mode === 'owner') {
+      setTab('all')
+      setSp((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('t', 'all')
+        return next
+      }, { replace: true })
+    }
+    setVisitCardExpandMap((prev) => ({
+      ...prev,
+      [visitCardKey(evt)]: true,
+    }))
+    const scrollT = window.setTimeout(() => {
+      document.getElementById(`history-visit-${visitFocusId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 120)
+    return () => window.clearTimeout(scrollT)
+  }, [dataReady, visitFocusId, id, events, mode, setSp])
+
   useEffect(() => {
     if (mode !== 'owner') return
     const t = sp.get('t')
@@ -968,23 +1041,48 @@ export default function HistoryPage() {
 
   return (
     <div className="container">
-      <div className="row spread gap">
-        <div>
-          <div className="breadcrumbs">
-            <Link to={carCardHref}>Карточка авто</Link>
-            <span> / </span>
-            <span>История автомобиля</span>
-          </div>
-          <div id={HISTORY_PAGE_HINT.scopeId} className="serviceHint__pageBlock">
-            <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to={carCardHref} title="К карточке авто" />
-              <h1 className="h1">{title}</h1>
-              <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
-                <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
-              </ServiceHint>
-            </div>
+      <div className="breadcrumbs">
+        <Link to={carCardHref}>Карточка авто</Link>
+        <span> / </span>
+        <span>История автомобиля</span>
+      </div>
+      <div className="row spread gap historyPage__titleBar">
+        <div id={HISTORY_PAGE_HINT.scopeId} className="serviceHint__pageBlock historyPage__titleBlock">
+          <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
+            <BackNav to={carCardHref} title="К карточке авто" />
+            <h1 className="h1">{title}</h1>
+            <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
+              <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
+            </ServiceHint>
           </div>
         </div>
+        {mode !== 'detailing' ? (
+          <div className="historyPage__newVisitWrap">
+            <button
+              className="btn"
+              data-variant="primary"
+              onClick={() => {
+                setShowNew(true)
+                setEditingId(null)
+                setDraft({
+                  title: '',
+                  mileageKm: '',
+                  note: '',
+                  services: [],
+                  maintenanceServices: [],
+                  type: 'visit',
+                  ...EMPTY_CARE_DRAFT,
+                })
+                const next = new URLSearchParams(sp)
+                next.set('new', '1')
+                next.delete('edit')
+                setSp(next, { replace: true })
+              }}
+            >
+              Новый визит
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="row spread gap" style={{ marginTop: 10 }}>
@@ -1030,35 +1128,10 @@ export default function HistoryPage() {
             </div>
           ) : null}
         </div>
-        {mode !== 'detailing' ? (
-          <button
-            className="btn"
-            data-variant="primary"
-            onClick={() => {
-              setShowNew(true)
-              setEditingId(null)
-              setDraft({
-                title: '',
-                mileageKm: '',
-                note: '',
-                services: [],
-                maintenanceServices: [],
-                type: 'visit',
-                ...EMPTY_CARE_DRAFT,
-              })
-              const next = new URLSearchParams(sp)
-              next.set('new', '1')
-              next.delete('edit')
-              setSp(next, { replace: true })
-            }}
-          >
-            Новый визит
-          </button>
-        ) : null}
       </div>
 
       <div className="list">
-        {visibleEvents.map((e) => {
+        {visibleEvents.map((e, cardIdx) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
           const showDetFooter = mode === 'owner' && e.source === 'service' && detForBadge
           const showServiceCornerAvatar =
@@ -1068,29 +1141,71 @@ export default function HistoryPage() {
           const detBrandTarget = showDetFooter ? detailingBrandHref(detForBadge) : null
           const cardInnerLink = Boolean(showDetFooter && detBrandTarget)
           const visitReadonlyCard = Boolean(canOpen(e) && !canEditAny(e))
+          const visitExpanded = visitCardIsExpanded(e)
           return (
           <Card
             key={e.id}
-            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}${visitReadonlyCard ? ' eventCard--visitReadonly' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
-            role={canOpen(e) && !cardInnerLink ? 'button' : undefined}
+            id={e.id ? `history-visit-${e.id}` : undefined}
+            style={{ zIndex: cardIdx + 1 }}
+            className={`card pad eventCard--collapsible${canOpen(e) ? ' eventCard--clickable' : ''}${visitReadonlyCard ? ' eventCard--visitReadonly' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
+            role={canOpen(e) && !cardInnerLink ? 'region' : undefined}
             tabIndex={canOpen(e) ? 0 : undefined}
-            onClick={() => openVisitEdit(e)}
+            onClick={(ev) => {
+              const el = ev.target
+              if (el && typeof el.closest === 'function' && el.closest('[data-visit-expand-toggle]')) return
+              openVisitEdit(e)
+            }}
             onKeyDown={(ev) => {
               if (!canOpen(e)) return
               if (ev.key !== 'Enter' && ev.key !== ' ') return
+              const el = ev.target
+              if (el && typeof el.closest === 'function' && el.closest('[data-visit-expand-toggle]')) return
               ev.preventDefault()
               ev.stopPropagation()
               openVisitEdit(e)
             }}
-            aria-label={canOpen(e) ? 'Открыть визит' : undefined}
+            aria-label={canOpen(e) ? (canEditAny(e) ? 'Визит: открыть редактирование' : 'Визит: открыть просмотр') : undefined}
             title={canOpen(e) ? (canEditAny(e) ? 'Нажмите, чтобы отредактировать' : 'Нажмите, чтобы посмотреть') : undefined}
           >
+            <button
+              type="button"
+              data-visit-expand-toggle
+              className="dropdownCaretBtn dropdownCaretBtn--floating"
+              aria-expanded={visitExpanded}
+              aria-label={visitExpanded ? 'Свернуть карточку визита' : 'Развернуть карточку визита'}
+              title={visitExpanded ? 'Свернуть' : 'Развернуть'}
+              onClick={(ev) => {
+                ev.preventDefault()
+                ev.stopPropagation()
+                toggleVisitCardExpand(e)
+              }}
+              onPointerDown={(ev) => {
+                ev.stopPropagation()
+              }}
+              onKeyDown={(ev) => {
+                ev.stopPropagation()
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                  ev.preventDefault()
+                  toggleVisitCardExpand(e)
+                }
+              }}
+            >
+              <DropdownCaretIcon open={visitExpanded} />
+            </button>
             <div
-              className={`row spread gap eventRow${showServiceCornerAvatar ? ' eventRow--withServiceAvatar' : ''}`}
+              className={`row spread gap eventRow${showServiceCornerAvatar && visitExpanded ? ' eventRow--withServiceAvatar' : ''}`}
             >
               <div className="eventMain">
                 <div className="rowItem__title">{e.title || 'Событие'}</div>
-                {mode === 'detailing' && e.isDraft ? (
+                <div className="rowItem__meta">
+                  <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
+                  <span className="eventMeta__sep" aria-hidden="true">
+                    {' '}
+                    ·{' '}
+                  </span>
+                  <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
+                </div>
+                {visitExpanded && mode === 'detailing' && e.isDraft ? (
                   <div className="historyDraftCardBar row gap wrap" onClick={(ev) => ev.stopPropagation()}>
                     <span className="pill" data-tone="accent">
                       Черновик
@@ -1109,26 +1224,18 @@ export default function HistoryPage() {
                     </button>
                   </div>
                 ) : null}
-                <div className="rowItem__meta">
-                  <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
-                  <span className="eventMeta__sep" aria-hidden="true">
-                    {' '}
-                    ·{' '}
-                  </span>
-                  <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
-                </div>
-                {visitReadonlyCard ? (
+                {visitExpanded && visitReadonlyCard ? (
                   <div className="visitCardReadonlyRow">
                     <span className="pill visitCardReadonlyPill" data-tone="neutral">
                       Только просмотр
                     </span>
                   </div>
                 ) : null}
-                {e.isDraft && mode === 'detailing' ? (
+                {visitExpanded && e.isDraft && mode === 'detailing' ? (
                   <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
                     Черновик визита · нажмите «Сохранить» в форме, чтобы запись стала частью истории
                   </div>
-                ) : e.source === 'service' ? (
+                ) : visitExpanded && e.source === 'service' ? (
                   <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
                     {mode === 'owner' ? (
                       <>Запись сервиса</>
@@ -1138,22 +1245,22 @@ export default function HistoryPage() {
                       <>Подтверждено детейлингом</>
                     )}
                   </div>
-                ) : visitReadonlyCard && mode === 'owner' ? (
+                ) : visitExpanded && visitReadonlyCard && mode === 'owner' ? (
                   <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
                     Окно редактирования истекло
                   </div>
                 ) : null}
-                {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+                {visitExpanded && Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
                   <div className="rowItem__sub">
                     <span className="eventLabel">ТО:</span> {e.maintenanceServices.join(', ')}
                   </div>
                 ) : null}
-                {washList.length ? (
+                {visitExpanded && washList.length ? (
                   <div className="rowItem__sub">
                     <span className="eventLabel">Уход:</span> {washList.join(', ')}
                   </div>
                 ) : null}
-                {detList.length ? (
+                {visitExpanded && detList.length ? (
                   <div className="rowItem__sub">
                     <span className="eventLabel">Детейлинг:</span> {detList.join(', ')}
                   </div>
@@ -1162,6 +1269,7 @@ export default function HistoryPage() {
                   const photos = docsForEvent(e.id)
                   const canPhoto = canEditAny(e)
                   if (!photos.length) {
+                    if (!visitExpanded) return null
                     return (
                       <div className="historyCardPhotosEmpty" style={{ marginTop: 10 }}>
                         <div className="muted small">Нет добавленных фотографий.</div>
@@ -1206,9 +1314,9 @@ export default function HistoryPage() {
                     </div>
                   )
                 })()}
-                {e.note ? <div className="note">{e.note}</div> : null}
+                {visitExpanded && e.note ? <div className="note">{e.note}</div> : null}
               </div>
-              {showServiceCornerAvatar ? (
+              {showServiceCornerAvatar && visitExpanded ? (
                 <div
                   className="eventCardServiceAvatar"
                   title={serviceDetLabel}
@@ -1229,7 +1337,7 @@ export default function HistoryPage() {
                 </div>
               ) : null}
             </div>
-            {showDetFooter ? (
+            {showDetFooter && visitExpanded ? (
               <div className="eventCardDetBadgeRow">
                 {(() => {
                   const detBadgeInner = detForBadge?.logo ? (
