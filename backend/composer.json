@@ -10,7 +10,8 @@
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^3.0",
         "laravel/tinker": "^2.7",
-        "predis/predis": "^3.4"
+        "predis/predis": "^3.4",
+        "tigusigalpa/yandex-id-oauth-php": "^1.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9.1",
@@ -62,6 +63,9 @@
         },
         "platform": {
             "php": "8.2.30"
+        },
+        "audit": {
+            "block-insecure": false
         }
     },
     "minimum-stability": "stable",
