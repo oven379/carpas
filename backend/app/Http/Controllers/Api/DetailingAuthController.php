@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -134,10 +135,24 @@ class DetailingAuthController extends Controller
             $d->instagram = trim((string) $patch['instagram']);
         }
         if (array_key_exists('logo', $patch)) {
-            $d->logo = $patch['logo'] === null ? null : (string) $patch['logo'];
+            $raw = $patch['logo'];
+            $incoming = ($raw !== null && $raw !== '') ? (string) $raw : null;
+            $d->logo = MediaStorage::ingestScalar(
+                $incoming,
+                $d->logo,
+                'detailings/'.$d->id,
+                'logo',
+            );
         }
         if (array_key_exists('cover', $patch)) {
-            $d->cover = $patch['cover'] === null ? null : (string) $patch['cover'];
+            $raw = $patch['cover'];
+            $incoming = ($raw !== null && $raw !== '') ? (string) $raw : null;
+            $d->cover = MediaStorage::ingestScalar(
+                $incoming,
+                $d->cover,
+                'detailings/'.$d->id,
+                'cover',
+            );
         }
         if (array_key_exists('servicesOffered', $patch) && is_array($patch['servicesOffered'])) {
             $d->services_offered = array_values(array_map('strval', $patch['servicesOffered']));

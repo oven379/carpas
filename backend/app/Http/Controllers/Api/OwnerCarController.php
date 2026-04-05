@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\Detailing;
@@ -126,11 +127,21 @@ class OwnerCarController extends Controller
             'price_rub' => isset($data['priceRub']) ? (int) $data['priceRub'] : 0,
             'color' => trim((string) ($data['color'] ?? '')),
             'city' => trim((string) ($data['city'] ?? '')),
-            'hero' => isset($data['hero']) ? (string) $data['hero'] : null,
+            'hero' => null,
             'segment' => trim((string) ($data['segment'] ?? 'mass')) ?: 'mass',
             'seller' => ['name' => 'Владелец', 'type' => 'owner'],
             'wash_photos' => [],
         ]);
+
+        if (array_key_exists('hero', $data) && is_string($data['hero']) && trim($data['hero']) !== '') {
+            $car->hero = MediaStorage::ingestScalar(
+                trim($data['hero']),
+                null,
+                'cars/'.$car->id,
+                'hero',
+            );
+            $car->save();
+        }
 
         return response()->json(ApiResources::car($car->load('owner')));
     }
@@ -178,7 +189,6 @@ class OwnerCarController extends Controller
             'model' => 'model',
             'color' => 'color',
             'city' => 'city',
-            'hero' => 'hero',
             'segment' => 'segment',
         ];
         foreach ($map as $json => $col) {
@@ -195,8 +205,21 @@ class OwnerCarController extends Controller
         if (array_key_exists('priceRub', $data)) {
             $car->price_rub = (int) ($data['priceRub'] ?? 0);
         }
+        if (array_key_exists('hero', $data)) {
+            $raw = is_string($data['hero'] ?? null) ? trim((string) $data['hero']) : '';
+            $car->hero = MediaStorage::ingestScalar(
+                $raw === '' ? null : $raw,
+                $car->hero,
+                'cars/'.$car->id,
+                'hero',
+            );
+        }
         if (array_key_exists('washPhotos', $data) && is_array($data['washPhotos'])) {
-            $car->wash_photos = array_slice(array_values(array_filter(array_map('strval', $data['washPhotos']))), 0, 12);
+            $car->wash_photos = MediaStorage::ingestWashPhotoList(
+                $data['washPhotos'],
+                $car->wash_photos,
+                (int) $car->id,
+            );
         }
 
         $this->assertOwnerCarIdentifiersUnique(

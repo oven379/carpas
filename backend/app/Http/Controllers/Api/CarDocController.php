@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\Detailing;
@@ -39,6 +40,15 @@ class CarDocController extends Controller
             'eventId' => ['nullable'],
         ]);
 
+        $urlRaw = $data['url'] ?? null;
+        $urlStr = is_string($urlRaw) ? trim($urlRaw) : '';
+        $urlStored = MediaStorage::ingestScalar(
+            $urlStr === '' ? null : $urlStr,
+            null,
+            'docs/car_'.$carId,
+            'doc_'.str_replace('.', '', uniqid('', true)),
+        );
+
         $doc = CarDoc::query()->create([
             'detailing_id' => $d->id,
             'car_id' => $carId,
@@ -47,7 +57,7 @@ class CarDocController extends Controller
             'event_id' => isset($data['eventId']) && $data['eventId'] !== '' ? (int) $data['eventId'] : null,
             'title' => trim((string) ($data['title'] ?? 'Файл')) ?: 'Файл',
             'kind' => trim((string) ($data['kind'] ?? 'photo')) ?: 'photo',
-            'url' => $data['url'] ?? null,
+            'url' => $urlStored,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -60,6 +70,7 @@ class CarDocController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $doc = CarDoc::query()->where('detailing_id', $d->id)->findOrFail($id);
+        MediaStorage::deleteStoredFileIfManaged($doc->url);
         $doc->delete();
 
         return response()->json(['ok' => true]);

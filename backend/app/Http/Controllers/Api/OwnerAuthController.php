@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Database\QueryException;
@@ -141,10 +142,24 @@ class OwnerAuthController extends Controller
             $o->garage_slug = $slug === '' ? null : $slug;
         }
         if (array_key_exists('garageBanner', $patch)) {
-            $o->garage_banner = $patch['garageBanner'] ? (string) $patch['garageBanner'] : null;
+            $raw = $patch['garageBanner'];
+            $incoming = ($raw !== null && $raw !== '') ? (string) $raw : null;
+            $o->garage_banner = MediaStorage::ingestScalar(
+                $incoming,
+                $o->garage_banner,
+                'owners/'.$o->id,
+                'banner',
+            );
         }
         if (array_key_exists('garageAvatar', $patch)) {
-            $o->garage_avatar = $patch['garageAvatar'] ? (string) $patch['garageAvatar'] : null;
+            $raw = $patch['garageAvatar'];
+            $incoming = ($raw !== null && $raw !== '') ? (string) $raw : null;
+            $o->garage_avatar = MediaStorage::ingestScalar(
+                $incoming,
+                $o->garage_avatar,
+                'owners/'.$o->id,
+                'avatar',
+            );
         }
         if (array_key_exists('showPhonePublic', $patch)) {
             $o->show_phone_public = (bool) $patch['showPhonePublic'];

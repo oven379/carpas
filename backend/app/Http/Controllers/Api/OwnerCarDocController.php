@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\Owner;
@@ -43,6 +44,15 @@ class OwnerCarDocController extends Controller
             'eventId' => ['nullable'],
         ]);
 
+        $urlRaw = $data['url'] ?? null;
+        $urlStr = is_string($urlRaw) ? trim($urlRaw) : '';
+        $urlStored = MediaStorage::ingestScalar(
+            $urlStr === '' ? null : $urlStr,
+            null,
+            'docs/car_'.$car->id,
+            'doc_'.str_replace('.', '', uniqid('', true)),
+        );
+
         $doc = CarDoc::query()->create([
             'detailing_id' => $car->detailing_id,
             'car_id' => $car->id,
@@ -51,7 +61,7 @@ class OwnerCarDocController extends Controller
             'event_id' => isset($data['eventId']) && $data['eventId'] !== '' ? (int) $data['eventId'] : null,
             'title' => trim((string) ($data['title'] ?? 'Файл')) ?: 'Файл',
             'kind' => trim((string) ($data['kind'] ?? 'photo')) ?: 'photo',
-            'url' => $data['url'] ?? null,
+            'url' => $urlStored,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -68,6 +78,7 @@ class OwnerCarDocController extends Controller
         if ($doc->source !== 'owner') {
             abort(403);
         }
+        MediaStorage::deleteStoredFileIfManaged($doc->url);
         $doc->delete();
 
         return response()->json(['ok' => true]);

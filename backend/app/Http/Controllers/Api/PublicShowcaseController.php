@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\MediaStorage;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
@@ -61,7 +62,7 @@ class PublicShowcaseController extends Controller
                 ->first();
             if ($doc && $doc->url) {
                 $best[] = [
-                    'url' => (string) $doc->url,
+                    'url' => MediaStorage::publicUrl($doc->url),
                     'ts' => optional($evt->at)->toISOString() ?? '',
                 ];
             }

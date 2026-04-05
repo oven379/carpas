@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Support\MediaStorage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -49,5 +50,12 @@ class Car extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Owner::class, 'owner_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Car $car) {
+            MediaStorage::deleteCarMediaDirectory((int) $car->id);
+        });
     }
 }

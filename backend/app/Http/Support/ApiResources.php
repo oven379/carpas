@@ -24,8 +24,8 @@ class ApiResources
             'website' => $d->website ?? '',
             'telegram' => $d->telegram ?? '',
             'instagram' => $d->instagram ?? '',
-            'logo' => $d->logo ?? '',
-            'cover' => $d->cover ?? '',
+            'logo' => MediaStorage::publicUrl($d->logo ?? null),
+            'cover' => MediaStorage::publicUrl($d->cover ?? null),
             'servicesOffered' => $d->services_offered ?? [],
             'profileCompleted' => (bool) $d->profile_completed,
             'createdAt' => optional($d->created_at)->toISOString(),
@@ -46,8 +46,8 @@ class ApiResources
             'garageSocial' => $o->garage_social ?? '',
             'showSocialPublic' => (bool) ($o->show_social_public ?? false),
             'garageSlug' => $o->garage_slug,
-            'garageBanner' => $o->garage_banner,
-            'garageAvatar' => $o->garage_avatar,
+            'garageBanner' => MediaStorage::publicUrl($o->garage_banner ?? null),
+            'garageAvatar' => MediaStorage::publicUrl($o->garage_avatar ?? null),
             'showPhonePublic' => (bool) $o->show_phone_public,
             'isPremium' => (bool) $o->is_premium,
         ];
@@ -61,6 +61,10 @@ class ApiResources
         if (!is_array($wash)) {
             $wash = [];
         }
+        $washUrls = array_values(array_map(
+            fn ($x) => MediaStorage::publicUrl(is_string($x) ? $x : ''),
+            $wash,
+        ));
 
         return [
             'id' => (string) $c->id,
@@ -78,15 +82,15 @@ class ApiResources
             'priceRub' => (int) ($c->price_rub ?? 0),
             'color' => $c->color ?? '',
             'city' => $c->city ?? '',
-            'hero' => $c->hero,
+            'hero' => MediaStorage::publicUrl($c->hero ?? null),
             'segment' => $c->segment ?? 'mass',
             'seller' => $c->seller,
             'ownerPhone' => $c->owner_phone ?? '',
             'clientName' => $c->client_name ?? '',
             'clientPhone' => $c->client_phone ?? '',
             'clientEmail' => $c->client_email ?? '',
-            'washPhotos' => $wash,
-            'washPhoto' => $wash[0] ?? '',
+            'washPhotos' => $washUrls,
+            'washPhoto' => $washUrls[0] ?? '',
             'createdAt' => optional($c->created_at)->toISOString(),
             'updatedAt' => optional($c->updated_at)->toISOString(),
         ];
@@ -122,7 +126,7 @@ class ApiResources
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),
             'detailingName' => $isService ? (string) ($e->detailing?->name ?? '') : '',
-            'detailingLogo' => $isService ? (string) ($e->detailing?->logo ?? '') : '',
+            'detailingLogo' => $isService ? MediaStorage::publicUrl($e->detailing?->logo ?? null) : '',
         ];
     }
 
@@ -136,7 +140,7 @@ class ApiResources
             'source' => $d->source ?? 'service',
             'title' => $d->title ?? 'Файл',
             'kind' => $d->kind ?? 'photo',
-            'url' => $d->url ?? '',
+            'url' => MediaStorage::publicUrl($d->url ?? null),
             'eventId' => $d->event_id ? (string) $d->event_id : null,
             'createdAt' => optional($d->created_at)->toISOString(),
         ];
