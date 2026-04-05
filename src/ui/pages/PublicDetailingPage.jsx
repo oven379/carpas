@@ -142,7 +142,7 @@ export default function PublicDetailingPage() {
         className="detHero detHero--card"
         style={det.cover ? { backgroundImage: `url("${String(det.cover).replaceAll('"', '%22')}")` } : undefined}
       >
-        <div className="detHero__overlay detHero__overlay--card">
+        <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
           {det.logo ? (
             <div className="detHero__logo detHero__logo--card">
               <img alt="Логотип" src={det.logo} />

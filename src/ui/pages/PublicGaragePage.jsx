@@ -143,7 +143,7 @@ export default function PublicGaragePage() {
             : undefined
         }
       >
-        <div className="detHero__overlay detHero__overlay--card">
+        <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
           {owner.garageAvatar ? (
             <div className="detHero__logo detHero__logo--card">
               <img alt="" src={owner.garageAvatar} />

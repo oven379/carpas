@@ -127,7 +127,7 @@ export default function DetailingSettingsPage() {
           className="detHero detHero--card"
           style={draft.cover ? { backgroundImage: `url("${String(draft.cover).replaceAll('"', '%22')}")` } : undefined}
         >
-          <div className="detHero__overlay detHero__overlay--card">
+          <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
             {draft.logo ? (
               <div className="detHero__logo detHero__logo--card">
                 <img alt="Логотип" src={draft.logo} />

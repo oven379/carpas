@@ -2514,6 +2514,11 @@ a.backNav {
   z-index: 2;
 }
 
+/* Публичный баннер: метрики внизу — логотип/аватар выше, чтобы не наезжать на подписи HeroCoverStat */
+.detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
+  bottom: 108px;
+}
+
 .detHero__logo img {
   position: absolute;
   inset: 0;
@@ -5609,6 +5614,15 @@ a.btn.carPage__recsAddVisitFull,
     right: 12px;
     left: auto;
     bottom: 12px;
+  }
+
+  /* Две метрики — логотип выше, иначе наезжает на подписи (узкий экран) */
+  .detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
+    bottom: 126px;
+  }
+
+  .garageHero .detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
+    bottom: 120px;
   }
 
   /* Герой карточки: цвет / год / пробег (и владелец, и детейлинг; без VIN и номера на обложке) */
