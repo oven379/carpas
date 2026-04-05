@@ -42,8 +42,24 @@ import {
 import { detailingBrandHref } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
+import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/visitEditCalendar.js'
+import { formatHttpErrorMessage } from '../../api/http.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
+
+/** Не хватает данных для «завершённого» визита — при «Назад» спрашиваем про черновик. */
+function isIncompleteDetailingDraft(draft, baseMileageKm) {
+  const title = String(draft.title || '').trim()
+  const km = Number(String(draft.mileageKm || '0')) || 0
+  const n =
+    (Array.isArray(draft.services) ? draft.services.length : 0) +
+    (Array.isArray(draft.maintenanceServices) ? draft.maintenanceServices.length : 0)
+  if (!title) return true
+  if (!km) return true
+  if (baseMileageKm && km < baseMileageKm) return true
+  if (n < 1) return true
+  return false
+}
 
 /** Миниатюра документа визита: при битой ссылке или пустом url — кнопка «Добавить фото». */
 function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
@@ -97,6 +113,67 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
           {img}
         </a>
       )}
+    </div>
+  )
+}
+
+/** Превью последнего завершённого визита детейлинга над формой нового визита. */
+function DetailingLastVisitPreview({ event, docsForEvent, setPhotoLb }) {
+  const e = event
+  const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
+  const photos = docsForEvent(e.id)
+  const galleryItems = docsToPhotoItems(photos)
+  return (
+    <div className="historyLastVisitPreview">
+      <div className="rowItem__title">{e.title || 'Событие'}</div>
+      <div className="rowItem__meta">
+        <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
+        <span className="eventMeta__sep" aria-hidden="true">
+          {' '}
+          ·{' '}
+        </span>
+        <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
+      </div>
+      {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+        <div className="rowItem__sub">
+          <span className="eventLabel">ТО:</span> {e.maintenanceServices.join(', ')}
+        </div>
+      ) : null}
+      {washList.length ? (
+        <div className="rowItem__sub">
+          <span className="eventLabel">Уход:</span> {washList.join(', ')}
+        </div>
+      ) : null}
+      {detList.length ? (
+        <div className="rowItem__sub">
+          <span className="eventLabel">Детейлинг:</span> {detList.join(', ')}
+        </div>
+      ) : null}
+      {photos.length ? (
+        <div className="thumbs" style={{ marginTop: 10 }}>
+          {photos.slice(0, 6).map((d) => {
+            const gi = galleryItems.findIndex((g) => g.id === d.id)
+            return (
+              <HistoryEventDocThumb
+                key={d.id}
+                doc={d}
+                canReplace={false}
+                onAddPhoto={() => {}}
+                openGallery={
+                  gi >= 0
+                    ? () =>
+                        setPhotoLb({
+                          items: galleryItems.map((x) => ({ url: x.url, title: x.title })),
+                          startIndex: gi,
+                        })
+                    : undefined
+                }
+              />
+            )
+          })}
+        </div>
+      ) : null}
+      {e.note ? <div className="note">{e.note}</div> : null}
     </div>
   )
 }
@@ -427,20 +504,20 @@ export default function HistoryPage() {
   const from = fromRaw ? decodeURIComponent(fromRaw) : ''
   const wantNew = sp.get('new') === '1'
   const editParam = sp.get('edit')
+  const prevHistoryCarIdRef = useRef(null)
 
   useEffect(() => {
+    if (!id) return
     let cancelled = false
     ;(async () => {
-      setDataReady(false)
+      const idChanged = prevHistoryCarIdRef.current !== id
+      prevHistoryCarIdRef.current = id
+      if (idChanged) setDataReady(false)
       try {
-        const cr = await r.getCar(id)
+        const [cr, ev, dc] = await Promise.all([r.getCar(id), r.listEvents(id), r.listDocs(id)])
         if (cancelled) return
         setCar(cr)
-        const ev = await r.listEvents(id)
-        if (cancelled) return
         setEvents(Array.isArray(ev) ? ev : [])
-        const dc = await r.listDocs(id)
-        if (cancelled) return
         setAllDocs(Array.isArray(dc) ? dc : [])
       } catch {
         if (!cancelled) {
@@ -474,6 +551,62 @@ export default function HistoryPage() {
     if (t === 'all' || t === 'owner' || t === 'service') setTab(t)
   }, [sp, mode])
 
+  const lastFinalizedDetailingVisit = useMemo(() => {
+    if (mode !== 'detailing') return null
+    const fin = events.filter((e) => e.source === 'service' && !e.isDraft)
+    fin.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
+    return fin[0] || null
+  }, [events, mode])
+
+  const visibleEvents = useMemo(() => {
+    if (mode === 'owner') {
+      if (tab === 'owner') return ownerEvents
+      if (tab === 'service') return serviceEvents
+      return events
+    }
+    return [...events].sort((a, b) => {
+      const ad = a.isDraft ? 1 : 0
+      const bd = b.isDraft ? 1 : 0
+      if (ad !== bd) return bd - ad
+      return String(b.at || '').localeCompare(String(a.at || ''))
+    })
+  }, [mode, tab, ownerEvents, serviceEvents, events])
+
+  useEffect(() => {
+    if (mode !== 'detailing' || !wantNew || editParam || !dataReady || !id) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const km = baseMileageKm || 0
+        const evt = await r.addEvent(scope, id, {
+          type: 'visit',
+          isDraft: true,
+          title: '',
+          mileageKm: km,
+          at: new Date().toISOString(),
+        })
+        if (cancelled || !evt?.id) return
+        invalidateRepo()
+        setEvents((prev) => {
+          const list = Array.isArray(prev) ? [...prev] : []
+          if (list.some((x) => String(x.id) === String(evt.id))) return list
+          return [evt, ...list]
+        })
+        setSp((prev) => {
+          const next = new URLSearchParams(prev)
+          next.set('new', '1')
+          next.set('edit', String(evt.id))
+          return next
+        }, { replace: true })
+      } catch (e) {
+        if (!cancelled) alert(formatHttpErrorMessage(e, 'Не удалось создать черновик визита.'))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, wantNew, editParam, dataReady, id, baseMileageKm, r, scope, setSp, setEvents])
+
   const [draft, setDraft] = useState({
     title: '',
     mileageKm: '',
@@ -497,6 +630,13 @@ export default function HistoryPage() {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
     return () => window.clearInterval(id)
   }, [])
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === 'visible') setNowMs(Date.now())
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
   const isWithinEditWindow = useCallback(
     (e) => {
       const base = e?.updatedAt || e?.createdAt || e?.at || null
@@ -510,7 +650,7 @@ export default function HistoryPage() {
   const canOpen = useCallback((e) => {
     if (!e) return false
     if (mode === 'detailing') return e.source === 'service'
-    if (mode === 'owner') return e.source === 'owner'
+    if (mode === 'owner') return true
     return false
   }, [mode])
 
@@ -518,7 +658,8 @@ export default function HistoryPage() {
     if (!e) return false
     if (e.source !== 'service') return false
     if (mode !== 'detailing') return false
-    return isWithinEditWindow(e)
+    if (e.isDraft) return true
+    return isSameCalendarDayAsVisit(e.at, nowMs)
   }
 
   const canEditOwner = (e) => {
@@ -632,19 +773,23 @@ export default function HistoryPage() {
     }
   }, [mode, detailing])
 
-  const visibleEvents =
-    mode === 'owner'
-      ? tab === 'owner'
-        ? ownerEvents
-        : tab === 'service'
-          ? serviceEvents
-          : events
-      : events
-
   const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
   const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
   const isEditing = Boolean(editingId)
   const formLocked = isEditing && !editAllowed
+  const readonlyFormNotice = editingId && !editAllowed && editingEvent ? visitReadonlyFormNotice(mode, editingEvent) : ''
+  const detailingAwaitDraft = mode === 'detailing' && wantNew && !editParam
+  const formHeading = !editingId
+    ? mode === 'detailing' && wantNew
+      ? 'Новый визит'
+      : 'Добавить визит / событие'
+    : editAllowed
+      ? editingEvent?.isDraft
+        ? 'Новый визит (черновик)'
+        : 'Редактировать визит'
+      : editingEvent?.source === 'service' && mode === 'owner'
+        ? 'Визит сервиса (просмотр)'
+        : 'Просмотр визита'
   const editingPhotos = useMemo(() => {
     if (!editingId || !editAllowed) return []
     return docsForEvent(editingId)
@@ -681,8 +826,33 @@ export default function HistoryPage() {
       : {}),
   })
 
+  const closeVisitFormInUrl = () => {
+    setShowNew(false)
+    setEditingId(null)
+    const next = new URLSearchParams(sp)
+    next.delete('new')
+    next.delete('edit')
+    setSp(next, { replace: true })
+  }
+
+  const saveDetailingDraftAndGoBack = async () => {
+    if (!editingId) return
+    if (isIncompleteDetailingDraft(draft, baseMileageKm)) {
+      const ok = confirm('Карточка заполнена не полностью. Сохранить как черновик?')
+      if (!ok) return
+    }
+    try {
+      await r.updateEvent(id, editingId, { ...buildVisitPayload(), isDraft: true })
+      invalidateRepo()
+      closeVisitFormInUrl()
+      if (from) nav(from)
+    } catch (e) {
+      alert(formatHttpErrorMessage(e, 'Не удалось сохранить черновик.'))
+    }
+  }
+
   const ingestPickedVisitPhotos = async (picked) => {
-    if (formLocked || visitPhotoBusy || !picked.length) return
+    if (detailingAwaitDraft || formLocked || visitPhotoBusy || !picked.length) return
     let room = VISIT_MAX_PHOTOS
     if (editingId && editAllowed) {
       room = Math.max(0, VISIT_MAX_PHOTOS - docsForEvent(editingId).length)
@@ -860,41 +1030,48 @@ export default function HistoryPage() {
             </div>
           ) : null}
         </div>
-        <button
-          className="btn"
-          data-variant="primary"
-          onClick={() => {
-            setShowNew(true)
-            setEditingId(null)
-            setDraft({
-              title: '',
-              mileageKm: '',
-              note: '',
-              services: [],
-              maintenanceServices: [],
-              type: 'visit',
-              ...EMPTY_CARE_DRAFT,
-            })
-            const next = new URLSearchParams(sp)
-            next.set('new', '1')
-            next.delete('edit')
-            setSp(next, { replace: true })
-          }}
-        >
-          Новый визит
-        </button>
+        {mode !== 'detailing' ? (
+          <button
+            className="btn"
+            data-variant="primary"
+            onClick={() => {
+              setShowNew(true)
+              setEditingId(null)
+              setDraft({
+                title: '',
+                mileageKm: '',
+                note: '',
+                services: [],
+                maintenanceServices: [],
+                type: 'visit',
+                ...EMPTY_CARE_DRAFT,
+              })
+              const next = new URLSearchParams(sp)
+              next.set('new', '1')
+              next.delete('edit')
+              setSp(next, { replace: true })
+            }}
+          >
+            Новый визит
+          </button>
+        ) : null}
       </div>
 
       <div className="list">
         {visibleEvents.map((e) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
           const showDetFooter = mode === 'owner' && e.source === 'service' && detForBadge
+          const showServiceCornerAvatar =
+            e.source === 'service' && (mode !== 'owner' || !detForBadge)
+          const serviceDetLabel = String(e.detailingName || '').trim() || 'Сервис'
+          const serviceDetInitials = serviceDetLabel.slice(0, 2).toUpperCase()
           const detBrandTarget = showDetFooter ? detailingBrandHref(detForBadge) : null
           const cardInnerLink = Boolean(showDetFooter && detBrandTarget)
+          const visitReadonlyCard = Boolean(canOpen(e) && !canEditAny(e))
           return (
           <Card
             key={e.id}
-            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
+            className={`card pad${canOpen(e) ? ' eventCard--clickable' : ''}${visitReadonlyCard ? ' eventCard--visitReadonly' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
             role={canOpen(e) && !cardInnerLink ? 'button' : undefined}
             tabIndex={canOpen(e) ? 0 : undefined}
             onClick={() => openVisitEdit(e)}
@@ -908,9 +1085,30 @@ export default function HistoryPage() {
             aria-label={canOpen(e) ? 'Открыть визит' : undefined}
             title={canOpen(e) ? (canEditAny(e) ? 'Нажмите, чтобы отредактировать' : 'Нажмите, чтобы посмотреть') : undefined}
           >
-            <div className="row spread gap eventRow">
+            <div
+              className={`row spread gap eventRow${showServiceCornerAvatar ? ' eventRow--withServiceAvatar' : ''}`}
+            >
               <div className="eventMain">
                 <div className="rowItem__title">{e.title || 'Событие'}</div>
+                {mode === 'detailing' && e.isDraft ? (
+                  <div className="historyDraftCardBar row gap wrap" onClick={(ev) => ev.stopPropagation()}>
+                    <span className="pill" data-tone="accent">
+                      Черновик
+                    </span>
+                    <button
+                      type="button"
+                      className="btn historyDraftEditBtn"
+                      data-variant="outline"
+                      onClick={(ev) => {
+                        ev.stopPropagation()
+                        openVisitEdit(e)
+                      }}
+                    >
+                      <span className="carPage__icon carPage__icon--edit historyDraftEditBtn__icon" aria-hidden="true" />
+                      Править
+                    </button>
+                  </div>
+                ) : null}
                 <div className="rowItem__meta">
                   <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
                   <span className="eventMeta__sep" aria-hidden="true">
@@ -919,9 +1117,30 @@ export default function HistoryPage() {
                   </span>
                   <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
                 </div>
-                {e.source === 'service' ? (
-                  <div className="muted small" style={{ marginTop: 6 }}>
-                    Подтверждено детейлингом
+                {visitReadonlyCard ? (
+                  <div className="visitCardReadonlyRow">
+                    <span className="pill visitCardReadonlyPill" data-tone="neutral">
+                      Только просмотр
+                    </span>
+                  </div>
+                ) : null}
+                {e.isDraft && mode === 'detailing' ? (
+                  <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
+                    Черновик визита · нажмите «Сохранить» в форме, чтобы запись стала частью истории
+                  </div>
+                ) : e.source === 'service' ? (
+                  <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
+                    {mode === 'owner' ? (
+                      <>Запись сервиса</>
+                    ) : visitReadonlyCard ? (
+                      <>Подтверждено детейлингом · день визита прошёл</>
+                    ) : (
+                      <>Подтверждено детейлингом</>
+                    )}
+                  </div>
+                ) : visitReadonlyCard && mode === 'owner' ? (
+                  <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
+                    Окно редактирования истекло
                   </div>
                 ) : null}
                 {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
@@ -989,6 +1208,26 @@ export default function HistoryPage() {
                 })()}
                 {e.note ? <div className="note">{e.note}</div> : null}
               </div>
+              {showServiceCornerAvatar ? (
+                <div
+                  className="eventCardServiceAvatar"
+                  title={serviceDetLabel}
+                  aria-label={serviceDetLabel}
+                  onClick={(ev) => ev.stopPropagation()}
+                  onKeyDown={(ev) => ev.stopPropagation()}
+                  role="img"
+                >
+                  <div className="eventCardServiceAvatar__inner">
+                    {e.detailingLogo ? (
+                      <img alt="" src={e.detailingLogo} className="eventCardServiceAvatar__img" />
+                    ) : (
+                      <span className="eventCardServiceAvatar__fallback" aria-hidden="true">
+                        {serviceDetInitials}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : null}
             </div>
             {showDetFooter ? (
               <div className="eventCardDetBadgeRow">
@@ -1048,13 +1287,36 @@ export default function HistoryPage() {
 
       {showNew ? (
         <Card className="card pad" style={{ marginTop: 12 }} ref={formRef}>
-          <h2 className="h2">{editingId ? 'Редактировать визит' : 'Добавить визит / событие'}</h2>
-          {editingId && !editAllowed ? (
-            <div className="muted small" style={{ marginTop: 6 }}>
-              Редактирование доступно в течение 3 часов с момента последнего сохранения визита.
-            </div>
+          {mode === 'detailing' ? (
+            <>
+              <p className="muted small historyLastVisitPreviewHead">Последний сохранённый визит по этому авто</p>
+              {lastFinalizedDetailingVisit ? (
+                <DetailingLastVisitPreview
+                  event={lastFinalizedDetailingVisit}
+                  docsForEvent={docsForEvent}
+                  setPhotoLb={setPhotoLb}
+                />
+              ) : (
+                <p className="muted small historyLastVisitPreviewEmpty">
+                  Пока нет сохранённых визитов — этот визит станет первой записью в истории.
+                </p>
+              )}
+              <div className="historyFormDivider topBorder" />
+            </>
           ) : null}
-          <div className="formGrid historyFormGrid">
+          {detailingAwaitDraft ? (
+            <div className="muted" style={{ padding: '10px 0' }}>
+              Создаём черновик визита…
+            </div>
+          ) : (
+            <>
+              <h2 className="h2">{formHeading}</h2>
+              {readonlyFormNotice ? (
+                <div className="visitFormReadonlyNotice muted small" style={{ marginTop: 6 }}>
+                  {readonlyFormNotice}
+                </div>
+              ) : null}
+              <div className="formGrid historyFormGrid">
             <div className="field serviceHint__fieldWrap" id={FORM_TITLE_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Заголовок</span>
@@ -1197,14 +1459,14 @@ export default function HistoryPage() {
                     e.target.value = ''
                     void ingestPickedVisitPhotos(picked)
                   }}
-                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy}
+                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
                 />
                 <button
                   type="button"
                   className="btn filePick__btn"
                   data-variant="outline"
                   onClick={() => visitPhotosInputRef.current?.click?.()}
-                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy}
+                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
                 >
                   Добавить фото
                 </button>
@@ -1287,14 +1549,15 @@ export default function HistoryPage() {
             </Field>
           </div>
           <div className="row gap wrap historyFormActions">
+            {!(formLocked && editingId) ? (
             <Button
               className="btn"
               variant="primary"
-              disabled={formLocked}
+              disabled={formLocked || detailingAwaitDraft}
               onClick={async () => {
                 try {
                   if (editingId && !editAllowed) {
-                    alert('Редактирование визита доступно только в течение 3 часов с момента последнего сохранения.')
+                    alert(visitReadonlyFormNotice(mode, editingEvent) || 'Редактирование недоступно.')
                     return
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
@@ -1302,7 +1565,17 @@ export default function HistoryPage() {
                     alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
                     return
                   }
-                  const payload = buildVisitPayload()
+                  if (mode === 'detailing' && editingEvent?.isDraft && isIncompleteDetailingDraft(draft, baseMileageKm)) {
+                    alert(
+                      'Чтобы сохранить визит в истории, укажите заголовок, пробег не ниже текущего по авто и выберите хотя бы одну услугу.',
+                    )
+                    return
+                  }
+                  const payloadBase = buildVisitPayload()
+                  const payload =
+                    mode === 'detailing' && editingEvent?.isDraft
+                      ? { ...payloadBase, isDraft: false }
+                      : payloadBase
 
                   const evt = editingId
                     ? await r.updateEvent(id, editingId, payload)
@@ -1348,13 +1621,14 @@ export default function HistoryPage() {
                     setTab('all')
                   }
                   setSp(next, { replace: true })
-                } catch {
-                  alert('Не удалось сохранить историю. Попробуйте ещё раз.')
+                } catch (e) {
+                  alert(formatHttpErrorMessage(e, 'Не удалось сохранить историю. Попробуйте ещё раз.'))
                 }
               }}
             >
               Сохранить
             </Button>
+            ) : null}
             {editingId && editingEvent && canEditAny(editingEvent) ? (
               <button
                 className="btn"
@@ -1363,7 +1637,7 @@ export default function HistoryPage() {
                 disabled={!editAllowed}
                 onClick={async () => {
                   if (!editAllowed) {
-                    alert('Удаление доступно только в течение 3 часов с момента последнего сохранения визита.')
+                    alert(visitReadonlyFormNotice(mode, editingEvent) || 'Удаление недоступно.')
                     return
                   }
                   const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
@@ -1390,14 +1664,24 @@ export default function HistoryPage() {
                 Удалить
               </button>
             ) : null}
-            {mode === 'detailing' && from ? (
+            {mode === 'detailing' && editingEvent?.isDraft && !formLocked ? (
+              <button
+                type="button"
+                className="btn"
+                data-variant="outline"
+                onClick={() => void saveDetailingDraftAndGoBack()}
+              >
+                Назад
+              </button>
+            ) : null}
+            {mode === 'detailing' && from && !(formLocked && editingId) && !editingEvent?.isDraft ? (
               <button
                 className="btn"
                 data-variant="outline"
                 onClick={async () => {
                   try {
                     if (editingId && !editAllowed) {
-                      alert('Редактирование визита доступно только в течение 3 часов с момента последнего сохранения.')
+                      alert(visitReadonlyFormNotice(mode, editingEvent) || 'Редактирование недоступно.')
                       return
                     }
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
@@ -1433,29 +1717,33 @@ export default function HistoryPage() {
 
                     invalidateRepo()
                     nav(from)
-                  } catch {
-                    alert('Не удалось сохранить историю. Попробуйте ещё раз.')
+                  } catch (e) {
+                    alert(formatHttpErrorMessage(e, 'Не удалось сохранить историю. Попробуйте ещё раз.'))
                   }
                 }}
               >
                 Сохранить и назад
               </button>
             ) : null}
-            <button
-              className="btn"
-              data-variant="ghost"
-              onClick={() => {
-                setShowNew(false)
-                setEditingId(null)
-                const next = new URLSearchParams(sp)
-                next.delete('new')
-                next.delete('edit')
-                setSp(next, { replace: true })
-              }}
-            >
-              Отмена
-            </button>
+            {!(mode === 'detailing' && editingEvent?.isDraft && !formLocked) ? (
+              <button
+                className="btn"
+                data-variant="ghost"
+                onClick={() => {
+                  setShowNew(false)
+                  setEditingId(null)
+                  const next = new URLSearchParams(sp)
+                  next.delete('new')
+                  next.delete('edit')
+                  setSp(next, { replace: true })
+                }}
+              >
+                Отмена
+              </button>
+            ) : null}
           </div>
+            </>
+          )}
         </Card>
       ) : null}
       <PhotoLightbox

@@ -5,7 +5,10 @@ import { BackNav, Button, Card, ComboBox, Field, Input, ServiceHint } from '../c
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
+  describeRuPlateValidationError,
+  describeVinValidationError,
   formatPhoneRuInput,
+  fmtPlateFull,
   normDigits,
   normPlateBase,
   normPlateRegion,
@@ -13,7 +16,7 @@ import {
   parsePlateFull,
 } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
-import allCities from 'country-city-state/cities.json'
+import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import {
   addCustomMake,
   addCustomModel,
@@ -97,7 +100,9 @@ export default function CarEditPage({ mode }) {
     return () => {
       cancelled = true
     }
-  }, [mode, id, r, r._version])
+    // Намеренно без r._version: иначе после сохранения лишний getCar до навигации.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- см. выше
+  }, [mode, id])
 
   const baseMileageKm = mode === 'edit' && car ? Number(car.mileageKm) || 0 : 0
   const makes = useMemo(() => {
@@ -119,14 +124,6 @@ export default function CarEditPage({ mode }) {
     return map
   }, [])
 
-  const citiesRu = useMemo(() => {
-    const names = (Array.isArray(allCities) ? allCities : [])
-      .filter((c) => c?.countryCode === 'RU')
-      .map((c) => String(c?.locales?.ru?.name || c?.name || '').trim())
-      .filter(Boolean)
-    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b))
-  }, [])
-
   const years = useMemo(() => {
     const now = new Date().getFullYear()
     const start = 1950
@@ -138,6 +135,8 @@ export default function CarEditPage({ mode }) {
   const [modelOptions, setModelOptions] = useState([])
 
   const [draft, setDraft] = useState(() => emptyDraft())
+  const [saveBusy, setSaveBusy] = useState(false)
+  const saveInFlightRef = useRef(false)
   const loadedKeyRef = useRef('')
   const heroCoverFileRef = useRef(null)
 
@@ -339,7 +338,7 @@ export default function CarEditPage({ mode }) {
           <div className="field serviceHint__fieldWrap" id="car-edit-mileage-hint">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Пробег (км)</span>
-              <ServiceHint scopeId="car-edit-mileage-hint" label="Справка: пробег">
+              <ServiceHint scopeId="car-edit-mileage-hint" variant="compact" label="Справка: пробег">
                 {mode === 'edit' && baseMileageKm ? (
                   <p className="serviceHint__panelText">Минимум {baseMileageKm} км — по данным последнего визита в истории.</p>
                 ) : (
@@ -363,12 +362,79 @@ export default function CarEditPage({ mode }) {
               placeholder={mode === 'edit' && baseMileageKm ? String(baseMileageKm) : '12000'}
             />
           </div>
+          <Field label="Цвет">
+            <ComboBox
+              value={draft.color}
+              options={COLOR_SUGGESTIONS}
+              placeholder="Например: Чёрный (можно свой вариант)"
+              maxItems={20}
+              onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
+            />
+          </Field>
+          <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">VIN</span>
+              <ServiceHint scopeId="car-edit-vin-hint" variant="compact" label="Справка: VIN">
+                <p className="serviceHint__panelText">
+                  Ровно 17 символов: латиница (A–Z) и цифры. Буквы I, O и Q в VIN не используются — при вводе они
+                  отбрасываются.
+                </p>
+                <p className="serviceHint__panelText">
+                  9-й символ — контрольный (проверка по ISO 3779 / NHTSA). Поле можно оставить пустым, если VIN пока
+                  неизвестен.
+                </p>
+              </ServiceHint>
+            </div>
+            <Input
+              className="input mono"
+              value={draft.vin}
+              maxLength={17}
+              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
+              placeholder="WDD..."
+            />
+          </div>
+          <div className="field serviceHint__fieldWrap" id="car-edit-plate-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">Госномер</span>
+              <ServiceHint scopeId="car-edit-plate-hint" variant="compact" label="Справка: госномер">
+                <p className="serviceHint__panelText">
+                  Как у легкового номера РФ: слева буква, три цифры, две буквы; справа код региона (2 или 3 цифры).
+                  Допустимы только буквы, которые ставят на таких номерах: А, В, Е, К, М, Н, О, Р, С, Т, У, Х — в
+                  латинской раскладке это A, B, E, K, M, H, O, P, C, T, Y, X (буква Н на табличке выглядит как латинское
+                  H).
+                </p>
+                <p className="serviceHint__panelText">
+                  Остальные латинские буквы при вводе отбрасываются. Номер целиком можно оставить пустым.
+                </p>
+              </ServiceHint>
+            </div>
+            <div className="row gap" style={{ alignItems: 'center' }}>
+              <Input
+                className="input mono"
+                value={draft.plate}
+                maxLength={6}
+                onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBase(e.target.value) }))}
+                placeholder="A777AA"
+              />
+              <Input
+                className="input mono"
+                inputMode="numeric"
+                value={draft.plateRegion}
+                maxLength={3}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
+                }
+                placeholder="77"
+                title="Регион"
+              />
+            </div>
+          </div>
           <Field label="Город">
             <ComboBox
               value={draft.city}
-              options={citiesRu}
-              placeholder="Начните вводить… (например: Москва)"
-              maxItems={60}
+              options={RUSSIAN_MILLION_PLUS_CITIES}
+              placeholder="Города-миллионники в списке; можно ввести любой город"
+              maxItems={20}
               onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
             />
           </Field>
@@ -377,9 +443,11 @@ export default function CarEditPage({ mode }) {
               <div className="field serviceHint__fieldWrap" id="car-edit-client-name-hint">
                 <div className="field__top serviceHint__fieldTop">
                   <span className="field__label">Клиент (имя)</span>
-                  <ServiceHint scopeId="car-edit-client-name-hint" label="Справка: клиент">
+                  <ServiceHint scopeId="car-edit-client-name-hint" variant="compact" label="Справка: клиент">
                     <p className="serviceHint__panelText">
-                      Имя, телефон и почта необязательны; помогают найти карточку в кабинете и связаться с владельцем.
+                      Имя, телефон и почта необязательны; помогают найти карточку в кабинете и связаться с владельцем. Перед
+                      сохранением новой карточки сервис проверяет совпадения по VIN и по паре «телефон + почта» — если такая
+                      машина уже есть, можно открыть существующую вместо дубля.
                     </p>
                   </ServiceHint>
                 </div>
@@ -413,59 +481,11 @@ export default function CarEditPage({ mode }) {
               </Field>
             </>
           ) : null}
-          <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">VIN</span>
-              <ServiceHint scopeId="car-edit-vin-hint" label="Справка: VIN">
-                <p className="serviceHint__panelText">До 17 символов латиницы и цифр. Поле можно оставить пустым, если VIN пока неизвестен.</p>
-              </ServiceHint>
-            </div>
-            <Input
-              className="input mono"
-              value={draft.vin}
-              maxLength={17}
-              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
-              placeholder="WDD..."
-            />
-          </div>
-          <Field label="Госномер">
-            <div className="row gap" style={{ alignItems: 'center' }}>
-              <Input
-                className="input mono"
-                value={draft.plate}
-                maxLength={6}
-                onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBase(e.target.value) }))}
-                placeholder="A777AA"
-              />
-              <Input
-                className="input mono"
-                inputMode="numeric"
-                value={draft.plateRegion}
-                maxLength={3}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
-                }
-                placeholder="77"
-                title="Регион"
-              />
-            </div>
-          </Field>
-          <Field label="Цвет">
-            <ComboBox
-              value={draft.color}
-              options={COLOR_SUGGESTIONS}
-              placeholder="Например: Чёрный (можно свой вариант)"
-              maxItems={20}
-              onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
-            />
-          </Field>
         </div>
 
         <div className="topBorder carEditCoverBlock">
           <div className="muted small carEditCoverBlock__title">Обложка карточки</div>
-          <p className="muted small" style={{ marginTop: 6, marginBottom: 10 }}>
-            {PHOTO_LANDSCAPE_HINT_SENTENCE}
-          </p>
+          <p className="muted small carEditCoverBlock__hint">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
           <input
             ref={heroCoverFileRef}
             className="srOnly"
@@ -508,14 +528,32 @@ export default function CarEditPage({ mode }) {
             <Button
               className="btn"
               variant="primary"
+              disabled={saveBusy}
+              aria-busy={saveBusy || undefined}
               onClick={async () => {
+                if (saveInFlightRef.current) return
+                const vinErr = describeVinValidationError(normVin(draft.vin))
+                const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
+                if (vinErr) {
+                  alert(vinErr)
+                  return
+                }
+                if (plateErr) {
+                  alert(plateErr)
+                  return
+                }
+                if (mode === 'edit') {
+                  const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                  if (nextMileage < baseMileageKm) {
+                    alert(`Пробег не может быть меньше исходного (${baseMileageKm} км).`)
+                    return
+                  }
+                }
+
+                saveInFlightRef.current = true
+                setSaveBusy(true)
                 try {
                   if (mode === 'edit') {
-                    const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                    if (nextMileage < baseMileageKm) {
-                      alert(`Пробег не может быть меньше исходного (${baseMileageKm} км).`)
-                      return
-                    }
                     try {
                       await r.updateCar(id, draft)
                     } catch (e) {
@@ -532,7 +570,42 @@ export default function CarEditPage({ mode }) {
                     else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
                   } else {
                     const vin = normVin(draft.vin)
-                    if (vin && r.findCarsByVin) {
+                    const clientPhone = String(draft.clientPhone || '').trim()
+                    const clientEmail = String(draft.clientEmail || '').trim().toLowerCase()
+
+                    if (who === 'detailing' && r.findDuplicateCarsForDetailing) {
+                      if (vin || (clientPhone && clientEmail)) {
+                        try {
+                          const dupes = await r.findDuplicateCarsForDetailing({
+                            vin,
+                            clientPhone,
+                            clientEmail,
+                          })
+                          if (Array.isArray(dupes) && dupes.length > 0) {
+                            const c = dupes[0]
+                            const plateLine = fmtPlateFull(c.plate, c.plateRegion)
+                            const more =
+                              dupes.length > 1 ? `\n\nЕщё совпадений в базе: ${dupes.length - 1}.` : ''
+                            const msg =
+                              'Найдена существующая карточка по VIN и/или телефону и почте клиента:\n\n' +
+                              `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
+                              (plateLine ? `\nГосномер: ${plateLine}` : '') +
+                              (c.detailingName ? `\nСервис: ${c.detailingName}` : '') +
+                              `${more}\n\n` +
+                              'Открыть её вместо создания новой?\n\n' +
+                              'ОК — перейти к карточке, Отмена — создать новую.'
+                            if (confirm(msg)) {
+                              nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
+                              return
+                            }
+                          }
+                        } catch {
+                          /* ignore duplicate check */
+                        }
+                      }
+                    }
+
+                    if (who === 'owner' && vin && r.findCarsByVin) {
                       try {
                         const matches = await r.findCarsByVin(vin)
                         if (Array.isArray(matches) && matches.length) {
@@ -548,7 +621,7 @@ export default function CarEditPage({ mode }) {
                     }
                     const plateKey =
                       draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
-                    if (plateKey && r.findCarsByPlate) {
+                    if (who === 'owner' && plateKey && r.findCarsByPlate) {
                       try {
                         const matches2 = await r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion })
                         if (Array.isArray(matches2) && matches2.length) {
@@ -577,10 +650,13 @@ export default function CarEditPage({ mode }) {
                   alert(
                     formatHttpErrorMessage(e, 'Не удалось сохранить. Проверьте данные и подключение к серверу.'),
                   )
+                } finally {
+                  saveInFlightRef.current = false
+                  setSaveBusy(false)
                 }
               }}
             >
-              Сохранить
+              {saveBusy ? 'Сохранение…' : 'Сохранить'}
             </Button>
             <Link className="btn" data-variant="ghost" to={backNavTo}>
               Отмена

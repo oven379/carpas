@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
+import { AuthLegalConsent, BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
@@ -90,30 +90,13 @@ export default function PartnerLoginPage() {
                   placeholder="••••••••"
                 />
               </Field>
-              <label className="authConsent field--full">
-                <input
-                  type="checkbox"
-                  className="authConsent__input"
-                  checked={agreedToTerms}
-                  onChange={(e) => setAgreedToTerms(e.target.checked)}
-                />
-                <span className="authConsent__text">
-                  Я соглашаюсь с{' '}
-                  <Link className="authConsent__legalLink" to="/about">
-                    политикой конфиденциальности
-                  </Link>{' '}
-                  и{' '}
-                  <Link className="authConsent__legalLink" to="/about">
-                    правилами использования сервиса
-                  </Link>
-                  .
-                </span>
-              </label>
+              <AuthLegalConsent inputId="partner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
-            <div className="row gap wrap authFormActions">
+            <div className="row gap wrap authFormActions authFormActions--dual" style={{ marginTop: 14 }}>
               <Button
                 className="btn"
                 variant="primary"
+                type="button"
                 onClick={async () => {
                   if (!agreedToTerms) {
                     alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
@@ -144,15 +127,12 @@ export default function PartnerLoginPage() {
                   }
                 }}
               >
-                Войти
+                В кабинет
               </Button>
-            </div>
-            <p className="muted small" style={{ marginTop: 16 }}>
-              Ещё нет аккаунта?{' '}
-              <Link className="link" to="/auth/partner/apply" state={{ from }}>
-                Подать заявку — стать партнёром
+              <Link className="btn" data-variant="outline" to="/auth/partner/apply" state={{ from }}>
+                Регистрация
               </Link>
-            </p>
+            </div>
           </Card>
         </div>
       </div>

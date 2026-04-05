@@ -137,6 +137,10 @@ const PLATE_MAP_CYR_TO_LAT = new Map([
   ['Х', 'X'],
 ])
 
+/** Латинские буквы, допустимые на российских госномерах (как на табличке: АВЕКМНОРСТУХ). */
+export const RU_PLATE_LETTERS_LAT = 'ABEKMHOPCTYX'
+const RU_PLATE_LETTER_SET = new Set(RU_PLATE_LETTERS_LAT.split(''))
+
 function plateToLatinUpper(ch) {
   const up = String(ch || '').toUpperCase()
   if (!up) return ''
@@ -145,8 +149,8 @@ function plateToLatinUpper(ch) {
   return up
 }
 
-// Госномер (base): допускаем A-Z и 0-9, дополнительно маппим "разрешённые" кириллические буквы к латинице.
-// Храним базовую часть отдельно от региона (обычно 6 символов: A123BC).
+// Госномер (base): только цифры и буквы из RU_PLATE_LETTERS_LAT (после маппинга разрешённой кириллицы).
+// Храним базовую часть отдельно от региона (6 символов: A123BC).
 export function normPlateBase(raw, { maxLen = 6 } = {}) {
   const s = String(raw || '')
   if (!s) return ''
@@ -157,11 +161,106 @@ export function normPlateBase(raw, { maxLen = 6 } = {}) {
     const code = x.charCodeAt(0)
     const isDigit = code >= 48 && code <= 57
     const isUpper = code >= 65 && code <= 90
-    if (!isDigit && !isUpper) continue
-    out += x
+    if (isDigit) {
+      out += x
+      continue
+    }
+    if (isUpper && RU_PLATE_LETTER_SET.has(x)) out += x
   }
   return out
 }
+
+const VIN_VALUE_BY_LETTER = {
+  A: 1,
+  B: 2,
+  C: 3,
+  D: 4,
+  E: 5,
+  F: 6,
+  G: 7,
+  H: 8,
+  J: 1,
+  K: 2,
+  L: 3,
+  M: 4,
+  N: 5,
+  P: 7,
+  R: 9,
+  S: 2,
+  T: 3,
+  U: 4,
+  V: 5,
+  W: 6,
+  X: 7,
+  Y: 8,
+  Z: 9,
+}
+const VIN_WEIGHTS = [8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2]
+
+/** Контрольный знак VIN (ISO 3779 / NHTSA): позиция 9, веса по 17 позициям. */
+export function vinCheckDigitValid(normalized17) {
+  const v = String(normalized17 || '').toUpperCase()
+  if (v.length !== 17) return false
+  let sum = 0
+  for (let i = 0; i < 17; i++) {
+    const c = v[i]
+    let n
+    if (c >= '0' && c <= '9') n = c.charCodeAt(0) - 48
+    else n = VIN_VALUE_BY_LETTER[c]
+    if (n == null) return false
+    sum += n * VIN_WEIGHTS[i]
+  }
+  const mod = sum % 11
+  const expected = mod === 10 ? 'X' : String(mod)
+  return v[8] === expected
+}
+
+/** null — ок (пустой VIN допустим). Иначе текст ошибки для пользователя. */
+export function describeVinValidationError(normalizedVin) {
+  const vin = normVin(normalizedVin)
+  if (!vin) return null
+  if (vin.length !== 17) {
+    return 'VIN — ровно 17 символов латиницы и цифр (без I, O, Q) либо оставьте поле пустым.'
+  }
+  if (!vinCheckDigitValid(vin)) {
+    return '9-й символ VIN — контрольный: он не совпадает с расчётом по стандарту. Проверьте опечатки. Буквы I, O, Q в VIN не используются.'
+  }
+  return null
+}
+
+/** Пустой номер допустим; иначе нужны база и регион в формате РФ (легковой). */
+export function describeRuPlateValidationError(plateRaw, plateRegionRaw) {
+  const b = normPlateBase(plateRaw)
+  const r = normPlateRegion(plateRegionRaw)
+  if (!b && !r) return null
+  if (!b || !r) {
+    return 'Укажите основную часть номера и код региона (2–3 цифры) либо оставьте госномер пустым.'
+  }
+  if (!/^[ABEKMHOPCTYX]\d{3}[ABEKMHOPCTYX]{2}$/.test(b)) {
+    return 'Формат как у легкового номера РФ: буква из набора А В Е К М Н О Р С Т У Х, три цифры, две буквы из того же набора. Другие латинские буквы на таких номерах не используются.'
+  }
+  if (r.length < 2 || r.length > 3) {
+    return 'Код региона — 2 или 3 цифры (как на табличке справа).'
+  }
+  return null
+}
+
+function normPlateStringForParse(raw) {
+  const s = String(raw || '')
+  let out = ''
+  for (const ch of s) {
+    const x = plateToLatinUpper(ch)
+    const code = x.charCodeAt(0)
+    if (code >= 48 && code <= 57) {
+      out += x
+      continue
+    }
+    if (code >= 65 && code <= 90 && RU_PLATE_LETTER_SET.has(x)) out += x
+  }
+  return out
+}
+
+const PLATE_BASE_RE = /^[ABEKMHOPCTYX]\d{3}[ABEKMHOPCTYX]{2}$/
 
 // Регион: 2–3 цифры; при вводе допускаем 1–3 символа
 export function normPlateRegion(raw, { maxLen = 3 } = {}) {
@@ -170,15 +269,22 @@ export function normPlateRegion(raw, { maxLen = 3 } = {}) {
 
 // Парсим ввод вроде "A777AA77" -> { plate: "A777AA", plateRegion: "77" }
 export function parsePlateFull(raw) {
-  const s = String(raw || '')
-  const cleaned = normPlateBase(s, { maxLen: 9 }) // временно, чтобы вытащить возможный регион
-  const m = cleaned.match(/^([A-Z0-9]{4,7}?)(\d{2,3})$/)
-  if (m) {
-    const base = normPlateBase(m[1], { maxLen: 6 })
-    const region = normPlateRegion(m[2], { maxLen: 3 })
-    return { plate: base, plateRegion: region }
+  const cleaned = normPlateStringForParse(raw)
+  if (cleaned.length >= 9) {
+    const r3 = cleaned.slice(-3)
+    const b3 = cleaned.slice(0, -3)
+    if (/^\d{3}$/.test(r3) && b3.length === 6 && PLATE_BASE_RE.test(b3)) {
+      return { plate: b3, plateRegion: normPlateRegion(r3, { maxLen: 3 }) }
+    }
   }
-  return { plate: normPlateBase(s, { maxLen: 6 }), plateRegion: '' }
+  if (cleaned.length >= 8) {
+    const r2 = cleaned.slice(-2)
+    const b2 = cleaned.slice(0, -2)
+    if (/^\d{2}$/.test(r2) && b2.length === 6 && PLATE_BASE_RE.test(b2)) {
+      return { plate: b2, plateRegion: normPlateRegion(r2, { maxLen: 3 }) }
+    }
+  }
+  return { plate: normPlateBase(raw, { maxLen: 6 }), plateRegion: '' }
 }
 
 export function fmtPlateFull(plate, plateRegion) {

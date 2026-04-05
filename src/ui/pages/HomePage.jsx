@@ -45,8 +45,8 @@ export default function HomePage() {
             <Link className="btn" data-variant="primary" to="/cars">
               Мои автомобили
             </Link>
-            <Link className="btn" data-variant="ghost" to="/auth/partner/apply">
-              Стать партнёром
+            <Link className="btn" data-variant="ghost" to="/auth/partner">
+              Партнёрам
             </Link>
           </div>
           <div className="row gap wrap" style={{ marginTop: 12 }}>

@@ -3,7 +3,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { detailingCarAccessBadge } from '../serviceLinkUi.js'
-import { fmtDate, fmtPlateFull, normVin, parsePlateFull } from '../../lib/format.js'
+import {
+  describeRuPlateValidationError,
+  describeVinValidationError,
+  fmtDate,
+  fmtPlateFull,
+  normVin,
+  parsePlateFull,
+} from '../../lib/format.js'
 import {
   detailingNavGeocodeQuery,
   detailingYandexMapsWebHref,
@@ -24,20 +31,23 @@ function inferPrefill(qRaw) {
   const qLower = q.toLowerCase()
   const digits = onlyDigits(q)
 
-  // VIN: обычно 17 символов; короткие значения допускаем для ручного ввода
-  const vinCandidate = normVin(q)
-  const isVin = vinCandidate.length >= 11
-
-  // Номер: обычно содержит буквы+цифры, короткий
-  const plateCandidate = q.replace(/\s+/g, '')
-  const isPlate = /[a-zа-я]/i.test(plateCandidate) && /\d/.test(plateCandidate) && plateCandidate.length <= 12
-
   const looksLikeEmail = qLower.includes('@') && qLower.includes('.')
+
+  const vinCandidate = normVin(q)
+  const isVin = vinCandidate.length === 17 && !describeVinValidationError(vinCandidate)
+
+  const plateCandidate = q.replace(/\s+/g, '')
+  const plateParsed = parsePlateFull(plateCandidate)
+  const plateOk =
+    /[a-zа-я]/i.test(plateCandidate) &&
+    /\d/.test(plateCandidate) &&
+    plateCandidate.length <= 12 &&
+    !describeRuPlateValidationError(plateParsed.plate, plateParsed.plateRegion)
 
   return {
     vin: isVin && !looksLikeEmail ? vinCandidate : '',
-    plate: isPlate && !looksLikeEmail ? parsePlateFull(plateCandidate).plate : '',
-    plateRegion: isPlate && !looksLikeEmail ? parsePlateFull(plateCandidate).plateRegion : '',
+    plate: plateOk && !looksLikeEmail ? plateParsed.plate : '',
+    plateRegion: plateOk && !looksLikeEmail ? plateParsed.plateRegion : '',
     clientPhone: digits.length >= 10 ? q : '',
     clientEmail: looksLikeEmail ? qLower : '',
   }
@@ -54,7 +64,7 @@ function isStrictHit(car, qRaw) {
   const clientPhoneDigits = onlyDigits(car?.clientPhone)
   const ownerPhoneDigits = onlyDigits(car?.ownerPhone)
 
-  if (qVin && qVin.length >= 11 && qVin === normVin(car?.vin)) return true
+  if (qVin && qVin.length === 17 && qVin === normVin(car?.vin)) return true
   if (vin && qLower === vin) return true
   if (plate && qLower === plate) return true
   if (qDigits && qDigits.length >= 10) {

@@ -21,7 +21,7 @@ class DetailingAuthController extends Controller
             'phone' => ['required', 'string', 'max:80'],
             'city' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
-            'servicesOffered' => ['required', 'array', 'min:1'],
+            'servicesOffered' => ['nullable', 'array'],
             'servicesOffered.*' => ['string', 'max:255'],
         ]);
 
@@ -35,6 +35,11 @@ class DetailingAuthController extends Controller
             $pwd = '1111';
         }
 
+        $offered = $data['servicesOffered'] ?? [];
+        if (!is_array($offered)) {
+            $offered = [];
+        }
+
         $d = Detailing::query()->create([
             'name' => trim($data['name']),
             'email' => $email,
@@ -43,7 +48,7 @@ class DetailingAuthController extends Controller
             'phone' => trim($data['phone']),
             'city' => trim($data['city']),
             'address' => trim($data['address']),
-            'services_offered' => array_values($data['servicesOffered']),
+            'services_offered' => array_values($offered),
             'profile_completed' => false,
             'is_personal' => false,
         ]);

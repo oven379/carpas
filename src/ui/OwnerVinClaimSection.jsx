@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { Card, Input, ServiceHint } from './components.jsx'
-import { fmtKm, normDigits, normVin } from '../lib/format.js'
-import { OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
+import { describeVinValidationError, fmtKm, normDigits, normVin } from '../lib/format.js'
+import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
 
 function claimAlreadyPending(err) {
   if (!(err instanceof HttpError) || err.status !== 422) return false
@@ -41,7 +41,7 @@ export default function OwnerVinClaimSection({
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
-        setInternalCars(Array.isArray(cl) ? cl : [])
+        setInternalCars(dedupeCarsById(Array.isArray(cl) ? cl : []))
         setInternalClaims(Array.isArray(claims) ? claims : [])
       } catch {
         if (!cancelled) {
@@ -83,7 +83,7 @@ export default function OwnerVinClaimSection({
     }
     try {
       const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
-      setInternalCars(Array.isArray(cl) ? cl : [])
+      setInternalCars(dedupeCarsById(Array.isArray(cl) ? cl : []))
       setInternalClaims(Array.isArray(claims) ? claims : [])
     } catch {
       /* ignore */
@@ -93,8 +93,9 @@ export default function OwnerVinClaimSection({
   async function onSearch() {
     const v = normVin(vin)
     setVin(v)
-    if (v.length < 11) {
-      alert('Введите VIN (обычно 17 символов).')
+    const vinErr = describeVinValidationError(v)
+    if (vinErr) {
+      alert(vinErr)
       return
     }
     setSearching(true)
@@ -149,12 +150,13 @@ export default function OwnerVinClaimSection({
           <p className="serviceHint__panelText">
             {evidenceMode === 'full' ? (
               <>
-                Если детейлинг уже вёл карточку, укажите VIN и подтвердите признаки авто — заявка уйдёт на модерацию в
-                детейлинг.
+                Если детейлинг уже вёл карточку, укажите полный VIN (17 символов, без I/O/Q, с верным контрольным знаком в
+                9-й позиции) и подтвердите признаки авто — заявка уйдёт на модерацию в детейлинг.
               </>
             ) : (
               <>
-                Если детейлинг уже вёл карточку, укажите VIN и подтвердите год и цвет — заявка уйдёт на проверку. После
+                Если детейлинг уже вёл карточку, укажите полный VIN (17 символов, без I/O/Q, с верным контрольным знаком) и
+                подтвердите год и цвет — заявка уйдёт на проверку. После
                 одобрения машина появится в вашем гараже: вы сможете вести свою историю и документы; редактировать саму
                 карточку (марка, VIN, обложка и т.д.) можно только в сервисе.
               </>

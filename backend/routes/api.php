@@ -72,6 +72,8 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::get('/me', [DetailingAuthController::class, 'me']);
     Route::patch('/detailings/me', [DetailingAuthController::class, 'updateMe']);
 
+    Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
+
     Route::get('/cars', [CarController::class, 'index']);
     Route::post('/cars', [CarController::class, 'store']);
     Route::get('/cars/{id}', [CarController::class, 'show']);

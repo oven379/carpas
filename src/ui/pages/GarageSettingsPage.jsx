@@ -1,13 +1,14 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BackNav, Card, Input, ServiceHint } from '../components.jsx'
+import { BackNav, Card, ComboBox, Input, ServiceHint } from '../components.jsx'
 import { bumpSessionRefresh } from '../auth.js'
 import { hasOwnerSession } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import { normalizeGarageSlugInput, parseGarageSocialLines } from '../../lib/format.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
-import { formatHttpErrorMessage } from '../../api/http.js'
+import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
+import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 
 export default function GarageSettingsPage() {
   const navigate = useNavigate()
@@ -152,14 +153,18 @@ export default function GarageSettingsPage() {
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Город для улицы</span>
               <ServiceHint scopeId="garage-settings-city" variant="compact" label="Справка: город">
-                <p className="serviceHint__panelText">Показывается на /g/… только если включено «Показывать город» ниже.</p>
+                <p className="serviceHint__panelText">
+                  В списке — города России с населением свыше 1 млн; можно ввести любой другой город вручную. Показывается на /g/…
+                  только если включено «Показывать город» ниже.
+                </p>
               </ServiceHint>
             </div>
-            <Input
-              className="input"
+            <ComboBox
               value={draft.garageCity}
-              onChange={(e) => setDraft((d) => ({ ...d, garageCity: e.target.value }))}
-              placeholder="Например: Москва"
+              options={RUSSIAN_MILLION_PLUS_CITIES}
+              placeholder="Города-миллионники в списке; можно ввести любой город"
+              maxItems={20}
+              onChange={(v) => setDraft((d) => ({ ...d, garageCity: v }))}
             />
             <label className="garageSettings__phonePublicCheck">
               <input
@@ -308,7 +313,7 @@ export default function GarageSettingsPage() {
           />
         </div>
 
-        <div className="row gap wrap historyFormActions" style={{ marginTop: 18 }}>
+        <div className="row gap wrap historyFormActions garageSettings__actionsRow">
           <button
             type="button"
             className="btn"
@@ -348,6 +353,9 @@ export default function GarageSettingsPage() {
                     'Не удалось сохранить. Проверьте связь с API и данные формы.',
                   ),
                 )
+                if (e instanceof HttpError && e.status === 401) {
+                  navigate('/auth/owner', { replace: true })
+                }
                 return
               }
               invalidateRepo()

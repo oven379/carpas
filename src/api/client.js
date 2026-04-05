@@ -225,6 +225,18 @@ export function createApiClient() {
       })
     },
 
+    /** Кабинет партнёра: совпадения по VIN и/или телефон + почта клиента перед созданием карточки. */
+    async findDuplicateCarsForDetailing({ vin, clientPhone, clientEmail } = {}) {
+      return await req('cars/search-duplicate', {
+        query: {
+          vin: String(vin || '').trim(),
+          clientPhone: String(clientPhone || '').trim(),
+          clientEmail: String(clientEmail || '').trim(),
+        },
+        token: dTok(),
+      })
+    },
+
     async findCarsByPlate({ plate, plateRegion }) {
       return await req('owners/cars/search-by-plate', {
         query: { plate: String(plate || '').trim(), plateRegion: String(plateRegion || '').trim() },

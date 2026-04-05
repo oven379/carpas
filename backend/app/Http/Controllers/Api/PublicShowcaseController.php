@@ -46,6 +46,7 @@ class PublicShowcaseController extends Controller
             $evt = CarEvent::query()
                 ->where('car_id', $car->id)
                 ->where('source', 'service')
+                ->where('is_draft', false)
                 ->orderByDesc('at')
                 ->first();
             if (!$evt) {

@@ -43,6 +43,10 @@ export function formatHttpErrorMessage(err, fallback = 'Запрос не вып
       return 'Нет связи с сервером.'
     }
 
+    // До разбора body.message: Laravel отдаёт 401 с текстом «Unauthenticated.» — показываем по-русски
+    if (err.status === 401) return 'Сессия истекла или вы не вошли. Войдите снова (владелец гаража — через вход для владельца).'
+    if (err.status === 403) return 'Нет доступа к этой операции.'
+
     const b = err.body
     if (b && typeof b === 'object') {
       const top = typeof b.message === 'string' ? b.message.trim() : ''
@@ -65,8 +69,6 @@ export function formatHttpErrorMessage(err, fallback = 'Запрос не вып
       if (top) return top
     }
     if (typeof b === 'string' && b.trim()) return b.trim().slice(0, 500)
-    if (err.status === 401) return 'Сессия истекла. Войдите снова.'
-    if (err.status === 403) return 'Нет доступа к этой операции.'
     if (err.status === 413) return 'Слишком большой запрос (например, фото). Уменьшите размер файла.'
     if (err.status === 422) return 'Проверьте данные в форме.'
     if (err.status >= 500)

@@ -1,12 +1,13 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { BackNav, Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
+import { BackNav, Button, Card, ComboBox, Field, Input, Pill, ServiceHint, Textarea } from '../components.jsx'
 import { bumpSessionRefresh } from '../auth.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
+import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -96,21 +97,24 @@ export default function DetailingSettingsPage() {
             <span> / </span>
             <span>Лендинг</span>
           </div>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+          <div id="detailing-settings-intro" className="row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav />
             <h1 className="h1" style={{ margin: 0 }}>
               Настройки лендинга
             </h1>
+            <ServiceHint scopeId="detailing-settings-intro" variant="compact" label="Справка: настройки лендинга">
+              <p className="serviceHint__panelText">
+                Здесь задаётся публичная страница по ссылке <strong>/d/…</strong>: что увидят клиенты до визита. Кабинет подтягивает те
+                же название, обложку и логотип для узнаваемости.
+              </p>
+              {detailing.profileCompleted === false ? (
+                <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
+                  <strong>Первый вход:</strong> заполните данные и в блоке <strong>«Услуги»</strong> ниже отметьте детейлинг и/или ТО —
+                  без этого сохранение не пройдёт. Затем нажмите «Сохранить» — откроется кабинет со списком авто на обслуживании.
+                </p>
+              ) : null}
+            </ServiceHint>
           </div>
-          <p className="muted">
-            Здесь задаётся публичная страница по ссылке <strong>/d/…</strong>: что увидят клиенты до визита. Кабинет подтягивает те же
-            название, обложку и логотип для узнаваемости.
-          </p>
-          {detailing.profileCompleted === false ? (
-            <p className="muted small" style={{ marginTop: 10 }}>
-              <strong>Первый вход:</strong> заполните лендинг и нажмите «Сохранить» — откроется кабинет со списком авто на обслуживании.
-            </p>
-          ) : null}
         </div>
       </div>
 
@@ -181,7 +185,7 @@ export default function DetailingSettingsPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
-          <p className="muted small" style={{ margin: '0 0 14px' }}>
+          <p className="muted small detailingSettings__mediaLead">
             Логотип и обложка видны на публичной странице и в шапке кабинета.
           </p>
           <MediaBannerAvatarBlock
@@ -238,12 +242,12 @@ export default function DetailingSettingsPage() {
             />
           </Field>
           <Field label="Город">
-            <Input
-              className="input"
+            <ComboBox
               value={draft.city}
-              onChange={(e) => setDraft((d) => ({ ...d, city: e.target.value }))}
-              placeholder="Например: Москва"
-              autoComplete="address-level2"
+              options={RUSSIAN_MILLION_PLUS_CITIES}
+              placeholder="Города-миллионники в списке; можно ввести любой город"
+              maxItems={20}
+              onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
             />
           </Field>
           <Field label="Адрес" hint="необязательно">
@@ -255,10 +259,20 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
-          <div className="field field--full">
-            <div className="field__top">
+          <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
+            <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Услуги</span>
-              <span className="field__hint">детейлинг и ТО — что делаете (появится на лендинге)</span>
+              <ServiceHint scopeId="detailing-settings-services" variant="compact" label="Справка: услуги на лендинге">
+                <p className="serviceHint__panelText">
+                  Отметьте детейлинг и ТО, что предлагаете клиентам на публичной странице.
+                  {detailing.profileCompleted === false ? (
+                    <>
+                      {' '}
+                      <strong>При первой настройке</strong> выбор хотя бы одной услуги обязателен — без этого сохранение не пройдёт.
+                    </>
+                  ) : null}
+                </p>
+              </ServiceHint>
             </div>
             <p className="muted small" style={{ margin: '0 0 8px' }}>
               Детейлинг

@@ -7,10 +7,71 @@ use App\Http\Support\ApiResources;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Detailing;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 
 class CarEventController extends Controller
 {
+    private function assertDetailingOwnsServiceEvent(Detailing $d, CarEvent $evt): void
+    {
+        if (($evt->source ?? '') !== 'service') {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Сервис может изменять только записи, созданные сервисом.',
+            ], 403));
+        }
+        if ((int) $evt->detailing_id !== (int) $d->id) {
+            throw new HttpResponseException(response()->json(['message' => 'Нет доступа к записи.'], 403));
+        }
+    }
+
+    private function assertDetailingMayEditFinalizedServiceVisit(Detailing $d, CarEvent $evt): void
+    {
+        $this->assertDetailingOwnsServiceEvent($d, $evt);
+        $at = $evt->at;
+        if (! $at) {
+            throw new HttpResponseException(response()->json(['message' => 'У визита не задана дата.'], 422));
+        }
+        $tz = (string) config('app.visit_edit_timezone', 'Europe/Moscow');
+        $visitDay = $at->copy()->timezone($tz)->format('Y-m-d');
+        $today = now()->timezone($tz)->format('Y-m-d');
+        if ($visitDay !== $today) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Редактирование визита доступно только в календарный день визита.',
+            ], 403));
+        }
+    }
+
+    private function assertDetailingMayMutateServiceVisit(Detailing $d, CarEvent $evt): void
+    {
+        if ($evt->is_draft) {
+            $this->assertDetailingOwnsServiceEvent($d, $evt);
+
+            return;
+        }
+        $this->assertDetailingMayEditFinalizedServiceVisit($d, $evt);
+    }
+
+    private function assertFinalizeDraftPayload(CarEvent $evt): void
+    {
+        if (trim((string) $evt->title) === '') {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Укажите заголовок визита перед сохранением.',
+            ], 422));
+        }
+        if ((int) $evt->mileage_km < 1) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Укажите пробег перед сохранением визита.',
+            ], 422));
+        }
+        $svc = is_array($evt->services) ? $evt->services : [];
+        $ms = is_array($evt->maintenance_services) ? $evt->maintenance_services : [];
+        if (count($svc) + count($ms) < 1) {
+            throw new HttpResponseException(response()->json([
+                'message' => 'Выберите хотя бы одну услугу (детейлинг или ТО) перед сохранением.',
+            ], 422));
+        }
+    }
+
     public function index(Request $request, $carId)
     {
         /** @var Detailing $d */
@@ -18,8 +79,10 @@ class CarEventController extends Controller
         Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
 
         $events = CarEvent::query()
+            ->with('detailing')
             ->where('detailing_id', $d->id)
             ->where('car_id', $carId)
+            ->orderByDesc('is_draft')
             ->orderByDesc('at')
             ->get();
 
@@ -40,13 +103,30 @@ class CarEventController extends Controller
             'services' => ['nullable', 'array'],
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
+            'isDraft' => ['nullable'],
         ]);
+
+        $isDraft = $request->boolean('isDraft');
+
+        if ($isDraft) {
+            $existing = CarEvent::query()
+                ->where('detailing_id', $d->id)
+                ->where('car_id', $carId)
+                ->where('source', 'service')
+                ->where('is_draft', true)
+                ->orderByDesc('updated_at')
+                ->first();
+            if ($existing) {
+                return response()->json(ApiResources::event($existing));
+            }
+        }
 
         $evt = CarEvent::query()->create([
             'detailing_id' => $d->id,
             'car_id' => $carId,
             'owner_id' => null,
             'source' => 'service',
+            'is_draft' => $isDraft,
             'at' => $data['at'] ?? now()->toISOString(),
             'type' => $data['type'] ?? 'visit',
             'title' => trim((string) ($data['title'] ?? '')),
@@ -65,6 +145,10 @@ class CarEventController extends Controller
         $d = $request->user();
         $evt = CarEvent::query()->where('detailing_id', $d->id)->findOrFail($id);
         Car::query()->where('detailing_id', $d->id)->findOrFail($evt->car_id);
+
+        $wasDraft = (bool) $evt->is_draft;
+
+        $this->assertDetailingMayMutateServiceVisit($d, $evt);
 
         $data = $request->all();
         if (array_key_exists('at', $data)) {
@@ -88,6 +172,14 @@ class CarEventController extends Controller
         if (array_key_exists('note', $data)) {
             $evt->note = $data['note'];
         }
+        if (array_key_exists('isDraft', $data)) {
+            $evt->is_draft = $request->boolean('isDraft');
+        }
+
+        if ($wasDraft && ! $evt->is_draft) {
+            $this->assertFinalizeDraftPayload($evt);
+        }
+
         $evt->save();
 
         return response()->json(ApiResources::event($evt->fresh()));
@@ -98,6 +190,7 @@ class CarEventController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $evt = CarEvent::query()->where('detailing_id', $d->id)->findOrFail($id);
+        $this->assertDetailingMayMutateServiceVisit($d, $evt);
         $evt->delete();
 
         return response()->json(['ok' => true]);

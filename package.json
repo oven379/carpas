@@ -11,7 +11,6 @@
   },
   "dependencies": {
     "@al-bani/car-brands": "^1.4.0",
-    "country-city-state": "^1.0.9",
     "list-of-cars": "^0.0.142",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

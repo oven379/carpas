@@ -23,7 +23,9 @@ class OwnerCarEventController extends Controller
         $car = $this->assertOwnerCar($owner, $carId);
 
         $events = CarEvent::query()
+            ->with('detailing')
             ->where('car_id', $car->id)
+            ->where('is_draft', false)
             ->orderByDesc('at')
             ->get();
 

@@ -94,6 +94,7 @@ class ApiResources
 
     public static function event(CarEvent $e): array
     {
+        $e->loadMissing(['detailing']);
         $svc = $e->services ?? [];
         $ms = $e->maintenance_services ?? [];
         if (!is_array($svc)) {
@@ -102,6 +103,7 @@ class ApiResources
         if (!is_array($ms)) {
             $ms = [];
         }
+        $isService = ($e->source ?? 'service') === 'service';
 
         return [
             'id' => (string) $e->id,
@@ -109,6 +111,7 @@ class ApiResources
             'carId' => (string) $e->car_id,
             'ownerId' => $e->owner_id ? (string) $e->owner_id : null,
             'source' => $e->source ?? 'service',
+            'isDraft' => (bool) ($e->is_draft ?? false),
             'at' => optional($e->at)->toISOString(),
             'type' => $e->type ?? 'visit',
             'title' => $e->title ?? '',
@@ -118,6 +121,8 @@ class ApiResources
             'note' => $e->note ?? '',
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),
+            'detailingName' => $isService ? (string) ($e->detailing?->name ?? '') : '',
+            'detailingLogo' => $isService ? (string) ($e->detailing?->logo ?? '') : '',
         ];
     }
 

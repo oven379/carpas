@@ -7,7 +7,12 @@ import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
 import { fmtDateTime } from '../../lib/format.js'
-import { OWNER_MAX_MANUAL_CARS, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import {
+  dedupeCarsById,
+  OWNER_MAX_MANUAL_CARS,
+  OWNER_MAX_TOTAL_CARS,
+  ownerGarageLimits,
+} from '../../lib/garageLimits.js'
 
 function pickBestDetailingId(cars, ownerClaims) {
   const score = new Map()
@@ -110,7 +115,7 @@ export default function OwnerGaragePage() {
         /* ignore */
       }
     })()
-  }, [ownerEmail, r, mode])
+  }, [ownerEmail, mode, r])
 
   useEffect(() => {
     let cancelled = false
@@ -123,7 +128,7 @@ export default function OwnerGaragePage() {
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
-        setCars(Array.isArray(cl) ? cl : [])
+        setCars(dedupeCarsById(Array.isArray(cl) ? cl : []))
         setOwnerClaims(Array.isArray(claims) ? claims : [])
       } catch {
         if (!cancelled) {

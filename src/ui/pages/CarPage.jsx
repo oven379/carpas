@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Card, OpenAction, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
@@ -7,7 +7,7 @@ import { getCareRecommendations } from '../../lib/recommendations.js'
 import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
-import { splitWashDetailingServices, WASH_SERVICE_MARKERS } from '../../lib/serviceCatalogs.js'
+import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { buildCarSubRoutePath, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import { detailingCarAccessBadge, ownerServiceLinkSummary } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
@@ -29,28 +29,40 @@ export default function CarPage() {
   const [ownerClaims, setOwnerClaims] = useState([])
   const [inboxClaims, setInboxClaims] = useState([])
   const [dataReady, setDataReady] = useState(false)
+  const prevCarIdRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       if (!id) return
-      setDataReady(false)
+      const idChanged = prevCarIdRef.current !== id
+      prevCarIdRef.current = id
+      if (idChanged) setDataReady(false)
       try {
-        const [cr, d, ev] = await Promise.all([r.getCar(id), r.listDocs(id), r.listEvents(id)])
+        const claimsP =
+          hasOwnerSession() && ownerEmailResolved
+            ? r.listClaimsForOwner()
+            : mode === 'detailing' && detailingId
+              ? r.listClaimsForDetailing()
+              : Promise.resolve([])
+        const [[cr, d, ev], claimsRaw] = await Promise.all([
+          Promise.all([r.getCar(id), r.listDocs(id), r.listEvents(id)]),
+          claimsP,
+        ])
         if (cancelled) return
         setCar(cr)
         setDocs((Array.isArray(d) ? d : []).filter((x) => !x.eventId).slice(0, 6))
         setAllEvents(Array.isArray(ev) ? ev : [])
-        let oc = []
-        let ib = []
         if (hasOwnerSession() && ownerEmailResolved) {
-          oc = await r.listClaimsForOwner()
+          setOwnerClaims(Array.isArray(claimsRaw) ? claimsRaw : [])
+          setInboxClaims([])
         } else if (mode === 'detailing' && detailingId) {
-          ib = await r.listClaimsForDetailing()
+          setOwnerClaims([])
+          setInboxClaims(Array.isArray(claimsRaw) ? claimsRaw : [])
+        } else {
+          setOwnerClaims([])
+          setInboxClaims([])
         }
-        if (cancelled) return
-        setOwnerClaims(Array.isArray(oc) ? oc : [])
-        setInboxClaims(Array.isArray(ib) ? ib : [])
       } catch {
         if (!cancelled) {
           setCar(null)
@@ -91,6 +103,20 @@ export default function CarPage() {
     setWashIdx(0)
   }, [washPhotosKey])
 
+  const finalizedEvents = useMemo(() => allEvents.filter((e) => !e?.isDraft), [allEvents])
+  const lastHistoryEvent = useMemo(() => {
+    let best = null
+    let bestTs = 0
+    for (const e of finalizedEvents) {
+      const t = Date.parse(e?.at || '') || 0
+      if (t >= bestTs) {
+        bestTs = t
+        best = e
+      }
+    }
+    return best
+  }, [finalizedEvents])
+
   if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
   if (!dataReady) {
     return (
@@ -112,8 +138,6 @@ export default function CarPage() {
         ? 'В гараж'
         : 'К автомобилям'
 
-  const lastWashEvent =
-    allEvents.find((e) => Array.isArray(e?.services) && e.services.some((s) => WASH_SERVICE_MARKERS.has(s))) || null
   const recs = getCareRecommendations({ car, events: allEvents })
   const lastServiceVisitAt = (() => {
     let best = ''
@@ -411,21 +435,43 @@ export default function CarPage() {
 
         <div className="col gap">
           <Card className="card pad">
-            <div className="row spread gap">
+            <div className="carPage__recsBar">
               <button
                 type="button"
-                className="carPage__recsToggle"
+                className="carPage__recsSelect"
                 aria-expanded={recsOpen ? 'true' : 'false'}
+                aria-haspopup="true"
                 onClick={() => setRecsOpen((v) => !v)}
-                title={recsOpen ? 'Свернуть рекомендации' : 'Показать рекомендации'}
+                title={recsOpen ? 'Свернуть список рекомендаций' : 'Открыть список рекомендаций'}
               >
-                <span className={`carPage__chev ${recsOpen ? 'is-open' : ''}`} aria-hidden="true" />
-                <span className="h2" style={{ margin: 0 }}>
-                  Рекомендации
-                </span>
+                <span className="carPage__recsSelectLabel">Рекомендации</span>
+                <span className="carPage__recsSelectChev" aria-hidden="true" />
               </button>
-              <Link className="btn" data-variant="primary" to={buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })}>
-                + Добавить визит
+              <Link
+                className="btn carPage__recsAddVisitBtn"
+                data-variant="primary"
+                to={buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })}
+                aria-label="Добавить визит"
+                title="Добавить визит"
+              >
+                <span className="carPage__recsAddVisitText">+ Добавить визит</span>
+                <svg
+                  className="carPage__recsPassportIcon"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    fill="currentColor"
+                    d="M4 6.5C4 5.12 5.12 4 6.5 4H11v16H6.5A2.5 2.5 0 0 1 4 17.5v-11Zm2.25 2a.75.75 0 1 0 0 1.5h2.5a.75.75 0 0 0 0-1.5h-2.5ZM6.25 11h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Zm0 2.5h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Z"
+                  />
+                  <path
+                    fill="currentColor"
+                    fillOpacity="0.88"
+                    d="M13 4h4.5C18.88 4 20 5.12 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5H13V4Zm2.25 3.25h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Zm0 2.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Zm0 2.75h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5Z"
+                  />
+                </svg>
               </Link>
             </div>
             {recsOpen ? (
@@ -446,52 +492,98 @@ export default function CarPage() {
           </Card>
 
           <Card className="card pad">
-            <div className="row spread gap">
-              <h2 className="h2">Последний уход</h2>
-              <OpenAction to={buildCarSubRoutePath(id, 'history', fromParam)} />
-            </div>
-            {lastWashEvent ? (
-              <div className="miniList">
-                <div className="miniList__item">
-                  <div className="miniList__title metaStrong">{lastWashEvent.title || 'Уход'}</div>
-                  <div className="miniList__meta">
-                    <span className="eventMeta__when">{fmtDateTime(lastWashEvent.at)}</span>
-                    <span aria-hidden="true"> · </span>
-                    <span className="eventMeta__km">{fmtKm(lastWashEvent.mileageKm)}</span>
-                  </div>
-                  {Array.isArray(lastWashEvent.maintenanceServices) && lastWashEvent.maintenanceServices.length ? (
-                    <div className="rowItem__sub">
-                      <span className="eventLabel">ТО:</span> {lastWashEvent.maintenanceServices.join(', ')}
+            <div className="row spread gap carPage__sectionRow">
+              <div className="carPage__sectionHead">
+                <h2 className="h2 carPage__sectionTitle">История авто</h2>
+                {lastHistoryEvent?.at ? (
+                  <>
+                    <p className="carPage__historyLastLabel muted small">Последний визит</p>
+                    <p className="carPage__historyLastLine">
+                      <span className="metaStrong">{lastHistoryEvent.title?.trim() || 'Визит'}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span className="metaStrong">{fmtDateTime(lastHistoryEvent.at)}</span>
+                      <span aria-hidden="true"> · </span>
+                      <span className="metaStrong">{fmtKm(lastHistoryEvent.mileageKm)}</span>
+                    </p>
+                    <div className="carPage__historySource row gap" style={{ alignItems: 'center', marginTop: 10 }}>
+                      {lastHistoryEvent.source === 'owner' ? (
+                        <span className="muted small carPage__historyOwnerNote">
+                          {mode === 'owner' ? 'Моя запись' : 'Запись владельца'}
+                        </span>
+                      ) : (
+                        (() => {
+                          const serviceLabel =
+                            String(lastHistoryEvent.detailingName || '').trim() || 'Сервис'
+                          const initials = serviceLabel.slice(0, 2).toUpperCase()
+                          return (
+                            <div
+                              className="carPage__historyServiceAvatar"
+                              title={serviceLabel}
+                              aria-label={`Запись сервиса: ${serviceLabel}`}
+                            >
+                              {lastHistoryEvent.detailingLogo ? (
+                                <img alt="" src={lastHistoryEvent.detailingLogo} />
+                              ) : (
+                                <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
+                                  {initials}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })()
+                      )}
                     </div>
-                  ) : null}
-                  {(() => {
-                    const { wash, other } = splitWashDetailingServices(lastWashEvent.services)
-                    return (
-                      <>
-                        {wash.length ? (
-                          <div className="rowItem__sub">
-                            <span className="eventLabel">Уход:</span> {wash.join(', ')}
+                    {(() => {
+                      const e = lastHistoryEvent
+                      const { wash, other } = splitWashDetailingServices(e.services)
+                      const hasExtra =
+                        (Array.isArray(e.maintenanceServices) && e.maintenanceServices.length > 0) ||
+                        wash.length > 0 ||
+                        other.length > 0
+                      if (!hasExtra) return null
+                      return (
+                        <div className="carPage__historyLastDetails miniList" style={{ marginTop: 12 }}>
+                          <div className="miniList__item" style={{ border: 'none', padding: 0, background: 'transparent' }}>
+                            {Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
+                              <div className="rowItem__sub">
+                                <span className="eventLabel">ТО:</span> {e.maintenanceServices.join(', ')}
+                              </div>
+                            ) : null}
+                            {wash.length ? (
+                              <div className="rowItem__sub">
+                                <span className="eventLabel">Уход:</span> {wash.join(', ')}
+                              </div>
+                            ) : null}
+                            {other.length ? (
+                              <div className="rowItem__sub">
+                                <span className="eventLabel">Детейлинг:</span> {other.join(', ')}
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
-                        {other.length ? (
-                          <div className="rowItem__sub">
-                            <span className="eventLabel">Детейлинг:</span> {other.join(', ')}
-                          </div>
-                        ) : null}
-                      </>
-                    )
-                  })()}
-                </div>
+                        </div>
+                      )
+                    })()}
+                  </>
+                ) : (
+                  <p className="muted small carPage__sectionMeta">В истории пока нет визитов</p>
+                )}
               </div>
-            ) : (
-              <div className="muted">Пока нет записей об уходе.</div>
-            )}
+              <OpenAction
+                to={buildCarSubRoutePath(id, 'history', fromParam)}
+                title="История авто"
+                aria-label="Открыть историю авто"
+              />
+            </div>
           </Card>
 
           <Card className="card pad">
-            <div className="row spread gap">
-              <h2 className="h2">Документы / фото</h2>
-              <OpenAction to={buildCarSubRoutePath(id, 'docs', fromParam)} />
+            <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
+              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы / фото</h2>
+              <OpenAction
+                to={buildCarSubRoutePath(id, 'docs', fromParam)}
+                title="Документы и фото"
+                aria-label="Документы и фото"
+              />
             </div>
             {docs.length ? (
               <div className="thumbs">

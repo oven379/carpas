@@ -25,6 +25,32 @@ export function Textarea(props) {
 
 export { ComboBox }
 
+/** Единый блок согласия с политикой и правилами на формах входа и регистрации. */
+export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onChange, className = '', style }) {
+  return (
+    <label className={`authConsent field--full ${className}`.trim()} htmlFor={inputId} style={style}>
+      <input
+        id={inputId}
+        type="checkbox"
+        className="authConsent__input"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="authConsent__text">
+        Я соглашаюсь с{' '}
+        <Link className="authConsent__legalLink" to="/about">
+          политикой конфиденциальности
+        </Link>{' '}
+        и{' '}
+        <Link className="authConsent__legalLink" to="/about">
+          правилами использования сервиса
+        </Link>
+        .
+      </span>
+    </label>
+  )
+}
+
 export function Field({ label, hint, children, className = '' }) {
   return (
     <label className={`field ${className}`.trim()}>
@@ -49,19 +75,32 @@ export function Pill({ children, tone = 'neutral', className = '' }) {
   )
 }
 
-/** Единый вид кнопки «Открыть». `asSpan` — внутри внешнего `<Link>`, без вложенных ссылок. */
-export function OpenAction({ to, asSpan, className = '', children = 'Открыть →', ...rest }) {
-  const cn = `link openAction ${className}`.trim()
+/** Переход «вперёд»: шеврон вправо (зеркально «Назад»), цвет `var(--open-action)`. `asSpan` — внутри внешнего `<Link>`. */
+export function OpenAction({ to, asSpan, className = '', title = 'Открыть', 'aria-label': ariaLabel, ...rest }) {
+  const cn = `openAction ${className}`.trim()
+  const label = ariaLabel ?? title
+  const svg = (
+    <svg className="openAction__svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 18l6-6-6-6"
+      />
+    </svg>
+  )
   if (asSpan) {
     return (
-      <span className={cn} {...rest}>
-        {children}
+      <span className={cn} aria-hidden="true" title={title} {...rest}>
+        {svg}
       </span>
     )
   }
   return (
-    <Link className={cn} to={to} {...rest}>
-      {children}
+    <Link className={cn} to={to} title={title} aria-label={label} {...rest}>
+      {svg}
     </Link>
   )
 }

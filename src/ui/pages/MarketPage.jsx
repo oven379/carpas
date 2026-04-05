@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
-import { OWNER_MAX_MANUAL_CARS, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import {
+  dedupeCarsById,
+  OWNER_MAX_MANUAL_CARS,
+  OWNER_MAX_TOTAL_CARS,
+  ownerGarageLimits,
+} from '../../lib/garageLimits.js'
 import { Pill, ServiceHint } from '../components.jsx'
 import { getSessionOwner, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
@@ -35,7 +40,7 @@ export default function MarketPage() {
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
-        setCars(Array.isArray(cl) ? cl : [])
+        setCars(dedupeCarsById(Array.isArray(cl) ? cl : []))
         setOwnerClaims(Array.isArray(claims) ? claims : [])
       } catch {
         if (!cancelled) {

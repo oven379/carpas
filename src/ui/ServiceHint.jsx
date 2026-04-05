@@ -228,7 +228,6 @@ export default function ServiceHint({ scopeId, label, children, variant = 'field
       style={open ? dropdownFixedStyle : undefined}
     >
       <div className="serviceHint__panelInner">{children}</div>
-      <div className="serviceHint__panelTapHint">Нажмите, чтобы закрыть</div>
     </div>
   )
 

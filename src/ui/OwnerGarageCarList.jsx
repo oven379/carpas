@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useRepo } from './useRepo.js'
 import { OpenAction } from './components.jsx'
 import { fmtDateTime, fmtKm, fmtPlateFull } from '../lib/format.js'
+import { dedupeCarsById } from '../lib/garageLimits.js'
 import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../lib/serviceCatalogs.js'
 import { buildCarFromQuery } from './carNav.js'
 
@@ -23,7 +24,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
       setLoading(true)
       try {
         const cars = await r.listCars()
-        const list = Array.isArray(cars) ? cars : []
+        const list = dedupeCarsById(Array.isArray(cars) ? cars : [])
         const enriched = await Promise.all(
           list.map(async (car) => {
             const evtsRaw = await r.listEvents(car.id)

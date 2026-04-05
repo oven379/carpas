@@ -31,11 +31,9 @@ export default function DocsPage() {
       if (!id) return
       setDataReady(false)
       try {
-        const cr = await r.getCar(id)
+        const [cr, dc] = await Promise.all([r.getCar(id), r.listDocs(id)])
         if (cancelled) return
         setCar(cr)
-        const dc = await r.listDocs(id)
-        if (cancelled) return
         setDocs((Array.isArray(dc) ? dc : []).filter((d) => !d.eventId))
       } catch {
         if (!cancelled) {

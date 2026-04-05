@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CarController extends Controller
 {
@@ -58,12 +60,22 @@ class CarController extends Controller
             'clientEmail' => ['nullable', 'string'],
         ]);
 
+        $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));
+        $plate = VinPlateValidator::normalizePlateBase(trim((string) ($data['plate'] ?? '')));
+        $region = VinPlateValidator::normalizePlateRegion(trim((string) ($data['plateRegion'] ?? '')));
+        if ($msg = VinPlateValidator::vinError($vin)) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if ($msg = VinPlateValidator::ruPlatePairError($plate, $region)) {
+            throw ValidationException::withMessages(['plate' => [$msg]]);
+        }
+
         $car = Car::query()->create([
             'detailing_id' => $d->id,
             'owner_id' => null,
-            'vin' => trim((string) ($data['vin'] ?? '')),
-            'plate' => trim((string) ($data['plate'] ?? '')),
-            'plate_region' => trim((string) ($data['plateRegion'] ?? '')),
+            'vin' => $vin,
+            'plate' => $plate,
+            'plate_region' => $region,
             'make' => trim((string) ($data['make'] ?? '')),
             'model' => trim((string) ($data['model'] ?? '')),
             'year' => isset($data['year']) ? (int) $data['year'] : null,
@@ -91,10 +103,38 @@ class CarController extends Controller
         $car = Car::query()->where('detailing_id', $d->id)->with('owner')->findOrFail($id);
 
         $data = $request->all();
+
+        $nextVin = array_key_exists('vin', $data)
+            ? VinPlateValidator::normalizeVin(is_string($data['vin'] ?? null) ? trim((string) $data['vin']) : '')
+            : (string) ($car->vin ?? '');
+        $nextPlate = array_key_exists('plate', $data)
+            ? VinPlateValidator::normalizePlateBase(is_string($data['plate'] ?? null) ? trim((string) $data['plate']) : '')
+            : (string) ($car->plate ?? '');
+        $nextRegion = array_key_exists('plateRegion', $data)
+            ? VinPlateValidator::normalizePlateRegion(is_string($data['plateRegion'] ?? null) ? trim((string) $data['plateRegion']) : '')
+            : (string) ($car->plate_region ?? '');
+
+        if (array_key_exists('vin', $data) && ($msg = VinPlateValidator::vinError($nextVin))) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if (
+            (array_key_exists('plate', $data) || array_key_exists('plateRegion', $data))
+            && ($msg = VinPlateValidator::ruPlatePairError($nextPlate, $nextRegion))
+        ) {
+            throw ValidationException::withMessages(['plate' => [$msg]]);
+        }
+
+        if (array_key_exists('vin', $data)) {
+            $car->vin = $nextVin;
+        }
+        if (array_key_exists('plate', $data)) {
+            $car->plate = $nextPlate;
+        }
+        if (array_key_exists('plateRegion', $data)) {
+            $car->plate_region = $nextRegion;
+        }
+
         $map = [
-            'vin' => 'vin',
-            'plate' => 'plate',
-            'plateRegion' => 'plate_region',
             'make' => 'make',
             'model' => 'model',
             'color' => 'color',

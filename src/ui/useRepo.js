@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore } from 'react'
+import { useSyncExternalStore } from 'react'
 import { getApi } from '../api/index.js'
 
 const API = getApi()
@@ -23,7 +23,15 @@ export function getRepoVersion() {
   return version
 }
 
+/** Одна стабильная ссылка: методы с `API`, `_version` всегда актуален (без лишних перезапусков эффектов из‑за нового `{ ...API }`). */
+const REPO = new Proxy(API, {
+  get(target, prop, receiver) {
+    if (prop === '_version') return getRepoVersion()
+    return Reflect.get(target, prop, receiver)
+  },
+})
+
 export function useRepo() {
-  const v = useSyncExternalStore(subscribeRepo, getRepoVersion, getRepoVersion)
-  return useMemo(() => ({ ...API, _version: v }), [v])
+  useSyncExternalStore(subscribeRepo, getRepoVersion, getRepoVersion)
+  return REPO
 }

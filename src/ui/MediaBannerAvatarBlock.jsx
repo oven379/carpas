@@ -65,7 +65,7 @@ export default function MediaBannerAvatarBlock({
   return (
     <div className={`mediaBannerAvatarBlock ${className}`.trim()}>
       {showHeader ? (
-        <div className="garageSettings__mediaHeadRow" style={{ marginBottom: 12 }}>
+        <div className="garageSettings__mediaHeadRow">
           {title ? <div className="garageSettings__mediaHeading">{title}</div> : <span style={{ flex: 1 }} />}
           {headerExtra}
         </div>

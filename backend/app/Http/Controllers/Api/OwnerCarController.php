@@ -4,13 +4,52 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class OwnerCarController extends Controller
 {
+    /** Не даём двум карточкам одного владельца с тем же VIN или той же парой госномер+регион. */
+    private function assertOwnerCarIdentifiersUnique(Owner $owner, string $vin, string $plate, string $region, ?int $exceptCarId = null): void
+    {
+        $vin = trim($vin);
+        $plate = trim($plate);
+        $region = trim($region);
+
+        if ($vin !== '') {
+            $q = Car::query()
+                ->where('owner_id', $owner->id)
+                ->whereRaw('lower(trim(vin)) = ?', [mb_strtolower($vin, 'UTF-8')]);
+            if ($exceptCarId !== null) {
+                $q->where('id', '!=', $exceptCarId);
+            }
+            if ($q->exists()) {
+                throw ValidationException::withMessages([
+                    'vin' => ['У вас уже есть автомобиль с таким VIN. Откройте существующую карточку или укажите другой VIN.'],
+                ]);
+            }
+        }
+
+        if ($plate !== '' && $region !== '') {
+            $q = Car::query()
+                ->where('owner_id', $owner->id)
+                ->whereRaw('lower(trim(plate)) = ?', [mb_strtolower($plate, 'UTF-8')])
+                ->whereRaw('lower(trim(plate_region)) = ?', [mb_strtolower($region, 'UTF-8')]);
+            if ($exceptCarId !== null) {
+                $q->where('id', '!=', $exceptCarId);
+            }
+            if ($q->exists()) {
+                throw ValidationException::withMessages([
+                    'plate' => ['У вас уже есть автомобиль с таким госномером. Откройте существующую карточку или исправьте номер.'],
+                ]);
+            }
+        }
+    }
+
     private function personalDetailing(Owner $owner): Detailing
     {
         return Detailing::query()
@@ -62,12 +101,24 @@ class OwnerCarController extends Controller
             'segment' => ['nullable', 'string'],
         ]);
 
+        $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));
+        $plate = VinPlateValidator::normalizePlateBase(trim((string) ($data['plate'] ?? '')));
+        $region = VinPlateValidator::normalizePlateRegion(trim((string) ($data['plateRegion'] ?? '')));
+        if ($msg = VinPlateValidator::vinError($vin)) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if ($msg = VinPlateValidator::ruPlatePairError($plate, $region)) {
+            throw ValidationException::withMessages(['plate' => [$msg]]);
+        }
+
+        $this->assertOwnerCarIdentifiersUnique($owner, $vin, $plate, $region, null);
+
         $car = Car::query()->create([
             'detailing_id' => $pd->id,
             'owner_id' => $owner->id,
-            'vin' => trim((string) ($data['vin'] ?? '')),
-            'plate' => trim((string) ($data['plate'] ?? '')),
-            'plate_region' => trim((string) ($data['plateRegion'] ?? '')),
+            'vin' => $vin,
+            'plate' => $plate,
+            'plate_region' => $region,
             'make' => trim((string) ($data['make'] ?? '')),
             'model' => trim((string) ($data['model'] ?? '')),
             'year' => isset($data['year']) ? (int) $data['year'] : null,
@@ -91,10 +142,38 @@ class OwnerCarController extends Controller
         $car = Car::query()->where('owner_id', $owner->id)->with('owner')->findOrFail($id);
 
         $data = $request->all();
+
+        $nextVin = array_key_exists('vin', $data)
+            ? VinPlateValidator::normalizeVin(is_string($data['vin'] ?? null) ? trim((string) $data['vin']) : '')
+            : (string) ($car->vin ?? '');
+        $nextPlate = array_key_exists('plate', $data)
+            ? VinPlateValidator::normalizePlateBase(is_string($data['plate'] ?? null) ? trim((string) $data['plate']) : '')
+            : (string) ($car->plate ?? '');
+        $nextRegion = array_key_exists('plateRegion', $data)
+            ? VinPlateValidator::normalizePlateRegion(is_string($data['plateRegion'] ?? null) ? trim((string) $data['plateRegion']) : '')
+            : (string) ($car->plate_region ?? '');
+
+        if (array_key_exists('vin', $data) && ($msg = VinPlateValidator::vinError($nextVin))) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if (
+            (array_key_exists('plate', $data) || array_key_exists('plateRegion', $data))
+            && ($msg = VinPlateValidator::ruPlatePairError($nextPlate, $nextRegion))
+        ) {
+            throw ValidationException::withMessages(['plate' => [$msg]]);
+        }
+
+        if (array_key_exists('vin', $data)) {
+            $car->vin = $nextVin;
+        }
+        if (array_key_exists('plate', $data)) {
+            $car->plate = $nextPlate;
+        }
+        if (array_key_exists('plateRegion', $data)) {
+            $car->plate_region = $nextRegion;
+        }
+
         $map = [
-            'vin' => 'vin',
-            'plate' => 'plate',
-            'plateRegion' => 'plate_region',
             'make' => 'make',
             'model' => 'model',
             'color' => 'color',
@@ -119,6 +198,14 @@ class OwnerCarController extends Controller
         if (array_key_exists('washPhotos', $data) && is_array($data['washPhotos'])) {
             $car->wash_photos = array_slice(array_values(array_filter(array_map('strval', $data['washPhotos']))), 0, 12);
         }
+
+        $this->assertOwnerCarIdentifiersUnique(
+            $owner,
+            (string) ($car->vin ?? ''),
+            (string) ($car->plate ?? ''),
+            (string) ($car->plate_region ?? ''),
+            (int) $car->id,
+        );
 
         $car->save();
 

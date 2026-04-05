@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Car;
+use App\Models\CarEvent;
 use Laravel\Sanctum\Sanctum;
 
 class CarEventApiTest extends FeatureTestCase
@@ -54,6 +55,34 @@ class CarEventApiTest extends FeatureTestCase
             ->assertJsonPath('ok', true);
 
         $this->assertDatabaseMissing('car_events', ['id' => $eventId]);
+    }
+
+    public function test_cannot_update_or_delete_service_visit_after_visit_calendar_day(): void
+    {
+        $d = $this->detailing();
+        $car = $this->carForDetailing($d->id);
+        Sanctum::actingAs($d);
+
+        $evt = CarEvent::query()->create([
+            'detailing_id' => $d->id,
+            'car_id' => $car->id,
+            'owner_id' => null,
+            'source' => 'service',
+            'is_draft' => false,
+            'at' => now()->subDays(3),
+            'type' => 'visit',
+            'title' => 'Старый визит',
+            'mileage_km' => 5000,
+            'services' => [],
+            'maintenance_services' => [],
+            'note' => null,
+        ]);
+
+        $this->patchJson("/api/events/{$evt->id}", ['title' => 'Правка'])
+            ->assertForbidden();
+        $this->deleteJson("/api/events/{$evt->id}")
+            ->assertForbidden();
+        $this->assertDatabaseHas('car_events', ['id' => $evt->id]);
     }
 
     public function test_events_for_foreign_car_return_404(): void

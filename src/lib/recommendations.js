@@ -53,7 +53,7 @@ function latestManualCareRecs(evtsSortedNewestFirst) {
 
 export function getCareRecommendations({ car, events }) {
   const list = []
-  const evts = Array.isArray(events) ? events.slice() : []
+  const evts = Array.isArray(events) ? events.filter((e) => !e?.isDraft).slice() : []
   evts.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
   const manual = latestManualCareRecs(evts)
 

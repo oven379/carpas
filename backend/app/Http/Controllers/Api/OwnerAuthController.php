@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Models\Detailing;
 use App\Models\Owner;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,11 +16,16 @@ class OwnerAuthController extends Controller
 {
     public function register(Request $request)
     {
+        $request->merge([
+            'name' => trim((string) $request->input('name', '')),
+            'phone' => trim((string) $request->input('phone', '')),
+        ]);
+
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:4', 'max:255'],
-            'name' => ['nullable', 'string', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:80'],
+            'name' => ['required', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:80'],
         ]);
 
         $email = mb_strtolower(trim($data['email']));
@@ -30,8 +36,8 @@ class OwnerAuthController extends Controller
         $owner = Owner::query()->create([
             'email' => $email,
             'password' => Hash::make($data['password']),
-            'name' => trim((string) ($data['name'] ?? '')) ?: 'Владелец',
-            'phone' => trim((string) ($data['phone'] ?? '')),
+            'name' => trim((string) $data['name']),
+            'phone' => trim((string) $data['phone']),
         ]);
 
         Detailing::query()->create([
@@ -103,7 +109,11 @@ class OwnerAuthController extends Controller
             $o->show_city_public = (bool) $patch['showCityPublic'];
         }
         if (array_key_exists('garageWebsite', $patch)) {
-            $o->garage_website = trim((string) $patch['garageWebsite']);
+            $w = trim((string) $patch['garageWebsite']);
+            if (mb_strlen($w) > 512) {
+                $w = mb_substr($w, 0, 512);
+            }
+            $o->garage_website = $w;
         }
         if (array_key_exists('showWebsitePublic', $patch)) {
             $o->show_website_public = (bool) $patch['showWebsitePublic'];
@@ -143,7 +153,24 @@ class OwnerAuthController extends Controller
             $o->is_premium = (bool) $patch['isPremium'];
         }
 
-        $o->save();
+        try {
+            $o->save();
+        } catch (QueryException $e) {
+            $state = $e->errorInfo[0] ?? '';
+            // PostgreSQL: нет колонки / нет таблицы / нарушение уникальности slug
+            if (in_array($state, ['42703', '42P01'], true)) {
+                return response()->json([
+                    'message' =>
+                        'В базе нет нужных колонок. Выполните миграции: docker compose exec backend php artisan migrate --force',
+                ], 503);
+            }
+            if ($state === '23505') {
+                throw ValidationException::withMessages([
+                    'garageSlug' => 'Этот адрес страницы уже занят. Укажите другой.',
+                ]);
+            }
+            throw $e;
+        }
 
         return response()->json(['owner' => ApiResources::owner($o->fresh())]);
     }

@@ -1,6 +1,5 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
-import Logo from '../Logo.jsx'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -18,17 +17,6 @@ export default function AuthPage() {
   return (
     <div className="container authPage">
       <div className="authSplit authSplit--hub">
-        <div className="authHub__brand authPage__head authPage__head--splitAside">
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <div className="brandTitle">
-              <h1 className="h1 authHub__logoHeading" aria-label="КарПас" style={{ margin: 0 }}>
-                <Logo size={34} />
-              </h1>
-              <div className="brandTagline">История Вашего автомобиля</div>
-            </div>
-          </div>
-        </div>
-
         <div className="authHub__info authSplit__lede">
           <div id="auth-hub-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
             <p className="authSplit__tagline" style={{ margin: 0 }}>
@@ -52,18 +40,26 @@ export default function AuthPage() {
         <div className="authHub__actions authSplit__formCol">
           <Card className="card pad authSplit__formCard authHub__card">
             <p className="muted small authHub__cardTitle" style={{ margin: '0 0 14px' }}>
-              Выберите способ входа
+              Выберите роль
             </p>
             <div className="authHub">
               <Link className="btn authHub__btn authHub__btn--neutral" to="/auth/owner" state={{ from }}>
                 Мой гараж
               </Link>
               <Link className="btn authHub__btn authHub__btn--accent" to="/auth/partner" state={{ from }}>
-                Партнёр
+                Войти в кабинет
               </Link>
-              <Link className="btn authHub__btn authHub__btn--cta" to="/auth/partner/apply" state={{ from }}>
-                Стать партнёром
-              </Link>
+            </div>
+            <div id="auth-hub-card-hint" className="row gap wrap" style={{ alignItems: 'center', marginTop: 14 }}>
+              <div className="cardTitle" style={{ margin: 0 }}>
+                Дальше
+              </div>
+              <ServiceHint scopeId="auth-hub-card-hint" variant="compact" label="Справка: выбор роли">
+                <p className="serviceHint__panelText">
+                  Партнёрам: на следующем шаге — вход или регистрация. Услуги детейлинга и ТО задаются при первой настройке
+                  лендинга.
+                </p>
+              </ServiceHint>
             </div>
           </Card>
         </div>
