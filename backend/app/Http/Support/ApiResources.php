@@ -109,6 +109,22 @@ class ApiResources
         }
         $isService = ($e->source ?? 'service') === 'service';
 
+        $care = $e->care_tips ?? null;
+        if (! is_array($care)) {
+            $care = null;
+        }
+        $careTips = $care
+            ? [
+                'important' => (string) ($care['important'] ?? ''),
+                'tips' => array_values(
+                    array_map(
+                        fn ($x) => (string) $x,
+                        is_array($care['tips'] ?? null) ? $care['tips'] : [],
+                    ),
+                ),
+            ]
+            : null;
+
         return [
             'id' => (string) $e->id,
             'detailingId' => (string) $e->detailing_id,
@@ -123,6 +139,7 @@ class ApiResources
             'services' => $svc,
             'maintenanceServices' => $ms,
             'note' => $e->note ?? '',
+            'careTips' => $careTips,
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),
             'detailingName' => $isService ? (string) ($e->detailing?->name ?? '') : '',

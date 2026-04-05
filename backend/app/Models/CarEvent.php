@@ -23,6 +23,7 @@ class CarEvent extends Model
         'services',
         'maintenance_services',
         'note',
+        'care_tips',
     ];
 
     protected $casts = [
@@ -31,6 +32,7 @@ class CarEvent extends Model
         'is_draft' => 'boolean',
         'services' => 'array',
         'maintenance_services' => 'array',
+        'care_tips' => 'array',
     ];
 
     public function detailing(): BelongsTo

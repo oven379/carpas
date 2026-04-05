@@ -12,6 +12,35 @@ use Illuminate\Http\Request;
 
 class CarEventController extends Controller
 {
+    /** @param  mixed  $raw  JSON body `careTips`: { important, tips: string[] } */
+    private static function normalizeCareTips(mixed $raw): ?array
+    {
+        if (! is_array($raw)) {
+            return null;
+        }
+        $tipsIn = $raw['tips'] ?? [];
+        if (! is_array($tipsIn)) {
+            $tipsIn = [];
+        }
+        $tips = [];
+        foreach ($tipsIn as $t) {
+            $one = trim((string) $t);
+            if ($one !== '') {
+                $tips[] = $one;
+            }
+        }
+        $important = trim((string) ($raw['important'] ?? ''));
+        $tips = array_values($tips);
+        if ($important === '' && $tips === []) {
+            return null;
+        }
+
+        return [
+            'important' => $important,
+            'tips' => $tips,
+        ];
+    }
+
     private function assertDetailingOwnsServiceEvent(Detailing $d, CarEvent $evt): void
     {
         if (($evt->source ?? '') !== 'service') {
@@ -103,6 +132,7 @@ class CarEventController extends Controller
             'services' => ['nullable', 'array'],
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
+            'careTips' => ['nullable', 'array'],
             'isDraft' => ['nullable'],
         ]);
 
@@ -134,6 +164,7 @@ class CarEventController extends Controller
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
+            'care_tips' => self::normalizeCareTips($data['careTips'] ?? null),
         ]);
 
         return response()->json(ApiResources::event($evt));
@@ -171,6 +202,9 @@ class CarEventController extends Controller
         }
         if (array_key_exists('note', $data)) {
             $evt->note = $data['note'];
+        }
+        if (array_key_exists('careTips', $data)) {
+            $evt->care_tips = self::normalizeCareTips($data['careTips']);
         }
         if (array_key_exists('isDraft', $data)) {
             $evt->is_draft = $request->boolean('isDraft');

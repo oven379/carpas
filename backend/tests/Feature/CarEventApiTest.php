@@ -57,6 +57,33 @@ class CarEventApiTest extends FeatureTestCase
         $this->assertDatabaseMissing('car_events', ['id' => $eventId]);
     }
 
+    public function test_service_event_saves_and_returns_care_tips(): void
+    {
+        $d = $this->detailing();
+        $car = $this->carForDetailing($d->id);
+        Sanctum::actingAs($d);
+
+        $store = $this->postJson("/api/cars/{$car->id}/events", [
+            'title' => 'Уход',
+            'type' => 'visit',
+            'mileageKm' => 5000,
+            'services' => ['wash'],
+            'careTips' => [
+                'important' => 'Первые сутки не мойте под давлением',
+                'tips' => ['Совет один', 'Совет два'],
+            ],
+        ]);
+        $store->assertOk();
+        $store->assertJsonPath('careTips.important', 'Первые сутки не мойте под давлением');
+        $store->assertJsonPath('careTips.tips.0', 'Совет один');
+        $store->assertJsonPath('careTips.tips.1', 'Совет два');
+        $eventId = $store->json('id');
+
+        $this->getJson("/api/cars/{$car->id}/events")
+            ->assertOk()
+            ->assertJsonPath('0.careTips.important', 'Первые сутки не мойте под давлением');
+    }
+
     public function test_cannot_update_or_delete_service_visit_after_visit_calendar_day(): void
     {
         $d = $this->detailing();
