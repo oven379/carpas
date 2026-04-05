@@ -178,6 +178,19 @@ button.nav__action {
   min-width: 0;
 }
 
+/* Ленивая загрузка страниц (React.lazy): короткий экран ожидания чанка */
+.routeFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(48vh, 400px);
+  padding: 24px 16px;
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.45;
+  color: color-mix(in oklab, var(--text) 58%, var(--border));
+}
+
 .footer {
   border-top: 1px solid var(--border);
   padding: 12px max(16px, env(safe-area-inset-left, 0px)) max(12px, env(safe-area-inset-bottom, 0px))
