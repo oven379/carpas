@@ -21,6 +21,7 @@ class ApiResources
             'city' => $d->city ?? '',
             'address' => $d->address ?? '',
             'description' => $d->description ?? '',
+            'workingHours' => $d->working_hours ?? '',
             'website' => $d->website ?? '',
             'telegram' => $d->telegram ?? '',
             'instagram' => $d->instagram ?? '',

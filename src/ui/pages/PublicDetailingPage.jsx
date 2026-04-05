@@ -224,6 +224,14 @@ export default function PublicDetailingPage() {
                 )}
               </span>
             </div>
+            {String(det.workingHours || '').trim() ? (
+              <div className="kv__row">
+                <span className="kv__k">Режим работы</span>
+                <span className="kv__v" style={{ whiteSpace: 'pre-wrap' }}>
+                  {String(det.workingHours).trim()}
+                </span>
+              </div>
+            ) : null}
           </div>
 
           <div className="topBorder">

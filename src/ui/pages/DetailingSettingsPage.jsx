@@ -9,6 +9,7 @@ import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatal
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
+import { DETAILING_WORKING_HOURS_MAX_LEN } from '../../lib/format.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -24,6 +25,7 @@ export default function DetailingSettingsPage() {
     city: '',
     address: '',
     description: '',
+    workingHours: '',
     website: '',
     telegram: '',
     instagram: '',
@@ -40,6 +42,7 @@ export default function DetailingSettingsPage() {
       city: detailing.city || '',
       address: detailing.address || '',
       description: detailing.description || '',
+      workingHours: detailing.workingHours || '',
       website: detailing.website || '',
       telegram: detailing.telegram || '',
       instagram: detailing.instagram || '',
@@ -169,6 +172,11 @@ export default function DetailingSettingsPage() {
               <p className="muted" style={{ marginTop: 8 }}>
                 {addressText || 'Город и адрес'}
               </p>
+              {String(draft.workingHours || '').trim() ? (
+                <p className="muted small" style={{ marginTop: 8, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                  {String(draft.workingHours).trim()}
+                </p>
+              ) : null}
               {draft.description ? (
                 <p className="muted small" style={{ marginTop: 8, lineHeight: 1.55 }}>
                   {draft.description}
@@ -277,6 +285,21 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
+          <Field className="field--full" label="Режим работы" hint="на лендинге /d/… и в шапке кабинета">
+            <Textarea
+              className="textarea"
+              rows={2}
+              maxLength={DETAILING_WORKING_HOURS_MAX_LEN}
+              value={draft.workingHours}
+              onChange={(e) =>
+                setDraft((d) => ({
+                  ...d,
+                  workingHours: String(e.target.value).slice(0, DETAILING_WORKING_HOURS_MAX_LEN),
+                }))
+              }
+              placeholder="Например: Пн–Пт 10:00–20:00, Сб 11:00–17:00"
+            />
+          </Field>
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Услуги</span>
@@ -363,7 +386,7 @@ export default function DetailingSettingsPage() {
               rows={4}
               value={draft.description}
               onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-              placeholder="Коротко: чем занимаетесь, режим работы, гарантия…"
+              placeholder="Коротко: специализация, гарантия, чем отличаетесь…"
             />
           </Field>
           <Field label="Сайт" hint="необязательно">

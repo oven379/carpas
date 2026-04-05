@@ -90,4 +90,21 @@ class DetailingAuthTest extends FeatureTestCase
             ->assertOk()
             ->assertJsonPath('detailing.email', 'me@example.test');
     }
+
+    public function test_patch_me_saves_working_hours(): void
+    {
+        $d = $this->detailing(['email' => 'wh@example.test']);
+        Sanctum::actingAs($d);
+
+        $this->patchJson('/api/detailings/me', [
+            'workingHours' => "Пн–Пт 9:00–21:00\nСб 10:00–18:00",
+        ])
+            ->assertOk()
+            ->assertJsonPath('detailing.workingHours', "Пн–Пт 9:00–21:00\nСб 10:00–18:00");
+
+        $this->assertDatabaseHas('detailings', [
+            'id' => $d->id,
+            'working_hours' => "Пн–Пт 9:00–21:00\nСб 10:00–18:00",
+        ]);
+    }
 }

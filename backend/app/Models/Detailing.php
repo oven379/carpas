@@ -22,6 +22,7 @@ class Detailing extends Authenticatable
         'city',
         'address',
         'description',
+        'working_hours',
         'website',
         'telegram',
         'instagram',

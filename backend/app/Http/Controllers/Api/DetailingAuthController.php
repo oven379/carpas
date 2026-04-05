@@ -125,6 +125,13 @@ class DetailingAuthController extends Controller
         if (array_key_exists('description', $patch)) {
             $d->description = trim((string) $patch['description']);
         }
+        if (array_key_exists('workingHours', $patch)) {
+            $wh = trim((string) $patch['workingHours']);
+            if (mb_strlen($wh) > 200) {
+                $wh = mb_substr($wh, 0, 200);
+            }
+            $d->working_hours = $wh;
+        }
         if (array_key_exists('website', $patch)) {
             $d->website = trim((string) $patch['website']);
         }
