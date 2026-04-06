@@ -152,7 +152,7 @@ class CarGarageMergeTest extends FeatureTestCase
             'city' => '',
         ])
             ->assertOk()
-            ->assertJsonPath('id', $car->id);
+            ->assertJsonPath('id', (string) $car->id);
 
         $this->assertDatabaseHas('cars', [
             'id' => $car->id,

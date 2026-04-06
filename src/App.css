@@ -461,6 +461,29 @@ button.nav__action {
   margin-bottom: 0;
 }
 
+/* История на карточке авто: «Добавить визит» (+ на мобилке) и открыть историю */
+.carPage__historyHeaderActions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .carPage__sectionRow--history {
+    flex-wrap: wrap;
+  }
+
+  .carPage__sectionRow--history .carPage__historyHeaderActions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 2px;
+  }
+}
+
 .carPage__sectionMeta {
   margin: 0;
   line-height: 1.45;
@@ -1951,6 +1974,25 @@ a.heroCoverStat--link:focus-visible {
   min-width: 0;
 }
 
+.rowItem__ownerGarageMid {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+a.rowItem__ownerGarageMainTap {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.rowItem__garageAddVisit {
+  flex-shrink: 0;
+}
+
 .rowItem__meta {
   color: var(--text);
   font-size: 13px;
@@ -2656,6 +2698,20 @@ a.backNav {
 .carPage__icon--car {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z'/%3E%3C/svg%3E");
+}
+
+.carPage__icon--plus {
+  width: 22px;
+  height: 22px;
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
+}
+
+/* Быстрый «новый визит» на обложке — только мобилка; на вебе — кнопка в блоке «История авто» */
+@media (min-width: 641px) {
+  .carPage__heroAddVisitBtn {
+    display: none !important;
+  }
 }
 
 /* Гараж владельца: на узких экранах — короткая подпись «VIN» */

@@ -237,6 +237,54 @@ export default function CarPage() {
     return best
   }, [finalizedEvents])
 
+  /** Последняя запись в истории от детейлинга — иначе показываем «в гараже» и аватар владельца. */
+  const lastVisitFromDetailing = useMemo(
+    () => Boolean(lastHistoryEvent && String(lastHistoryEvent.source || '') === 'service'),
+    [lastHistoryEvent],
+  )
+
+  const ownerGarageAvatarResolved = useMemo(() => {
+    const raw = String(owner?.garageAvatar || '').trim()
+    return raw ? resolvePublicMediaUrl(raw) : ''
+  }, [owner?.garageAvatar])
+
+  const ownerAvatarFallbackLetters = useMemo(() => {
+    const n = String(owner?.name || '').trim()
+    if (n.length >= 2) return n.slice(0, 2).toUpperCase()
+    const em = String(owner?.email || ownerEmailResolved || '').trim()
+    return em.slice(0, 2).toUpperCase() || '?'
+  }, [owner?.name, owner?.email, ownerEmailResolved])
+
+  const servicingAtDetailingName = useMemo(() => {
+    if (!lastHistoryEvent || String(lastHistoryEvent.source || '') !== 'service') return ''
+    const dn = String(lastHistoryEvent.detailingName || '').trim()
+    if (dn) return dn
+    return (
+      String(car?.detailingName || '').trim() ||
+      String(ownerServiceSummary?.serviceName || '').trim() ||
+      'Сервис'
+    )
+  }, [lastHistoryEvent, car, ownerServiceSummary])
+
+  const servicingAtDetailingLogo = useMemo(() => {
+    if (!lastHistoryEvent || String(lastHistoryEvent.source || '') !== 'service') return ''
+    const le = String(lastHistoryEvent.detailingLogo || '').trim()
+    if (le) return resolvePublicMediaUrl(le)
+    const cf = String(car?.detailingLogo || '').trim()
+    if (cf) return resolvePublicMediaUrl(cf)
+    return ''
+  }, [lastHistoryEvent, car])
+
+  const ownerApprovedServicingHeadline = useMemo(() => {
+    if (lastVisitFromDetailing) {
+      const name = servicingAtDetailingName || 'Сервис'
+      const at = lastHistoryEvent?.at
+      if (at) return `Обслуживается: ${name}, ${fmtDateTime(at)}`
+      return `Обслуживается: ${name}`
+    }
+    return 'Обслуживается: в гараже'
+  }, [lastVisitFromDetailing, servicingAtDetailingName, lastHistoryEvent?.at])
+
   const lastVisitDocs = useMemo(() => {
     if (!lastHistoryEvent?.id) return []
     const evId = String(lastHistoryEvent.id)
@@ -246,22 +294,6 @@ export default function CarPage() {
     const photos = list.filter((d) => String(d.kind || 'photo') === 'photo')
     return photos.length ? photos : list
   }, [allCarDocs, lastHistoryEvent?.id])
-
-  /** Логотип привязанного детейлинга: не только когда последний визит от сервиса (у владельца визит может быть свой). */
-  const ownerLinkedDetailingLogo = useMemo(() => {
-    if (!car?.detailingId) return ''
-    const fromCar = String(car.detailingLogo || '').trim()
-    if (fromCar) return resolvePublicMediaUrl(fromCar)
-    if (lastHistoryEvent?.source === 'service' && lastHistoryEvent.detailingLogo) {
-      return resolvePublicMediaUrl(lastHistoryEvent.detailingLogo)
-    }
-    for (const e of finalizedEvents) {
-      if (e?.source === 'service' && String(e.detailingLogo || '').trim()) {
-        return resolvePublicMediaUrl(e.detailingLogo)
-      }
-    }
-    return ''
-  }, [car?.detailingId, car?.detailingLogo, lastHistoryEvent, finalizedEvents])
 
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
@@ -307,6 +339,7 @@ export default function CarPage() {
         : 'К автомобилям'
 
   const recs = getCareRecommendations({ car, events: allEvents })
+  const newVisitPath = buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })
   const lastServiceVisitAt = (() => {
     let best = ''
     let bestTs = 0
@@ -368,6 +401,16 @@ export default function CarPage() {
         <div className="carHero__overlay">
           {mode === 'owner' || mode === 'detailing' ? (
             <div className="heroActions" aria-label="Действия">
+              <Link
+                className="btn carPage__iconBtn carPage__heroAddVisitBtn"
+                data-variant="ghost"
+                to={newVisitPath}
+                aria-label="Добавить визит"
+                title="Добавить визит"
+              >
+                <span className="carPage__icon carPage__icon--plus" aria-hidden="true" />
+                <span className="carPage__btnText">Добавить визит</span>
+              </Link>
               <Link
                 className="btn carPage__iconBtn"
                 data-variant="ghost"
@@ -496,19 +539,27 @@ export default function CarPage() {
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
                       <div
                         className="carPage__historyServiceAvatar"
-                        title={ownerServiceSummary.serviceName}
-                        aria-label={`Сервис: ${ownerServiceSummary.serviceName}`}
+                        title={ownerApprovedServicingHeadline}
+                        aria-label={ownerApprovedServicingHeadline}
                       >
-                        {ownerLinkedDetailingLogo ? (
-                          <img alt="" src={ownerLinkedDetailingLogo} />
+                        {lastVisitFromDetailing ? (
+                          servicingAtDetailingLogo ? (
+                            <img alt="" src={servicingAtDetailingLogo} />
+                          ) : (
+                            <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
+                              {(servicingAtDetailingName || 'Сервис').slice(0, 2).toUpperCase()}
+                            </span>
+                          )
+                        ) : ownerGarageAvatarResolved ? (
+                          <img alt="" src={ownerGarageAvatarResolved} />
                         ) : (
                           <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
-                            {ownerServiceSummary.serviceName.slice(0, 2).toUpperCase()}
+                            {ownerAvatarFallbackLetters}
                           </span>
                         )}
                       </div>
                       <div style={{ flex: 1, minWidth: 'min(100%, 240px)' }}>
-                        <div className="metaStrong">Обслуживается в: {ownerServiceSummary.serviceName}</div>
+                        <div className="metaStrong">{ownerApprovedServicingHeadline}</div>
                         <div className="row gap wrap" style={{ marginTop: 6, alignItems: 'center' }}>
                           <Pill tone="accent">Связь с сервисом подтверждена</Pill>
                         </div>
@@ -841,7 +892,7 @@ export default function CarPage() {
               <Link
                 className="btn carPage__recsAddVisitBtn"
                 data-variant="outline"
-                to={buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })}
+                to={newVisitPath}
                 aria-label="Добавить визит"
                 title="Добавить визит"
               >
@@ -869,7 +920,7 @@ export default function CarPage() {
           </Card>
 
           <Card className="card pad">
-            <div className="row spread gap carPage__sectionRow">
+            <div className="row spread gap carPage__sectionRow carPage__sectionRow--history">
               <div className="carPage__sectionHead">
                 <h2 className="h2 carPage__sectionTitle">История авто</h2>
                 {lastHistoryEvent?.at ? (
@@ -945,11 +996,25 @@ export default function CarPage() {
                   <p className="muted small carPage__sectionMeta">Нет истории</p>
                 )}
               </div>
-              <OpenAction
-                to={buildCarSubRoutePath(id, 'history', fromParam)}
-                title="История авто"
-                aria-label="Открыть историю авто"
-              />
+              <div className="carPage__historyHeaderActions">
+                <Link
+                  className="btn carPage__recsAddVisitBtn carPage__historyAddVisitBtn"
+                  data-variant="outline"
+                  to={newVisitPath}
+                  aria-label="Добавить визит"
+                  title="Добавить визит"
+                >
+                  <span className="carPage__recsAddVisitText">Добавить визит</span>
+                  <span className="carPage__recsPlusIcon" aria-hidden="true">
+                    +
+                  </span>
+                </Link>
+                <OpenAction
+                  to={buildCarSubRoutePath(id, 'history', fromParam)}
+                  title="История авто"
+                  aria-label="Открыть историю авто"
+                />
+              </div>
             </div>
           </Card>
 

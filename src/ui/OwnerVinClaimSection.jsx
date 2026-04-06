@@ -195,6 +195,7 @@ export default function OwnerVinClaimSection({
       const list = Array.isArray(res) ? res : []
       setVinResults(list)
       setShowNoVinHits(list.length === 0)
+      if (list.length > 0) setVin('')
     } catch {
       alert('Не удалось выполнить поиск. Проверьте интернет и что вы вошли в аккаунт.')
       setShowNoVinHits(false)

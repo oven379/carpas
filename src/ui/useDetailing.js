@@ -130,14 +130,11 @@ export function DetailingSessionProvider({ children }) {
     }
   }, [])
 
-  const value = useMemo(
-    () => {
-      const sid = getSessionDetailingId()
-      const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
-      return { detailingId: sid, detailing, owner, mode, loading, applyDetailingSnapshot }
-    },
-    [detailing, owner, loading, sessionEpoch, applyDetailingSnapshot],
-  )
+  const value = useMemo(() => {
+    const sid = getSessionDetailingId()
+    const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
+    return { detailingId: sid, detailing, owner, mode, loading, applyDetailingSnapshot }
+  }, [detailing, owner, loading, applyDetailingSnapshot])
 
   return createElement(DetailingSessionContext.Provider, { value }, children)
 }

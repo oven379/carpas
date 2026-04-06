@@ -14,7 +14,9 @@ const devProxy = (proxyTarget) => ({
 // Прокси /api и /storage → Docker nginx (по умолчанию :8088). Иначе с :5173 «Failed to fetch» / 404.
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
-  const proxyTarget = String(env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8088').replace(/\/+$/, '')
+  const proxyTarget = String(
+    process.env.VITE_DEV_PROXY_TARGET || env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8088',
+  ).replace(/\/+$/, '')
 
   return {
     /* Не подменять import.meta.env.VITE_* — в части сборок это ломает весь import.meta.env */

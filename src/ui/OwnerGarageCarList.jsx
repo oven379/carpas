@@ -4,7 +4,7 @@ import { useRepo } from './useRepo.js'
 import { OpenAction, PageLoadSpinner } from './components.jsx'
 import { fmtKm } from '../lib/format.js'
 import { dedupeCarsById } from '../lib/garageLimits.js'
-import { buildCarFromQuery } from './carNav.js'
+import { buildCarFromQuery, buildCarSubRoutePath } from './carNav.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
 function lastFinalizedEvent(evts) {
@@ -84,26 +84,53 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
         const lastEvt = lastFinalizedEvent(evts)
         const mileageKm = lastEvt != null && lastEvt.mileageKm != null && lastEvt.mileageKm !== '' ? lastEvt.mileageKm : c.mileageKm
         const yearStr = c.year != null && c.year !== '' ? String(c.year) : '—'
+        const carHref = `/car/${c.id}${fromQ}`
+        const newVisitHref = buildCarSubRoutePath(c.id, 'history', fromPath, { new: '1' })
         return (
-          <Link key={c.id} className="rowItem" to={`/car/${c.id}${fromQ}`}>
-            <div
-              className="rowItem__img"
-              style={c.hero ? { backgroundImage: resolvedBackgroundImageUrl(c.hero) } : undefined}
-            />
-            <div className="rowItem__main">
-              <div className="rowItem__title">
-                {c.make} {c.model}
-              </div>
-              <div className="rowItem__meta carPage__meta">
-                <span>{yearStr}</span>
-                <span aria-hidden="true"> · </span>
-                <span className="eventMeta__km">{fmtKm(mileageKm)}</span>
-              </div>
+          <div key={c.id} className="rowItem">
+            <Link
+              className="rowItem__rowLink"
+              to={carHref}
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              <div
+                className="rowItem__img"
+                style={c.hero ? { backgroundImage: resolvedBackgroundImageUrl(c.hero) } : undefined}
+              />
+            </Link>
+            <div className="rowItem__ownerGarageMid">
+              <Link
+                className="rowItem__ownerGarageMainTap"
+                to={carHref}
+                aria-label={`Открыть карточку: ${c.make} ${c.model}`}
+              >
+                <div className="rowItem__main">
+                  <div className="rowItem__title">
+                    {c.make} {c.model}
+                  </div>
+                  <div className="rowItem__meta carPage__meta">
+                    <span>{yearStr}</span>
+                    <span aria-hidden="true"> · </span>
+                    <span className="eventMeta__km">{fmtKm(mileageKm)}</span>
+                  </div>
+                </div>
+              </Link>
+              <Link
+                className="btn carPage__recsAddVisitBtn rowItem__garageAddVisit"
+                to={newVisitHref}
+                aria-label="Новый визит"
+              >
+                <span className="carPage__recsAddVisitText">Добавить визит</span>
+                <span className="carPage__recsPlusIcon" aria-hidden="true">
+                  +
+                </span>
+              </Link>
             </div>
             <div className="rowItem__aside rowItem__aside--hint">
-              <OpenAction asSpan />
+              <OpenAction to={carHref} />
             </div>
-          </Link>
+          </div>
         )
       })}
     </div>
