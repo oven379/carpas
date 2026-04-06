@@ -129,13 +129,13 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">Рекомендации по уходу за автомобилем</h2>
+          <h2 className="h2">Советы по уходу</h2>
           <div className="recList">
             {recs.map((x, idx) => (
               <div key={idx} className="recItem">
                 <div className="recItem__row">
                   <span className="pill" data-tone={x.tone || 'neutral'}>
-                    {x.tone === 'accent' ? 'важно' : 'совет'}
+                    {x.tone === 'accent' ? 'Важно' : 'Совет'}
                   </span>
                   <span className="recTitle">{x.title}</span>
                 </div>

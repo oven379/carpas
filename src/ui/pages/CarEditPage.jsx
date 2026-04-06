@@ -1,7 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
-import { BackNav, Button, Card, ComboBox, Field, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import {
+  BackNav,
+  Button,
+  Card,
+  ComboBox,
+  Field,
+  Input,
+  PageLoadSpinner,
+  PhoneRuInput,
+  ServiceHint,
+} from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
@@ -498,12 +508,14 @@ export default function CarEditPage({ mode }) {
                 />
               </div>
               <Field label="Клиент (телефон)">
-                <Input
-                  className="input"
-                  inputMode="tel"
+                <PhoneRuInput
                   value={draft.clientPhone}
-                  onChange={(e) => setDraft((d) => ({ ...d, clientPhone: formatPhoneRuInput(e.target.value) }))}
-                  placeholder="+7 999 123-45-67"
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, clientPhone: formatPhoneRuInput(e.target.value) }))
+                  }
+                  onBlur={() =>
+                    setDraft((d) => ({ ...d, clientPhone: formatPhoneRuInput(d.clientPhone) }))
+                  }
                   autoComplete="tel"
                 />
               </Field>

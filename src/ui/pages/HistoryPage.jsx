@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import {
@@ -27,7 +27,9 @@ import {
   dedupeOfferedStrings,
   DETAILING_SERVICES,
   MAINTENANCE_SERVICES,
+  normalizeCarEventServices,
   OFFERED_SERVICE_MAX_LEN,
+  splitOfferedByCatalog,
   splitWashDetailingServices,
   WASH_SERVICE_MARKERS,
 } from '../../lib/serviceCatalogs.js'
@@ -268,26 +270,28 @@ function ServicePicker({
   ariaLabel,
   catalog,
   itemsFromProfile = null,
+  profileStrict = false,
+  allowCustomAdd = false,
   value,
   onChange,
   disabled = false,
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
+  const [customInput, setCustomInput] = useState('')
   const rootRef = useRef(null)
   const selected = useMemo(() => (Array.isArray(value) ? value : []), [value])
 
   const effectiveCatalog = useMemo(() => {
     if (itemsFromProfile == null) return catalog
     const profile = Array.isArray(itemsFromProfile) ? itemsFromProfile : []
-    // Пустой профиль в настройках лендинга — не блокируем визит: показываем полный справочник
-    if (!profile.length) return catalog
+    if (!profileStrict && !profile.length) return catalog
     const profileSet = new Set(profile.map((s) => String(s).toLowerCase()))
     const orphanSelected = selected.filter((s) => !profileSet.has(String(s).toLowerCase()))
     const items = dedupeOfferedStrings([...profile, ...orphanSelected])
     if (!items.length) return []
-    return [{ group: 'Из профиля сервиса', items }]
-  }, [itemsFromProfile, catalog, selected])
+    return [{ group: 'Услуги из настроек лендинга', items }]
+  }, [itemsFromProfile, catalog, selected, profileStrict])
 
   const listCatalog = itemsFromProfile != null ? effectiveCatalog : catalog
   const catalogEmpty = !listCatalog.some((g) => (Array.isArray(g.items) ? g.items.length : 0) > 0)
@@ -305,6 +309,23 @@ function ServicePicker({
   useEffect(() => {
     if (disabled && open) setOpen(false)
   }, [disabled, open])
+
+  useEffect(() => {
+    if (!open) setCustomInput('')
+  }, [open])
+
+  const addCustom = () => {
+    if (disabled) return
+    const s = String(customInput || '').trim().slice(0, OFFERED_SERVICE_MAX_LEN)
+    if (!s) return
+    const lower = s.toLowerCase()
+    if (selected.some((x) => String(x).toLowerCase() === lower)) {
+      setCustomInput('')
+      return
+    }
+    onChange([...selected, s])
+    setCustomInput('')
+  }
 
   const picker = (
     <div className="svcdd" ref={rootRef}>
@@ -376,8 +397,9 @@ function ServicePicker({
               <div className="svcdd__list">
                 {catalogEmpty ? (
                   <div className="muted small" style={{ padding: '10px 12px', lineHeight: 1.45 }}>
-                    В профиле сервиса пока нет услуг в этом разделе. Откройте «Настройки лендинга» и добавьте позиции из
-                    справочника или свою строку.
+                    {profileStrict
+                      ? 'В «Настройках лендинга» для этого раздела пока не выбраны услуги. Добавьте позицию вручную ниже или настройте список на лендинге.'
+                      : 'В профиле сервиса пока нет услуг в этом разделе. Откройте «Настройки лендинга» и добавьте позиции из справочника или свою строку.'}
                   </div>
                 ) : (
                   <>
@@ -424,6 +446,34 @@ function ServicePicker({
                   </>
                 )}
               </div>
+              {allowCustomAdd ? (
+                <div className="svcdd__customRow">
+                  <input
+                    type="text"
+                    className="input svcdd__customInput"
+                    placeholder="Своя услуга…"
+                    value={customInput}
+                    maxLength={OFFERED_SERVICE_MAX_LEN}
+                    disabled={disabled}
+                    onChange={(e) => setCustomInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        addCustom()
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn svcdd__customAddBtn"
+                    data-variant="outline"
+                    disabled={disabled || !String(customInput || '').trim()}
+                    onClick={addCustom}
+                  >
+                    Добавить
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -525,7 +575,7 @@ export default function HistoryPage() {
         const [cr, ev, dc] = await Promise.all([r.getCar(id), r.listEvents(id), r.listDocs(id)])
         if (cancelled) return
         setCar(cr)
-        setEvents(Array.isArray(ev) ? ev : [])
+        setEvents(Array.isArray(ev) ? ev.map(normalizeCarEventServices) : [])
         setAllDocs(Array.isArray(dc) ? dc : [])
       } catch {
         if (!cancelled) {
@@ -687,6 +737,7 @@ export default function HistoryPage() {
   const [editingId, setEditingId] = useState(null)
   const [photoLb, setPhotoLb] = useState(null)
   const formRef = useRef(null)
+  const formTopRef = useRef(null)
   const initFormKeyRef = useRef('')
   const visitPhotosInputId = useId()
   const visitPhotosInputRef = useRef(null)
@@ -742,14 +793,15 @@ export default function HistoryPage() {
       if (!canOpen(e)) return
       setEditingId(e.id)
       setShowNew(true)
+      const ne = normalizeCarEventServices(e)
       setDraft({
-        title: clampVisitTitleInput(e.title || ''),
-        mileageKm: e.mileageKm || '',
-        note: e.note || '',
-        services: Array.isArray(e.services) ? e.services : [],
-        maintenanceServices: Array.isArray(e.maintenanceServices) ? e.maintenanceServices : [],
-        type: e.type || 'visit',
-        ...careDraftFromEvent(e),
+        title: clampVisitTitleInput(ne.title || ''),
+        mileageKm: ne.mileageKm || '',
+        note: ne.note || '',
+        services: Array.isArray(ne.services) ? ne.services : [],
+        maintenanceServices: Array.isArray(ne.maintenanceServices) ? ne.maintenanceServices : [],
+        type: ne.type || 'visit',
+        ...careDraftFromEvent(ne),
       })
       const next = new URLSearchParams(sp)
       next.set('new', '1')
@@ -776,15 +828,16 @@ export default function HistoryPage() {
       if (editParam) {
         const evt = events.find((x) => x.id === editParam) || null
         if (evt && canOpen(evt)) {
+          const ne = normalizeCarEventServices(evt)
           setEditingId(editParam)
           setDraft({
-            title: clampVisitTitleInput(evt.title || ''),
-            mileageKm: evt.mileageKm || '',
-            note: evt.note || '',
-            services: Array.isArray(evt.services) ? evt.services : [],
-            maintenanceServices: Array.isArray(evt.maintenanceServices) ? evt.maintenanceServices : [],
-            type: evt.type || 'visit',
-            ...careDraftFromEvent(evt),
+            title: clampVisitTitleInput(ne.title || ''),
+            mileageKm: ne.mileageKm || '',
+            note: ne.note || '',
+            services: Array.isArray(ne.services) ? ne.services : [],
+            maintenanceServices: Array.isArray(ne.maintenanceServices) ? ne.maintenanceServices : [],
+            type: ne.type || 'visit',
+            ...careDraftFromEvent(ne),
           })
         } else {
           setShowNew(false)
@@ -809,22 +862,20 @@ export default function HistoryPage() {
     }
   }, [wantNew, editParam, events, mode, canOpen, setSp, sp])
 
-  useEffect(() => {
-    if (!showNew) return
-    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, [showNew])
-
   const title = useMemo(() => (car ? `${car.make} ${car.model}` : ''), [car])
   const detForBadge = useMemo(() => {
     const detId = car?.detailingId
     if (!detId) return null
+    const idMatch = detailingId && String(detailingId) === String(detId)
+    const logoFromSession = idMatch && detailing?.logo ? String(detailing.logo).trim() : ''
+    const logoFromCar = String(car?.detailingLogo || '').trim()
     return {
       id: detId,
       name: String(car.detailingName || car.seller?.name || 'Сервис').trim() || 'Сервис',
-      logo: null,
+      logo: logoFromSession || logoFromCar || null,
       website: car.detailingWebsite || '',
     }
-  }, [car])
+  }, [car, detailingId, detailing])
   const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
   const detBadgeInitials = useMemo(() => {
     const nm = String(detForBadge?.name || 'Д').trim()
@@ -832,11 +883,15 @@ export default function HistoryPage() {
   }, [detForBadge?.name])
 
   const visitServiceProfile = useMemo(() => {
-    if (mode !== 'detailing' || !detailing) return { det: [], maint: [] }
-    return {
-      det: Array.isArray(detailing.detailingServicesOffered) ? detailing.detailingServicesOffered : [],
-      maint: Array.isArray(detailing.maintenanceServicesOffered) ? detailing.maintenanceServicesOffered : [],
+    if (mode !== 'detailing' || !detailing) {
+      return { detailingServicesOffered: [], maintenanceServicesOffered: [] }
     }
+    const det = Array.isArray(detailing.detailingServicesOffered) ? detailing.detailingServicesOffered : []
+    const maint = Array.isArray(detailing.maintenanceServicesOffered) ? detailing.maintenanceServicesOffered : []
+    if (det.length || maint.length) {
+      return { detailingServicesOffered: det, maintenanceServicesOffered: maint }
+    }
+    return splitOfferedByCatalog(Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [])
   }, [mode, detailing])
 
   const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
@@ -845,6 +900,15 @@ export default function HistoryPage() {
   const formLocked = isEditing && !editAllowed
   const readonlyFormNotice = editingId && !editAllowed && editingEvent ? visitReadonlyFormNotice(mode, editingEvent) : ''
   const detailingAwaitDraft = mode === 'detailing' && wantNew && !editParam
+
+  useLayoutEffect(() => {
+    if (!showNew) return
+    const target =
+      !detailingAwaitDraft && formTopRef.current ? formTopRef.current : formRef.current
+    if (!target) return
+    target.scrollIntoView({ behavior: 'auto', block: 'start' })
+  }, [showNew, detailingAwaitDraft, editParam])
+
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
       ? 'Новый визит'
@@ -1135,6 +1199,7 @@ export default function HistoryPage() {
       <div className="list">
         {visibleEvents.map((e, cardIdx) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
+          const serviceCornerLogoRaw = String(e.detailingLogo || car?.detailingLogo || '').trim()
           const showDetFooter = mode === 'owner' && e.source === 'service' && detForBadge
           const showServiceCornerAvatar =
             e.source === 'service' && (mode !== 'owner' || !detForBadge)
@@ -1207,7 +1272,7 @@ export default function HistoryPage() {
                   </span>
                   <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
                 </div>
-                {visitExpanded && mode === 'detailing' && e.isDraft ? (
+                {mode === 'detailing' && e.isDraft ? (
                   <div className="historyDraftCardBar row gap wrap" onClick={(ev) => ev.stopPropagation()}>
                     <span className="pill" data-tone="accent">
                       Черновик
@@ -1269,13 +1334,17 @@ export default function HistoryPage() {
                 ) : null}
                 {(() => {
                   const photos = docsForEvent(e.id)
-                  const canPhoto = canEditAny(e)
+                  /** В карточке визита детейлинга фото добавляем только из черновика; сохранённые визиты — через форму после входа в редактирование. */
+                  const canPhotoInCard =
+                    mode === 'detailing' && e.source === 'service'
+                      ? Boolean(e.isDraft && canEdit(e))
+                      : canEditAny(e)
                   if (!photos.length) {
                     if (!visitExpanded) return null
                     return (
                       <div className="historyCardPhotosEmpty" style={{ marginTop: 10 }}>
                         <div className="muted small">Нет добавленных фотографий.</div>
-                        {canPhoto ? (
+                        {canPhotoInCard ? (
                           <div className="historyCardAddPhoto" style={{ marginTop: 8 }} onClick={(ev) => ev.stopPropagation()}>
                             <button
                               type="button"
@@ -1299,7 +1368,7 @@ export default function HistoryPage() {
                           <HistoryEventDocThumb
                             key={d.id}
                             doc={d}
-                            canReplace={canPhoto}
+                            canReplace={canPhotoInCard}
                             onAddPhoto={() => openVisitEdit(e)}
                             openGallery={
                               gi >= 0
@@ -1328,10 +1397,10 @@ export default function HistoryPage() {
                   role="img"
                 >
                   <div className="eventCardServiceAvatar__inner">
-                    {e.detailingLogo ? (
+                    {serviceCornerLogoRaw ? (
                       <img
                         alt=""
-                        src={resolvePublicMediaUrl(e.detailingLogo)}
+                        src={resolvePublicMediaUrl(serviceCornerLogoRaw)}
                         className="eventCardServiceAvatar__img"
                       />
                     ) : (
@@ -1424,7 +1493,9 @@ export default function HistoryPage() {
             </div>
           ) : (
             <>
-              <h2 className="h2">{formHeading}</h2>
+              <h2 className="h2 historyPage__formScrollTarget" ref={formTopRef}>
+                {formHeading}
+              </h2>
               {readonlyFormNotice ? (
                 <div className="visitFormReadonlyNotice muted small" style={{ marginTop: 6 }}>
                   {readonlyFormNotice}
@@ -1508,7 +1579,9 @@ export default function HistoryPage() {
                   hintLabel={FORM_SERVICES_DET_HINT.label}
                   ariaLabel="Выбор услуг детейлинга"
                   catalog={DETAILING_SERVICES}
-                  itemsFromProfile={visitServiceProfile.det}
+                  itemsFromProfile={visitServiceProfile.detailingServicesOffered}
+                  profileStrict
+                  allowCustomAdd
                   value={draft.services}
                   onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
                   disabled={formLocked}
@@ -1520,7 +1593,9 @@ export default function HistoryPage() {
                   hintLabel={FORM_SERVICES_TO_HINT.label}
                   ariaLabel="Выбор услуг ТО"
                   catalog={MAINTENANCE_SERVICES}
-                  itemsFromProfile={visitServiceProfile.maint}
+                  itemsFromProfile={visitServiceProfile.maintenanceServicesOffered}
+                  profileStrict
+                  allowCustomAdd
                   value={draft.maintenanceServices}
                   onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
                   disabled={formLocked}
@@ -1530,12 +1605,12 @@ export default function HistoryPage() {
             {mode === 'detailing' ? (
               <div className="historyCareTips historyCareTipsForCarCard topBorder">
                 <p className="muted small historyCareTipsForCarCard__intro">
-                  Советы для владельца на карточке авто — в блоке «Рекомендации по уходу» после сохранения визита. Только для кабинета детейлинга.
+                  Советы для владельца на карточке авто — в блоке «Советы» после сохранения визита. Только для кабинета детейлинга.
                 </p>
                 <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_IMPORTANT_HINT.scopeId}>
                   <div className="field__top serviceHint__fieldTop">
                     <span className="field__label">
-                      Важно <span className="pill" data-tone="accent">важно</span>
+                      Важно <span className="pill" data-tone="accent">Важно</span>
                     </span>
                     <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} variant="compact" label={FORM_CARE_IMPORTANT_HINT.label}>
                       <p className="serviceHint__panelText">{FORM_CARE_IMPORTANT_HINT.text}</p>
@@ -1570,7 +1645,7 @@ export default function HistoryPage() {
                   <div key={key} className="field field--full">
                     <div className="field__top field__top--solo">
                       <span className="field__label">
-                        Совет {n} <span className="pill" data-tone="neutral">совет</span>
+                        Совет {n} <span className="pill" data-tone="neutral">Совет</span>
                       </span>
                     </div>
                     <Input
@@ -1841,7 +1916,7 @@ export default function HistoryPage() {
                       alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
                       return
                     }
-                    const payload = { ...buildVisitPayload(), maintenanceServices: [] }
+                    const payload = buildVisitPayload()
 
                     const evt = editingId
                       ? await r.updateEvent(id, editingId, payload)

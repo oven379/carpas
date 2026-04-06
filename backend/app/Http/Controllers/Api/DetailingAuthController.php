@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\ServiceOfferedCatalog;
+use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -40,16 +42,18 @@ class DetailingAuthController extends Controller
         if (!is_array($offered)) {
             $offered = [];
         }
+        $split = ServiceOfferedCatalog::splitFlatToBuckets($offered);
 
         $d = Detailing::query()->create([
-            'name' => trim($data['name']),
+            'name' => TextFormat::mbUcfirst($data['name']),
             'email' => $email,
             'password' => Hash::make($pwd),
-            'contact_name' => trim($data['contactName']),
+            'contact_name' => TextFormat::mbUcfirst($data['contactName']),
             'phone' => trim($data['phone']),
             'city' => trim($data['city']),
             'address' => trim($data['address']),
-            'services_offered' => array_values($offered),
+            'services_offered' => $split['det'],
+            'maintenance_services_offered' => $split['maint'],
             'profile_completed' => false,
             'is_personal' => false,
         ]);
@@ -108,10 +112,10 @@ class DetailingAuthController extends Controller
 
         $patch = $request->all();
         if (array_key_exists('name', $patch)) {
-            $d->name = trim((string) $patch['name']);
+            $d->name = TextFormat::mbUcfirst((string) $patch['name']);
         }
         if (array_key_exists('contactName', $patch)) {
-            $d->contact_name = trim((string) $patch['contactName']);
+            $d->contact_name = TextFormat::mbUcfirst((string) $patch['contactName']);
         }
         if (array_key_exists('phone', $patch)) {
             $d->phone = trim((string) $patch['phone']);
@@ -161,8 +165,17 @@ class DetailingAuthController extends Controller
                 'cover',
             );
         }
-        if (array_key_exists('servicesOffered', $patch) && is_array($patch['servicesOffered'])) {
+        $hasDetList = array_key_exists('servicesOffered', $patch) && is_array($patch['servicesOffered']);
+        $hasMaintList = array_key_exists('maintenanceServicesOffered', $patch) && is_array($patch['maintenanceServicesOffered']);
+        if ($hasDetList && $hasMaintList) {
             $d->services_offered = array_values(array_map('strval', $patch['servicesOffered']));
+            $d->maintenance_services_offered = array_values(array_map('strval', $patch['maintenanceServicesOffered']));
+        } elseif ($hasDetList) {
+            $split = ServiceOfferedCatalog::splitFlatToBuckets($patch['servicesOffered']);
+            $d->services_offered = $split['det'];
+            $d->maintenance_services_offered = $split['maint'];
+        } elseif ($hasMaintList) {
+            $d->maintenance_services_offered = array_values(array_map('strval', $patch['maintenanceServicesOffered']));
         }
         if (array_key_exists('profileCompleted', $patch)) {
             $d->profile_completed = (bool) $patch['profileCompleted'];

@@ -174,3 +174,16 @@ export function splitLegacyCombinedServices(services, maintenanceServices) {
   }
   return { services: det, maintenanceServices: maint }
 }
+
+/** Нормализация полей услуг события после загрузки с API: legacy в одном массиве, пустые строки. */
+export function normalizeCarEventServices(event) {
+  if (!event || typeof event !== 'object') return event
+  const rawSvc = Array.isArray(event.services)
+    ? event.services.map((s) => String(s || '').trim()).filter(Boolean)
+    : []
+  const rawMs = Array.isArray(event.maintenanceServices)
+    ? event.maintenanceServices.map((s) => String(s || '').trim()).filter(Boolean)
+    : []
+  const { services, maintenanceServices } = splitLegacyCombinedServices(rawSvc, rawMs)
+  return { ...event, services, maintenanceServices }
+}

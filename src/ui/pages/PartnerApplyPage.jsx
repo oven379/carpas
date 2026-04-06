@@ -1,6 +1,16 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { AuthLegalConsent, BackNav, Button, Card, ComboBox, Field, Input, ServiceHint } from '../components.jsx'
+import {
+  AuthLegalConsent,
+  BackNav,
+  Button,
+  Card,
+  ComboBox,
+  Field,
+  Input,
+  PhoneRuInput,
+  ServiceHint,
+} from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
@@ -81,15 +91,11 @@ export default function PartnerApplyPage() {
                 />
               </Field>
               <Field className="field--full" label="Телефон">
-                <Input
-                  className="input"
-                  type="tel"
-                  autoComplete="tel"
-                  inputMode="tel"
+                <PhoneRuInput
                   value={regPhone}
                   onChange={(e) => setRegPhone(formatPhoneRuInput(e.target.value))}
-                  onBlur={(e) => setRegPhone(formatPhoneRuInput(e.currentTarget.value))}
-                  placeholder="+7 900 123-45-67"
+                  onBlur={() => setRegPhone((p) => formatPhoneRuInput(p))}
+                  autoComplete="tel"
                 />
               </Field>
               <Field className="field--full" label="Почта">

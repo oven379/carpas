@@ -23,7 +23,7 @@ import {
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
 import { buildCarSubRoutePath } from '../carNav.js'
-import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
+import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
 function pickBestDetailingId(cars, ownerClaims) {
   const score = new Map()
@@ -257,22 +257,18 @@ export default function OwnerGaragePage() {
         const carDisplayName = carRow
           ? [String(carRow.make || '').trim(), String(carRow.model || '').trim()].filter(Boolean).join(' ').trim()
           : ''
-        const e = best.evt
-        const evts = best.carEvents
+        const e = normalizeCarEventServices(best.evt)
+        const titleTrim = String(e.title || '').trim()
         const linkLabel =
           e.source === 'owner'
-            ? String(e.title || '').trim() || 'Визит'
-            : String(e.detailingName || '').trim() || String(e.title || '').trim() || 'Сервис'
-        const headlineName = String(e.title || '').trim() || linkLabel || 'Визит'
-        const lastEvtMs = Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []
+            ? titleTrim || 'Визит'
+            : titleTrim || String(e.detailingName || '').trim() || 'Сервис'
+        const headlineName = linkLabel
+        const lastEvtMs = (Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []).filter(Boolean)
         const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(e.services)
+        const lastEvtWashF = lastEvtWash.filter(Boolean)
+        const lastEvtDetF = lastEvtDet.filter(Boolean)
         const lastEvtNote = String(e.note || '').trim()
-        const prevWashEvt =
-          lastEvtWash.length
-            ? null
-            : evts.find((ev) => Array.isArray(ev?.services) && ev.services.some((s) => WASH_SERVICE_MARKERS.has(s))) ||
-              null
-        const prevWashList = prevWashEvt ? splitWashDetailingServices(prevWashEvt.services).wash : []
         let photoUrl = ''
         try {
           const allDocs = await r.listDocs(best.carId)
@@ -295,11 +291,9 @@ export default function OwnerGaragePage() {
           mileageKm: e.mileageKm,
           photoUrl,
           maintenanceServices: lastEvtMs,
-          wash: lastEvtWash,
-          det: lastEvtDet,
+          wash: lastEvtWashF,
+          det: lastEvtDetF,
           note: lastEvtNote,
-          prevWashEvt,
-          prevWashList,
         })
       } catch {
         if (!cancelled) setGarageLastVisit(null)
@@ -604,24 +598,9 @@ export default function OwnerGaragePage() {
                             <span className="eventLabel">Детейлинг:</span> {garageLastVisit.det.join(', ')}
                           </div>
                         ) : null}
-                        {!garageLastVisit.maintenanceServices.length &&
-                        !garageLastVisit.wash.length &&
-                        !garageLastVisit.det.length &&
-                        garageLastVisit.note ? (
+                        {garageLastVisit.note ? (
                           <div className="rowItem__lastEvtLine">
                             <span className="eventLabel">Комментарий:</span> {garageLastVisit.note}
-                          </div>
-                        ) : null}
-                        {garageLastVisit.prevWashList.length ? (
-                          <div className="rowItem__lastEvtLine rowItem__lastEvtLine--prevWash">
-                            <span className="eventLabel">Уход</span>
-                            {garageLastVisit.prevWashEvt?.at ? (
-                              <span className="rowItem__lastEvtWashWhen">
-                                {` (${fmtDateTime(garageLastVisit.prevWashEvt.at)})`}
-                              </span>
-                            ) : null}
-                            <span>: </span>
-                            {garageLastVisit.prevWashList.join(', ')}
                           </div>
                         ) : null}
                       </div>

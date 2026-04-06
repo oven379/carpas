@@ -8,7 +8,6 @@ import {
   describeVinValidationError,
   displayRuPhone,
   fmtDate,
-  fmtKm,
   fmtPlateFull,
   normDigits,
   normVin,
@@ -517,14 +516,8 @@ export default function DetailingDashboardPage() {
                           <Pill tone="neutral">{c.detailingName}</Pill>
                         ) : null}
                       </div>
-                      <div className="rowItem__meta carPage__meta" style={{ marginTop: 6 }}>
-                        <span className="mono">VIN: {c.vin || '—'}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{fmtKm(c.mileageKm)}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{c.year ? `${c.year} г.` : '—'}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>{c.city || '—'}</span>
+                      <div className="rowItem__meta carPage__meta mono" style={{ marginTop: 6 }}>
+                        VIN: {c.vin || '—'}
                       </div>
                       {fromGarage ? (
                         <>

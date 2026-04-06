@@ -12,6 +12,9 @@ class ApiResources
 {
     public static function detailing(Detailing $d): array
     {
+        $det = is_array($d->services_offered) ? $d->services_offered : [];
+        $maint = is_array($d->maintenance_services_offered) ? $d->maintenance_services_offered : [];
+
         return [
             'id' => (string) $d->id,
             'name' => $d->name,
@@ -27,7 +30,9 @@ class ApiResources
             'instagram' => $d->instagram ?? '',
             'logo' => MediaStorage::publicUrl($d->logo ?? null),
             'cover' => MediaStorage::publicUrl($d->cover ?? null),
-            'servicesOffered' => $d->services_offered ?? [],
+            'servicesOffered' => array_values(array_merge($det, $maint)),
+            'detailingServicesOffered' => $det,
+            'maintenanceServicesOffered' => $maint,
             'profileCompleted' => (bool) $d->profile_completed,
             'createdAt' => optional($d->created_at)->toISOString(),
             'yandexLinked' => $d->yandex_id !== null,
@@ -185,6 +190,7 @@ class ApiResources
             'ownerEmail' => $ow?->email ?? '',
             'ownerName' => trim((string) ($ow?->name ?? '')),
             'ownerAccountPhone' => trim((string) ($ow?->phone ?? '')),
+            'ownerGarageCity' => trim((string) ($ow?->garage_city ?? '')),
             'ownerGarageSlug' => trim((string) ($ow?->garage_slug ?? '')),
             'ownerGarageAvatar' => MediaStorage::publicUrl($ow?->garage_avatar ?? null),
             'status' => $c->status,

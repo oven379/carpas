@@ -28,6 +28,25 @@ class DetailingAuthTest extends FeatureTestCase
         $this->assertDatabaseHas('detailings', ['email' => 'new@example.test']);
     }
 
+    public function test_register_ucfirst_name_and_contact_name(): void
+    {
+        $payload = [
+            'name' => 'студия shine',
+            'email' => 'ucfirst@example.test',
+            'password' => 'pass1234',
+            'contactName' => 'иван',
+            'phone' => '+7 900 123-45-67',
+            'city' => 'Москва',
+            'address' => 'ул. Примерная, 1',
+        ];
+
+        $response = $this->postJson('/api/detailings', $payload);
+
+        $response->assertOk();
+        $response->assertJsonPath('detailing.name', 'Студия shine');
+        $response->assertJsonPath('detailing.contactName', 'Иван');
+    }
+
     public function test_register_rejects_duplicate_email(): void
     {
         $this->detailing(['email' => 'dup@example.test']);

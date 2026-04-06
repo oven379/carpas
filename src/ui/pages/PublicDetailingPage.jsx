@@ -284,15 +284,15 @@ export default function PublicDetailingPage() {
                   Фото работ
                 </div>
                 <div className="muted small" style={{ marginTop: 6 }}>
-                  До 10 последних фото из новых обслуженных авто (с появлением новых старые скрываются).
+                  До 10 снимков: фото к визитам и снимки после мойки с карточек авто (по дате работ).
                 </div>
               </div>
             </div>
-            {lastWorkPhotos.length ? (
+            {workGalleryItems.length ? (
               <div className="thumbs" style={{ marginTop: 12 }}>
-                {lastWorkPhotos.map((u, idx) => (
+                {workGalleryItems.map((item, idx) => (
                   <button
-                    key={u}
+                    key={item.id}
                     type="button"
                     className="thumb thumb--lb"
                     title="Открыть фото"
@@ -304,13 +304,13 @@ export default function PublicDetailingPage() {
                       })
                     }
                   >
-                    <img alt="Фото работы" src={u} loading="lazy" />
+                    <img alt="Фото работы" src={item.url} loading="lazy" />
                   </button>
                 ))}
               </div>
             ) : (
               <div className="muted small" style={{ marginTop: 12 }}>
-                Пока нет фото. Они появятся после визитов с прикреплёнными материалами.
+                Пока нет фото. Добавьте снимки к визиту в истории или после мойки — они подтянутся сюда.
               </div>
             )}
           </div>

@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   BackNav,
   Button,
@@ -9,6 +9,7 @@ import {
   Field,
   HeroCoverStat,
   Input,
+  PhoneRuInput,
   PageLoadSpinner,
   Pill,
   ServiceHint,
@@ -17,12 +18,49 @@ import {
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
-import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
+import {
+  DETAILING_ITEM_SET,
+  DETAILING_SERVICES,
+  MAINTENANCE_ITEM_SET,
+  MAINTENANCE_SERVICES,
+  OFFERED_SERVICE_MAX_LEN,
+} from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { DETAILING_WORKING_HOURS_MAX_LEN, displayRuPhone, formatPhoneRuInput } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+
+function ServiceGroupSelectAllCheckbox({ items, selectedList, onToggleGroup, groupLabel }) {
+  const selectedCount = items.filter((x) => selectedList.includes(x)).length
+  const all = items.length > 0 && selectedCount === items.length
+  const some = selectedCount > 0 && !all
+  const inputRef = useRef(null)
+  useEffect(() => {
+    if (inputRef.current) inputRef.current.indeterminate = some
+  }, [some, all, items.length])
+  return (
+    <label
+      className="svc__selectAllLabel"
+      onClick={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+      title={all ? 'Снять все в категории' : 'Выбрать все в категории'}
+    >
+      <input
+        ref={inputRef}
+        type="checkbox"
+        className="svc__selectAllInput"
+        checked={all}
+        onChange={(e) => {
+          e.stopPropagation()
+          onToggleGroup(items, e.target.checked)
+        }}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Выбрать все: ${groupLabel}`}
+      />
+    </label>
+  )
+}
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
@@ -33,7 +71,6 @@ export default function DetailingSettingsPage() {
 
   const [draft, setDraft] = useState(() => ({
     name: '',
-    contactName: '',
     servicesOffered: [],
     phone: '',
     city: '',
@@ -50,7 +87,6 @@ export default function DetailingSettingsPage() {
     if (!detailing) return
     setDraft({
       name: detailing.name || '',
-      contactName: detailing.contactName || '',
       servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
       phone: formatPhoneRuInput(detailing.phone || ''),
       city: detailing.city || '',
@@ -116,7 +152,10 @@ export default function DetailingSettingsPage() {
             <span>Лендинг</span>
           </div>
           <div id="detailing-settings-intro" className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav fallbackTo="/detailing" title="Назад" />
+            <BackNav
+              fallbackTo={detailing.profileCompleted === false ? '/auth' : '/detailing'}
+              title={detailing.profileCompleted === false ? 'К выбору входа' : 'Назад'}
+            />
             <h1 className="h1" style={{ margin: 0 }}>
               Настройки лендинга
             </h1>
@@ -127,8 +166,9 @@ export default function DetailingSettingsPage() {
               </p>
               {detailing.profileCompleted === false ? (
                 <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
-                  <strong>Первый вход:</strong> заполните данные и в блоке <strong>«Услуги»</strong> ниже отметьте детейлинг и/или ТО —
-                  без этого сохранение не пройдёт. Затем нажмите «Сохранить» — откроется кабинет со списком авто на обслуживании.
+                  <strong>Первый вход:</strong> заполните все обязательные поля ниже: название, телефон, город, адрес, режим
+                  работы и хотя бы одну услугу (детейлинг и/или ТО). Описание, сайт, соцсети, логотип и обложка — по желанию, на
+                  завершение шага не влияют. Затем нажмите «Сохранить и перейти в кабинет» — откроется кабинет для работы с авто.
                 </p>
               ) : null}
             </ServiceHint>
@@ -237,6 +277,9 @@ export default function DetailingSettingsPage() {
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
           <p className="muted small detailingSettings__mediaLead">
             Логотип и обложка видны на публичной странице и в шапке кабинета.
+            {detailing.profileCompleted === false ? (
+              <> Для первого входа можно добавить позже — на переход в кабинет не влияет.</>
+            ) : null}
           </p>
           <MediaBannerAvatarBlock
             variant="detailing"
@@ -278,22 +321,11 @@ export default function DetailingSettingsPage() {
               autoComplete="organization"
             />
           </Field>
-          <Field label="Контактное лицо" hint="Как обращаться к представителю сервиса">
-            <Input
-              className="input"
-              value={draft.contactName}
-              onChange={(e) => setDraft((d) => ({ ...d, contactName: e.target.value }))}
-              placeholder="Имя"
-              autoComplete="name"
-            />
-          </Field>
           <Field label="Телефон">
-            <Input
-              className="input"
+            <PhoneRuInput
               value={draft.phone}
               onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
-              onBlur={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.currentTarget.value) }))}
-              placeholder="+7 900 123-45-67"
+              onBlur={() => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(d.phone) }))}
               autoComplete="tel"
             />
           </Field>
@@ -306,7 +338,10 @@ export default function DetailingSettingsPage() {
               onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
             />
           </Field>
-          <Field label="Адрес" hint="необязательно">
+          <Field
+            label="Адрес"
+            hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : 'необязательно'}
+          >
             <Input
               className="input"
               value={draft.address}
@@ -315,7 +350,15 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
-          <Field className="field--full" label="Режим работы" hint="на лендинге /d/… и в шапке кабинета">
+          <Field
+            className="field--full"
+            label="Режим работы"
+            hint={
+              detailing.profileCompleted === false
+                ? 'Обязательно при первой настройке · на лендинге /d/… и в шапке кабинета'
+                : 'на лендинге /d/… и в шапке кабинета'
+            }
+          >
             <Textarea
               className="textarea"
               rows={2}
@@ -339,7 +382,7 @@ export default function DetailingSettingsPage() {
                   {detailing.profileCompleted === false ? (
                     <>
                       {' '}
-                      <strong>При первой настройке</strong> выбор хотя бы одной услуги обязателен — без этого сохранение не пройдёт.
+                      <strong>При первой настройке</strong> отметьте хотя бы одну услугу — без этого переход в кабинет недоступен.
                     </>
                   ) : null}
                 </p>
@@ -451,6 +494,7 @@ export default function DetailingSettingsPage() {
             className="btn"
             variant="primary"
             onClick={async () => {
+              const firstSetup = detailing.profileCompleted === false
               if (!String(draft.name || '').trim()) {
                 alert('Укажите название')
                 return
@@ -462,6 +506,16 @@ export default function DetailingSettingsPage() {
               if (!String(draft.city || '').trim()) {
                 alert('Укажите город')
                 return
+              }
+              if (firstSetup) {
+                if (!String(draft.address || '').trim()) {
+                  alert('Укажите адрес — он отображается клиентам на лендинге')
+                  return
+                }
+                if (!String(draft.workingHours || '').trim()) {
+                  alert('Укажите режим работы')
+                  return
+                }
               }
               if (!Array.isArray(draft.servicesOffered) || draft.servicesOffered.length === 0) {
                 alert('Выберите хотя бы одну услугу')
@@ -477,7 +531,7 @@ export default function DetailingSettingsPage() {
               }
             }}
           >
-            Сохранить
+            {detailing.profileCompleted === false ? 'Сохранить и перейти в кабинет' : 'Сохранить'}
           </Button>
         </div>
       </Card>

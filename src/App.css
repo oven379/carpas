@@ -431,7 +431,7 @@ button.nav__action {
   color: var(--text);
 }
 
-/* Подзаголовок карточки авто: город • VIN • дата последнего визита */
+/* Подзаголовок карточки авто: город • госномер • идентификатор • дата последнего визита */
 .carPage__meta {
   max-width: 100%;
   overflow-wrap: anywhere;
@@ -461,7 +461,7 @@ button.nav__action {
   margin-bottom: 0;
 }
 
-/* История на карточке авто: «Добавить визит» (+ на мобилке) и открыть историю */
+/* История на карточке авто: переход в полную историю */
 .carPage__historyHeaderActions {
   display: flex;
   flex-direction: row;
@@ -538,7 +538,7 @@ button.nav__action {
 
 .carPage__ownerDataBar {
   position: relative;
-  margin-bottom: 4px;
+  margin-bottom: 10px;
   padding-right: 48px;
   min-height: 40px;
   box-sizing: border-box;
@@ -552,11 +552,29 @@ button.nav__action {
 }
 
 .carPage__ownerServiceExpand {
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .carPage__ownerServiceSection {
-  margin-top: 2px;
+  margin-top: 0;
+}
+
+.carPage__ownerServiceSection--stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.carPage__ownerServiceStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  min-width: min(100%, 240px);
+}
+
+.carPage__ownerServiceHeadline {
+  line-height: 1.45;
 }
 
 .carPage__ownerLastVisitHit {
@@ -564,8 +582,8 @@ button.nav__action {
   text-decoration: none;
   color: inherit;
   border-radius: 12px;
-  padding: 8px 6px;
-  margin: 4px -6px 0;
+  padding: 12px 10px;
+  margin: 0 -10px 0;
   transition: background 120ms ease;
 }
 
@@ -580,24 +598,52 @@ button.nav__action {
 
 .carPage__ownerLastVisitMeta {
   flex-wrap: wrap;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.carPage__ownerLastVisitHit .rowItem__lastEvt {
+  gap: 12px;
+}
+
+.carPage__ownerLastVisitHit .rowItem__lastEvtTop {
+  align-items: flex-start;
+  gap: 14px;
 }
 
 .carPage__dataTitle {
   margin: 0 0 10px;
 }
 
-.carPage__dataTitle--afterService {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+.carPage__ownerDataBar .carPage__dataTitle,
+.carPage__carDataBar .carPage__dataTitle {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  padding-right: 8px;
 }
 
-.carPage__ownerDataCollapsed {
-  margin-top: 8px;
+.carPage__carDataSection {
+  margin-top: 0;
 }
 
-.carPage__ownerDataCollapsed .carPage__dataTitle {
-  margin-bottom: 8px;
+.carPage__carDataCollapsedSummary {
+  margin: 0 0 4px;
+  line-height: 1.45;
+}
+
+.carPage__carDataCollapsedLine {
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.carPage__carDataCollapsedLine:last-child {
+  margin-bottom: 0;
+}
+
+.carPage__carDataCollapsedLine--meta {
+  font-size: 0.92em;
+  opacity: 0.92;
 }
 
 .carPage__meta--emph {
@@ -791,6 +837,59 @@ button[data-variant]:focus-visible,
   font: 15px/1.3 var(--sans);
   background: var(--bg);
   color: var(--text-h);
+}
+
+/* Телефон РФ: +7 слева нормальной яркости, маска в поле — тусклый placeholder */
+.phoneRuField {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: 15px/1.3 var(--sans);
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.phoneRuField:focus-within {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.phoneRuField__cc {
+  flex-shrink: 0;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--text-h);
+}
+
+.phoneRuField__input.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.phoneRuField__input.input:focus,
+.phoneRuField__input.input:focus-visible {
+  outline: none;
+}
+
+.phoneRuField__input::placeholder {
+  color: color-mix(in oklab, var(--text) 38%, var(--bg));
+  opacity: 1;
+}
+
+.phoneRuField.mono,
+.phoneRuField.mono .phoneRuField__input {
+  font-family: var(--mono);
 }
 
 .textarea {
@@ -2002,66 +2101,117 @@ a.rowItem__ownerGarageMainTap {
   overflow-wrap: break-word;
 }
 
-/* Заявки на привязку (кабинет детейлинга): аватар владельца у блока «Владелец», кнопки справа/снизу */
-.requestsCard__row {
-  align-items: stretch;
-  flex-wrap: wrap;
-}
-
-.requestsCard__body {
-  flex: 1 1 200px;
+/* Заявки на привязку: аватар владельца — правый верх карточки, ссылка на /g/… */
+.requestsCard__shell {
+  position: relative;
+  padding-right: 68px;
   min-width: 0;
 }
 
-.requestsCard__ownerBlock {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 12px;
+.requestsCard__main {
+  min-width: 0;
+}
+
+.requestsCard__avatarCorner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+
+.requestsCard__avatarCorner--static {
+  cursor: default;
+}
+
+.requestsCard__headline {
+  margin: 0;
+  padding-right: 4px;
+}
+
+.requestsCard__carTitle {
+  font-weight: 650;
+  font-size: clamp(1.05rem, 2.8vw, 1.2rem);
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.requestsCard__facts {
+  margin-top: 12px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.requestsCard__factLine {
+  margin-top: 6px;
+}
+
+.requestsCard__factLine:first-of-type {
+  margin-top: 0;
+}
+
+.requestsCard__ownerEmailLine {
   margin-top: 10px;
-}
-
-.requestsCard__clientBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.requestsCard__clientLine {
-  line-height: 1.35;
-  overflow-wrap: anywhere;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+  line-height: 1.45;
 }
 
 .requestsCard__clientName {
   font-weight: 650;
   color: var(--text-h);
-  font-size: 15px;
 }
 
-.requestsCard__ownerAccountLine {
-  margin-top: 6px;
+.requestsCard__evidence {
+  margin-top: 14px;
+}
+
+.requestsCard__evidenceHint {
+  margin: 0 0 10px;
   line-height: 1.5;
+  max-width: 62ch;
 }
 
-.requestsCard__ownerMeta {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.requestsCard__vin {
-  margin-top: 6px;
-  line-height: 1.45;
-  word-break: break-all;
-}
-
-.requestsCard__actions {
+.requestsCard__evidenceRow {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  flex: 0 0 auto;
-  min-width: 152px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 12px 14px;
+}
+
+.requestsCard__carPhoto {
+  width: 112px;
+  min-height: 76px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-color: color-mix(in oklab, var(--text) 7%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  box-sizing: border-box;
+}
+
+.requestsCard__carPhoto--empty {
+  min-height: 56px;
+  background-image: none;
+}
+
+.requestsCard__evidencePills {
+  flex: 1 1 180px;
+  min-width: 0;
+  align-items: flex-start;
+}
+
+.requestsCard__serviceRef {
+  margin-top: 10px;
+  line-height: 1.45;
+  max-width: 70ch;
+}
+
+.requestsCard__footer {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
 }
 
 .requestsCard__ownerLine {
@@ -2128,12 +2278,6 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   color: var(--text-h);
 }
 
-.requestsCard__actionBtns {
-  margin-top: auto;
-  justify-content: center;
-  padding-top: 10px;
-}
-
 .requestsCard__ownerPlain {
   word-break: break-all;
 }
@@ -2145,12 +2289,8 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 }
 
 @media (max-width: 640px) {
-  .requestsCard__ownerBlock {
-    flex-direction: row-reverse;
-    justify-content: space-between;
-    gap: 10px;
-    margin-top: 8px;
-    align-items: flex-start;
+  .requestsCard__shell {
+    padding-right: 56px;
   }
 
   .requestsCard__ownerAvatar {
@@ -2168,22 +2308,10 @@ a.requestsCard__ownerAvatar--link:focus-visible {
     word-break: break-word;
   }
 
-  .requestsCard__actions {
+  .requestsCard__carPhoto {
     width: 100%;
-    flex-direction: row;
-    justify-content: center;
-    padding-top: 16px;
-    margin-top: 6px;
-    border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
-    min-height: 0;
-    box-sizing: border-box;
-  }
-
-  .requestsCard__actionBtns {
-    margin-top: 0;
-    padding-top: 0;
-    justify-content: center;
-    width: 100%;
+    max-width: 160px;
+    min-height: 72px;
   }
 }
 
@@ -2338,6 +2466,11 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 .historyPage__newVisitWrap {
   flex-shrink: 0;
   align-self: center;
+}
+
+/* Прокрутка к форме нового визита: заголовок не уезжает под липкую шапку */
+.historyPage__formScrollTarget {
+  scroll-margin-top: calc(56px + 12px + env(safe-area-inset-top, 0px));
 }
 
 .marketSearch {
@@ -2707,7 +2840,7 @@ a.backNav {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
 }
 
-/* Быстрый «новый визит» на обложке — только мобилка; на вебе — кнопка в блоке «История авто» */
+/* Быстрый «новый визит» на обложке — только мобилка (на широкой вёрстке скрыт) */
 @media (min-width: 641px) {
   .carPage__heroAddVisitBtn {
     display: none !important;
@@ -2725,7 +2858,7 @@ a.backNav {
   display: none;
 }
 
-/* «Сервис и доступ»: ссылка на детейлинг без плашки, как обычный текст */
+/* «Сервис и история»: ссылка на детейлинг без плашки, как обычный текст */
 .carPage__serviceDetNameLink {
   display: inline;
   color: color-mix(in oklab, var(--accent) 72%, var(--text-h));
@@ -4760,6 +4893,51 @@ button.garageSettings__thumb:focus-visible {
   padding-bottom: 6px;
 }
 
+.kv__row--vinOnly {
+  justify-content: flex-end;
+}
+
+.kv__vinRowActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  text-align: right;
+}
+
+.carPage__copyVinBtn {
+  flex-shrink: 0;
+  padding: 4px 10px !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  min-height: 0 !important;
+}
+
+.carPage__metaVinBtn {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--text) 35%, transparent);
+  text-underline-offset: 0.15em;
+}
+
+.carPage__metaVinBtn:hover {
+  color: var(--text-h);
+  text-decoration-color: color-mix(in oklab, var(--accent) 55%, var(--text));
+}
+
+.carPage__metaVinBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
+}
+
 .kv__k {
   color: var(--text);
   font-size: 13px;
@@ -5279,6 +5457,25 @@ a.thumbCard__fileDoc {
   gap: 10px;
 }
 
+.svcdd__customRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+  margin-top: 2px;
+}
+
+.svcdd__customInput {
+  flex: 1 1 140px;
+  min-height: 40px;
+}
+
+.svcdd__customAddBtn {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
 .svcdd__group {
   border: 1px solid var(--border);
   border-radius: 14px;
@@ -5503,7 +5700,7 @@ a.thumbCard__fileDoc {
   border-top: 1px solid var(--border);
 }
 
-/* Форма визита (детейлинг): советы для блока рекомендаций на карточке авто */
+/* Форма визита (детейлинг): советы для блока «Советы» на карточке авто */
 .historyCareTips {
   display: flex;
   flex-direction: column;
@@ -5624,9 +5821,11 @@ a.thumbCard__fileDoc {
 .recTitle {
   color: var(--text-h);
   font-weight: 650;
+  white-space: pre-line;
+  line-height: 1.5;
 }
 
-/* Плашка «важно» / «совет» и текст в одной линии; перенос только у текста справа от плашки */
+/* Плашка «Важно» / «Совет»; несколько строк советов детейлинга — в тексте справа (pre-line) */
 .recItem__row {
   display: flex;
   flex-direction: row;
@@ -5647,7 +5846,7 @@ a.thumbCard__fileDoc {
   margin-top: 6px;
 }
 
-/* Карточка авто: «Рекомендации» слева, «Добавить визит» справа; на мобилке — квадрат с «+» */
+/* Карточка авто: «Советы» слева, «Добавить визит» справа; на мобилке — квадрат с «+» */
 .carPage__recsBar {
   display: flex;
   flex-direction: row;
@@ -5726,7 +5925,7 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   }
 }
 
-/* Карточка авто: «Рекомендации» — как выпадающий список (поле + стрелка справа) */
+/* Карточка авто: «Советы» — как выпадающий список (поле + стрелка справа) */
 .carPage__recsRow {
   align-items: stretch;
 }
@@ -5800,7 +5999,7 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   }
 }
 
-/* Карточка авто: рекомендации — раскрытие, подсказка «i», кнопка визита на всю ширину */
+/* Карточка авто: советы — раскрытие, подсказка «i», кнопка визита на всю ширину */
 .carPage__recsHeader {
   width: 100%;
 }
@@ -5869,7 +6068,7 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   max-width: 100%;
 }
 
-/* Плавное раскрытие списка рекомендаций */
+/* Плавное раскрытие списка советов */
 .carPage__recsCollapse {
   display: grid;
   grid-template-rows: 0fr;

@@ -29,6 +29,7 @@ class Detailing extends Authenticatable
         'logo',
         'cover',
         'services_offered',
+        'maintenance_services_offered',
         'profile_completed',
         'is_personal',
         'owner_id',
@@ -41,6 +42,7 @@ class Detailing extends Authenticatable
 
     protected $casts = [
         'services_offered' => 'array',
+        'maintenance_services_offered' => 'array',
         'profile_completed' => 'boolean',
         'is_personal' => 'boolean',
     ];

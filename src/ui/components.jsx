@@ -7,6 +7,11 @@ import { clearSession, hasOwnerSession } from './auth.js'
 import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SUPPORT_LINK_HREF } from './supportConfig.js'
+import {
+  formatPhoneRuInput,
+  formatPhoneRuNationalDisplay,
+  getPhoneRuNationalDigits,
+} from '../lib/format.js'
 
 export { default as ServiceHint } from './ServiceHint.jsx'
 export { PageLoadSpinner } from './PageLoadSpinner.jsx'
@@ -51,6 +56,42 @@ export function Button({ variant = 'primary', onClick, disabled, type = 'button'
 
 export const Input = forwardRef(function Input(props, ref) {
   return <input ref={ref} {...props} />
+})
+
+/** Телефон РФ: «+7» отдельно (обычная яркость), маска цифр — плейсхолдер тусклее. */
+export const PhoneRuInput = forwardRef(function PhoneRuInput(
+  { value, onChange, onBlur, className = '', id, disabled, autoComplete = 'tel', ...rest },
+  ref,
+) {
+  const nationalDigits = getPhoneRuNationalDigits(value)
+  const innerDisplayed = formatPhoneRuNationalDisplay(nationalDigits)
+
+  return (
+    <div className={`phoneRuField${className ? ` ${className}` : ''}`}>
+      <span className="phoneRuField__cc">+7</span>
+      <input
+        ref={ref}
+        id={id}
+        type="tel"
+        inputMode="tel"
+        disabled={disabled}
+        autoComplete={autoComplete}
+        className="input phoneRuField__input"
+        value={innerDisplayed}
+        placeholder="999 99 99 999"
+        {...rest}
+        onBlur={onBlur}
+        onChange={(e) => {
+          const nextNational = getPhoneRuNationalDigits(e.target.value)
+          if (!nextNational) {
+            onChange?.({ target: { value: '' } })
+            return
+          }
+          onChange?.({ target: { value: formatPhoneRuInput(`7${nextNational}`) } })
+        }}
+      />
+    </div>
+  )
 })
 
 export function Textarea(props) {
@@ -299,7 +340,9 @@ export function TopNav() {
   const nav = useNavigate()
   const loc = useLocation()
   const r = useRepo()
-  const { detailingId, mode } = useDetailing()
+  const { detailingId, mode, detailing } = useDetailing()
+  const detailingOnboarding =
+    mode === 'detailing' && detailing && detailing.profileCompleted === false
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
   const onAuthHub = loc.pathname === '/auth' || loc.pathname.startsWith('/auth/')
   /** Публичные страницы /g/ и /d/ (на улице): в шапке «Войти» (прозрачная кнопка с обводкой) */
@@ -346,9 +389,11 @@ export function TopNav() {
           <div className={`nav__linksScroll${isDetailingCabinet ? ' nav__linksScroll--partnerTools' : ''}`}>
             {isDetailingCabinet ? (
               <>
-                <NavLink to="/requests" className={linkClass}>
-                  Заявки ({pendingClaims})
-                </NavLink>
+                {!detailingOnboarding ? (
+                  <NavLink to="/requests" className={linkClass}>
+                    Заявки ({pendingClaims})
+                  </NavLink>
+                ) : null}
                 <button type="button" className="nav__action" onClick={logout}>
                   Выйти
                 </button>

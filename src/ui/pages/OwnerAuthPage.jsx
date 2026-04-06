@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { AuthLegalConsent, BackNav, Button, Card, Field, Input, ServiceHint } from '../components.jsx'
+import { AuthLegalConsent, BackNav, Button, Card, Field, Input, PhoneRuInput, ServiceHint } from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import {
   debugAuth,
@@ -303,16 +303,13 @@ export default function OwnerAuthPage() {
                         <p className="serviceHint__panelText">Номер для связи. Обязателен при создании аккаунта.</p>
                       </ServiceHint>
                     </div>
-                    <Input
-                      className="input"
+                    <PhoneRuInput
                       value={ownPhone}
                       onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
                       onInput={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
-                      onBlur={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
+                      onBlur={() => setOwnPhone((p) => formatPhoneRuInput(p))}
                       onAnimationStart={(e) => onAutofillAnimation(e, (v) => setOwnPhone(formatPhoneRuInput(v)))}
-                      placeholder="+7 900 123-45-67"
                       autoComplete="tel"
-                      inputMode="tel"
                     />
                   </div>
                 </>

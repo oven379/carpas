@@ -2,10 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
-import { Button, Card, ComboBox, Input, ServiceHint } from './components.jsx'
+import { Button, Card, ComboBox, Input, PhoneRuInput, ServiceHint } from './components.jsx'
 import {
   describeVinValidationError,
-  fmtKm,
   formatPhoneRuInput,
   normDigits,
   normVin,
@@ -334,6 +333,10 @@ export default function OwnerVinClaimSection({
               const canSubmit = verified || phoneOk
               const yearOpts = buildYearOptions(c.year)
               const heroBg = c.hero ? resolvedBackgroundImageUrl(c.hero) : undefined
+              const partnerDetailingName = String(c.detailingName || c.seller?.name || '').trim()
+              const showPartnerDetailing = Boolean(
+                partnerDetailingName && (c.detailingId || String(c.detailingName || '').trim()),
+              )
               return (
                 <Card key={c.id} className="card pad vinNetworkHitCard">
                   <div className="muted small" style={{ marginBottom: 10 }}>
@@ -356,17 +359,11 @@ export default function OwnerVinClaimSection({
                           <div className="rowItem__meta mono" style={{ marginTop: 4 }}>
                             VIN: {c.vin || '—'}
                           </div>
-                          <div className="rowItem__meta">
-                            {evidenceMode === 'full' ? (
-                              <>
-                                {fmtKm(c.mileageKm)} · {c.year} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
-                              </>
-                            ) : (
-                              <>
-                                {fmtKm(c.mileageKm)} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
-                              </>
-                            )}
-                          </div>
+                          {showPartnerDetailing ? (
+                            <div className="rowItem__meta muted small" style={{ marginTop: 6, lineHeight: 1.45 }}>
+                              Сервис: {partnerDetailingName}
+                            </div>
+                          ) : null}
                         </div>
                         <Button
                           className="btn"
@@ -470,10 +467,8 @@ export default function OwnerVinClaimSection({
                           Если год{evidenceMode === 'compact' ? ', город' : ''} не совпали с карточкой, введите номер: после
                           +7 должно быть 10 цифр (например вводите как 9887654321 — отобразится в формате +7…).
                         </p>
-                        <Input
-                          className="input mono"
-                          inputMode="tel"
-                          autoComplete="tel"
+                        <PhoneRuInput
+                          className="mono"
                           value={ev.phone || ''}
                           onChange={(e) =>
                             setEvidenceByCarId((m) => ({
@@ -481,7 +476,16 @@ export default function OwnerVinClaimSection({
                               [c.id]: { ...ev, phone: formatPhoneRuInput(e.target.value) },
                             }))
                           }
-                          placeholder="+7 988 765 43 21"
+                          onBlur={() =>
+                            setEvidenceByCarId((m) => {
+                              const cur = m[c.id]
+                              return {
+                                ...m,
+                                [c.id]: { ...cur, phone: formatPhoneRuInput(cur?.phone || '') },
+                              }
+                            })
+                          }
+                          autoComplete="tel"
                         />
                       </div>
                     ) : null}

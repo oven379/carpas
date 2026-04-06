@@ -127,7 +127,7 @@ export default function PartnerLoginPage() {
                   }
                 }}
               >
-                В кабинет
+                Войти
               </Button>
               <Link className="btn" data-variant="outline" to="/auth/partner/apply" state={{ from }}>
                 Регистрация

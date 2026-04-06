@@ -18,7 +18,8 @@ export function urlsToPhotoItems(urls, titleFallback = 'Фото') {
     .filter((u) => String(u || '').trim())
     .map((url, i) => ({
       id: `u-${i}-${String(url).slice(0, 24)}`,
-      url: String(url).trim(),
+      url: resolvePublicMediaUrl(String(url).trim()),
       title: titleFallback,
     }))
+    .filter((x) => String(x.url || '').trim())
 }

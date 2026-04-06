@@ -46,8 +46,11 @@ export function DetailingSessionProvider({ children }) {
   )
   const prevIdentityRef = useRef(null)
   const prevEpochRef = useRef(null)
+  /** Игнорируем ответы устаревших запросов /me (гонка после PATCH, flush coalesce, смена epoch). */
+  const loadGenerationRef = useRef(0)
 
   useEffect(() => {
+    const generation = ++loadGenerationRef.current
     let cancelled = false
     const api = getApi()
     const prevId = prevIdentityRef.current
@@ -62,9 +65,11 @@ export function DetailingSessionProvider({ children }) {
       const did = getSessionDetailingId()
       const oEmail = getSessionOwner()?.email || ''
 
+      const applyIfCurrent = () => !cancelled && generation === loadGenerationRef.current
+
       if (softProfileRefresh) {
         setLoading(false)
-        if (oEmail && oTokNow) {
+        if (oEmail && oTokNow && applyIfCurrent()) {
           const os = getSessionOwner()
           if (os?.email) setOwner(os)
         }
@@ -75,7 +80,7 @@ export function DetailingSessionProvider({ children }) {
       try {
         if (did && dTokNow) {
           const me = await api.getMeDetailing()
-          if (!cancelled) {
+          if (applyIfCurrent()) {
             setDetailing(me?.detailing ?? null)
             setOwner(null)
           }
@@ -83,7 +88,7 @@ export function DetailingSessionProvider({ children }) {
         }
         if (oEmail && oTokNow) {
           const me = await api.getMeOwner()
-          if (!cancelled) {
+          if (applyIfCurrent()) {
             const fresh = me?.owner ?? null
             if (fresh && typeof fresh === 'object') {
               try {
@@ -97,19 +102,19 @@ export function DetailingSessionProvider({ children }) {
           }
           return
         }
-        if (!cancelled) {
+        if (applyIfCurrent()) {
           setDetailing(null)
           const os = getSessionOwner()
           setOwner(oEmail && os ? os : null)
         }
       } catch {
-        if (!cancelled) {
+        if (applyIfCurrent()) {
           setDetailing(null)
           const os = getSessionOwner()
           setOwner(oEmail && os ? os : null)
         }
       } finally {
-        if (!cancelled) {
+        if (applyIfCurrent()) {
           setLoading(false)
           prevIdentityRef.current = identityKey
           prevEpochRef.current = sessionEpoch

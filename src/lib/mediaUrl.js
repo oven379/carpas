@@ -63,6 +63,14 @@ export function resolvePublicMediaUrl(url) {
   const u = String(url || '').trim()
   if (!u) return ''
   if (u.startsWith('data:')) return u
+  if (u.startsWith('//')) {
+    try {
+      const proto = typeof window !== 'undefined' && window.location?.protocol ? window.location.protocol : 'https:'
+      return normalizeAbsoluteHttpUrl(`${proto}${u}`)
+    } catch {
+      return normalizeAbsoluteHttpUrl(`https:${u}`)
+    }
+  }
   if (/^https?:\/\//i.test(u)) {
     return normalizeAbsoluteHttpUrl(u)
   }

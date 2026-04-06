@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\GarageSlug;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Database\QueryException;
@@ -49,7 +50,7 @@ class OwnerAuthController extends Controller
             $owner = Owner::query()->create([
                 'email' => $email,
                 'password' => Hash::make($data['password']),
-                'name' => trim((string) $data['name']),
+                'name' => TextFormat::mbUcfirst($data['name']),
                 'phone' => trim((string) $data['phone']),
             ]);
         } catch (QueryException $e) {
@@ -60,7 +61,7 @@ class OwnerAuthController extends Controller
         }
 
         Detailing::query()->create([
-            'name' => trim($owner->name) ?: 'Мой гараж',
+            'name' => TextFormat::mbUcfirst($owner->name) ?: 'Мой гараж',
             'email' => 'owner-'.$owner->id.'@garage.internal',
             'password' => Hash::make(Str::random(48)),
             'is_personal' => true,
@@ -116,7 +117,7 @@ class OwnerAuthController extends Controller
         $patch = $request->all();
 
         if (array_key_exists('name', $patch)) {
-            $n = trim((string) $patch['name']);
+            $n = TextFormat::mbUcfirst((string) $patch['name']);
             if (mb_strlen($n) > 255) {
                 $n = mb_substr($n, 0, 255);
             }

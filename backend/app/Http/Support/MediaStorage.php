@@ -28,11 +28,23 @@ final class MediaStorage
             return $incoming;
         }
         $path = parse_url($incoming, PHP_URL_PATH) ?? '';
+        $path = rawurldecode($path);
         if (preg_match('#/storage/(media/.+)$#', $path, $m)) {
             return $m[1];
         }
 
         return $incoming;
+    }
+
+    /** Ключ на диске public (media/…) из значения после ingest или из URL API, либо null. */
+    public static function managedDiskKeyFromStored(?string $stored): ?string
+    {
+        if ($stored === null || $stored === '') {
+            return null;
+        }
+        $norm = self::normalizeIncomingString(trim((string) $stored));
+
+        return self::toDiskKey($norm);
     }
 
     /**
@@ -170,11 +182,26 @@ final class MediaStorage
             }
         }
 
-        $newKeys = array_filter(array_map(fn ($s) => self::toDiskKey($s), $out));
-        for ($j = 0; $j < count($previous); $j++) {
-            $pk = self::toDiskKey(is_string($previous[$j]) ? $previous[$j] : null);
-            if ($pk && ! in_array($pk, $newKeys, true)) {
-                Storage::disk(self::DISK)->delete($pk);
+        /*
+         * Удаляем с диска только те media/… файлы, которые точно не нужны в новом списке.
+         * Если в $out остались только внешние http(s) URL без ключа media/, не трогаем старые файлы —
+         * иначе при несовпадении хоста/формата URL в JSON все локальные снимки мойки удалялись, а ссылки ломались.
+         */
+        $newKeySet = [];
+        foreach ($out as $item) {
+            $k = self::managedDiskKeyFromStored(is_string($item) ? $item : null);
+            if ($k !== null) {
+                $newKeySet[$k] = true;
+            }
+        }
+        $hasManagedOut = $newKeySet !== [];
+        $shouldPruneDisk = count($out) === 0 || $hasManagedOut;
+        if ($shouldPruneDisk) {
+            for ($j = 0; $j < count($previous); $j++) {
+                $pk = self::managedDiskKeyFromStored(is_string($previous[$j]) ? $previous[$j] : null);
+                if ($pk !== null && empty($newKeySet[$pk])) {
+                    Storage::disk(self::DISK)->delete($pk);
+                }
             }
         }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -83,7 +84,7 @@ class DetailingYandexOAuthController extends Controller
                 if (trim((string) $existing->name) === '') {
                     $dn = $profile->getDisplayName();
                     if ($dn) {
-                        $existing->name = $dn;
+                        $existing->name = TextFormat::mbUcfirst($dn);
                     }
                 }
                 $existing->save();
@@ -98,7 +99,7 @@ class DetailingYandexOAuthController extends Controller
             }
 
             $detailing = Detailing::query()->create([
-                'name' => $profile->getDisplayName() ?: 'Детейлинг',
+                'name' => TextFormat::mbUcfirst($profile->getDisplayName() ?: 'Детейлинг'),
                 'email' => $finalEmail,
                 'password' => Hash::make(Str::random(64)),
                 'yandex_id' => $yandexId,

@@ -365,18 +365,39 @@ export function fmtVinPublic(vin) {
   return `${v.slice(0, 4)}…${v.slice(-3)}`
 }
 
-/**
- * Поле ввода телефона РФ: всегда префикс +7, после него до 10 цифр (как у 9XXXXXXXXX).
- * Ввод 8XXXXXXXXXX или с лидирующей 7 нормализуется. Только «+» без цифр или пусто — пустая строка.
- */
-export function formatPhoneRuInput(raw) {
-  const dAll = String(raw ?? '').replace(/\D/g, '')
-  if (!dAll) return ''
-  let d = dAll
+/** До 10 цифр национальной части (без кода страны), с нормализацией 8/7. */
+export function getPhoneRuNationalDigits(raw) {
+  const digitsOnly = String(raw ?? '').replace(/\D/g, '')
+  if (!digitsOnly) return ''
+  let d = digitsOnly
   if (d.startsWith('8')) d = `7${d.slice(1)}`
   if (d.startsWith('7')) d = d.slice(1)
-  d = d.slice(0, 10)
-  return `+7${d}`
+  return d.slice(0, 10)
+}
+
+/** Отображение национальной части: «999 99 99 999» (3‑2‑2‑3). */
+export function formatPhoneRuNationalDisplay(digits) {
+  const d = String(digits || '').replace(/\D/g, '').slice(0, 10)
+  if (!d) return ''
+  const p0 = d.slice(0, 3)
+  const p1 = d.slice(3, 5)
+  const p2 = d.slice(5, 7)
+  const p3 = d.slice(7, 10)
+  const parts = [p0]
+  if (p1) parts.push(p1)
+  if (p2) parts.push(p2)
+  if (p3) parts.push(p3)
+  return parts.join(' ')
+}
+
+/**
+ * Поле ввода телефона РФ: префикс +7, далее до 10 цифр в маске «+7 999 99 99 999».
+ * Ввод 8… или с лидирующей 7 нормализуется. Пусто — пустая строка.
+ */
+export function formatPhoneRuInput(raw) {
+  const d = getPhoneRuNationalDigits(raw)
+  if (!d) return ''
+  return `+7 ${formatPhoneRuNationalDisplay(d)}`
 }
 
 /**
@@ -386,7 +407,7 @@ export function formatPhoneRuInput(raw) {
 export function displayRuPhone(raw) {
   const display = formatPhoneRuInput(raw)
   if (!display) return { display: '', telHref: '' }
-  const national = display.replace(/^\+7/, '').replace(/\D/g, '')
+  const national = display.replace(/^\+7\s*/, '').replace(/\D/g, '')
   if (national.length === 0) return { display: '', telHref: '' }
   const telHref = national.length >= 10 ? `tel:+7${national.slice(0, 10)}` : ''
   return { display, telHref }

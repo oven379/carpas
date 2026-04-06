@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\Car;
 use App\Models\CarEvent;
+use App\Models\Owner;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 class CarEventApiTest extends FeatureTestCase
@@ -120,5 +122,46 @@ class CarEventApiTest extends FeatureTestCase
 
         $this->getJson("/api/cars/{$car->id}/events")->assertNotFound();
         $this->postJson("/api/cars/{$car->id}/events", ['title' => 'x'])->assertNotFound();
+    }
+
+    public function test_detailing_events_index_excludes_owner_garage_history(): void
+    {
+        $d = $this->detailing();
+        $car = $this->carForDetailing($d->id);
+        $owner = Owner::query()->create([
+            'email' => 'o-'.uniqid('', true).'@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Владелец',
+        ]);
+        $car->owner_id = $owner->id;
+        $car->save();
+
+        CarEvent::query()->create([
+            'detailing_id' => $d->id,
+            'car_id' => $car->id,
+            'owner_id' => $owner->id,
+            'source' => 'owner',
+            'is_draft' => false,
+            'at' => now(),
+            'type' => 'visit',
+            'title' => 'Запись из гаража',
+            'mileage_km' => 1000,
+            'services' => [],
+            'maintenance_services' => [],
+            'note' => null,
+        ]);
+
+        Sanctum::actingAs($d);
+        $this->postJson("/api/cars/{$car->id}/events", [
+            'title' => 'Мойка',
+            'type' => 'visit',
+            'mileageKm' => 12000,
+            'services' => ['wash'],
+        ])->assertOk();
+
+        $this->getJson("/api/cars/{$car->id}/events")
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.title', 'Мойка');
     }
 }

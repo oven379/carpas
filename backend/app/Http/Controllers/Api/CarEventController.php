@@ -111,6 +111,7 @@ class CarEventController extends Controller
             ->with('detailing')
             ->where('detailing_id', $d->id)
             ->where('car_id', $carId)
+            ->where('source', 'service')
             ->orderByDesc('is_draft')
             ->orderByDesc('at')
             ->get();

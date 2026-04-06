@@ -44,26 +44,71 @@ class PublicShowcaseController extends Controller
         $cars = Car::query()->where('detailing_id', $d->id)->get();
         $best = [];
         foreach ($cars as $car) {
+            /** Последний по дате сервисный визит, у которого есть фото в car_docs (не только «последний визит» без вложений). */
             $evt = CarEvent::query()
                 ->where('car_id', $car->id)
                 ->where('source', 'service')
                 ->where('is_draft', false)
+                ->whereExists(function ($q) {
+                    $q->selectRaw('1')
+                        ->from('car_docs')
+                        ->whereColumn('car_docs.event_id', 'car_events.id')
+                        ->whereNotNull('car_docs.url')
+                        ->where('car_docs.url', '!=', '')
+                        ->where(function ($q2) {
+                            $q2->where('car_docs.kind', 'photo')->orWhereNull('car_docs.kind');
+                        });
+                })
                 ->orderByDesc('at')
+                ->orderByDesc('id')
                 ->first();
-            if (!$evt) {
+
+            if ($evt) {
+                $docs = CarDoc::query()
+                    ->where('car_id', $car->id)
+                    ->where('event_id', $evt->id)
+                    ->whereNotNull('url')
+                    ->where('url', '!=', '')
+                    ->where(function ($q) {
+                        $q->where('kind', 'photo')->orWhereNull('kind');
+                    })
+                    ->orderByDesc('created_at')
+                    ->get();
+
+                $ts = optional($evt->at)->toISOString() ?? '';
+                foreach ($docs as $doc) {
+                    if (! $doc->url) {
+                        continue;
+                    }
+                    $best[] = [
+                        'url' => MediaStorage::publicUrl($doc->url),
+                        'ts' => $ts,
+                    ];
+                }
+
                 continue;
             }
-            $doc = CarDoc::query()
+
+            /** Фото после мойки часто попадают в wash_photos авто без привязки к последнему визиту в docs — показываем их на лендинге. */
+            $wash = $car->wash_photos ?? [];
+            if (! is_array($wash) || $wash === []) {
+                continue;
+            }
+            $evtForTs = CarEvent::query()
                 ->where('car_id', $car->id)
-                ->where('event_id', $evt->id)
-                ->whereNotNull('url')
-                ->where('url', '!=', '')
-                ->orderByDesc('created_at')
+                ->where('source', 'service')
+                ->where('is_draft', false)
+                ->orderByDesc('at')
+                ->orderByDesc('id')
                 ->first();
-            if ($doc && $doc->url) {
+            $tsWash = optional($evtForTs?->at)->toISOString() ?? optional($car->updated_at)->toISOString() ?? '';
+            foreach ($wash as $raw) {
+                if (! is_string($raw) || trim($raw) === '') {
+                    continue;
+                }
                 $best[] = [
-                    'url' => MediaStorage::publicUrl($doc->url),
-                    'ts' => optional($evt->at)->toISOString() ?? '',
+                    'url' => MediaStorage::publicUrl($raw),
+                    'ts' => $tsWash,
                 ];
             }
         }

@@ -1,6 +1,6 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { BackNav, Card, ComboBox, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { BackNav, Card, ComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
 import { hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
@@ -82,6 +82,18 @@ export default function GarageSettingsPage() {
     }
   }, [previewUrl])
 
+  /** Без сохранения: уходит с формы, черновик не пишется на сервер. */
+  const cancelAndGoBack = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      const idx = window.history.state?.idx
+      if (typeof idx === 'number' && idx > 0) {
+        navigate(-1)
+        return
+      }
+    }
+    navigate('/garage', { replace: true })
+  }, [navigate])
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
   if (mode === 'owner' && loading) {
@@ -104,7 +116,7 @@ export default function GarageSettingsPage() {
             <span>Настройки</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav to="/garage" title="В мой гараж" />
+            <BackNav fallbackTo="/garage" title="Назад" />
             <h1 className="h1 garageSettings__title" style={{ margin: 0 }}>
               Настройки гаража
             </h1>
@@ -175,12 +187,10 @@ export default function GarageSettingsPage() {
                 </p>
               </ServiceHint>
             </div>
-            <Input
-              className="input"
-              inputMode="tel"
+            <PhoneRuInput
               value={draft.phone}
               onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
-              placeholder="+7 900 123-45-67"
+              onBlur={() => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(d.phone) }))}
             />
           </div>
 
@@ -398,7 +408,8 @@ export default function GarageSettingsPage() {
                 garageSlug: slug,
                 garagePrivate: draft.garagePrivate,
                 showPhonePublic:
-                  onStreet && formatPhoneRuInput(draft.phone).replace(/^\+7/, '').replace(/\D/g, '').length >= 10,
+                  onStreet &&
+                    formatPhoneRuInput(draft.phone).replace(/^\+7\s*/, '').replace(/\D/g, '').length >= 10,
                 showCityPublic: onStreet && Boolean(draft.garageCity.trim()),
                 showWebsitePublic: onStreet && Boolean(draft.garageWebsite.trim()),
                 showSocialPublic: onStreet && socialJoined.length > 0,
@@ -434,8 +445,8 @@ export default function GarageSettingsPage() {
           >
             {saveLock.pending ? 'Сохранение…' : 'Сохранить'}
           </button>
-          <button type="button" className="btn" data-variant="ghost" onClick={() => navigate('/garage')}>
-            К гаражу
+          <button type="button" className="btn" data-variant="ghost" onClick={cancelAndGoBack}>
+            Отменить
           </button>
         </div>
       </Card>

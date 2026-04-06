@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import './App.css'
 import { PageLoadSpinner, TopNav } from './ui/components.jsx'
+import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
@@ -35,8 +36,8 @@ function RouteFallback() {
 
 function RequireAuth({ children }) {
   const loc = useLocation()
-  if (isAuthed()) return children
-  return <Navigate to="/auth" replace state={{ from: loc.pathname }} />
+  if (!isAuthed()) return <Navigate to="/auth" replace state={{ from: loc.pathname }} />
+  return <DetailingOnboardingGate>{children}</DetailingOnboardingGate>
 }
 
 function ScrollToTopOnRouteChange() {
