@@ -883,6 +883,8 @@ export default function HistoryPage() {
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 
+  const sliceCareTip = (v) => String(v ?? '').slice(0, VISIT_CARE_TIP_MAX_LEN)
+
   const buildVisitPayload = () => ({
     title: clampVisitTitle(draft.title),
     mileageKm: draft.mileageKm,
@@ -892,8 +894,8 @@ export default function HistoryPage() {
     ...(mode === 'detailing'
       ? {
           careTips: {
-            important: draft.careImportant,
-            tips: [draft.careTip1, draft.careTip2, draft.careTip3],
+            important: sliceCareTip(draft.careImportant),
+            tips: [sliceCareTip(draft.careTip1), sliceCareTip(draft.careTip2), sliceCareTip(draft.careTip3)],
           },
         }
       : {}),
@@ -1525,6 +1527,64 @@ export default function HistoryPage() {
                 />
               </>
             ) : null}
+            {mode === 'detailing' ? (
+              <div className="historyCareTips historyCareTipsForCarCard topBorder">
+                <p className="muted small historyCareTipsForCarCard__intro">
+                  Советы для владельца на карточке авто — в блоке «Рекомендации по уходу» после сохранения визита. Только для кабинета детейлинга.
+                </p>
+                <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_IMPORTANT_HINT.scopeId}>
+                  <div className="field__top serviceHint__fieldTop">
+                    <span className="field__label">
+                      Важно <span className="pill" data-tone="accent">важно</span>
+                    </span>
+                    <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} variant="compact" label={FORM_CARE_IMPORTANT_HINT.label}>
+                      <p className="serviceHint__panelText">{FORM_CARE_IMPORTANT_HINT.text}</p>
+                    </ServiceHint>
+                  </div>
+                  <Input
+                    className="input"
+                    value={draft.careImportant}
+                    maxLength={VISIT_CARE_TIP_MAX_LEN}
+                    placeholder="Необязательно: что важно донести клиенту…"
+                    disabled={formLocked}
+                    onChange={(e) => setDraft((d) => ({ ...d, careImportant: e.target.value }))}
+                  />
+                </div>
+                <div className="field field--full serviceHint__fieldWrap historyCareTips__sectionHead">
+                  <div className="field__top serviceHint__fieldTop">
+                    <span className="field__label">Советы по уходу</span>
+                    <ServiceHint
+                      scopeId={FORM_CARE_TIPS_SECTION_HINT.scopeId}
+                      variant="compact"
+                      label={FORM_CARE_TIPS_SECTION_HINT.label}
+                    >
+                      <p className="serviceHint__panelText">{FORM_CARE_TIPS_SECTION_HINT.text}</p>
+                    </ServiceHint>
+                  </div>
+                </div>
+                {[
+                  { key: 'careTip1', n: 1 },
+                  { key: 'careTip2', n: 2 },
+                  { key: 'careTip3', n: 3 },
+                ].map(({ key, n }) => (
+                  <div key={key} className="field field--full">
+                    <div className="field__top field__top--solo">
+                      <span className="field__label">
+                        Совет {n} <span className="pill" data-tone="neutral">совет</span>
+                      </span>
+                    </div>
+                    <Input
+                      className="input"
+                      value={draft[key]}
+                      maxLength={VISIT_CARE_TIP_MAX_LEN}
+                      placeholder="Необязательно"
+                      disabled={formLocked}
+                      onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            ) : null}
             {editingId ? (
               <div className="field field--full serviceHint__fieldWrap" id={FORM_PHOTOS_EDIT_HINT.scopeId}>
                 <div className="field__top serviceHint__fieldTop">
@@ -1632,63 +1692,6 @@ export default function HistoryPage() {
                   </span>
                 </div>
               </div>
-            ) : null}
-            {mode === 'detailing' ? (
-              <>
-                <div className="historyCareTips topBorder">
-                  <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_IMPORTANT_HINT.scopeId}>
-                    <div className="field__top serviceHint__fieldTop">
-                      <span className="field__label">
-                        Важно <span className="pill" data-tone="accent">важно</span>
-                      </span>
-                      <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} variant="compact" label={FORM_CARE_IMPORTANT_HINT.label}>
-                        <p className="serviceHint__panelText">{FORM_CARE_IMPORTANT_HINT.text}</p>
-                      </ServiceHint>
-                    </div>
-                    <Input
-                      className="input"
-                      value={draft.careImportant}
-                      maxLength={VISIT_CARE_TIP_MAX_LEN}
-                      placeholder="Необязательно: что важно донести клиенту…"
-                      disabled={formLocked}
-                      onChange={(e) => setDraft((d) => ({ ...d, careImportant: e.target.value }))}
-                    />
-                  </div>
-                  <div className="field field--full serviceHint__fieldWrap historyCareTips__sectionHead">
-                    <div className="field__top serviceHint__fieldTop">
-                      <span className="field__label">Советы по уходу</span>
-                      <ServiceHint
-                        scopeId={FORM_CARE_TIPS_SECTION_HINT.scopeId}
-                        variant="compact"
-                        label={FORM_CARE_TIPS_SECTION_HINT.label}
-                      >
-                        <p className="serviceHint__panelText">{FORM_CARE_TIPS_SECTION_HINT.text}</p>
-                      </ServiceHint>
-                    </div>
-                  </div>
-                  {[
-                    { key: 'careTip1', n: 1 },
-                    { key: 'careTip2', n: 2 },
-                    { key: 'careTip3', n: 3 },
-                  ].map(({ key, n }) => (
-                    <div key={key} className="field field--full">
-                      <div className="field__top field__top--solo">
-                        <span className="field__label">
-                          Совет {n} <span className="pill" data-tone="neutral">совет</span>
-                        </span>
-                      </div>
-                      <Input
-                        className="input"
-                        value={draft[key]}
-                        maxLength={VISIT_CARE_TIP_MAX_LEN}
-                        placeholder="Необязательно"
-                        disabled={formLocked}
-                        onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </>
             ) : null}
             <Field label="Добавить комментарий">
               <Textarea

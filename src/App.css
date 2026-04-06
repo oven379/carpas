@@ -5454,6 +5454,12 @@ a.thumbCard__fileDoc {
   gap: 12px;
 }
 
+.historyCareTipsForCarCard__intro {
+  margin: 0 0 2px;
+  line-height: 1.45;
+  max-width: 62ch;
+}
+
 .historyCareTips .field__label .pill {
   margin-left: 6px;
   vertical-align: middle;
