@@ -116,7 +116,7 @@ export default function RequestsPage() {
           const ownerLabel = String(x.ownerName || '').trim() || String(x.ownerEmail || 'Владелец').trim()
           const ownerInitial = (ownerLabel.slice(0, 2) || '?').toUpperCase()
           const ownerDisplayName = String(x.ownerName || '').trim() || String(x.ownerEmail || '').trim() || '—'
-          const phoneForCall = String(car?.ownerAccountPhone || '').trim()
+          const phoneForCall = String(car?.ownerAccountPhone || x.ownerAccountPhone || '').trim()
           const { display: ownerPhoneDisplay, telHref: ownerPhoneTelHref } = displayRuPhone(phoneForCall)
           return (
             <Card key={x.id} className="card pad">
