@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\CarGarageMerge;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
@@ -220,5 +221,50 @@ class CarController extends Controller
         $car->delete();
 
         return response()->json(['ok' => true]);
+    }
+
+    /**
+     * Перенос карточки из личного гаража владельца в кабинет партнёрского сервиса (тот же VIN, проверка года/города).
+     */
+    public function linkFromPersonalGarage(Request $request)
+    {
+        /** @var Detailing $d */
+        $d = $request->user();
+        $data = $request->validate([
+            'carId' => ['required'],
+            'year' => ['nullable', 'string'],
+            'city' => ['nullable', 'string'],
+        ]);
+
+        $carId = (int) $data['carId'];
+        $car = Car::query()->with('detailing')->findOrFail($carId);
+
+        if (! $car->owner_id) {
+            throw ValidationException::withMessages([
+                'carId' => ['Карточка без владельца — привязка из гаража недоступна.'],
+            ]);
+        }
+        if (! $car->detailing || ! $car->detailing->is_personal) {
+            throw ValidationException::withMessages([
+                'carId' => ['Доступно только для авто из личного гаража владельца. У другого сервиса создайте новую карточку или дождитесь заявки клиента.'],
+            ]);
+        }
+        if ((int) $car->detailing_id === (int) $d->id) {
+            throw ValidationException::withMessages([
+                'carId' => ['Эта карточка уже в вашем кабинете.'],
+            ]);
+        }
+
+        $year = trim((string) ($data['year'] ?? ''));
+        $city = trim((string) ($data['city'] ?? ''));
+        if (! CarGarageMerge::verifyCompactEvidence($car, $year, $city)) {
+            throw ValidationException::withMessages([
+                'year' => ['Укажите год и/или город как в карточке владельца (хотя бы одно совпадение).'],
+            ]);
+        }
+
+        CarGarageMerge::attachPersonalGarageCarToDetailing($car, (int) $d->id);
+
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 }

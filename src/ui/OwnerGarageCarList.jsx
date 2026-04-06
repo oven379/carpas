@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useRepo } from './useRepo.js'
-import { OpenAction } from './components.jsx'
+import { OpenAction, PageLoadSpinner } from './components.jsx'
 import { fmtKm } from '../lib/format.js'
 import { dedupeCarsById } from '../lib/garageLimits.js'
 import { buildCarFromQuery } from './carNav.js'
+import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
 function lastFinalizedEvent(evts) {
   const list = Array.isArray(evts) ? evts.filter((e) => e && !e.isDraft) : []
@@ -17,10 +18,19 @@ function lastFinalizedEvent(evts) {
 }
 
 /** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
-export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
+export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsProp }) {
   const r = useRepo()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const carsKey = useMemo(() => {
+    if (carsProp === undefined) return '\0fetch'
+    const list = Array.isArray(carsProp) ? carsProp : []
+    return list
+      .map((c) => String(c?.id ?? ''))
+      .sort()
+      .join('\n')
+  }, [carsProp])
 
   useEffect(() => {
     let cancelled = false
@@ -32,8 +42,13 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
       }
       setLoading(true)
       try {
-        const cars = await r.listCars()
-        const list = dedupeCarsById(Array.isArray(cars) ? cars : [])
+        let list
+        if (carsProp !== undefined) {
+          list = dedupeCarsById(Array.isArray(carsProp) ? carsProp : [])
+        } else {
+          const cars = await r.listCars()
+          list = dedupeCarsById(Array.isArray(cars) ? cars : [])
+        }
         const enriched = await Promise.all(
           list.map(async (car) => {
             const evtsRaw = await r.listEvents(car.id)
@@ -51,14 +66,14 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, r, r._version])
+  }, [ownerEmail, r, r._version, carsKey, carsProp])
 
   const fromQ = buildCarFromQuery(fromPath)
 
   if (loading) {
     return (
-      <div className="muted" style={{ padding: '12px 0' }}>
-        Загрузка…
+      <div className="muted pageLoadSpinner--centerBlock" style={{ padding: '12px 0', minHeight: 56 }}>
+        <PageLoadSpinner size="compact" />
       </div>
     )
   }
@@ -73,7 +88,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars' }) {
           <Link key={c.id} className="rowItem" to={`/car/${c.id}${fromQ}`}>
             <div
               className="rowItem__img"
-              style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
+              style={c.hero ? { backgroundImage: resolvedBackgroundImageUrl(c.hero) } : undefined}
             />
             <div className="rowItem__main">
               <div className="rowItem__title">

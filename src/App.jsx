@@ -1,9 +1,10 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { lazy, Suspense, useEffect } from 'react'
 import './App.css'
-import { TopNav } from './ui/components.jsx'
+import { PageLoadSpinner, TopNav } from './ui/components.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
 import { isAuthed } from './ui/auth.js'
+import { refreshAllClientData } from './ui/useRepo.js'
 
 const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
@@ -26,8 +27,8 @@ const PublicGaragePage = lazy(() => import('./ui/pages/PublicGaragePage.jsx'))
 
 function RouteFallback() {
   return (
-    <div className="routeFallback muted" role="status" aria-live="polite">
-      Загрузка…
+    <div className="routeFallback muted">
+      <PageLoadSpinner size="page" />
     </div>
   )
 }
@@ -50,9 +51,35 @@ function ScrollToTopOnRouteChange() {
   return null
 }
 
+/** После возврата на вкладку — тот же сброс кэша, что раньше делала кнопка «Обновить данные» (с троттлингом). */
+function SyncClientDataOnTabReturn() {
+  useEffect(() => {
+    let wasHidden = false
+    let lastRun = 0
+    const throttleMs = 45_000
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        wasHidden = true
+        return
+      }
+      if (document.visibilityState !== 'visible' || !wasHidden) return
+      wasHidden = false
+      if (!isAuthed()) return
+      const n = Date.now()
+      if (n - lastRun < throttleMs) return
+      lastRun = n
+      refreshAllClientData()
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+  return null
+}
+
 export default function App() {
   return (
     <div className="app">
+      <SyncClientDataOnTabReturn />
       <TopNav />
       <main className="main">
         <ScrollToTopOnRouteChange />

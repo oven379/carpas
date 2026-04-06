@@ -2,9 +2,11 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { Card, HeroCoverStat, Pill } from '../components.jsx'
+import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
+import { displayRuPhone } from '../../lib/format.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
@@ -37,8 +39,13 @@ export default function PublicDetailingPage() {
   const { detailingId: sessionDetailingId, mode } = useDetailing()
   const [photoLb, setPhotoLb] = useState(null)
   const [payload, setPayload] = useState(undefined)
+  const [servicesExpanded, setServicesExpanded] = useState(false)
 
   const idNorm = String(id || '').trim()
+
+  useEffect(() => {
+    setServicesExpanded(false)
+  }, [idNorm])
 
   useEffect(() => {
     let cancelled = false
@@ -75,12 +82,15 @@ export default function PublicDetailingPage() {
 
   if (payload === undefined) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
   if (!det) return <Navigate to="/about" replace />
+
+  const publicCoverBg = resolvedBackgroundImageUrl(det.cover)
+  const detInitials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
 
   const fromSetup = sp.get('from') === 'setup'
   const isOwnerViewingOwnPage =
@@ -92,9 +102,12 @@ export default function PublicDetailingPage() {
   const isIOS = /iPhone|iPad|iPod/i.test(ua)
   const mapsHref = addressText ? `https://yandex.ru/maps/?text=${encodeURIComponent(addressText)}` : ''
   const navHref = addressText ? (isIOS ? `maps://?q=${encodeURIComponent(addressText)}` : `geo:0,0?q=${encodeURIComponent(addressText)}`) : ''
-  const phoneDigits = String(det.phone || '').replace(/[^\d+]/g, '')
-  const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
+  const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(det.phone)
   const services = Array.isArray(det.servicesOffered) ? det.servicesOffered : []
+  const servicesPreviewCount = 3
+  const hasMoreServices = services.length > servicesPreviewCount
+  const servicesVisible =
+    !hasMoreServices || servicesExpanded ? services : services.slice(0, servicesPreviewCount)
   const socials = [
     det.website ? { label: 'Сайт', value: String(det.website || '').trim() } : null,
     det.telegram ? { label: 'Telegram', value: String(det.telegram || '').trim() } : null,
@@ -121,6 +134,10 @@ export default function PublicDetailingPage() {
             <span>Страница детейлинга</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
+            <BackNav
+              title="Назад"
+              fallbackTo={isOwnerViewingOwnPage ? '/detailing' : '/about'}
+            />
             <h1 className="h1" style={{ margin: 0 }}>
               {det.name || 'Детейлинг / СТО'}
             </h1>
@@ -140,14 +157,9 @@ export default function PublicDetailingPage() {
 
       <div
         className="detHero detHero--card"
-        style={det.cover ? { backgroundImage: `url("${String(det.cover).replaceAll('"', '%22')}")` } : undefined}
+        style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
-          {det.logo ? (
-            <div className="detHero__logo detHero__logo--card">
-              <img alt="Логотип" src={det.logo} />
-            </div>
-          ) : null}
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
               <HeroCoverStat
@@ -157,15 +169,6 @@ export default function PublicDetailingPage() {
                 label="на обслуживании"
                 title={`${carsCount} ${carsCount === 1 ? 'автомобиль' : carsCount < 5 ? 'автомобиля' : 'автомобилей'} на обслуживании`}
               />
-              {services.length ? (
-                <HeroCoverStat
-                  kind="services"
-                  variant="overlay"
-                  value={services.length}
-                  label="услуг в каталоге"
-                  title={`${services.length} услуг в каталоге`}
-                />
-              ) : null}
             </div>
           </div>
         </div>
@@ -173,8 +176,10 @@ export default function PublicDetailingPage() {
 
       <div className="split" style={{ marginTop: 12 }}>
         <Card className="card pad">
-          <h2 className="h2">Информация</h2>
-          <div className="kv">
+          <div className="detPublicInfoCard__headRow">
+            <div className="detPublicInfoCard__headMain">
+              <h2 className="h2">Информация</h2>
+              <div className="kv">
             <div className="kv__row">
               <span className="kv__k">Город</span>
               <span className="kv__v">{det.city || '—'}</span>
@@ -193,14 +198,14 @@ export default function PublicDetailingPage() {
                       e.preventDefault()
                       try {
                         window.location.href = navHref
-                      } catch (err) {
-                        console.warn(err)
+                      } catch {
+                        /* ignore */
                       }
                       setTimeout(() => {
                         try {
                           window.open(mapsHref, '_blank', 'noreferrer')
-                        } catch (err) {
-                          console.warn(err)
+                        } catch {
+                          /* ignore */
                         }
                       }, 450)
                     }}
@@ -215,10 +220,14 @@ export default function PublicDetailingPage() {
             <div className="kv__row">
               <span className="kv__k">Телефон</span>
               <span className="kv__v mono">
-                {det.phone ? (
-                  <a href={phoneHref} title="Позвонить">
-                    {det.phone}
-                  </a>
+                {phoneDisplay ? (
+                  phoneTelHref ? (
+                    <a href={phoneTelHref} title="Позвонить">
+                      {phoneDisplay}
+                    </a>
+                  ) : (
+                    phoneDisplay
+                  )
                 ) : (
                   '—'
                 )}
@@ -232,6 +241,25 @@ export default function PublicDetailingPage() {
                 </span>
               </div>
             ) : null}
+              </div>
+            </div>
+            <div className="detPublicInfoCard__logoCol">
+              {det.logo ? (
+                <div
+                  className="detPublicInfoCard__logo"
+                  title={String(det.name || '').trim() || undefined}
+                >
+                  <img alt="" src={resolvePublicMediaUrl(det.logo)} decoding="async" />
+                </div>
+              ) : (
+                <div
+                  className="detPublicInfoCard__logo detPublicInfoCard__logo--fallback"
+                  title={String(det.name || '').trim() || undefined}
+                >
+                  <span aria-hidden="true">{detInitials}</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="topBorder">
@@ -289,30 +317,30 @@ export default function PublicDetailingPage() {
         </Card>
 
         <div className="col gap">
-          <Card className="card pad">
-            <div className="row spread gap" style={{ alignItems: 'center' }}>
-              <div className="cardTitle" style={{ marginBottom: 0 }}>
-                Услуги
-              </div>
-              {services.length ? (
-                <HeroCoverStat
-                  kind="services"
-                  variant="card"
-                  layout="inline"
-                  value={services.length}
-                  label="в каталоге"
-                  title={`${services.length} услуг`}
-                />
-              ) : (
-                <span className="muted">—</span>
-              )}
+          <Card className="card pad detPublicServicesCard">
+            {hasMoreServices ? (
+              <button
+                type="button"
+                className="dropdownCaretBtn dropdownCaretBtn--floating detPublicServicesCard__expand"
+                aria-expanded={servicesExpanded ? 'true' : 'false'}
+                onClick={() => setServicesExpanded((v) => !v)}
+                title={servicesExpanded ? 'Свернуть' : 'Показать все услуги'}
+                aria-label={servicesExpanded ? 'Свернуть список услуг' : 'Развернуть список услуг'}
+              >
+                <DropdownCaretIcon open={servicesExpanded} />
+              </button>
+            ) : null}
+            <div
+              className={`cardTitle detPublicServicesCard__title${hasMoreServices ? ' detPublicServicesCard__title--withExpand' : ''}`}
+              style={{ marginBottom: 0 }}
+            >
+              Услуги
             </div>
             {services.length ? (
               <div className="row gap wrap" style={{ marginTop: 12 }}>
-                {services.slice(0, 24).map((s) => (
-                  <Pill key={s}>{s}</Pill>
+                {servicesVisible.map((s, i) => (
+                  <Pill key={`${i}-${String(s)}`}>{s}</Pill>
                 ))}
-                {services.length > 24 ? <Pill>+ ещё</Pill> : null}
               </div>
             ) : (
               <p className="muted small" style={{ marginTop: 12 }}>
@@ -329,8 +357,8 @@ export default function PublicDetailingPage() {
                 </div>
                 <div className="muted small">Нажмите, чтобы позвонить в детейлинг.</div>
               </div>
-              {det.phone ? (
-                <a className="btn" data-variant="primary" href={phoneHref} style={{ whiteSpace: 'nowrap' }}>
+              {phoneTelHref ? (
+                <a className="btn" data-variant="primary" href={phoneTelHref} style={{ whiteSpace: 'nowrap' }}>
                   Позвонить
                 </a>
               ) : null}
@@ -360,30 +388,13 @@ export default function PublicDetailingPage() {
               </div>
             ) : null}
 
-            {!det.phone ? (
+            {!phoneDisplay ? (
               <div className="topBorder">
                 <p className="muted small">Телефон не указан — кнопку звонка показать нельзя.</p>
               </div>
             ) : null}
           </Card>
 
-          <Card className="card pad">
-            <div className="row spread gap" style={{ alignItems: 'center' }}>
-              <div className="cardTitle" style={{ marginBottom: 0 }}>
-                Статистика
-              </div>
-              <HeroCoverStat
-                kind="car"
-                variant="card"
-                value={carsCount}
-                label="на обслуживании"
-                title={`${carsCount} автомобилей в кабинете сервиса`}
-              />
-            </div>
-            <p className="muted small" style={{ marginTop: 10 }}>
-              Сколько карточек авто ведёт этот детейлинг в сервисе (то же число, что на обложке).
-            </p>
-          </Card>
         </div>
       </div>
       <PhotoLightbox

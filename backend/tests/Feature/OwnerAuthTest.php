@@ -1,0 +1,69 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Owner;
+use Illuminate\Support\Facades\Hash;
+
+class OwnerAuthTest extends FeatureTestCase
+{
+    public function test_owner_patch_me_rejects_case_insensitive_duplicate_garage_slug(): void
+    {
+        Owner::query()->create([
+            'email' => 'slug-a@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'A',
+            'phone' => '+7',
+            'garage_slug' => 'ivan-garage',
+        ]);
+        $b = Owner::query()->create([
+            'email' => 'slug-b@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'B',
+            'phone' => '+7',
+            'garage_slug' => 'petr',
+        ]);
+        $token = $b->createToken('owner')->plainTextToken;
+
+        $this->patchJson(
+            '/api/owners/me',
+            ['garageSlug' => 'IVAN-GARAGE'],
+            ['Authorization' => 'Bearer '.$token],
+        )
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['garageSlug']);
+    }
+
+    public function test_register_returns_token(): void
+    {
+        $response = $this->postJson('/api/owners/register', [
+            'email' => 'owner-new@example.test',
+            'password' => 'pass1234',
+            'name' => 'Иван',
+            'phone' => '+7 900 000-00-01',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('owner.email', 'owner-new@example.test');
+        $this->assertNotEmpty($response->json('token'));
+    }
+
+    public function test_register_rejects_duplicate_email_with_422(): void
+    {
+        Owner::query()->create([
+            'email' => 'dup-owner@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Уже есть',
+            'phone' => '+7',
+        ]);
+
+        $this->postJson('/api/owners/register', [
+            'email' => 'dup-owner@example.test',
+            'password' => 'pass1234',
+            'name' => 'Другой',
+            'phone' => '+7 900 000-00-02',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['email']);
+    }
+}

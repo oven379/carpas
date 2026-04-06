@@ -8,7 +8,10 @@ function normEmail(s) {
 
 export function resolveServiceDisplayName(car) {
   if (!car?.detailingId) return ''
-  return String(car.detailingName || car.seller?.name || '').trim() || 'Сервис'
+  const name = String(car.detailingName || '').trim()
+  // seller.name на карточке — часто контактное лицо (ФИО), не название студии
+  if (name) return name
+  return 'Сервис'
 }
 
 /**
@@ -42,6 +45,9 @@ export function ownerServiceLinkSummary(car, ownerEmail, ownerClaimsList) {
   return { kind: 'service', serviceName, ownerLink: 'pending' }
 }
 
+/** Карточка ведётся только у детейлинга (владелец в приложении не привязан). Плашку в UI кабинета не показываем — авто и так в списке сервиса. */
+export const DETAILING_ACCESS_SERVICE_ONLY_LABEL = 'Учёт в сервисе'
+
 /** Статус строки в списке детейлинга: учёт только у сервиса vs владелец в приложении vs заявка. */
 export function detailingCarAccessBadge(car, detailingId, inboxClaims) {
   if (!car) return { label: '', tone: 'neutral' }
@@ -53,7 +59,7 @@ export function detailingCarAccessBadge(car, detailingId, inboxClaims) {
   if (normEmail(car.ownerEmail)) {
     return { label: 'Владелец в приложении', tone: 'accent' }
   }
-  return { label: 'Учёт в сервисе', tone: 'neutral' }
+  return { label: DETAILING_ACCESS_SERVICE_ONLY_LABEL, tone: 'neutral' }
 }
 
 /**

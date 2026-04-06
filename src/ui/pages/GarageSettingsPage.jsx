@@ -1,20 +1,21 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BackNav, Card, ComboBox, Input, ServiceHint } from '../components.jsx'
-import { bumpSessionRefresh } from '../auth.js'
-import { hasOwnerSession } from '../auth.js'
-import { useRepo, invalidateRepo } from '../useRepo.js'
+import { BackNav, Card, ComboBox, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
+import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { normalizeGarageSlugInput, parseGarageSocialLines } from '../../lib/format.js'
+import { formatPhoneRuInput, normalizeGarageSlugInput, parseGarageSocialLines } from '../../lib/format.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
+import { useAsyncActionLock } from '../useAsyncActionLock.js'
 
 export default function GarageSettingsPage() {
   const navigate = useNavigate()
   const r = useRepo()
-  const { owner, mode } = useDetailing()
+  const saveLock = useAsyncActionLock()
+  const { owner, mode, loading } = useDetailing()
   const socialRowIdRef = useRef(1)
   const nextSocialRowId = () => ++socialRowIdRef.current
 
@@ -24,11 +25,10 @@ export default function GarageSettingsPage() {
     name: '',
     phone: '',
     garageCity: '',
-    showCityPublic: false,
     garageWebsite: '',
-    showWebsitePublic: false,
     garageSlug: '',
-    showPhonePublic: false,
+    garagePrivate: false,
+    garageBannerEnabled: true,
     garageBanner: '',
     garageAvatar: '',
   })
@@ -41,13 +41,12 @@ export default function GarageSettingsPage() {
     )
     setDraft({
       name: owner.name || '',
-      phone: owner.phone || '',
+      phone: formatPhoneRuInput(owner.phone || ''),
       garageCity: owner.garageCity || '',
-      showCityPublic: Boolean(owner.showCityPublic),
       garageWebsite: owner.garageWebsite || '',
-      showWebsitePublic: Boolean(owner.showWebsitePublic),
       garageSlug: owner.garageSlug || '',
-      showPhonePublic: Boolean(owner.showPhonePublic),
+      garagePrivate: Boolean(owner.garagePrivate),
+      garageBannerEnabled: owner.garageBannerEnabled !== false,
       garageBanner: owner.garageBanner || '',
       garageAvatar: owner.garageAvatar || '',
     })
@@ -56,12 +55,11 @@ export default function GarageSettingsPage() {
     owner?.name,
     owner?.phone,
     owner?.garageCity,
-    owner?.showCityPublic,
     owner?.garageWebsite,
-    owner?.showWebsitePublic,
     owner?.garageSocial,
     owner?.garageSlug,
-    owner?.showPhonePublic,
+    owner?.garagePrivate,
+    owner?.garageBannerEnabled,
     owner?.garageBanner,
     owner?.garageAvatar,
   ])
@@ -86,6 +84,13 @@ export default function GarageSettingsPage() {
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
+  if (mode === 'owner' && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
 
   const urlPrefix = `${typeof window !== 'undefined' ? window.location.origin : ''}/g/`
 
@@ -108,6 +113,42 @@ export default function GarageSettingsPage() {
       </div>
 
       <Card className="card pad garageSettings__card">
+        <div className="field field--full serviceHint__fieldWrap garageSettings__privacyBlock" id="garage-settings-privacy">
+          <div className="field__top serviceHint__fieldTop">
+            <span className="field__label">Витрина по ссылке /g/…</span>
+            <ServiceHint scopeId="garage-settings-privacy" variant="compact" label="Справка: гараж или улица">
+              <p className="serviceHint__panelText">
+                <strong>Остаться в гараже</strong> — по вашей ссылке гости видят только сообщение, что вы в личном гараже;
+                контакты и автомобили не показываются. <strong>Выйти на улицу</strong> — страница открыта: отображаются
+                заполненные телефон, город, сайт и ссылки (отдельные галочки не нужны).
+              </p>
+            </ServiceHint>
+          </div>
+          <div className="garageSettings__privacyChoices row gap wrap" style={{ marginTop: 8 }}>
+            <button
+              type="button"
+              className="btn garageSettings__privacyBtn"
+              data-variant={draft.garagePrivate ? 'primary' : 'outline'}
+              onClick={() => setDraft((d) => ({ ...d, garagePrivate: true }))}
+            >
+              Остаться в гараже
+            </button>
+            <button
+              type="button"
+              className="btn garageSettings__privacyBtn"
+              data-variant={!draft.garagePrivate ? 'primary' : 'outline'}
+              onClick={() => setDraft((d) => ({ ...d, garagePrivate: false }))}
+            >
+              Выйти на улицу
+            </button>
+          </div>
+          <p className="muted small" style={{ margin: '10px 0 0', maxWidth: '62ch', lineHeight: 1.5 }}>
+            {draft.garagePrivate
+              ? 'Сейчас: закрытая витрина. Переход по ссылке не раскрывает ваши данные посторонним.'
+              : 'Сейчас: открытая витрина. Все заполненные ниже контакты и блок ссылок попадут на публичную страницу.'}
+          </p>
+        </div>
+
         <div className="formGrid historyFormGrid">
           <div className="field field--full serviceHint__fieldWrap" id="garage-settings-name">
             <div className="field__top serviceHint__fieldTop">
@@ -129,7 +170,8 @@ export default function GarageSettingsPage() {
               <span className="field__label">Телефон</span>
               <ServiceHint scopeId="garage-settings-phone" variant="compact" label="Справка: телефон">
                 <p className="serviceHint__panelText">
-                  Для связи с вами. Ниже можно включить показ того же номера на публичной странице гаража.
+                  Номер для РФ: в поле всегда префикс +7 и до 10 цифр (можно ввести 8… или без +7 — подставится само). На улице
+                  виден только в режиме «Выйти на улицу» и если набран полный номер.
                 </p>
               </ServiceHint>
             </div>
@@ -137,17 +179,9 @@ export default function GarageSettingsPage() {
               className="input"
               inputMode="tel"
               value={draft.phone}
-              onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-              placeholder="+7…"
+              onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
+              placeholder="+7 900 123-45-67"
             />
-            <label className="garageSettings__phonePublicCheck">
-              <input
-                type="checkbox"
-                checked={draft.showPhonePublic}
-                onChange={(e) => setDraft((d) => ({ ...d, showPhonePublic: e.target.checked }))}
-              />
-              <span>Показывать телефон на публичной странице</span>
-            </label>
           </div>
 
           <div className="field field--full serviceHint__fieldWrap" id="garage-settings-city">
@@ -155,8 +189,8 @@ export default function GarageSettingsPage() {
               <span className="field__label">Город для улицы</span>
               <ServiceHint scopeId="garage-settings-city" variant="compact" label="Справка: город">
                 <p className="serviceHint__panelText">
-                  В списке — города России с населением свыше 1 млн; можно ввести любой другой город вручную. Показывается на /g/…
-                  только если включено «Показывать город» ниже.
+                  В списке — города России с населением свыше 1 млн; можно ввести любой другой город вручную. На улице
+                  город виден в режиме «Выйти на улицу», если поле заполнено.
                 </p>
               </ServiceHint>
             </div>
@@ -167,21 +201,15 @@ export default function GarageSettingsPage() {
               maxItems={20}
               onChange={(v) => setDraft((d) => ({ ...d, garageCity: v }))}
             />
-            <label className="garageSettings__phonePublicCheck">
-              <input
-                type="checkbox"
-                checked={draft.showCityPublic}
-                onChange={(e) => setDraft((d) => ({ ...d, showCityPublic: e.target.checked }))}
-              />
-              <span>Показывать город на публичной странице</span>
-            </label>
           </div>
 
           <div className="field field--full serviceHint__fieldWrap" id="garage-settings-website">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Сайт или соцсеть</span>
               <ServiceHint scopeId="garage-settings-website" variant="compact" label="Справка: сайт">
-                <p className="serviceHint__panelText">Необязательно. На улице появится только при включённой публикации.</p>
+                <p className="serviceHint__panelText">
+                  Необязательно. На улице ссылка видна в режиме «Выйти на улицу», если поле заполнено.
+                </p>
               </ServiceHint>
             </div>
             <Input
@@ -191,14 +219,6 @@ export default function GarageSettingsPage() {
               placeholder="https://…"
               inputMode="url"
             />
-            <label className="garageSettings__phonePublicCheck">
-              <input
-                type="checkbox"
-                checked={draft.showWebsitePublic}
-                onChange={(e) => setDraft((d) => ({ ...d, showWebsitePublic: e.target.checked }))}
-              />
-              <span>Показывать ссылку на улице</span>
-            </label>
           </div>
 
           <div className="field field--full serviceHint__fieldWrap" id="garage-settings-social">
@@ -206,8 +226,8 @@ export default function GarageSettingsPage() {
               <span className="field__label">Доп. ссылки</span>
               <ServiceHint scopeId="garage-settings-social" variant="compact" label="Справка: доп. ссылки">
                 <p className="serviceHint__panelText">
-                  Telegram, Instagram и другие ссылки. Заполненные поля показываются на публичной странице гаража. Кнопка «+» добавляет
-                  ещё одно поле.
+                  Telegram, Instagram и другие ссылки. На улице отображаются заполненные строки в режиме «Выйти на улицу».
+                  Кнопка «+» добавляет ещё одно поле.
                 </p>
               </ServiceHint>
             </div>
@@ -296,21 +316,54 @@ export default function GarageSettingsPage() {
 
         <div className="topBorder garageSettings__mediaWrap">
           <div className="garageSettings__mediaHeadRow" id="garage-settings-media">
-            <div className="garageSettings__mediaHeading">Аватар и баннер</div>
+            <div className="garageSettings__mediaHeading">
+              {draft.garageBannerEnabled ? 'Аватар и баннер' : 'Аватар'}
+            </div>
             <ServiceHint scopeId="garage-settings-media" variant="compact" label="Справка: фото гаража">
               <p className="serviceHint__panelText">
-                Нажмите на превью, чтобы выбрать или заменить фото. Аватар — квадрат, до ~1&nbsp;МБ (до 512×512); баннер — широкий,
-                до ~2,5&nbsp;МБ (до 2000×1200). Чтобы сбросить фото, нажмите крестик в углу превью: круг у аватара, квадрат у баннера.
+                Нажмите на превью, чтобы выбрать или заменить фото. Аватар — квадрат, до ~1&nbsp;МБ (до 512×512). Баннер — широкий
+                фон сверху (до ~2,5&nbsp;МБ, до 2000×1200). Включение и выключение обложки на страницах — переключатель ниже; подробности
+                в справке у переключателя. Сброс фото — крестик в углу превью.
               </p>
               <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
                 {PHOTO_LANDSCAPE_HINT_SENTENCE}
               </p>
             </ServiceHint>
           </div>
+          <div
+            className="field field--full serviceHint__fieldWrap garageSettings__bannerField"
+            id="garage-settings-banner"
+          >
+            <div className="field__top serviceHint__fieldTop">
+              <div className="field__label garageSettings__bannerCheckGroup">
+                <label className="garageSettings__bannerCheckRow" htmlFor="garage-settings-banner-enabled">
+                  <input
+                    id="garage-settings-banner-enabled"
+                    type="checkbox"
+                    className="garageSettings__bannerCheckInput"
+                    checked={draft.garageBannerEnabled}
+                    onChange={(e) => setDraft((d) => ({ ...d, garageBannerEnabled: e.target.checked }))}
+                  />
+                  <span className="garageSettings__bannerCheckText">Показывать баннер на странице гаража</span>
+                </label>
+              </div>
+              <ServiceHint scopeId="garage-settings-banner" variant="compact" label="Справка: баннер гаража">
+                <p className="serviceHint__panelText">
+                  Широкое фото сверху страницы «Мой гараж». То же изображение используется как фон на публичной витрине по ссылке{' '}
+                  <span className="mono">/g/…</span>, если в настройках включён режим «Выйти на улицу».
+                </p>
+                <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
+                  Если выключить показ баннера, обложка не отображается, но файл в профиле сохраняется — позже показ можно снова
+                  включить.
+                </p>
+              </ServiceHint>
+            </div>
+          </div>
           <MediaBannerAvatarBlock
             variant="garage"
             title=""
             bannerLabel="Настройка баннера"
+            showBannerColumn={draft.garageBannerEnabled}
             bannerUrl={draft.garageBanner}
             avatarUrl={draft.garageAvatar}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, garageBanner: url }))}
@@ -323,25 +376,35 @@ export default function GarageSettingsPage() {
             type="button"
             className="btn"
             data-variant="primary"
-            onClick={async () => {
+            disabled={saveLock.pending}
+            aria-busy={saveLock.pending || undefined}
+            onClick={() =>
+              void saveLock.run(async () => {
               const slug = normalizeGarageSlugInput(draft.garageSlug)
               const socialJoined = socialRows
-                .map((r) => String(r.value || '').trim())
+                .map((row) => String(row.value || '').trim())
                 .filter(Boolean)
                 .join('\n')
               const prevBanner = owner?.garageBanner ?? ''
               const prevAvatar = owner?.garageAvatar ?? ''
+              const prevBannerEnabled = owner?.garageBannerEnabled !== false
+              const onStreet = !draft.garagePrivate
               const patch = {
                 name: draft.name.trim(),
-                phone: draft.phone.trim(),
+                phone: formatPhoneRuInput(draft.phone).trim(),
                 garageCity: draft.garageCity.trim(),
-                showCityPublic: draft.showCityPublic,
                 garageWebsite: draft.garageWebsite.trim(),
-                showWebsitePublic: draft.showWebsitePublic,
                 garageSocial: socialJoined,
-                showSocialPublic: socialJoined.length > 0,
                 garageSlug: slug,
-                showPhonePublic: draft.showPhonePublic,
+                garagePrivate: draft.garagePrivate,
+                showPhonePublic:
+                  onStreet && formatPhoneRuInput(draft.phone).replace(/^\+7/, '').replace(/\D/g, '').length >= 10,
+                showCityPublic: onStreet && Boolean(draft.garageCity.trim()),
+                showWebsitePublic: onStreet && Boolean(draft.garageWebsite.trim()),
+                showSocialPublic: onStreet && socialJoined.length > 0,
+              }
+              if (draft.garageBannerEnabled !== prevBannerEnabled) {
+                patch.garageBannerEnabled = draft.garageBannerEnabled
               }
               if ((draft.garageBanner || '') !== (prevBanner || '')) {
                 patch.garageBanner = draft.garageBanner
@@ -350,12 +413,13 @@ export default function GarageSettingsPage() {
                 patch.garageAvatar = draft.garageAvatar
               }
               try {
-                await r.updateOwnerMe(patch)
+                const res = await r.updateOwnerMe(patch)
+                if (res?.owner) mergeSessionOwnerScalars(res.owner)
               } catch (e) {
                 alert(
                   formatHttpErrorMessage(
                     e,
-                    'Не удалось сохранить. Проверьте связь с API и данные формы.',
+                    'Не удалось сохранить. Проверьте интернет и правильность полей.',
                   ),
                 )
                 if (e instanceof HttpError && e.status === 401) {
@@ -363,12 +427,12 @@ export default function GarageSettingsPage() {
                 }
                 return
               }
-              invalidateRepo()
-              bumpSessionRefresh()
+              refreshAllClientData()
               navigate('/garage', { replace: true })
-            }}
+              })
+            }
           >
-            Сохранить
+            {saveLock.pending ? 'Сохранение…' : 'Сохранить'}
           </button>
           <button type="button" className="btn" data-variant="ghost" onClick={() => navigate('/garage')}>
             К гаражу

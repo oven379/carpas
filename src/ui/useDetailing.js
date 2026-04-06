@@ -1,9 +1,11 @@
 import {
   createContext,
   createElement,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
 } from 'react'
@@ -15,6 +17,7 @@ import {
   getSessionRefreshEpoch,
   hasDetailingSession,
   hasOwnerSession,
+  mergeSessionOwnerScalars,
   subscribeSessionRefresh,
 } from './auth.js'
 import { getApi } from '../api/index.js'
@@ -36,21 +39,39 @@ export function DetailingSessionProvider({ children }) {
   const [owner, setOwner] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const sessionKey = useMemo(
-    () => `${detailingId || ''}|${dTok || ''}|${oTok || ''}|${ownerEmailKey}|${sessionEpoch}`,
-    [detailingId, dTok, oTok, ownerEmailKey, sessionEpoch],
+  /** Смена роли/токена/почты — полная загрузка со спиннером. Только `sessionEpoch` (после PATCH /me) — фон, без блокировки UI. */
+  const identityKey = useMemo(
+    () => `${detailingId || ''}|${dTok || ''}|${oTok || ''}|${ownerEmailKey}`,
+    [detailingId, dTok, oTok, ownerEmailKey],
   )
+  const prevIdentityRef = useRef(null)
+  const prevEpochRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
     const api = getApi()
+    const prevId = prevIdentityRef.current
+    const prevEp = prevEpochRef.current
+    const first = prevId === null
+    const identityChanged = first || prevId !== identityKey
+    const softProfileRefresh = !first && !identityChanged && prevEp !== sessionEpoch
 
     async function load() {
-      setLoading(true)
       const dTokNow = getDetailingToken()
       const oTokNow = getOwnerToken()
       const did = getSessionDetailingId()
       const oEmail = getSessionOwner()?.email || ''
+
+      if (softProfileRefresh) {
+        setLoading(false)
+        if (oEmail && oTokNow) {
+          const os = getSessionOwner()
+          if (os?.email) setOwner(os)
+        }
+      } else {
+        setLoading(true)
+      }
+
       try {
         if (did && dTokNow) {
           const me = await api.getMeDetailing()
@@ -63,7 +84,15 @@ export function DetailingSessionProvider({ children }) {
         if (oEmail && oTokNow) {
           const me = await api.getMeOwner()
           if (!cancelled) {
-            setOwner(me?.owner ?? getSessionOwner())
+            const fresh = me?.owner ?? null
+            if (fresh && typeof fresh === 'object') {
+              try {
+                mergeSessionOwnerScalars(fresh)
+              } catch {
+                /* ignore */
+              }
+            }
+            setOwner(fresh ?? getSessionOwner())
             setDetailing(null)
           }
           return
@@ -80,25 +109,34 @@ export function DetailingSessionProvider({ children }) {
           setOwner(oEmail && os ? os : null)
         }
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setLoading(false)
+          prevIdentityRef.current = identityKey
+          prevEpochRef.current = sessionEpoch
+        }
       }
     }
 
-    load()
+    void load()
     return () => {
       cancelled = true
     }
-  }, [sessionKey])
+  }, [identityKey, sessionEpoch])
+
+  /** Сразу после PATCH /detailings/me — без ожидания повторного GET /me (избегаем гонок с coalesce и старым ответом). */
+  const applyDetailingSnapshot = useCallback((det) => {
+    if (det != null && typeof det === 'object') {
+      setDetailing(det)
+    }
+  }, [])
 
   const value = useMemo(
     () => {
       const sid = getSessionDetailingId()
       const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
-      return { detailingId: sid, detailing, owner, mode, loading }
+      return { detailingId: sid, detailing, owner, mode, loading, applyDetailingSnapshot }
     },
-    // sessionEpoch: смена сессии (другая вкладка), пока load() не обновил state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [detailing, owner, loading, sessionEpoch],
+    [detailing, owner, loading, sessionEpoch, applyDetailingSnapshot],
   )
 
   return createElement(DetailingSessionContext.Provider, { value }, children)
@@ -114,5 +152,6 @@ export function useDetailing() {
 
 /** Партнёр вошёл, но ещё не сохранил настройки лендинга — кабинет недоступен, только /detailing/landing */
 export function detailingOnboardingPending(mode, detailing) {
-  return mode === 'detailing' && detailing != null && detailing.profileCompleted === false
+  if (mode !== 'detailing' || detailing == null || typeof detailing !== 'object') return false
+  return detailing.profileCompleted === false
 }

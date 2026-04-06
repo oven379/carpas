@@ -1,18 +1,52 @@
-import { forwardRef, useEffect, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
-import { useRepo } from './useRepo.js'
+import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, hasOwnerSession } from './auth.js'
-import { invalidateRepo } from './useRepo.js'
 import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SUPPORT_LINK_HREF } from './supportConfig.js'
 
 export { default as ServiceHint } from './ServiceHint.jsx'
+export { PageLoadSpinner } from './PageLoadSpinner.jsx'
 
-export function Button({ variant = 'primary', ...props }) {
-  return <button data-variant={variant} {...props} />
+export function Button({ variant = 'primary', onClick, disabled, type = 'button', ...props }) {
+  const lockRef = useRef(false)
+  const [pending, setPending] = useState(false)
+
+  const handleClick = useCallback(
+    (e) => {
+      if (disabled || lockRef.current) return
+      if (!onClick) return
+      let result
+      try {
+        result = onClick(e)
+      } catch {
+        return
+      }
+      if (result != null && typeof result.then === 'function') {
+        lockRef.current = true
+        setPending(true)
+        Promise.resolve(result).finally(() => {
+          lockRef.current = false
+          setPending(false)
+        })
+      }
+    },
+    [onClick, disabled],
+  )
+
+  return (
+    <button
+      type={type}
+      data-variant={variant}
+      {...props}
+      disabled={disabled || pending}
+      aria-busy={pending ? true : undefined}
+      onClick={handleClick}
+    />
+  )
 }
 
 export const Input = forwardRef(function Input(props, ref) {
@@ -111,6 +145,7 @@ function HeroCoverStatIcon({ kind }) {
  * Счётчик на обложке (гараж / детейлинг) или компактно в карточке.
  * `variant="overlay"` — стекло поверх фото; `variant="card"` — на светлом фоне.
  * `layout="inline"` — одна строка (например под заголовком списка).
+ * `to` + не `linkDisabled` — ведёт на маршрут (например создание авто), при этом показывается число.
  */
 export function HeroCoverStat({
   value,
@@ -120,21 +155,27 @@ export function HeroCoverStat({
   layout = 'stack',
   title,
   className = '',
+  to,
+  linkDisabled = false,
+  'aria-label': ariaLabel,
 }) {
   const v = value == null ? '—' : String(value)
   const labelStr = label != null && String(label).trim() ? String(label).trim() : ''
-  const aria = (title ?? (labelStr ? `${v} ${labelStr}` : `${v}`)).trim()
+  const defaultAria = (title ?? (labelStr ? `${v} ${labelStr}` : `${v}`)).trim()
   const valueWide = v.length >= 3
   const mods = [
     'heroCoverStat',
     variant === 'card' ? 'heroCoverStat--card' : 'heroCoverStat--overlay',
     layout === 'inline' ? 'heroCoverStat--inline' : '',
+    to ? 'heroCoverStat--link' : '',
+    to && linkDisabled ? 'heroCoverStat--inactive' : '',
     className,
   ]
     .filter(Boolean)
     .join(' ')
-  return (
-    <div className={mods} role="group" aria-label={aria}>
+
+  const body = (
+    <>
       <span className="heroCoverStat__icon" aria-hidden="true">
         <HeroCoverStatIcon kind={kind} />
       </span>
@@ -144,6 +185,29 @@ export function HeroCoverStat({
         </span>
         {labelStr ? <span className="heroCoverStat__label">{labelStr}</span> : null}
       </div>
+    </>
+  )
+
+  if (to && !linkDisabled) {
+    const linkAria = ariaLabel ?? (title ? `Добавить автомобиль. ${title}` : 'Добавить автомобиль')
+    return (
+      <Link to={to} className={mods} aria-label={linkAria} title={title}>
+        {body}
+      </Link>
+    )
+  }
+  if (to && linkDisabled) {
+    const inactiveAria = ariaLabel ?? defaultAria
+    return (
+      <span className={mods} role="group" aria-label={inactiveAria} title={title}>
+        {body}
+      </span>
+    )
+  }
+  const aria = ariaLabel ?? defaultAria
+  return (
+    <div className={mods} role="group" aria-label={aria}>
+      {body}
     </div>
   )
 }

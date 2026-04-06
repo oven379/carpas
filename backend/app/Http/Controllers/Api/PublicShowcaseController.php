@@ -93,10 +93,26 @@ class PublicShowcaseController extends Controller
     {
         $s = mb_strtolower(trim((string) $slug));
         $owner = Owner::query()->whereRaw('lower(trim(garage_slug)) = ?', [$s])->firstOrFail();
+        $carsCount = Car::query()->where('owner_id', $owner->id)->count();
+
+        $ownerPayload = ApiResources::owner($owner);
+        unset($ownerPayload['email']);
+
+        if ($owner->garage_private) {
+            return response()->json([
+                'owner' => $ownerPayload,
+                'garagePrivate' => true,
+                'carsCount' => $carsCount,
+                'cars' => [],
+            ]);
+        }
+
         $cars = Car::query()->where('owner_id', $owner->id)->with('owner')->orderByDesc('updated_at')->get();
 
         return response()->json([
-            'owner' => ApiResources::owner($owner),
+            'owner' => $ownerPayload,
+            'garagePrivate' => false,
+            'carsCount' => $cars->count(),
             'cars' => $cars->map(fn ($c) => ApiResources::car($c))->values(),
         ]);
     }

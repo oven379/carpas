@@ -1,21 +1,35 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { BackNav, Button, Card, ComboBox, Field, HeroCoverStat, Input, Pill, ServiceHint, Textarea } from '../components.jsx'
-import { bumpSessionRefresh } from '../auth.js'
-import { useRepo, invalidateRepo } from '../useRepo.js'
+import {
+  BackNav,
+  Button,
+  Card,
+  ComboBox,
+  DropdownCaretIcon,
+  Field,
+  HeroCoverStat,
+  Input,
+  PageLoadSpinner,
+  Pill,
+  ServiceHint,
+  Textarea,
+} from '../components.jsx'
+import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { DETAILING_SERVICES, MAINTENANCE_SERVICES } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
-import { DETAILING_WORKING_HOURS_MAX_LEN } from '../../lib/format.js'
+import { DETAILING_WORKING_HOURS_MAX_LEN, displayRuPhone, formatPhoneRuInput } from '../../lib/format.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
   const r = useRepo()
-  const { detailingId, mode, detailing, loading } = useDetailing()
+  const { detailingId, mode, detailing, loading, applyDetailingSnapshot } = useDetailing()
   const [carsCount, setCarsCount] = useState(0)
+  const [previewServicesExpanded, setPreviewServicesExpanded] = useState(false)
 
   const [draft, setDraft] = useState(() => ({
     name: '',
@@ -38,7 +52,7 @@ export default function DetailingSettingsPage() {
       name: detailing.name || '',
       contactName: detailing.contactName || '',
       servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
-      phone: detailing.phone || '',
+      phone: formatPhoneRuInput(detailing.phone || ''),
       city: detailing.city || '',
       address: detailing.address || '',
       description: detailing.description || '',
@@ -70,16 +84,16 @@ export default function DetailingSettingsPage() {
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (loading) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
   if (!detailing) return <Navigate to="/cars" replace />
   const initials = String(draft.name || detailing.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addressText = [draft.city, draft.address].filter(Boolean).join(', ')
-  const phoneDigits = String(draft.phone || '').replace(/[^\d+]/g, '')
-  const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
+  const { telHref: phonePreviewTel } = displayRuPhone(draft.phone)
+  const previewCoverBg = resolvedBackgroundImageUrl(draft.cover)
 
   function toggleService(item) {
     const v = String(item || '').trim()
@@ -102,7 +116,7 @@ export default function DetailingSettingsPage() {
             <span>Лендинг</span>
           </div>
           <div id="detailing-settings-intro" className="row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav />
+            <BackNav fallbackTo="/detailing" title="Назад" />
             <h1 className="h1" style={{ margin: 0 }}>
               Настройки лендинга
             </h1>
@@ -128,12 +142,12 @@ export default function DetailingSettingsPage() {
         </div>
         <div
           className="detHero detHero--card"
-          style={draft.cover ? { backgroundImage: `url("${String(draft.cover).replaceAll('"', '%22')}")` } : undefined}
+          style={previewCoverBg ? { backgroundImage: previewCoverBg } : undefined}
         >
           <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
             {draft.logo ? (
               <div className="detHero__logo detHero__logo--card">
-                <img alt="Логотип" src={draft.logo} />
+                <img alt="Логотип" src={resolvePublicMediaUrl(draft.logo)} />
               </div>
             ) : (
               <div className="detHero__logo detHero__logo--card">
@@ -149,15 +163,6 @@ export default function DetailingSettingsPage() {
                   label="на обслуживании"
                   title={`${carsCount} автомобилей на обслуживании`}
                 />
-                {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
-                  <HeroCoverStat
-                    kind="services"
-                    variant="overlay"
-                    value={draft.servicesOffered.length}
-                    label="услуг в каталоге"
-                    title={`${draft.servicesOffered.length} услуг в каталоге`}
-                  />
-                ) : null}
               </div>
             </div>
           </div>
@@ -187,19 +192,43 @@ export default function DetailingSettingsPage() {
                 </p>
               )}
             </div>
-            {draft.phone ? (
-              <a className="btn" data-variant="primary" href={phoneHref} style={{ whiteSpace: 'nowrap' }}>
+            {phonePreviewTel ? (
+              <a className="btn" data-variant="primary" href={phonePreviewTel} style={{ whiteSpace: 'nowrap' }}>
                 Позвонить
               </a>
             ) : null}
           </div>
           {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
-            <div className="row gap wrap" style={{ marginTop: 10 }}>
-              {draft.servicesOffered.slice(0, 10).map((s) => (
-                <Pill key={s}>{s}</Pill>
-              ))}
-              {draft.servicesOffered.length > 10 ? <Pill>+ ещё</Pill> : null}
-            </div>
+            draft.servicesOffered.length > 3 ? (
+              <div className="detailingSettings__servicesPreview detPublicServicesCard" style={{ marginTop: 10 }}>
+                <button
+                  type="button"
+                  className="dropdownCaretBtn dropdownCaretBtn--floating detPublicServicesCard__expand"
+                  aria-expanded={previewServicesExpanded ? 'true' : 'false'}
+                  onClick={() => setPreviewServicesExpanded((v) => !v)}
+                  title={previewServicesExpanded ? 'Свернуть' : 'Показать все услуги'}
+                  aria-label={previewServicesExpanded ? 'Свернуть список услуг' : 'Развернуть список услуг'}
+                >
+                  <DropdownCaretIcon open={previewServicesExpanded} />
+                </button>
+                <div className="cardTitle detPublicServicesCard__title detPublicServicesCard__title--withExpand" style={{ margin: 0 }}>
+                  Услуги
+                </div>
+                <div className="row gap wrap" style={{ marginTop: 8 }}>
+                  {(previewServicesExpanded ? draft.servicesOffered : draft.servicesOffered.slice(0, 3)).map(
+                    (s, i) => (
+                      <Pill key={`${i}-${String(s)}`}>{s}</Pill>
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="row gap wrap" style={{ marginTop: 10 }}>
+                {draft.servicesOffered.map((s, i) => (
+                  <Pill key={`${i}-${String(s)}`}>{s}</Pill>
+                ))}
+              </div>
+            )
           ) : null}
         </div>
       </Card>
@@ -262,8 +291,9 @@ export default function DetailingSettingsPage() {
             <Input
               className="input"
               value={draft.phone}
-              onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-              placeholder="+7 …"
+              onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
+              onBlur={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.currentTarget.value) }))}
+              placeholder="+7 900 123-45-67"
               autoComplete="tel"
             />
           </Field>
@@ -438,9 +468,9 @@ export default function DetailingSettingsPage() {
                 return
               }
               try {
-                await r.updateDetailingMe({ ...draft, profileCompleted: true })
-                invalidateRepo()
-                bumpSessionRefresh()
+                const res = await r.updateDetailingMe({ ...draft, profileCompleted: true })
+                if (res?.detailing) applyDetailingSnapshot(res.detailing)
+                refreshAllClientData()
                 nav('/detailing', { replace: true })
               } catch (e) {
                 alert(formatHttpErrorMessage(e, 'Не удалось сохранить настройки.'))

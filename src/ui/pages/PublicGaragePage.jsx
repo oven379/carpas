@@ -1,26 +1,28 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, HeroCoverStat } from '../components.jsx'
+import { BackNav, Card, HeroCoverStat, PageLoadSpinner } from '../components.jsx'
 import {
+  displayRuPhone,
   fmtKm,
   fmtPlatePublic,
   fmtVinPublic,
   normalizeHttpUrl,
-  ownerCityPublicFlag,
-  ownerPublicFlagTrue,
   parseGarageSocialLines,
 } from '../../lib/format.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 
 export default function PublicGaragePage() {
   const { slug } = useParams()
+  const nav = useNavigate()
   const r = useRepo()
   const [data, setData] = useState(undefined)
 
   const slugNorm = useMemo(() => String(slug || '').trim(), [slug])
   const ownerPreview = data?.owner
   const socialLinks = useMemo(() => {
-    if (!ownerPreview || !ownerPublicFlagTrue(ownerPreview.showSocialPublic)) return []
+    if (!ownerPreview || ownerPreview.garagePrivate) return []
     return parseGarageSocialLines(ownerPreview.garageSocial || '')
       .map((line) => ({ line, href: normalizeHttpUrl(line) }))
       .filter((x) => x.href)
@@ -49,38 +51,67 @@ export default function PublicGaragePage() {
 
   if (data === undefined) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
   if (!data?.owner) return <Navigate to="/about" replace />
 
+  if (data.garagePrivate) {
+    return (
+      <div className="container" style={{ padding: '40px 16px 48px' }}>
+        <div className="breadcrumbs" style={{ marginBottom: 16 }}>
+          <Link to="/about">О сервисе</Link>
+          <span> / </span>
+          <span>Гараж владельца</span>
+        </div>
+        <Card className="card pad" style={{ maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
+          <h1 className="h2" style={{ margin: 0 }}>
+            Гараж закрыт
+          </h1>
+          <p style={{ margin: '18px 0 0', lineHeight: 1.55 }}>
+            Пользователь занят в своём гараже.
+          </p>
+          <p className="muted small" style={{ margin: '12px 0 0', lineHeight: 1.5 }}>
+            Публичная витрина отключена: контакты и автомобили по ссылке не показываются. Связь возможна через сервисы, с
+            которыми у владельца есть общая история обслуживания.
+          </p>
+          <div className="row gap wrap" style={{ marginTop: 22, justifyContent: 'center' }}>
+            <button type="button" className="btn" data-variant="primary" onClick={() => nav(-1)}>
+              Понял!
+            </button>
+            <Link className="btn" data-variant="ghost" to="/about">
+              О сервисе
+            </Link>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
   const owner = data.owner
   const cars = Array.isArray(data.cars) ? data.cars : []
   const displayName = String(owner.name || '').trim() || 'Гараж'
-  const showCityPublic = ownerCityPublicFlag(owner.showCityPublic)
-  const cityLabel = showCityPublic ? String(owner.garageCity || '').trim() : ''
+  const cityLabel = String(owner.garageCity || '').trim()
   const initials = displayName.slice(0, 2).toUpperCase()
-  const phoneDigits = String(owner.phone || '').replace(/[^\d+]/g, '')
-  const showPhonePublic = ownerPublicFlagTrue(owner.showPhonePublic)
-  const phoneHref = showPhonePublic && phoneDigits ? `tel:${phoneDigits}` : ''
-  const phoneLabel = showPhonePublic ? String(owner.phone || '').trim() : ''
-  const websiteRaw = ownerPublicFlagTrue(owner.showWebsitePublic) ? String(owner.garageWebsite || '').trim() : ''
+  const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner.phone)
+  const websiteRaw = String(owner.garageWebsite || '').trim()
   const websiteHref = websiteRaw ? normalizeHttpUrl(owner.garageWebsite) : ''
   const websiteLabel = websiteRaw
+  const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
   const metaParts = []
   if (cityLabel) metaParts.push({ key: 'city', el: cityLabel })
-  if (phoneLabel) {
+  if (phoneDisplay) {
     metaParts.push({
       key: 'phone',
-      el: phoneHref ? (
-        <a className="publicGarage__textLink" href={phoneHref}>
-          {phoneLabel}
+      el: phoneTelHref ? (
+        <a className="publicGarage__textLink" href={phoneTelHref}>
+          {phoneDisplay}
         </a>
       ) : (
-        phoneLabel
+        phoneDisplay
       ),
     })
   }
@@ -136,17 +167,15 @@ export default function PublicGaragePage() {
       </div>
 
       <div
-        className={`detHero detHero--card garageHero${owner.garageBanner ? '' : ' garageHero--noBanner'}`}
+        className={`detHero detHero--card garageHero${bannerSurfaceVisible ? '' : ' garageHero--noBanner'}`}
         style={
-          owner.garageBanner
-            ? { backgroundImage: `url("${String(owner.garageBanner).replaceAll('"', '%22')}")` }
-            : undefined
+          bannerSurfaceVisible ? { backgroundImage: resolvedBackgroundImageUrl(owner.garageBanner) } : undefined
         }
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
           {owner.garageAvatar ? (
             <div className="detHero__logo detHero__logo--card">
-              <img alt="" src={owner.garageAvatar} />
+              <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
             </div>
           ) : (
             <div className="detHero__logo detHero__logo--card garageHero__avatarFallback" aria-hidden="true">
@@ -177,7 +206,7 @@ export default function PublicGaragePage() {
               <div key={c.id} className="rowItem rowItem--static" aria-label={`${c.make} ${c.model}`}>
                 <div
                   className="rowItem__img"
-                  style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
+                  style={c.hero ? { backgroundImage: resolvedBackgroundImageUrl(c.hero) } : undefined}
                 />
                 <div className="rowItem__main">
                   <div className="rowItem__title">

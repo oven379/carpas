@@ -46,6 +46,16 @@ return new class extends Migration
                 $table->boolean('show_social_public')->default(false);
             });
         }
+        if (!Schema::hasColumn('owners', 'garage_private')) {
+            Schema::table('owners', function (Blueprint $table) {
+                $table->boolean('garage_private')->default(false);
+            });
+        }
+        if (!Schema::hasColumn('owners', 'garage_banner_enabled')) {
+            Schema::table('owners', function (Blueprint $table) {
+                $table->boolean('garage_banner_enabled')->default(true);
+            });
+        }
     }
 
     public function down(): void

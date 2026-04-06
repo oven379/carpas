@@ -45,11 +45,10 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/cars/search-by-vin', [CarSearchController::class, 'byVin']);
     Route::get('/owners/cars/search-by-plate', [CarSearchController::class, 'byPlate']);
 
+    Route::delete('/owners/docs/{id}', [OwnerCarDocController::class, 'destroyByDocId']);
+
     Route::get('/owners/cars', [OwnerCarController::class, 'index']);
     Route::post('/owners/cars', [OwnerCarController::class, 'store']);
-    Route::get('/owners/cars/{id}', [OwnerCarController::class, 'show']);
-    Route::patch('/owners/cars/{id}', [OwnerCarController::class, 'update']);
-    Route::delete('/owners/cars/{id}', [OwnerCarController::class, 'destroy']);
 
     Route::get('/owners/cars/{carId}/events', [OwnerCarEventController::class, 'index']);
     Route::post('/owners/cars/{carId}/events', [OwnerCarEventController::class, 'store']);
@@ -59,6 +58,10 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/cars/{carId}/docs', [OwnerCarDocController::class, 'index']);
     Route::post('/owners/cars/{carId}/docs', [OwnerCarDocController::class, 'store']);
     Route::delete('/owners/cars/{carId}/docs/{id}', [OwnerCarDocController::class, 'destroy']);
+
+    Route::get('/owners/cars/{id}', [OwnerCarController::class, 'show']);
+    Route::patch('/owners/cars/{id}', [OwnerCarController::class, 'update']);
+    Route::delete('/owners/cars/{id}', [OwnerCarController::class, 'destroy']);
 
     Route::post('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'store']);
     Route::get('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'index']);
@@ -73,6 +76,7 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::patch('/detailings/me', [DetailingAuthController::class, 'updateMe']);
 
     Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
+    Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);
 
     Route::get('/cars', [CarController::class, 'index']);
     Route::post('/cars', [CarController::class, 'store']);

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, Pill } from '../components.jsx'
+import { BackNav, Card, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
+import { resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
 function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   const v = String(s || '')
@@ -63,14 +64,14 @@ export default function PublicCarPage() {
 
   if (payload === undefined) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
   if (!payload || !car) return <Navigate to="/" replace />
 
-  const heroStyle = car.hero ? { backgroundImage: `url("${String(car.hero).replaceAll('"', '%22')}")` } : undefined
+  const heroStyle = car.hero ? { backgroundImage: resolvedBackgroundImageUrl(car.hero) } : undefined
 
   return (
     <div className="container">
@@ -190,7 +191,7 @@ export default function PublicCarPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="row spread gap">
-          <h2 className="h2">Фото и документы автомобиля</h2>
+          <h2 className="h2">Фото и документы из истории</h2>
           <span className="muted small">{docs.length} шт.</span>
         </div>
         {docs.length ? (

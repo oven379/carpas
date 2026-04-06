@@ -204,7 +204,7 @@ class DatabaseSeeder extends Seeder
                 'mileage_km' => 44800,
                 'services' => ['polish'],
                 'maintenance_services' => [],
-                'note' => 'Прошлый визит — редактирование через API партнёра заблокировано.',
+                'note' => 'Прошлый визит зафиксирован в кабинете сервиса; правки вносит партнёр.',
             ],
         );
 

@@ -83,4 +83,23 @@ class OwnerCarDocController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    /**
+     * Удаление вложения владельца по id документа (без carId в URL).
+     * Устраняет 404, если клиент передал неверный carId при корректном id вложения.
+     */
+    public function destroyByDocId(Request $request, $id)
+    {
+        /** @var Owner $owner */
+        $owner = $request->user();
+        $doc = CarDoc::query()->findOrFail($id);
+        Car::query()->where('owner_id', $owner->id)->where('id', $doc->car_id)->firstOrFail();
+        if (($doc->source ?? 'service') !== 'owner') {
+            abort(403);
+        }
+        MediaStorage::deleteStoredFileIfManaged($doc->url);
+        $doc->delete();
+
+        return response()->json(['ok' => true]);
+    }
 }

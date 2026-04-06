@@ -1,7 +1,17 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, DropdownCaretIcon, Field, Input, ServiceHint, Textarea } from '../components.jsx'
+import {
+  BackNav,
+  Button,
+  Card,
+  DropdownCaretIcon,
+  Field,
+  Input,
+  PageLoadSpinner,
+  ServiceHint,
+  Textarea,
+} from '../components.jsx'
 import {
   clampVisitTitle,
   clampVisitTitleInput,
@@ -11,8 +21,7 @@ import {
   VISIT_CARE_TIP_MAX_LEN,
   VISIT_TITLE_MAX_LEN,
 } from '../../lib/format.js'
-import { getSessionOwner } from '../auth.js'
-import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
+import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
   dedupeOfferedStrings,
@@ -45,6 +54,8 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/visitEditCalendar.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
+import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
 
@@ -62,9 +73,13 @@ function isIncompleteDetailingDraft(draft, baseMileageKm) {
   return false
 }
 
-/** Миниатюра документа визита: при битой ссылке или пустом url — кнопка «Добавить фото». */
+/** Миниатюра документа визита: при битой ссылке или пустом url — плейсхолдер. */
 function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
-  const [broken, setBroken] = useState(() => !String(doc?.url || '').trim())
+  const displayUrl = useMemo(() => resolvePublicMediaUrl(doc?.url), [doc?.url])
+  const [broken, setBroken] = useState(() => !String(displayUrl).trim())
+  useEffect(() => {
+    setBroken(!String(displayUrl).trim())
+  }, [displayUrl])
   if (broken) {
     return (
       <div className="thumbWrap">
@@ -90,7 +105,7 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
   const img = (
     <img
       alt={doc.title || 'Фото'}
-      src={doc.url}
+      src={displayUrl}
       onError={() => setBroken(true)}
     />
   )
@@ -110,7 +125,7 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
           {img}
         </button>
       ) : (
-        <a className="thumb" href={doc.url} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()}>
+        <a className="thumb" href={displayUrl} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()}>
           {img}
         </a>
       )}
@@ -179,67 +194,45 @@ function DetailingLastVisitPreview({ event, docsForEvent, setPhotoLb }) {
   )
 }
 
-/** Фото визита в форме редактирования: битая ссылка → замена/удаление записи. */
-function EditingVisitPhoto({ doc, editAllowed, onPickFiles, onDeleted, onDeleteDoc }) {
-  const [broken, setBroken] = useState(() => !String(doc?.url || '').trim())
-  if (broken) {
-    return (
-      <div className="thumbWrap">
-        <div className="historyEditPhotoBroken">
-          {editAllowed ? (
-            <>
-              <button type="button" className="btn historyThumbAdd" data-variant="outline" onClick={onPickFiles}>
-                Добавить фото
-              </button>
-              <button
-                type="button"
-                className="btn historyEditPhotoDel"
-                data-variant="ghost"
-                onClick={async (ev) => {
-                  ev.preventDefault()
-                  const ok = confirm('Удалить эту запись о фото?')
-                  if (!ok) return
-                  try {
-                    await onDeleteDoc(doc.id)
-                    onDeleted()
-                  } catch {
-                    alert('Не удалось удалить (нет доступа или время редактирования истекло).')
-                  }
-                }}
-              >
-                Удалить запись
-              </button>
-            </>
-          ) : (
-            <span className="muted small">Фото недоступно</span>
-          )}
-        </div>
-      </div>
+/** Фото визита в форме: превью + круг «×»; битая/пустая запись — плейсхолдер и тот же «×».
+ * `canDeleteDoc` — можно ли вызвать API удаления (у владельца только для `source === 'owner'`). */
+function EditingVisitPhoto({ doc, editAllowed, canDeleteDoc, onDeleted, onDeleteDoc }) {
+  const displayUrl = useMemo(() => resolvePublicMediaUrl(doc?.url), [doc?.url])
+  const [broken, setBroken] = useState(() => !String(displayUrl).trim())
+  useEffect(() => {
+    setBroken(!String(displayUrl).trim())
+  }, [displayUrl])
+
+  const remove = async (ev) => {
+    ev.preventDefault()
+    ev.stopPropagation()
+    const ok = confirm(
+      broken
+        ? 'Удалить эту запись о фото?'
+        : 'Удалить это фото?\n\nВосстановить будет невозможно.',
     )
+    if (!ok) return
+    try {
+      await onDeleteDoc(doc.id)
+      onDeleted()
+    } catch {
+      alert('Не удалось удалить (нет доступа или время редактирования истекло).')
+    }
   }
+
   return (
     <div className="thumbWrap" title={doc.title}>
-      <a className="thumb" href={doc.url} target="_blank" rel="noreferrer">
-        <img alt={doc.title} src={doc.url} onError={() => setBroken(true)} />
-      </a>
-      {editAllowed ? (
-        <button
-          type="button"
-          className="thumbX"
-          title="Удалить фото"
-          onClick={async (ev) => {
-            ev.preventDefault()
-            ev.stopPropagation()
-            const ok = confirm('Удалить это фото?\n\nВосстановить будет невозможно.')
-            if (!ok) return
-            try {
-              await onDeleteDoc(doc.id)
-              onDeleted()
-            } catch {
-              alert('Не удалось удалить фото (нет доступа или время редактирования истекло).')
-            }
-          }}
-        >
+      {broken ? (
+        <div className="historyEditPhotoPlaceholder" aria-hidden="true">
+          <span className="muted small">{editAllowed ? 'Нет файла' : 'Фото недоступно'}</span>
+        </div>
+      ) : (
+        <a className="thumb" href={displayUrl} target="_blank" rel="noreferrer">
+          <img alt={doc.title} src={displayUrl} onError={() => setBroken(true)} />
+        </a>
+      )}
+      {canDeleteDoc ? (
+        <button type="button" className="thumbX" title="Удалить фото" onClick={remove}>
           <span className="thumbX__icon" aria-hidden="true">
             ×
           </span>
@@ -462,7 +455,7 @@ function ServicePicker({
       <div className="field field--full serviceHint__fieldWrap" id={hintScopeId}>
         <div className="field__top serviceHint__fieldTop">
           <span className="field__label">{label}</span>
-          <ServiceHint scopeId={hintScopeId} label={hintLabel || 'Справка'}>
+          <ServiceHint scopeId={hintScopeId} variant="compact" label={hintLabel || 'Справка'}>
             {typeof hint === 'string' ? <p className="serviceHint__panelText">{hint}</p> : hint}
           </ServiceHint>
         </div>
@@ -500,8 +493,8 @@ function careDraftFromEvent(evt) {
 export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
-  const { detailingId, detailing, owner, mode } = useDetailing()
-  const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const { detailingId, detailing, owner, mode, loading } = useDetailing()
+  const ownerEmailResolved = String(owner?.email || '').trim()
   const scope = useMemo(
     () => (mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }),
     [mode, ownerEmailResolved, detailingId],
@@ -871,11 +864,18 @@ export default function HistoryPage() {
   const visitPhotosRoom =
     editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if ((mode === 'owner' || mode === 'detailing') && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+
   if (!dataReady) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
@@ -1030,7 +1030,7 @@ export default function HistoryPage() {
     } catch (err) {
       const msg = String(err?.message || err || '')
       if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
-        alert('Не удалось сохранить фото: переполнено хранилище браузера.')
+        alert('Не удалось сохранить фото: на устройстве не хватает места для кэша.')
       } else {
         alert('Не удалось добавить фото. Попробуйте ещё раз.')
       }
@@ -1327,7 +1327,11 @@ export default function HistoryPage() {
                 >
                   <div className="eventCardServiceAvatar__inner">
                     {e.detailingLogo ? (
-                      <img alt="" src={e.detailingLogo} className="eventCardServiceAvatar__img" />
+                      <img
+                        alt=""
+                        src={resolvePublicMediaUrl(e.detailingLogo)}
+                        className="eventCardServiceAvatar__img"
+                      />
                     ) : (
                       <span className="eventCardServiceAvatar__fallback" aria-hidden="true">
                         {serviceDetInitials}
@@ -1341,7 +1345,7 @@ export default function HistoryPage() {
               <div className="eventCardDetBadgeRow">
                 {(() => {
                   const detBadgeInner = detForBadge?.logo ? (
-                    <img alt="" src={detForBadge.logo} />
+                    <img alt="" src={resolvePublicMediaUrl(detForBadge.logo)} />
                   ) : (
                     <span aria-hidden="true">{detBadgeInitials}</span>
                   )
@@ -1428,7 +1432,7 @@ export default function HistoryPage() {
             <div className="field serviceHint__fieldWrap" id={FORM_TITLE_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Заголовок</span>
-                <ServiceHint scopeId={FORM_TITLE_HINT.scopeId} label={FORM_TITLE_HINT.label}>
+                <ServiceHint scopeId={FORM_TITLE_HINT.scopeId} variant="compact" label={FORM_TITLE_HINT.label}>
                   <p className="serviceHint__panelText">{formTitleHintText(VISIT_TITLE_MAX_LEN)}</p>
                 </ServiceHint>
               </div>
@@ -1446,7 +1450,7 @@ export default function HistoryPage() {
             <div className="field serviceHint__fieldWrap" id={FORM_MILEAGE_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Пробег (км)</span>
-                <ServiceHint scopeId={FORM_MILEAGE_HINT.scopeId} label={FORM_MILEAGE_HINT.label}>
+                <ServiceHint scopeId={FORM_MILEAGE_HINT.scopeId} variant="compact" label={FORM_MILEAGE_HINT.label}>
                   <p className="serviceHint__panelText">{formMileageHintText(baseMileageKm)}</p>
                 </ServiceHint>
               </div>
@@ -1468,17 +1472,30 @@ export default function HistoryPage() {
               />
             </div>
             {mode === 'owner' ? (
-              <ServicePicker
-                label="Услуги ТО"
-                hint={formServicesToHintText(mode)}
-                hintScopeId={FORM_SERVICES_TO_HINT.scopeId}
-                hintLabel={FORM_SERVICES_TO_HINT.label}
-                ariaLabel="Выбор услуг ТО"
-                catalog={MAINTENANCE_SERVICES}
-                value={draft.maintenanceServices}
-                onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
-                disabled={formLocked}
-              />
+              <>
+                <ServicePicker
+                  label="Услуги ТО"
+                  hint={formServicesToHintText(mode)}
+                  hintScopeId={FORM_SERVICES_TO_HINT.scopeId}
+                  hintLabel={FORM_SERVICES_TO_HINT.label}
+                  ariaLabel="Выбор услуг ТО"
+                  catalog={MAINTENANCE_SERVICES}
+                  value={draft.maintenanceServices}
+                  onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+                  disabled={formLocked}
+                />
+                <ServicePicker
+                  label="Детейлинг"
+                  hint={FORM_SERVICES_DET_HINT.text}
+                  hintScopeId="history-form-services-det-owner"
+                  hintLabel={FORM_SERVICES_DET_HINT.label}
+                  ariaLabel="Выбор услуг детейлинга"
+                  catalog={DETAILING_SERVICES}
+                  value={draft.services}
+                  onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+                  disabled={formLocked}
+                />
+              </>
             ) : null}
             {mode === 'detailing' ? (
               <>
@@ -1512,7 +1529,7 @@ export default function HistoryPage() {
               <div className="field field--full serviceHint__fieldWrap" id={FORM_PHOTOS_EDIT_HINT.scopeId}>
                 <div className="field__top serviceHint__fieldTop">
                   <span className="field__label">Фото визита</span>
-                  <ServiceHint scopeId={FORM_PHOTOS_EDIT_HINT.scopeId} label={FORM_PHOTOS_EDIT_HINT.label}>
+                  <ServiceHint scopeId={FORM_PHOTOS_EDIT_HINT.scopeId} variant="compact" label={FORM_PHOTOS_EDIT_HINT.label}>
                     <p className="serviceHint__panelText">{formPhotosEditHintText(editingPhotos.length)}</p>
                   </ServiceHint>
                 </div>
@@ -1523,7 +1540,10 @@ export default function HistoryPage() {
                         key={d.id}
                         doc={d}
                         editAllowed={editAllowed}
-                        onPickFiles={() => visitPhotosInputRef.current?.click?.()}
+                        canDeleteDoc={
+                          editAllowed &&
+                          (mode === 'detailing' || carDocDeletableByOwner(d))
+                        }
                         onDeleted={() => invalidateRepo()}
                         onDeleteDoc={(docId) => r.deleteDoc(id, docId)}
                       />
@@ -1531,64 +1551,88 @@ export default function HistoryPage() {
                   </div>
                 ) : (
                   <div className="muted small" style={{ marginTop: 6 }}>
-                    {editAllowed ? (
-                      <button
-                        type="button"
-                        className="btn"
-                        data-variant="outline"
-                        disabled={visitPhotosAddBlocked}
-                        onClick={() => visitPhotosInputRef.current?.click?.()}
-                      >
-                        Добавить фото
-                      </button>
-                    ) : (
-                      'Фото визита будут здесь.'
-                    )}
+                    {editAllowed ? 'Пока нет фото — добавьте через кнопку ниже.' : 'Фото визита будут здесь.'}
                   </div>
                 )}
+                {editAllowed && !formLocked ? (
+                  <div className="filePick" style={{ marginTop: 10 }}>
+                    <input
+                      id={visitPhotosInputId}
+                      className="srOnly"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      ref={visitPhotosInputRef}
+                      onChange={(e) => {
+                        const picked = Array.from(e.target.files || [])
+                        e.target.value = ''
+                        void ingestPickedVisitPhotos(picked)
+                      }}
+                      disabled={visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                    />
+                    <button
+                      type="button"
+                      className="btn filePick__btn"
+                      data-variant="outline"
+                      onClick={() => visitPhotosInputRef.current?.click?.()}
+                      disabled={visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                    >
+                      Добавить фото
+                    </button>
+                    <span className="filePick__status">
+                      {visitPhotoBusy
+                        ? 'Сохраняем фото…'
+                        : visitPhotosAddBlocked
+                          ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
+                          : visitPhotosRoom < VISIT_MAX_PHOTOS
+                            ? `Можно ещё ${visitPhotosRoom} фото`
+                            : 'Файлы прикрепятся сразу после выбора'}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             ) : null}
-            <div className="field field--full serviceHint__fieldWrap" id={FORM_ADD_PHOTOS_HINT.scopeId}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <ServiceHint scopeId={FORM_ADD_PHOTOS_HINT.scopeId} label={FORM_ADD_PHOTOS_HINT.label}>
-                  <p className="serviceHint__panelText">{FORM_ADD_PHOTOS_HINT.text}</p>
-                </ServiceHint>
-              </div>
-              <div className="filePick">
-                <input
-                  id={visitPhotosInputId}
-                  className="srOnly"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  ref={visitPhotosInputRef}
-                  onChange={(e) => {
-                    const picked = Array.from(e.target.files || [])
-                    e.target.value = ''
-                    void ingestPickedVisitPhotos(picked)
-                  }}
-                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
-                />
-                <button
-                  type="button"
-                  className="btn filePick__btn"
-                  data-variant="outline"
-                  onClick={() => visitPhotosInputRef.current?.click?.()}
-                  disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
-                >
-                  Добавить фото
-                </button>
-                <span className="filePick__status">
-                  {visitPhotoBusy
-                    ? 'Сохраняем фото…'
-                    : visitPhotosAddBlocked
-                      ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
-                      : editingId && editAllowed && visitPhotosRoom < VISIT_MAX_PHOTOS
-                        ? `Можно ещё ${visitPhotosRoom} фото`
+            {!editingId ? (
+              <div className="field field--full serviceHint__fieldWrap" id={FORM_ADD_PHOTOS_HINT.scopeId}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                  <ServiceHint scopeId={FORM_ADD_PHOTOS_HINT.scopeId} variant="compact" label={FORM_ADD_PHOTOS_HINT.label}>
+                    <p className="serviceHint__panelText">{FORM_ADD_PHOTOS_HINT.text}</p>
+                  </ServiceHint>
+                </div>
+                <div className="filePick">
+                  <input
+                    id={visitPhotosInputId}
+                    className="srOnly"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    ref={visitPhotosInputRef}
+                    onChange={(e) => {
+                      const picked = Array.from(e.target.files || [])
+                      e.target.value = ''
+                      void ingestPickedVisitPhotos(picked)
+                    }}
+                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                  />
+                  <button
+                    type="button"
+                    className="btn filePick__btn"
+                    data-variant="outline"
+                    onClick={() => visitPhotosInputRef.current?.click?.()}
+                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                  >
+                    Добавить фото
+                  </button>
+                  <span className="filePick__status">
+                    {visitPhotoBusy
+                      ? 'Сохраняем фото…'
+                      : visitPhotosAddBlocked
+                        ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
                         : 'Файлы прикрепятся сразу после выбора'}
-                </span>
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : null}
             {mode === 'detailing' ? (
               <>
                 <div className="historyCareTips topBorder">
@@ -1597,7 +1641,7 @@ export default function HistoryPage() {
                       <span className="field__label">
                         Важно <span className="pill" data-tone="accent">важно</span>
                       </span>
-                      <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} label={FORM_CARE_IMPORTANT_HINT.label}>
+                      <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} variant="compact" label={FORM_CARE_IMPORTANT_HINT.label}>
                         <p className="serviceHint__panelText">{FORM_CARE_IMPORTANT_HINT.text}</p>
                       </ServiceHint>
                     </div>
@@ -1615,6 +1659,7 @@ export default function HistoryPage() {
                       <span className="field__label">Советы по уходу</span>
                       <ServiceHint
                         scopeId={FORM_CARE_TIPS_SECTION_HINT.scopeId}
+                        variant="compact"
                         label={FORM_CARE_TIPS_SECTION_HINT.label}
                       >
                         <p className="serviceHint__panelText">{FORM_CARE_TIPS_SECTION_HINT.text}</p>
@@ -1738,9 +1783,9 @@ export default function HistoryPage() {
             </Button>
             ) : null}
             {editingId && editingEvent && canEditAny(editingEvent) ? (
-              <button
+              <Button
                 className="btn"
-                data-variant="danger"
+                variant="danger"
                 type="button"
                 disabled={!editAllowed}
                 onClick={async () => {
@@ -1770,22 +1815,18 @@ export default function HistoryPage() {
                 }}
               >
                 Удалить
-              </button>
+              </Button>
             ) : null}
             {mode === 'detailing' && editingEvent?.isDraft && !formLocked ? (
-              <button
-                type="button"
-                className="btn"
-                data-variant="outline"
-                onClick={() => void saveDetailingDraftAndGoBack()}
-              >
+              <Button type="button" className="btn" variant="outline" onClick={saveDetailingDraftAndGoBack}>
                 Назад
-              </button>
+              </Button>
             ) : null}
             {mode === 'detailing' && from && !(formLocked && editingId) && !editingEvent?.isDraft ? (
-              <button
+              <Button
                 className="btn"
-                data-variant="outline"
+                variant="outline"
+                type="button"
                 onClick={async () => {
                   try {
                     if (editingId && !editAllowed) {
@@ -1831,7 +1872,7 @@ export default function HistoryPage() {
                 }}
               >
                 Сохранить и назад
-              </button>
+              </Button>
             ) : null}
             {!(mode === 'detailing' && editingEvent?.isDraft && !formLocked) ? (
               <button

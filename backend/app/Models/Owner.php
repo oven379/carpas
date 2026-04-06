@@ -26,9 +26,11 @@ class Owner extends Authenticatable
         'show_social_public',
         'garage_slug',
         'garage_banner',
+        'garage_banner_enabled',
         'garage_avatar',
         'show_phone_public',
         'is_premium',
+        'garage_private',
     ];
 
     protected $hidden = [
@@ -42,6 +44,8 @@ class Owner extends Authenticatable
         'show_social_public' => 'boolean',
         'show_phone_public' => 'boolean',
         'is_premium' => 'boolean',
+        'garage_private' => 'boolean',
+        'garage_banner_enabled' => 'boolean',
     ];
 
     public function cars(): HasMany

@@ -1,17 +1,24 @@
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Card, DropdownCaretIcon, OpenAction, Pill } from '../components.jsx'
+import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
-import { getSessionOwner, hasOwnerSession } from '../auth.js'
-import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
+import { hasOwnerSession } from '../auth.js'
+import { useDetailing } from '../useDetailing.js'
 import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 import { WASH_SERVICE_MARKERS, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { buildCarSubRoutePath, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
-import { detailingCarAccessBadge, ownerServiceLinkSummary } from '../serviceLinkUi.js'
+import {
+  DETAILING_ACCESS_SERVICE_ONLY_LABEL,
+  detailingCarAccessBadge,
+  ownerServiceLinkSummary,
+} from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
+import { useAsyncActionLock } from '../useAsyncActionLock.js'
 
 function prevWashFromEvents(lastEvt, evts) {
   if (!lastEvt) return { prevWashEvt: null, prevWashList: [] }
@@ -27,6 +34,12 @@ function prevWashFromEvents(lastEvt, evts) {
 }
 
 function CarPageOwnerLastVisitPreview({ lastEvt, allEvents, photoUrl, histPath }) {
+  const [thumbBroken, setThumbBroken] = useState(false)
+  const resolvedThumb = useMemo(() => (String(photoUrl || '').trim() ? resolvePublicMediaUrl(photoUrl) : ''), [photoUrl])
+  useEffect(() => {
+    setThumbBroken(false)
+  }, [resolvedThumb])
+
   if (!lastEvt) return null
   const headline =
     lastEvt.source === 'owner'
@@ -55,11 +68,13 @@ function CarPageOwnerLastVisitPreview({ lastEvt, allEvents, photoUrl, histPath }
       </div>
       <div className="rowItem__lastEvt">
         <div className="rowItem__lastEvtTop">
-          {photoUrl ? (
-            <span
-              className="rowItem__lastEvtPhoto"
-              aria-hidden="true"
-              style={{ backgroundImage: `url("${String(photoUrl).replaceAll('"', '%22')}")` }}
+          {resolvedThumb && !thumbBroken ? (
+            <img
+              className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
+              alt=""
+              src={resolvedThumb}
+              decoding="async"
+              onError={() => setThumbBroken(true)}
             />
           ) : null}
           <div className="rowItem__lastEvtText">
@@ -108,12 +123,13 @@ export default function CarPage() {
   const [sp] = useSearchParams()
   const r = useRepo()
   const nav = useNavigate()
+  const deleteCarLock = useAsyncActionLock()
   const [washIdx, setWashIdx] = useState(0)
   const [recsOpen, setRecsOpen] = useState(false)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
   const [photoLb, setPhotoLb] = useState(null)
-  const { detailingId, detailing, owner, mode } = useDetailing()
-  const ownerEmailResolved = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const { detailingId, detailing, owner, mode, loading } = useDetailing()
+  const ownerEmailResolved = String(owner?.email || '').trim()
   const [car, setCar] = useState(null)
   const [docs, setDocs] = useState([])
   const [allCarDocs, setAllCarDocs] = useState([])
@@ -175,7 +191,10 @@ export default function CarPage() {
     }
   }, [id, r, r._version, mode, ownerEmailResolved, detailingId])
 
-  const docGalleryItems = useMemo(() => docsToPhotoItems(docs), [docs])
+  const docGalleryItems = useMemo(
+    () => docsToPhotoItems(docs.filter((d) => carDocHasImageThumbnail(d))),
+    [docs],
+  )
 
   const ownerServiceSummary = useMemo(() => {
     if (mode !== 'owner' || !ownerEmailResolved || !car) return null
@@ -191,6 +210,8 @@ export default function CarPage() {
     if (!car) return []
     return Array.isArray(car.washPhotos) ? car.washPhotos : car.washPhoto ? [car.washPhoto] : []
   }, [car])
+
+  const washPhotosDisplay = useMemo(() => washPhotos.map((u) => resolvePublicMediaUrl(u)), [washPhotos])
 
   const washPhotosKey = useMemo(() => washPhotos.join('|'), [washPhotos])
 
@@ -218,11 +239,29 @@ export default function CarPage() {
 
   const lastVisitDocs = useMemo(() => {
     if (!lastHistoryEvent?.id) return []
-    const id = String(lastHistoryEvent.id)
-    return (Array.isArray(allCarDocs) ? allCarDocs : []).filter(
-      (d) => d && String(d.eventId || '') === id && String(d.url || '').trim(),
+    const evId = String(lastHistoryEvent.id)
+    const list = (Array.isArray(allCarDocs) ? allCarDocs : []).filter(
+      (d) => d && String(d.eventId || '') === evId && String(d.url || '').trim(),
     )
+    const photos = list.filter((d) => String(d.kind || 'photo') === 'photo')
+    return photos.length ? photos : list
   }, [allCarDocs, lastHistoryEvent?.id])
+
+  /** Логотип привязанного детейлинга: не только когда последний визит от сервиса (у владельца визит может быть свой). */
+  const ownerLinkedDetailingLogo = useMemo(() => {
+    if (!car?.detailingId) return ''
+    const fromCar = String(car.detailingLogo || '').trim()
+    if (fromCar) return resolvePublicMediaUrl(fromCar)
+    if (lastHistoryEvent?.source === 'service' && lastHistoryEvent.detailingLogo) {
+      return resolvePublicMediaUrl(lastHistoryEvent.detailingLogo)
+    }
+    for (const e of finalizedEvents) {
+      if (e?.source === 'service' && String(e.detailingLogo || '').trim()) {
+        return resolvePublicMediaUrl(e.detailingLogo)
+      }
+    }
+    return ''
+  }, [car?.detailingId, car?.detailingLogo, lastHistoryEvent, finalizedEvents])
 
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
@@ -239,11 +278,18 @@ export default function CarPage() {
 
   const lastVisitGalleryItems = useMemo(() => docsToPhotoItems(lastVisitDocs), [lastVisitDocs])
 
-  if (detailingOnboardingPending(mode, detailing)) return <Navigate to="/detailing/landing" replace />
+  if ((mode === 'owner' || mode === 'detailing') && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+
   if (!dataReady) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
@@ -274,7 +320,6 @@ export default function CarPage() {
     }
     return best || null
   })()
-  const ownerCarLockedByDetailing = mode === 'owner' && Boolean(car.detailingId)
   const ownerLastVisitPath = lastHistoryEvent
     ? buildCarSubRoutePath(id, 'history', fromParam, { visit: String(lastHistoryEvent.id) })
     : ''
@@ -318,10 +363,10 @@ export default function CarPage() {
 
       <div
         className="carHero"
-        style={car.hero ? { backgroundImage: `url("${String(car.hero).replaceAll('"', '%22')}")` } : undefined}
+        style={car.hero ? { backgroundImage: resolvedBackgroundImageUrl(car.hero) } : undefined}
       >
         <div className="carHero__overlay">
-          {!ownerCarLockedByDetailing ? (
+          {mode === 'owner' || mode === 'detailing' ? (
             <div className="heroActions" aria-label="Действия">
               <Link
                 className="btn carPage__iconBtn"
@@ -334,11 +379,15 @@ export default function CarPage() {
                 <span className="carPage__btnText">Редактировать</span>
               </Link>
               <button
+                type="button"
                 className="btn carPage__iconBtn"
                 data-variant="danger"
                 aria-label="Удалить"
                 title="Удалить"
-                onClick={async () => {
+                disabled={deleteCarLock.pending}
+                aria-busy={deleteCarLock.pending || undefined}
+                onClick={() =>
+                  void deleteCarLock.run(async () => {
                   const msg =
                     'Удалить авто навсегда?\n\n' +
                     'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
@@ -352,7 +401,8 @@ export default function CarPage() {
                   } catch {
                     alert('Не удалось удалить авто (нет доступа).')
                   }
-                }}
+                  })
+                }
               >
                 <span className="carPage__icon carPage__icon--trash" aria-hidden="true" />
                 <span className="carPage__btnText">Удалить</span>
@@ -367,7 +417,9 @@ export default function CarPage() {
         </div>
       </div>
 
-      {mode === 'detailing' && detailingAccess?.label ? (
+      {mode === 'detailing' &&
+      detailingAccess?.label &&
+      detailingAccess.label !== DETAILING_ACCESS_SERVICE_ONLY_LABEL ? (
         <Card className="card pad" style={{ marginBottom: 16 }}>
           <div className="cardTitle" style={{ marginBottom: 8 }}>
             Клиент и доступ
@@ -375,12 +427,6 @@ export default function CarPage() {
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
             <Pill tone={detailingAccess.tone}>{detailingAccess.label}</Pill>
           </div>
-          {detailingAccess.label === 'Учёт в сервисе' ? (
-            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-              Личный кабинет владельца не подключён — карточка ведётся только у вас. Клиент может подать заявку с улицы,
-              чтобы привязать аккаунт.
-            </p>
-          ) : null}
           {detailingAccess.label === 'Заявка владельца' ? (
             <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
               Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
@@ -453,8 +499,8 @@ export default function CarPage() {
                         title={ownerServiceSummary.serviceName}
                         aria-label={`Сервис: ${ownerServiceSummary.serviceName}`}
                       >
-                        {lastHistoryEvent?.source === 'service' && lastHistoryEvent.detailingLogo ? (
-                          <img alt="" src={lastHistoryEvent.detailingLogo} />
+                        {ownerLinkedDetailingLogo ? (
+                          <img alt="" src={ownerLinkedDetailingLogo} />
                         ) : (
                           <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
                             {ownerServiceSummary.serviceName.slice(0, 2).toUpperCase()}
@@ -568,11 +614,11 @@ export default function CarPage() {
                               })
                             }
                           >
-                            <img alt={d.title || ''} src={d.url} />
+                            <img alt={d.title || ''} src={resolvePublicMediaUrl(d.url)} />
                           </button>
                         ) : (
-                          <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
-                            <img alt={d.title || ''} src={d.url} />
+                          <a key={d.id} className="thumb" href={resolvePublicMediaUrl(d.url)} target="_blank" rel="noreferrer">
+                            <img alt={d.title || ''} src={resolvePublicMediaUrl(d.url)} />
                           </a>
                         )
                       })}
@@ -628,12 +674,12 @@ export default function CarPage() {
                         <div className="washViewer">
                           <a
                             className="washGallery__viewer"
-                            href={washPhotos[washIdx]}
+                            href={washPhotosDisplay[washIdx]}
                             target="_blank"
                             rel="noreferrer"
                             title="Открыть фото"
                           >
-                            <img alt="Фото после ухода" src={washPhotos[washIdx]} />
+                            <img alt="Фото после ухода" src={washPhotosDisplay[washIdx]} />
                           </a>
                         </div>
                         <div className="washGallery__controls">
@@ -732,12 +778,12 @@ export default function CarPage() {
                     <div className="washViewer">
                       <a
                         className="washGallery__viewer"
-                        href={washPhotos[washIdx]}
+                        href={washPhotosDisplay[washIdx]}
                         target="_blank"
                         rel="noreferrer"
                         title="Открыть фото"
                       >
-                        <img alt="Фото после ухода" src={washPhotos[washIdx]} />
+                        <img alt="Фото после ухода" src={washPhotosDisplay[washIdx]} />
                       </a>
                     </div>
                     <div className="washGallery__controls">
@@ -853,7 +899,7 @@ export default function CarPage() {
                               aria-label={`Запись сервиса: ${serviceLabel}`}
                             >
                               {lastHistoryEvent.detailingLogo ? (
-                                <img alt="" src={lastHistoryEvent.detailingLogo} />
+                                <img alt="" src={resolvePublicMediaUrl(lastHistoryEvent.detailingLogo)} />
                               ) : (
                                 <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
                                   {initials}
@@ -907,45 +953,63 @@ export default function CarPage() {
             </div>
           </Card>
 
-          <Card className="card pad">
-            <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
-              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы / фото</h2>
-              <OpenAction
-                to={buildCarSubRoutePath(id, 'docs', fromParam)}
-                title="Документы и фото"
-                aria-label="Документы и фото"
-              />
-            </div>
-            {docs.length ? (
-              <div className="thumbs">
-                {docs.map((d) => {
-                  const gi = docGalleryItems.findIndex((g) => g.id === d.id)
-                  return gi >= 0 ? (
-                    <button
-                      key={d.id}
-                      type="button"
-                      className="thumb thumb--lb"
-                      aria-label={d.title ? `Открыть фото: ${d.title}` : 'Открыть фото'}
-                      onClick={() =>
-                        setPhotoLb({
-                          items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
-                          startIndex: gi,
-                        })
-                      }
-                    >
-                      <img alt={d.title} src={d.url} />
-                    </button>
-                  ) : (
-                    <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
-                      <img alt={d.title} src={d.url} />
-                    </a>
-                  )
-                })}
+          {mode === 'owner' ? (
+            <Card className="card pad">
+              <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
+                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы</h2>
+                <OpenAction
+                  to={buildCarSubRoutePath(id, 'docs', fromParam)}
+                  title="Документы"
+                  aria-label="Открыть документы"
+                />
               </div>
-            ) : (
-              <div className="muted">Пока нет файлов.</div>
-            )}
-          </Card>
+              {docs.length ? (
+                <div className="thumbs">
+                  {docs.map((d) => {
+                    const src = resolvePublicMediaUrl(d.url)
+                    if (carDocHasImageThumbnail(d)) {
+                      const gi = docGalleryItems.findIndex((g) => g.id === d.id)
+                      return gi >= 0 ? (
+                        <button
+                          key={d.id}
+                          type="button"
+                          className="thumb thumb--lb"
+                          aria-label={d.title ? `Открыть: ${d.title}` : 'Открыть'}
+                          onClick={() =>
+                            setPhotoLb({
+                              items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                              startIndex: gi,
+                            })
+                          }
+                        >
+                          <img alt={d.title} src={src} />
+                        </button>
+                      ) : (
+                        <a key={d.id} className="thumb" href={src} target="_blank" rel="noreferrer">
+                          <img alt={d.title} src={src} />
+                        </a>
+                      )
+                    }
+                    return (
+                      <a
+                        key={d.id}
+                        className="thumb thumb--docFile"
+                        href={src}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={d.title || 'Документ'}
+                        aria-label={d.title ? `Открыть документ: ${d.title}` : 'Открыть документ'}
+                      >
+                        <span className="thumb__docBadge">{carDocFileBadgeLabel(d)}</span>
+                      </a>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="muted">Пока нет документов.</div>
+              )}
+            </Card>
+          ) : null}
         </div>
       </div>
       <PhotoLightbox

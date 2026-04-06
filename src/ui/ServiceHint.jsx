@@ -82,7 +82,7 @@ function computeDropdownPlacement(btnEl, panelEl) {
  * Закрытие: клик по панели, снаружи, Escape, кнопка «i»; авто через 30 с (не считается в лимит).
  * После MAX_CLOSE_CYCLES осмысленных закрытий (после открытия) кнопка скрывается навсегда для scopeId.
  */
-export default function ServiceHint({ scopeId, label, children, variant = 'field' }) {
+export default function ServiceHint({ scopeId, label, children, variant = 'compact' }) {
   const [open, setOpen] = useState(false)
   const [usage, setUsage] = useState(() => loadUsage(scopeId))
   const [dropdownStyle, setDropdownStyle] = useState(null)

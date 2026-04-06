@@ -48,9 +48,11 @@ class ApiResources
             'showSocialPublic' => (bool) ($o->show_social_public ?? false),
             'garageSlug' => $o->garage_slug,
             'garageBanner' => MediaStorage::publicUrl($o->garage_banner ?? null),
+            'garageBannerEnabled' => (bool) ($o->garage_banner_enabled ?? true),
             'garageAvatar' => MediaStorage::publicUrl($o->garage_avatar ?? null),
             'showPhonePublic' => (bool) $o->show_phone_public,
             'isPremium' => (bool) $o->is_premium,
+            'garagePrivate' => (bool) ($o->garage_private ?? false),
         ];
     }
 
@@ -71,8 +73,14 @@ class ApiResources
             'id' => (string) $c->id,
             'detailingId' => $c->detailing_id ? (string) $c->detailing_id : '',
             'detailingName' => $c->detailing?->name ?? '',
+            'detailingLogo' => MediaStorage::publicUrl($c->detailing?->logo ?? null),
             'detailingWebsite' => $c->detailing?->website ?? '',
             'ownerEmail' => $c->owner?->email ?? '',
+            'ownerName' => trim((string) ($c->owner?->name ?? '')),
+            'ownerAccountPhone' => trim((string) ($c->owner?->phone ?? '')),
+            'ownerShowPhonePublic' => (bool) ($c->owner?->show_phone_public ?? false),
+            'ownerGarageSlug' => trim((string) ($c->owner?->garage_slug ?? '')),
+            'ownerGarageAvatar' => MediaStorage::publicUrl($c->owner?->garage_avatar ?? null),
             'vin' => $c->vin ?? '',
             'plate' => $c->plate ?? '',
             'plateRegion' => $c->plate_region ?? '',
@@ -166,12 +174,18 @@ class ApiResources
 
     public static function claim(\App\Models\CarClaim $c): array
     {
+        $c->loadMissing('owner');
+        $ow = $c->owner;
+
         return [
             'id' => (string) $c->id,
             'carId' => (string) $c->car_id,
             'ownerId' => (string) $c->owner_id,
             'detailingId' => (string) $c->detailing_id,
-            'ownerEmail' => $c->owner?->email ?? '',
+            'ownerEmail' => $ow?->email ?? '',
+            'ownerName' => trim((string) ($ow?->name ?? '')),
+            'ownerGarageSlug' => trim((string) ($ow?->garage_slug ?? '')),
+            'ownerGarageAvatar' => MediaStorage::publicUrl($ow?->garage_avatar ?? null),
             'status' => $c->status,
             'evidence' => $c->evidence ?? [],
             'createdAt' => optional($c->created_at)->toISOString(),

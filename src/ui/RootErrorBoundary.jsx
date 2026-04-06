@@ -11,12 +11,15 @@ export default class RootErrorBoundary extends Component {
   }
 
   componentDidCatch(err, info) {
-    console.error('[КарПас]', err, info?.componentStack)
+    if (import.meta.env.DEV) console.error('[КарПас]', err, info?.componentStack)
   }
 
   render() {
     if (this.state.err) {
-      const msg = String(this.state.err?.message || this.state.err || 'Неизвестная ошибка')
+      const raw = String(this.state.err?.message || this.state.err || '')
+      const msg = import.meta.env.DEV
+        ? raw || 'Неизвестная ошибка'
+        : 'Произошла ошибка при отображении страницы.'
       return (
         <div
           className="rootErrorBoundary"
@@ -31,12 +34,8 @@ export default class RootErrorBoundary extends Component {
           <h1 className="h1" style={{ color: 'var(--text-h)', marginBottom: 12 }}>
             Не удалось отобразить страницу
           </h1>
-          <p className="muted" style={{ marginBottom: 16, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <p className="muted" style={{ marginBottom: 20, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {msg}
-          </p>
-          <p className="muted small" style={{ marginBottom: 20 }}>
-            Откройте консоль браузера (F12 → Console) для подробностей. Частая причина — повреждённые данные в хранилище;
-            на экране входа можно сбросить локальные данные или обновите страницу.
           </p>
           <button
             type="button"

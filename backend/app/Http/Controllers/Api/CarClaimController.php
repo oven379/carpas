@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\CarGarageMerge;
 use App\Models\Car;
 use App\Models\CarClaim;
 use App\Models\Detailing;
@@ -101,6 +102,10 @@ class CarClaimController extends Controller
             $car = Car::query()->findOrFail($claim->car_id);
             $car->owner_id = $claim->owner_id;
             $car->save();
+            $owner = Owner::query()->find($claim->owner_id);
+            if ($owner) {
+                CarGarageMerge::mergeOwnerPersonalDuplicatesIntoCar($car, $owner);
+            }
         }
 
         $claim->load('owner');

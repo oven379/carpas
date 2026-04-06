@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
-import { Card, ComboBox, Input, ServiceHint } from './components.jsx'
+import { Button, Card, ComboBox, Input, ServiceHint } from './components.jsx'
 import {
   describeVinValidationError,
   fmtKm,
@@ -12,6 +12,7 @@ import {
 } from '../lib/format.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../lib/russianMillionCities.js'
 import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
+import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
 function claimAlreadyPending(err) {
   if (!(err instanceof HttpError) || err.status !== 422) return false
@@ -195,7 +196,7 @@ export default function OwnerVinClaimSection({
       setVinResults(list)
       setShowNoVinHits(list.length === 0)
     } catch {
-      alert('Не удалось выполнить поиск. Проверьте сеть и авторизацию.')
+      alert('Не удалось выполнить поиск. Проверьте интернет и что вы вошли в аккаунт.')
       setShowNoVinHits(false)
     } finally {
       setSearching(false)
@@ -288,15 +289,15 @@ export default function OwnerVinClaimSection({
           disabled={!limits.canVinClaim || searching}
           onChange={(e) => setVin(normVin(e.target.value))}
         />
-        <button
+        <Button
           className="btn marketVinRow__btn"
-          data-variant="primary"
+          variant="primary"
           type="button"
           disabled={!limits.canVinClaim || searching}
-          onClick={() => void onSearch()}
+          onClick={() => onSearch()}
         >
           {searching ? 'Поиск…' : 'Найти'}
-        </button>
+        </Button>
       </div>
 
       {pendingClaims.length ? (
@@ -331,45 +332,53 @@ export default function OwnerVinClaimSection({
               const phoneOk = phoneVerified(ev)
               const canSubmit = verified || phoneOk
               const yearOpts = buildYearOptions(c.year)
+              const heroBg = c.hero ? resolvedBackgroundImageUrl(c.hero) : undefined
               return (
-                <Card key={c.id} className="card pad">
+                <Card key={c.id} className="card pad vinNetworkHitCard">
                   <div className="muted small" style={{ marginBottom: 10 }}>
                     {evidenceMode === 'full'
                       ? 'Подтвердите марку, год и цвет как в карточке сервиса — или укажите телефон ниже.'
                       : 'Подтвердите год и/или город как в карточке сервиса — или укажите телефон ниже.'}
                   </div>
-                  <div className="row spread gap wrap">
-                    <div style={{ minWidth: 0 }}>
-                      <div className="rowItem__title">
-                        {c.make} {c.model}
+                  <div className="vinNetworkHitCard__layout">
+                    <div
+                      className="vinNetworkHitCard__hero"
+                      style={heroBg ? { backgroundImage: heroBg } : undefined}
+                      aria-hidden={c.hero ? undefined : true}
+                    />
+                    <div className="vinNetworkHitCard__body">
+                      <div className="row spread gap wrap">
+                        <div style={{ minWidth: 0 }}>
+                          <div className="rowItem__title">
+                            {c.make} {c.model}
+                          </div>
+                          <div className="rowItem__meta mono" style={{ marginTop: 4 }}>
+                            VIN: {c.vin || '—'}
+                          </div>
+                          <div className="rowItem__meta">
+                            {evidenceMode === 'full' ? (
+                              <>
+                                {fmtKm(c.mileageKm)} · {c.year} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
+                              </>
+                            ) : (
+                              <>
+                                {fmtKm(c.mileageKm)} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          className="btn"
+                          variant="primary"
+                          type="button"
+                          disabled={alreadyMine || !limits.canVinClaim || busy || !canSubmit}
+                          onClick={() => onSubmitClaim(c)}
+                        >
+                          {busy ? 'Отправка…' : alreadyMine ? 'Уже в гараже' : evidenceMode === 'full' ? 'Запросить доступ' : 'Отправить заявку'}
+                        </Button>
                       </div>
-                      <div className="rowItem__meta mono" style={{ marginTop: 4 }}>
-                        VIN: {c.vin || '—'}
-                      </div>
-                      <div className="rowItem__meta">
-                        {evidenceMode === 'full' ? (
-                          <>
-                            {c.year} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
-                          </>
-                        ) : (
-                          <>
-                            {fmtKm(c.mileageKm)} · {c.city || '—'} · сервис: {c.seller?.name || '—'}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      className="btn"
-                      data-variant="primary"
-                      type="button"
-                      disabled={alreadyMine || !limits.canVinClaim || busy || !canSubmit}
-                      onClick={() => void onSubmitClaim(c)}
-                    >
-                      {busy ? 'Отправка…' : alreadyMine ? 'Уже в гараже' : evidenceMode === 'full' ? 'Запросить доступ' : 'Отправить заявку'}
-                    </button>
-                  </div>
 
-                  <div className="formGrid" style={{ marginTop: 10 }}>
+                      <div className="formGrid" style={{ marginTop: 10 }}>
                     {evidenceMode === 'full' ? (
                       <div className="field">
                         <div className="field__top">
@@ -475,6 +484,8 @@ export default function OwnerVinClaimSection({
                         />
                       </div>
                     ) : null}
+                  </div>
+                    </div>
                   </div>
                 </Card>
               )

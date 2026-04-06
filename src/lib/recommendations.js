@@ -74,7 +74,7 @@ export function getCareRecommendations({ car, events }) {
     })
     list.push({
       tone: 'neutral',
-      title: 'Добавь фото/документы',
+      title: 'Добавь фото к визиту',
       why: `Фото кузова/салона после визита помогают видеть изменения и подтверждать состояние. ${PHOTO_LANDSCAPE_HINT_SENTENCE}`,
     })
     return [...manual, ...list]

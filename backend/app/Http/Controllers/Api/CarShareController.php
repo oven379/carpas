@@ -74,9 +74,11 @@ class CarShareController extends Controller
             ->orderByDesc('at')
             ->get();
 
+        /* Вложения без привязки к визиту — только в гараже владельца, не в публичной ссылке */
         $ownerDocs = CarDoc::query()
             ->where('car_id', $car->id)
             ->where('source', 'owner')
+            ->whereNotNull('event_id')
             ->orderByDesc('created_at')
             ->get();
 

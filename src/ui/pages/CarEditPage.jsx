@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, ComboBox, Field, Input, ServiceHint } from '../components.jsx'
-import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
+import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
+import { BackNav, Button, Card, ComboBox, Field, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
   describeRuPlateValidationError,
@@ -14,6 +14,8 @@ import {
   normPlateRegion,
   normVin,
   parsePlateFull,
+  RU_PLATE_HINT_PARAGRAPHS,
+  RU_PLATE_LAYOUT_DIAGRAM,
 } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
@@ -28,6 +30,7 @@ import { ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
+import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 
 function emptyDraft() {
   return {
@@ -76,7 +79,7 @@ export default function CarEditPage({ mode }) {
   const nav = useNavigate()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const { detailing, owner, mode: who } = useDetailing()
+  const { owner, mode: who, loading } = useDetailing()
   const [car, setCar] = useState(null)
   const [carReady, setCarReady] = useState(mode !== 'edit')
 
@@ -137,6 +140,8 @@ export default function CarEditPage({ mode }) {
 
   const [draft, setDraft] = useState(() => emptyDraft())
   const [saveBusy, setSaveBusy] = useState(false)
+  /** null — ещё не загрузили список; лимиты для режима создания у владельца */
+  const [ownerCreateLimits, setOwnerCreateLimits] = useState(null)
   const saveInFlightRef = useRef(false)
   const loadedKeyRef = useRef('')
   const heroCoverFileRef = useRef(null)
@@ -241,12 +246,39 @@ export default function CarEditPage({ mode }) {
     }
   }, [draft.make, brandIdByMake])
 
-  if (detailingOnboardingPending(who, detailing)) return <Navigate to="/detailing/landing" replace />
+  useEffect(() => {
+    if (mode !== 'create' || who !== 'owner' || !owner?.email) {
+      setOwnerCreateLimits(null)
+      return undefined
+    }
+    let cancelled = false
+    setOwnerCreateLimits(null)
+    ;(async () => {
+      try {
+        const cl = await r.listCars({ ownerEmail: owner.email })
+        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits(Array.isArray(cl) ? cl : []))
+      } catch {
+        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits([]))
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, who, owner?.email, r, r._version])
+
+  if ((who === 'owner' || who === 'detailing') && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+
   if (mode === 'edit') {
     if (!carReady) {
       return (
-        <div className="container muted" style={{ padding: '24px 0' }}>
-          Загрузка…
+        <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+          <PageLoadSpinner />
         </div>
       )
     }
@@ -254,12 +286,15 @@ export default function CarEditPage({ mode }) {
       return <Navigate to={who === 'detailing' ? '/detailing' : '/cars'} replace />
     }
   }
-  if (mode === 'edit' && who === 'owner' && car?.detailingId) {
-    return <Navigate to={`/car/${id}${buildCarFromQuery(sp.get('from') || '')}`} replace />
-  }
   if (mode === 'create' && who === 'owner' && owner?.email) {
-    const lim = ownerGarageLimits(r.listCars({ ownerEmail: owner.email }))
-    if (!lim.canAddManual) {
+    if (ownerCreateLimits === null) {
+      return (
+        <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+          <PageLoadSpinner />
+        </div>
+      )
+    }
+    if (!ownerCreateLimits.canAddManual) {
       return <Navigate to={resolveCarListReturnPath('owner', sp.get('from') || '')} replace />
     }
   }
@@ -401,15 +436,12 @@ export default function CarEditPage({ mode }) {
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Госномер</span>
               <ServiceHint scopeId="car-edit-plate-hint" variant="compact" label="Справка: госномер">
-                <p className="serviceHint__panelText">
-                  Как у легкового номера РФ: слева буква, три цифры, две буквы; справа код региона (2 или 3 цифры).
-                  Допустимы только буквы, которые ставят на таких номерах: А, В, Е, К, М, Н, О, Р, С, Т, У, Х — в
-                  латинской раскладке это A, B, E, K, M, H, O, P, C, T, Y, X (буква Н на табличке выглядит как латинское
-                  H).
-                </p>
-                <p className="serviceHint__panelText">
-                  Остальные латинские буквы при вводе отбрасываются. Номер целиком можно оставить пустым.
-                </p>
+                {RU_PLATE_HINT_PARAGRAPHS.map((text, i) => (
+                  <p key={i} className="serviceHint__panelText">
+                    {text}
+                  </p>
+                ))}
+                <pre className="serviceHint__panelPre mono">{RU_PLATE_LAYOUT_DIAGRAM}</pre>
               </ServiceHint>
             </div>
             <div className="row gap" style={{ alignItems: 'center' }}>
@@ -417,6 +449,7 @@ export default function CarEditPage({ mode }) {
                 className="input mono"
                 value={draft.plate}
                 maxLength={6}
+                title="Шесть знаков: буква, три цифры, две буквы"
                 onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBase(e.target.value) }))}
                 placeholder="A777AA"
               />
@@ -429,7 +462,7 @@ export default function CarEditPage({ mode }) {
                   setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
                 }
                 placeholder="77"
-                title="Регион"
+                title="Код региона, 2–3 цифры"
               />
             </div>
           </div>
@@ -518,7 +551,7 @@ export default function CarEditPage({ mode }) {
               aria-label={draft.hero ? 'Заменить обложку' : 'Загрузить обложку'}
             >
               {draft.hero ? (
-                <img alt="Превью обложки карточки" src={draft.hero} />
+                <img alt="Превью обложки карточки" src={resolvePublicMediaUrl(draft.hero)} />
               ) : (
                 <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
                   Нажмите для загрузки
@@ -599,12 +632,16 @@ export default function CarEditPage({ mode }) {
                             const more =
                               dupes.length > 1 ? `\n\nЕщё совпадений в базе: ${dupes.length - 1}.` : ''
                             const vinLine = c.vin ? `\nVIN: ${c.vin}` : ''
+                            const srcLine = c.vinHitFromOwnerGarage
+                              ? '\nИсточник: личный гараж владельца в КарПас.'
+                              : ''
                             const msg =
                               'Найдена существующая карточка по VIN и/или телефону и почте клиента:\n\n' +
                               `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
                               vinLine +
                               (plateLine ? `\nГосномер: ${plateLine}` : '') +
                               (c.detailingName ? `\nСервис: ${c.detailingName}` : '') +
+                              srcLine +
                               `${more}\n\n` +
                               'Открыть её вместо создания новой?\n\n' +
                               'ОК — перейти к карточке, Отмена — создать новую.'
@@ -640,9 +677,7 @@ export default function CarEditPage({ mode }) {
                         const matches2 = await r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion })
                         if (Array.isArray(matches2) && matches2.length) {
                           const msg =
-                            'Похоже, авто с таким госномером уже есть в сервисе.\n\n' +
-                            'Это может быть дубль.\n\n' +
-                            'Создать новую карточку всё равно?'
+                            'Авто с таким госномером уже может быть в сервисе (возможен дубль). Создать карточку всё равно?'
                           if (!confirm(msg)) return
                         }
                       } catch {
@@ -652,17 +687,18 @@ export default function CarEditPage({ mode }) {
                     const created = await r.createCar(null, draft)
                     if (!created?.id) {
                       alert(
-                        'Не удалось создать карточку: возможен лимит гаража или ошибка сервера. Дополнительные авто — через поиск по VIN.',
+                        'Не удалось создать карточку: возможен лимит гаража или временный сбой. Дополнительные авто — через поиск по VIN.',
                       )
                       return
                     }
-                    invalidateRepo()
+                    if (who === 'owner') refreshAllClientData()
+                    else invalidateRepo()
                     nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
                   }
                 } catch (e) {
-                  console.error(e)
+                  if (import.meta.env.DEV) console.error(e)
                   alert(
-                    formatHttpErrorMessage(e, 'Не удалось сохранить. Проверьте данные и подключение к серверу.'),
+                    formatHttpErrorMessage(e, 'Не удалось сохранить. Проверьте поля и интернет.'),
                   )
                 } finally {
                   saveInFlightRef.current = false
@@ -676,7 +712,7 @@ export default function CarEditPage({ mode }) {
               Отмена
             </Link>
           </div>
-          <div className="muted small">Данные сохраняются на сервере.</div>
+          <div className="muted small">Изменения сохраняются в вашем кабинете.</div>
         </div>
       </Card>
     </div>

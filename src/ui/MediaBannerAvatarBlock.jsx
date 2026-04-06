@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { compressImageFile } from '../lib/imageCompression.js'
+import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 
 const PRESETS = {
   garage: {
@@ -58,11 +59,15 @@ export default function MediaBannerAvatarBlock({
   bannerHintSlot = null,
   avatarHintSlot = null,
   headerExtra = null,
+  /** Если false — колонка загрузки баннера скрыта (аватар остаётся). */
+  showBannerColumn = true,
   className = '',
 }) {
   const bannerRef = useRef(null)
   const avatarRef = useRef(null)
   const preset = PRESETS[variant] || PRESETS.garage
+  const bannerSrc = bannerUrl ? resolvePublicMediaUrl(bannerUrl) : ''
+  const avatarSrc = avatarUrl ? resolvePublicMediaUrl(avatarUrl) : ''
 
   async function onBannerFile(e) {
     const f = e.target.files?.[0]
@@ -114,7 +119,7 @@ export default function MediaBannerAvatarBlock({
               aria-label={avatarUrl ? `Заменить ${avatarLabel.toLowerCase()}` : `Загрузить ${avatarLabel.toLowerCase()}`}
             >
               {avatarUrl ? (
-                <img alt={`Превью: ${avatarLabel}`} src={avatarUrl} />
+                <img alt={`Превью: ${avatarLabel}`} src={avatarSrc} />
               ) : (
                 <span className="garageSettings__thumbEmpty">{avatarEmptyHint}</span>
               )}
@@ -129,34 +134,36 @@ export default function MediaBannerAvatarBlock({
           </div>
         </div>
 
-        <div className="garageSettings__mediaCol garageSettings__mediaCol--banner">
-          <div className="garageSettings__mediaLabelRow">
-            <span className="garageSettings__mediaSublabel">{bannerLabel}</span>
-            {bannerHintSlot}
-          </div>
-          <div className="garageSettings__thumbWrap">
-            <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />
-            <button
-              type="button"
-              className="garageSettings__thumb garageSettings__thumb--banner"
-              onClick={() => bannerRef.current?.click?.()}
-              aria-label={bannerUrl ? `Заменить ${bannerLabel.toLowerCase()}` : `Загрузить ${bannerLabel.toLowerCase()}`}
-            >
+        {showBannerColumn ? (
+          <div className="garageSettings__mediaCol garageSettings__mediaCol--banner">
+            <div className="garageSettings__mediaLabelRow">
+              <span className="garageSettings__mediaSublabel">{bannerLabel}</span>
+              {bannerHintSlot}
+            </div>
+            <div className="garageSettings__thumbWrap">
+              <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />
+              <button
+                type="button"
+                className="garageSettings__thumb garageSettings__thumb--banner"
+                onClick={() => bannerRef.current?.click?.()}
+                aria-label={bannerUrl ? `Заменить ${bannerLabel.toLowerCase()}` : `Загрузить ${bannerLabel.toLowerCase()}`}
+              >
+                {bannerUrl ? (
+                  <img alt={`Превью: ${bannerLabel}`} src={bannerSrc} />
+                ) : (
+                  <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">{bannerEmptyHint}</span>
+                )}
+              </button>
               {bannerUrl ? (
-                <img alt={`Превью: ${bannerLabel}`} src={bannerUrl} />
-              ) : (
-                <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">{bannerEmptyHint}</span>
-              )}
-            </button>
-            {bannerUrl ? (
-              <MediaThumbRemoveButton
-                shape="square"
-                aria-label={bannerRemoveLabel}
-                onRemove={() => onBannerUrl?.('')}
-              />
-            ) : null}
+                <MediaThumbRemoveButton
+                  shape="square"
+                  aria-label={bannerRemoveLabel}
+                  onRemove={() => onBannerUrl?.('')}
+                />
+              ) : null}
+            </div>
           </div>
-        </div>
+        ) : null}
       </div>
     </div>
   )

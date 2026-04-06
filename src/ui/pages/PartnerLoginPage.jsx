@@ -43,7 +43,7 @@ export default function PartnerLoginPage() {
               <ul className="authSplit__benefits">
                 <li>Заявки и статусы по авто на обслуживании — в одном окне.</li>
                 <li>Профиль организации, визиты и материалы к работам для прозрачности к клиенту.</li>
-                <li>После входа данные подгружаются с сервера.</li>
+                <li>После входа отображаются актуальные данные из кабинета.</li>
               </ul>
             </div>
           </div>
@@ -123,7 +123,7 @@ export default function PartnerLoginPage() {
                       nav(okFrom ? fromStr : '/detailing')
                     }
                   } catch {
-                    alert('Не удалось войти. Проверьте данные, что бэкенд запущен и VITE_API_BASE_URL указан верно.')
+                    alert('Не удалось войти. Проверьте логин и пароль, попробуйте позже.')
                   }
                 }}
               >

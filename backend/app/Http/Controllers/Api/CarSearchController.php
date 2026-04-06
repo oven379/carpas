@@ -48,6 +48,7 @@ class CarSearchController extends Controller
             ->map(function (Car $c) {
                 $row = ApiResources::car($c);
                 $row['detailingName'] = $c->detailing?->name ?? '';
+                $row['vinHitFromOwnerGarage'] = (bool) ($c->detailing?->is_personal ?? false);
 
                 return $row;
             });
@@ -77,6 +78,15 @@ class CarSearchController extends Controller
             $found = $found->merge(
                 self::nonPersonalCarsQuery()
                     ->whereRaw('lower(trim(vin)) = ?', [$vin])
+                    ->orderByDesc('updated_at')
+                    ->limit(50)
+                    ->get(),
+            );
+            $found = $found->merge(
+                Car::query()
+                    ->whereHas('detailing', fn ($q) => $q->where('is_personal', true))
+                    ->whereRaw('lower(trim(vin)) = ?', [$vin])
+                    ->with(['detailing', 'owner'])
                     ->orderByDesc('updated_at')
                     ->limit(50)
                     ->get(),

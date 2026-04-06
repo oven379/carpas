@@ -1,22 +1,33 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
-import { useRepo } from '../useRepo.js'
-import { Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
-import { detailingCarAccessBadge } from '../serviceLinkUi.js'
+import { useRepo, invalidateRepo } from '../useRepo.js'
+import { Button, Card, ComboBox, Field, Input, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { DETAILING_ACCESS_SERVICE_ONLY_LABEL, detailingCarAccessBadge } from '../serviceLinkUi.js'
 import {
   describeRuPlateValidationError,
   describeVinValidationError,
+  displayRuPhone,
   fmtDate,
+  fmtKm,
   fmtPlateFull,
+  normDigits,
   normVin,
   parsePlateFull,
 } from '../../lib/format.js'
+import { formatHttpErrorMessage } from '../../api/http.js'
+import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import {
   detailingNavGeocodeQuery,
   detailingYandexMapsWebHref,
   isWholeLineYandexMapsUrl,
 } from '../../lib/mapsLinks.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { useDetailing } from '../useDetailing.js'
+
+function rowHeroBackgroundStyle(hero) {
+  const bg = resolvedBackgroundImageUrl(hero)
+  return bg ? { backgroundImage: bg } : undefined
+}
 
 function normStr(s) {
   return String(s || '').trim().toLowerCase()
@@ -26,6 +37,28 @@ function onlyDigits(s) {
   return String(s || '').replace(/[^\d]/g, '')
 }
 
+/** VIN из строки поиска: normVin + запасной путь без пробелов (кириллица в буфере не ломает 17 латиниц). */
+function resolveVinFromDashboardQuery(qRaw) {
+  const q = String(qRaw || '').trim()
+  if (!q) return ''
+  const v1 = normVin(q)
+  if (v1.length === 17 && !describeVinValidationError(v1)) return v1
+  const compact = q.replace(/[\s\-_\u00A0\u200B]+/g, '').toUpperCase()
+  if (compact.length !== 17 || !/^[A-Z0-9]{17}$/.test(compact)) return ''
+  const v2 = normVin(compact)
+  return v2.length === 17 && !describeVinValidationError(v2) ? v2 : ''
+}
+
+function buildYearOptions(carYear) {
+  const end = new Date().getFullYear() + 1
+  const start = 1980
+  const set = new Set()
+  const y = Number(carYear)
+  if (Number.isFinite(y) && y >= start && y <= end) set.add(y)
+  for (let i = end; i >= start; i--) set.add(i)
+  return [...set].sort((a, b) => b - a).map(String)
+}
+
 function inferPrefill(qRaw) {
   const q = String(qRaw || '').trim()
   const qLower = q.toLowerCase()
@@ -33,22 +66,24 @@ function inferPrefill(qRaw) {
 
   const looksLikeEmail = qLower.includes('@') && qLower.includes('.')
 
-  const vinCandidate = normVin(q)
-  const isVin = vinCandidate.length === 17 && !describeVinValidationError(vinCandidate)
+  const resolvedVin = resolveVinFromDashboardQuery(q)
+  const isVin = Boolean(resolvedVin)
 
   const plateCandidate = q.replace(/\s+/g, '')
   const plateParsed = parsePlateFull(plateCandidate)
   const plateOk =
+    !isVin &&
     /[a-zа-я]/i.test(plateCandidate) &&
     /\d/.test(plateCandidate) &&
     plateCandidate.length <= 12 &&
     !describeRuPlateValidationError(plateParsed.plate, plateParsed.plateRegion)
 
   return {
-    vin: isVin && !looksLikeEmail ? vinCandidate : '',
+    vin: isVin && !looksLikeEmail ? resolvedVin : '',
     plate: plateOk && !looksLikeEmail ? plateParsed.plate : '',
     plateRegion: plateOk && !looksLikeEmail ? plateParsed.plateRegion : '',
-    clientPhone: digits.length >= 10 ? q : '',
+    // 17-символьный VIN даёт ≥10 цифр — не считаем это телефоном
+    clientPhone: !isVin && !looksLikeEmail && digits.length >= 10 ? q : '',
     clientEmail: looksLikeEmail ? qLower : '',
   }
 }
@@ -58,16 +93,17 @@ function isStrictHit(car, qRaw) {
   if (!q) return false
   const qLower = normStr(q)
   const qDigits = onlyDigits(q)
-  const qVin = normVin(q)
+  const qResolved = resolveVinFromDashboardQuery(qRaw)
   const vin = normStr(car?.vin)
   const plate = normStr(car?.plate)
   const clientPhoneDigits = onlyDigits(car?.clientPhone)
   const ownerPhoneDigits = onlyDigits(car?.ownerPhone)
 
-  if (qVin && qVin.length === 17 && qVin === normVin(car?.vin)) return true
+  if (qResolved && qResolved === normVin(car?.vin)) return true
   if (vin && qLower === vin) return true
   if (plate && qLower === plate) return true
-  if (qDigits && qDigits.length >= 10) {
+  // Цифры из полного VIN (≥10) не сравниваем с телефоном
+  if (!qResolved && qDigits && qDigits.length >= 10) {
     if (clientPhoneDigits && clientPhoneDigits.endsWith(qDigits)) return true
     if (ownerPhoneDigits && ownerPhoneDigits.endsWith(qDigits)) return true
   }
@@ -104,6 +140,7 @@ export default function DetailingDashboardPage() {
   const [cars, setCars] = useState([])
   const [inboxClaims, setInboxClaims] = useState([])
   const [lastVisitByCarId, setLastVisitByCarId] = useState({})
+  const [dashReady, setDashReady] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -112,8 +149,10 @@ export default function DetailingDashboardPage() {
         setCars([])
         setInboxClaims([])
         setLastVisitByCarId({})
+        setDashReady(false)
         return
       }
+      setDashReady(false)
       try {
         const [carList, claims] = await Promise.all([r.listCars(), r.listClaimsForDetailing()])
         if (cancelled) return
@@ -139,6 +178,8 @@ export default function DetailingDashboardPage() {
           setInboxClaims([])
           setLastVisitByCarId({})
         }
+      } finally {
+        if (!cancelled) setDashReady(true)
       }
     })()
     return () => {
@@ -150,16 +191,94 @@ export default function DetailingDashboardPage() {
   const strictHits = useMemo(() => cars.filter((c) => isStrictHit(c, q)), [cars, q])
   const quickTargetCar = strictHits.length === 1 ? strictHits[0] : null
 
+  const [externalVinHits, setExternalVinHits] = useState([])
+  const [linkEvidenceByCarId, setLinkEvidenceByCarId] = useState({})
+  const [linkBusyId, setLinkBusyId] = useState(null)
+
+  useEffect(() => {
+    if (!detailingId || mode !== 'detailing') {
+      setExternalVinHits([])
+      return
+    }
+    if (strictHits.length > 0) {
+      setExternalVinHits([])
+      return
+    }
+    const v = resolveVinFromDashboardQuery(q)
+    if (!v) {
+      setExternalVinHits([])
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        if (!r.findDuplicateCarsForDetailing) {
+          if (!cancelled) setExternalVinHits([])
+          return
+        }
+        const res = await r.findDuplicateCarsForDetailing({ vin: v })
+        const list = Array.isArray(res) ? res : []
+        const mine = new Set(cars.map((c) => String(c.id)))
+        const ext = list.filter((c) => !mine.has(String(c.id)))
+        if (!cancelled) setExternalVinHits(ext)
+      } catch {
+        if (!cancelled) setExternalVinHits([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [cars, q, detailingId, mode, r, r._version, strictHits.length])
+
+  async function onLinkPersonalGarageCar(car) {
+    const ev = linkEvidenceByCarId[car.id] || { year: '', city: '' }
+    const year = String(ev.year || '').trim()
+    const city = String(ev.city || '').trim()
+    const yearOk = year !== '' && String(car.year ?? '') === year
+    const cityNorm = (s) =>
+      String(s || '')
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+    const cityOk =
+      cityNorm(city) !== '' &&
+      cityNorm(car.city) !== '' &&
+      cityNorm(city) === cityNorm(car.city)
+    if (!yearOk && !cityOk) {
+      alert('Укажите год выпуска и/или город как в карточке владельца (хотя бы одно совпадение).')
+      return
+    }
+    if (!r.linkPersonalGarageCar) {
+      alert('Действие недоступно в этой сборке.')
+      return
+    }
+    setLinkBusyId(car.id)
+    try {
+      await r.linkPersonalGarageCar({ carId: car.id, year, city })
+      invalidateRepo()
+      alert('Автомобиль добавлен в ваш кабинет. Владелец сохраняет доступ в гараже.')
+    } catch (e) {
+      alert(formatHttpErrorMessage(e, 'Не удалось добавить автомобиль.'))
+    } finally {
+      setLinkBusyId(null)
+    }
+  }
+
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (loading) {
     return (
-      <div className="container muted" style={{ padding: '24px 0' }}>
-        Загрузка…
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
       </div>
     )
   }
-  if (detailing?.profileCompleted === false) return <Navigate to="/detailing/landing" replace />
-
+  if (!dashReady) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
   const det = detailing
   const initials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
   const addrRaw = String(det?.address || '').trim()
@@ -172,8 +291,8 @@ export default function DetailingDashboardPage() {
   const navHref = geoQuery ? (isIOS ? `maps://?q=${encodeURIComponent(geoQuery)}` : `geo:0,0?q=${encodeURIComponent(geoQuery)}`) : ''
   const addressLinkLabel = addressIsYandexUrl ? 'Открыть точку и построить маршрут' : det?.address || addressText
   const showAddressLink = Boolean(mapsHref)
-  const phoneDigits = String(det?.phone || '').replace(/[^\d+]/g, '')
-  const phoneHref = phoneDigits ? `tel:${phoneDigits}` : ''
+  const { display: phoneDisplay, telHref: phoneHref } = displayRuPhone(det?.phone)
+  const coverBg = resolvedBackgroundImageUrl(det?.cover)
 
   return (
     <div className="container">
@@ -203,14 +322,14 @@ export default function DetailingDashboardPage() {
                   e.preventDefault()
                   try {
                     window.location.href = navHref
-                  } catch (err) {
-                    console.warn(err)
+                  } catch {
+                    /* ignore */
                   }
                   setTimeout(() => {
                     try {
                       window.open(mapsHref, '_blank', 'noreferrer')
-                    } catch (err) {
-                      console.warn(err)
+                    } catch {
+                      /* ignore */
                     }
                   }, 450)
                 }}
@@ -221,10 +340,14 @@ export default function DetailingDashboardPage() {
               <span>—</span>
             )}
             <span aria-hidden="true"> · </span>
-            {det?.phone ? (
-              <a href={phoneHref} title="Позвонить">
-                {det.phone}
-              </a>
+            {phoneDisplay ? (
+              phoneHref ? (
+                <a href={phoneHref} title="Позвонить">
+                  {phoneDisplay}
+                </a>
+              ) : (
+                phoneDisplay
+              )
             ) : (
               <span>—</span>
             )}
@@ -239,7 +362,7 @@ export default function DetailingDashboardPage() {
 
       <div
         className="detHero detHero--card"
-        style={det?.cover ? { backgroundImage: `url("${String(det.cover).replaceAll('"', '%22')}")` } : undefined}
+        style={coverBg ? { backgroundImage: coverBg } : undefined}
       >
         <div className="detHero__overlay detHero__overlay--card">
           <Link
@@ -258,7 +381,7 @@ export default function DetailingDashboardPage() {
               to={`/d/${encodeURIComponent(String(detailingId))}`}
               title="Открыть публичную страницу детейлинга"
             >
-              <img alt="Логотип" src={det.logo} />
+              <img alt="Логотип" src={resolvePublicMediaUrl(det.logo)} />
             </Link>
           ) : (
             <Link
@@ -297,6 +420,13 @@ export default function DetailingDashboardPage() {
                   nav(`/car/${quickTargetCar.id}/history?new=1&from=${encodeURIComponent(from)}`)
                   return
                 }
+                const vinResolved = resolveVinFromDashboardQuery(q)
+                if (vinResolved && externalVinHits.length > 0) {
+                  document
+                    .getElementById('det-external-vin-card')
+                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  return
+                }
                 const pre = inferPrefill(q)
                 const qp = new URLSearchParams()
                 if (pre.vin) qp.set('vin', pre.vin)
@@ -319,6 +449,113 @@ export default function DetailingDashboardPage() {
         </div>
       </Card>
 
+      {externalVinHits.length > 0 ? (
+        <Card id="det-external-vin-card" className="card pad detExternalVinCard" style={{ marginTop: 12 }}>
+          <div className="cardTitle" style={{ margin: 0 }}>
+            Этот VIN есть в системе, но не в вашем списке
+          </div>
+          <p className="muted small" style={{ margin: '8px 0 12px', maxWidth: '62ch', lineHeight: 1.5 }}>
+            Для авто из <strong>личного гаража</strong> владельца: подтвердите год и/или город и нажмите «Добавить к нам»
+            — карточка появится у вас и останется у клиента (без дубля). Карточка <strong>другого сервиса</strong> сюда не
+            переносится — создайте новую у себя или дождитесь заявки клиента.
+          </p>
+          <div className="list">
+            {externalVinHits.slice(0, 8).map((c) => {
+              const fromGarage = Boolean(c.vinHitFromOwnerGarage)
+              const ev = linkEvidenceByCarId[c.id] || { year: '', city: '' }
+              const yearOpts = buildYearOptions(c.year)
+              const linkBusy = linkBusyId === c.id
+              return (
+                <Card key={`ext-${c.id}`} className="card pad vinNetworkHitCard">
+                  <div className="vinNetworkHitCard__layout">
+                    <div
+                      className="vinNetworkHitCard__hero"
+                      style={rowHeroBackgroundStyle(c.hero)}
+                      aria-hidden={c.hero ? undefined : true}
+                    />
+                    <div className="vinNetworkHitCard__body">
+                      <div className="rowItem__title row gap wrap" style={{ alignItems: 'center' }}>
+                        <span>
+                          {c.make} {c.model}
+                        </span>
+                        {fromGarage ? (
+                          <Pill tone="accent">Личный гараж владельца</Pill>
+                        ) : c.detailingName ? (
+                          <Pill tone="neutral">{c.detailingName}</Pill>
+                        ) : null}
+                      </div>
+                      <div className="rowItem__meta carPage__meta" style={{ marginTop: 6 }}>
+                        <span className="mono">VIN: {c.vin || '—'}</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>{fmtKm(c.mileageKm)}</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>{c.year ? `${c.year} г.` : '—'}</span>
+                        <span aria-hidden="true"> · </span>
+                        <span>{c.city || '—'}</span>
+                      </div>
+                      {fromGarage ? (
+                        <>
+                          <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+                            Подтвердите <strong>год</strong> и/или <strong>город</strong> как в карточке владельца — как при
+                            заявке клиента с улицы.
+                          </p>
+                          <div className="formGrid" style={{ marginTop: 10 }}>
+                            <Field label="Год выпуска">
+                              <ComboBox
+                                value={ev.year}
+                                options={yearOpts}
+                                placeholder="Как в карточке"
+                                onChange={(v) =>
+                                  setLinkEvidenceByCarId((m) => ({
+                                    ...m,
+                                    [c.id]: {
+                                      ...ev,
+                                      year: normDigits(String(v), { max: 2100, maxLen: 4 }),
+                                    },
+                                  }))
+                                }
+                              />
+                            </Field>
+                            <Field label="Город">
+                              <ComboBox
+                                value={ev.city}
+                                options={RUSSIAN_MILLION_PLUS_CITIES}
+                                placeholder="Как в карточке владельца"
+                                maxItems={24}
+                                onChange={(v) =>
+                                  setLinkEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, city: v } }))
+                                }
+                              />
+                            </Field>
+                          </div>
+                          <div style={{ marginTop: 12 }}>
+                            <Button
+                              className="btn"
+                              variant="primary"
+                              type="button"
+                              disabled={linkBusy}
+                              aria-busy={linkBusy || undefined}
+                              onClick={() => void onLinkPersonalGarageCar(c)}
+                            >
+                              {linkBusy ? 'Добавление…' : 'Добавить к нам'}
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+                          Эта карточка привязана к другому сервису. Создайте новую у себя по кнопке «+ Добавить авто» —
+                          при совпадении VIN система подскажет о дубле.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </Card>
+              )
+            })}
+          </div>
+        </Card>
+      ) : null}
+
       <div className="list" style={{ marginTop: 12 }}>
         {filtered.map((c) => {
           const fromDash = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
@@ -326,13 +563,18 @@ export default function DetailingDashboardPage() {
           const carHref = `/car/${c.id}?from=${encodeURIComponent(fromDash)}`
           const access = detailingCarAccessBadge(c, detailingId, inboxClaims)
           const ownerInApp = access.label === 'Владелец в приложении'
-          const ownerPeekLabel = String(c.ownerEmail || '').trim() || 'Владелец'
+          const ownerPeekLabel =
+            String(c.ownerName || '').trim() || String(c.ownerEmail || '').trim() || 'Владелец'
           const ownerPeekInitials = ownerPeekLabel.slice(0, 2).toUpperCase() || '?'
-          const ownerSlug = ''
-          const ownerAvatar = ''
-          const ownerPhoneRaw = ''
-          const ownerPhoneHref = ''
-          const ownerPhonePublic = false
+          const ownerSlug = String(c.ownerGarageSlug || '').trim()
+          const ownerAvatarRaw = String(c.ownerGarageAvatar || '').trim()
+          const ownerAvatar = ownerAvatarRaw ? resolvePublicMediaUrl(ownerAvatarRaw) : ''
+          const accountPhone = String(c.ownerAccountPhone || '').trim()
+          const carOwnerPhone = String(c.ownerPhone || '').trim()
+          const phoneForOwnerPeek = accountPhone || carOwnerPhone
+          const { display: ownerPhoneRaw, telHref: ownerPhoneHref } = displayRuPhone(phoneForOwnerPeek)
+          // В кабинете партнёра показываем номер для связи; «на улице» /g/… регулируется отдельно у владельца.
+          const ownerPhonePublic = true
           return (
             <div key={c.id} className={`rowItem${ownerInApp ? ' rowItem--ownerPeek' : ''}`}>
               <Link
@@ -342,14 +584,18 @@ export default function DetailingDashboardPage() {
               >
                 <div
                   className="rowItem__img"
-                  style={c.hero ? { backgroundImage: `url("${String(c.hero).replaceAll('"', '%22')}")` } : undefined}
+                  style={rowHeroBackgroundStyle(c.hero)}
                 />
                 <div className="rowItem__main">
                   <div className="rowItem__title row gap wrap" style={{ alignItems: 'center' }}>
                     <span>
                       {c.make} {c.model}
                     </span>
-                    {!ownerInApp && access.label ? <Pill tone={access.tone}>{access.label}</Pill> : null}
+                    {!ownerInApp &&
+                    access.label &&
+                    access.label !== DETAILING_ACCESS_SERVICE_ONLY_LABEL ? (
+                      <Pill tone={access.tone}>{access.label}</Pill>
+                    ) : null}
                   </div>
                   <div className="rowItem__meta carPage__meta">
                     <span>{c.city || '—'}</span>
@@ -475,7 +721,7 @@ export default function DetailingDashboardPage() {
 
         {cars.length > 0 && filtered.length === 0 ? (
           <Card className="card pad">
-            <div className="muted">Ничего не найдено. Попробуйте другой запрос.</div>
+            <div className="muted">Ничего не найдено. Измените поиск или фильтр.</div>
           </Card>
         ) : null}
       </div>

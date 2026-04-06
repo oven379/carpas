@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\GarageSlug;
 use App\Http\Support\MediaStorage;
 use App\Models\Detailing;
 use App\Models\Owner;
@@ -15,6 +16,16 @@ use Illuminate\Validation\ValidationException;
 
 class OwnerAuthController extends Controller
 {
+    private const DUPLICATE_OWNER_EMAIL = 'Этот email уже зарегистрирован. Войдите через «В гараж» с паролем.';
+
+    private function isUniqueViolationOnOwnerEmail(QueryException $e): bool
+    {
+        $m = $e->getMessage();
+
+        return str_contains($m, 'owners_email_unique')
+            || (str_contains($m, 'UNIQUE constraint failed') && str_contains($m, 'owners') && str_contains($m, 'email'));
+    }
+
     public function register(Request $request)
     {
         $request->merge([
@@ -31,15 +42,22 @@ class OwnerAuthController extends Controller
 
         $email = mb_strtolower(trim($data['email']));
         if (Owner::query()->where('email', $email)->exists()) {
-            throw ValidationException::withMessages(['email' => 'email_taken']);
+            throw ValidationException::withMessages(['email' => self::DUPLICATE_OWNER_EMAIL]);
         }
 
-        $owner = Owner::query()->create([
-            'email' => $email,
-            'password' => Hash::make($data['password']),
-            'name' => trim((string) $data['name']),
-            'phone' => trim((string) $data['phone']),
-        ]);
+        try {
+            $owner = Owner::query()->create([
+                'email' => $email,
+                'password' => Hash::make($data['password']),
+                'name' => trim((string) $data['name']),
+                'phone' => trim((string) $data['phone']),
+            ]);
+        } catch (QueryException $e) {
+            if ($this->isUniqueViolationOnOwnerEmail($e)) {
+                throw ValidationException::withMessages(['email' => self::DUPLICATE_OWNER_EMAIL]);
+            }
+            throw $e;
+        }
 
         Detailing::query()->create([
             'name' => trim($owner->name) ?: 'Мой гараж',
@@ -98,10 +116,18 @@ class OwnerAuthController extends Controller
         $patch = $request->all();
 
         if (array_key_exists('name', $patch)) {
-            $o->name = trim((string) $patch['name']);
+            $n = trim((string) $patch['name']);
+            if (mb_strlen($n) > 255) {
+                $n = mb_substr($n, 0, 255);
+            }
+            $o->name = $n;
         }
         if (array_key_exists('phone', $patch)) {
-            $o->phone = trim((string) $patch['phone']);
+            $p = trim((string) $patch['phone']);
+            if (mb_strlen($p) > 80) {
+                $p = mb_substr($p, 0, 80);
+            }
+            $o->phone = $p;
         }
         if (array_key_exists('garageCity', $patch)) {
             $o->garage_city = trim((string) $patch['garageCity']);
@@ -127,10 +153,11 @@ class OwnerAuthController extends Controller
             $o->show_social_public = (bool) $patch['showSocialPublic'];
         }
         if (array_key_exists('garageSlug', $patch)) {
-            $slug = trim((string) $patch['garageSlug']);
+            $slug = GarageSlug::normalize((string) $patch['garageSlug']);
             if ($slug !== '') {
+                $slugLower = mb_strtolower($slug);
                 $taken = Owner::query()
-                    ->where('garage_slug', $slug)
+                    ->whereRaw('lower(trim(garage_slug)) = ?', [$slugLower])
                     ->where('id', '!=', $o->id)
                     ->exists();
                 if ($taken) {
@@ -140,6 +167,9 @@ class OwnerAuthController extends Controller
                 }
             }
             $o->garage_slug = $slug === '' ? null : $slug;
+        }
+        if (array_key_exists('garageBannerEnabled', $patch)) {
+            $o->garage_banner_enabled = (bool) $patch['garageBannerEnabled'];
         }
         if (array_key_exists('garageBanner', $patch)) {
             $raw = $patch['garageBanner'];
@@ -164,6 +194,9 @@ class OwnerAuthController extends Controller
         if (array_key_exists('showPhonePublic', $patch)) {
             $o->show_phone_public = (bool) $patch['showPhonePublic'];
         }
+        if (array_key_exists('garagePrivate', $patch)) {
+            $o->garage_private = (bool) $patch['garagePrivate'];
+        }
         if (array_key_exists('isPremium', $patch)) {
             $o->is_premium = (bool) $patch['isPremium'];
         }
@@ -176,10 +209,22 @@ class OwnerAuthController extends Controller
             if (in_array($state, ['42703', '42P01'], true)) {
                 return response()->json([
                     'message' =>
-                        'В базе нет нужных колонок. Выполните миграции: docker compose exec backend php artisan migrate --force',
+                        'База данных не обновлена: не хватает колонок для профиля гаража. '
+                        .'На сервере выполните: php artisan migrate '
+                        .'(в Docker: docker compose exec backend php artisan migrate).',
+                    'code' => 'schema_outdated',
                 ], 503);
             }
-            if ($state === '23505') {
+            $msgLower = mb_strtolower($e->getMessage());
+            $slugUniqueViolated =
+                str_contains($msgLower, 'garage_slug')
+                && (
+                    $state === '23505'
+                    || $state === '23000'
+                    || str_contains($msgLower, 'unique')
+                    || str_contains($msgLower, 'duplicate')
+                );
+            if ($slugUniqueViolated) {
                 throw ValidationException::withMessages([
                     'garageSlug' => 'Этот адрес страницы уже занят. Укажите другой.',
                 ]);

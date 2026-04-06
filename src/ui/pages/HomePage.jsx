@@ -2,34 +2,47 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { useRepo } from '../useRepo.js'
-import { Card, Pill } from '../components.jsx'
+import { Card, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtInt } from '../../lib/format.js'
 
 export default function HomePage() {
   const r = useRepo()
   const [total, setTotal] = useState(0)
   const [top, setTop] = useState([])
+  const [bootReady, setBootReady] = useState(false)
 
   useEffect(() => {
     let c = false
     ;(async () => {
       try {
-        const st = await r.publicStats()
-        if (!c) setTotal(Number(st?.cars) || 0)
-      } catch {
-        if (!c) setTotal(0)
-      }
-      try {
-        const recent = await r.publicCarsRecent({ limit: 6 })
-        if (!c) setTop(Array.isArray(recent) ? recent.slice(0, 3) : [])
-      } catch {
-        if (!c) setTop([])
+        try {
+          const st = await r.publicStats()
+          if (!c) setTotal(Number(st?.cars) || 0)
+        } catch {
+          if (!c) setTotal(0)
+        }
+        try {
+          const recent = await r.publicCarsRecent({ limit: 6 })
+          if (!c) setTop(Array.isArray(recent) ? recent.slice(0, 3) : [])
+        } catch {
+          if (!c) setTop([])
+        }
+      } finally {
+        if (!c) setBootReady(true)
       }
     })()
     return () => {
       c = true
     }
   }, [r, r._version])
+
+  if (!bootReady) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '48px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
 
   return (
     <div className="container">
@@ -79,9 +92,10 @@ export default function HomePage() {
             </p>
           </Card>
           <Card className="card pad">
-            <div className="cardTitle">Фото и документы</div>
+            <div className="cardTitle">Материалы к истории</div>
             <p className="muted small">
-              Фото «до/после», акты и дополнительные материалы — всё прикрепляется к визитам. {PHOTO_LANDSCAPE_HINT_SENTENCE}
+              Фото «до/после», акты и вложения к визитам. Личные документы в гараже по публичной ссылке не показываются.{' '}
+              {PHOTO_LANDSCAPE_HINT_SENTENCE}
             </p>
           </Card>
           <Card className="card pad">
@@ -180,7 +194,7 @@ export default function HomePage() {
           <details className="faqItem">
             <summary>Можно ли отозвать публичную ссылку?</summary>
             <div className="faqBody muted small">
-              Да: ссылку можно отозвать в кабинете или выпустить новую — старые токены перестанут работать.
+              Да: ссылку можно отозвать в кабинете или выпустить новую — по старой ссылке войти уже не получится.
             </div>
           </details>
         </div>

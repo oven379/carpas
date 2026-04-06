@@ -30,6 +30,16 @@ export default function FooterSupport() {
         <Link className="authConsent__legalLink" to="/about">
           Согласие с правилами сервиса
         </Link>
+        {__APP_VERSION__ ? (
+          <>
+            <span className="footerLegal__sep" aria-hidden="true">
+              ·
+            </span>
+            <span className="muted small" style={{ whiteSpace: 'nowrap' }}>
+              Версия {__APP_VERSION__}
+            </span>
+          </>
+        ) : null}
       </nav>
       <div className="footerSupportSlot">
         {footerSupportMenu ? (

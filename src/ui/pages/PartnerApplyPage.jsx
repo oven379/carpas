@@ -5,6 +5,7 @@ import { useRepo, invalidateRepo } from '../useRepo.js'
 import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
+import { formatPhoneRuInput } from '../../lib/format.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 
 export default function PartnerApplyPage() {
@@ -86,8 +87,9 @@ export default function PartnerApplyPage() {
                   autoComplete="tel"
                   inputMode="tel"
                   value={regPhone}
-                  onChange={(e) => setRegPhone(e.target.value)}
-                  placeholder="+7 …"
+                  onChange={(e) => setRegPhone(formatPhoneRuInput(e.target.value))}
+                  onBlur={(e) => setRegPhone(formatPhoneRuInput(e.currentTarget.value))}
+                  placeholder="+7 900 123-45-67"
                 />
               </Field>
               <Field className="field--full" label="Почта">
@@ -140,7 +142,7 @@ export default function PartnerApplyPage() {
                         name: regName,
                         contactName: regContactName,
                         email: regEmail,
-                        phone: regPhone,
+                        phone: formatPhoneRuInput(regPhone).trim(),
                         city: regCity,
                         address: regAddress,
                         servicesOffered: [],
@@ -153,7 +155,7 @@ export default function PartnerApplyPage() {
                       const emailErr = body?.errors?.email
                       const first = Array.isArray(emailErr) ? emailErr[0] : emailErr
                       if (first === 'email_taken') alert(partnerApplyErrorMessage('email_taken'))
-                      else alert('Не удалось отправить заявку. Проверьте поля и доступность сервера.')
+                      else alert('Не удалось отправить заявку. Проверьте поля и подключение к интернету.')
                     }
                   }}
                 >

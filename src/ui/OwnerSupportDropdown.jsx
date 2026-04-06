@@ -4,6 +4,7 @@ import { useRepo, invalidateRepo } from './useRepo.js'
 import { useDetailing } from './useDetailing.js'
 import { bumpSessionRefresh, hasOwnerSession, isAuthed } from './auth.js'
 import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
+import { useAsyncActionLock } from './useAsyncActionLock.js'
 
 /**
  * «Поддержка» с выпадающим меню для владельца (шапка или футер).
@@ -12,6 +13,9 @@ import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 export default function OwnerSupportDropdown({ placement = 'nav' }) {
   const r = useRepo()
   const nav = useNavigate()
+  const shareLock = useAsyncActionLock()
+  const transferLock = useAsyncActionLock()
+  const premiumLock = useAsyncActionLock()
   const { detailingId, owner, mode } = useDetailing()
   const match = useMatch({ path: '/car/:id', end: true })
   const carId = match?.params?.id
@@ -108,22 +112,25 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
                 type="button"
                 role="menuitem"
                 className="footerHelpDd__item"
-                onClick={async () => {
-                  setOpen(false)
-                  const share = activeShare || (await r.createShare(carId))
-                  if (!share) {
-                    alert('Не удалось создать ссылку (нет доступа к авто).')
-                    return
-                  }
-                  invalidateRepo()
-                  const url = `${location.origin}/share/${share.token}`
-                  try {
-                    await navigator.clipboard.writeText(url)
-                    alert('Ссылка скопирована')
-                  } catch {
-                    prompt('Скопируй ссылку', url)
-                  }
-                }}
+                disabled={shareLock.pending}
+                onClick={() =>
+                  void shareLock.run(async () => {
+                    setOpen(false)
+                    const share = activeShare || (await r.createShare(carId))
+                    if (!share) {
+                      alert('Не удалось создать ссылку (нет доступа к авто).')
+                      return
+                    }
+                    invalidateRepo()
+                    const url = `${location.origin}/share/${share.token}`
+                    try {
+                      await navigator.clipboard.writeText(url)
+                      alert('Ссылка скопирована')
+                    } catch {
+                      prompt('Скопируй ссылку', url)
+                    }
+                  })
+                }
               >
                 Поделиться историей
               </button>
@@ -131,26 +138,29 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
                 type="button"
                 role="menuitem"
                 className="footerHelpDd__item"
-                onClick={async () => {
-                  setOpen(false)
-                  const nextEmail = prompt('Введите почту нового владельца', '')
-                  const em = String(nextEmail || '').trim().toLowerCase()
-                  if (!em) return
-                  const msg =
-                    'Передать авто другому владельцу?\n\n' +
-                    `Новый владелец: ${em}\n\n` +
-                    'После передачи это авто исчезнет из вашего гаража.'
-                  if (!confirm(msg)) return
-                  try {
-                    await r.updateCar(carId, { ownerEmail: em })
-                    invalidateRepo()
-                    alert('Авто передано новому владельцу.')
-                    const list = await r.listCars()
-                    nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
-                  } catch {
-                    alert('Не удалось передать авто (нет доступа к карточке).')
-                  }
-                }}
+                disabled={transferLock.pending}
+                onClick={() =>
+                  void transferLock.run(async () => {
+                    setOpen(false)
+                    const nextEmail = prompt('Введите почту нового владельца', '')
+                    const em = String(nextEmail || '').trim().toLowerCase()
+                    if (!em) return
+                    const msg =
+                      'Передать авто другому владельцу?\n\n' +
+                      `Новый владелец: ${em}\n\n` +
+                      'После передачи это авто исчезнет из вашего гаража.'
+                    if (!confirm(msg)) return
+                    try {
+                      await r.updateCar(carId, { ownerEmail: em })
+                      invalidateRepo()
+                      alert('Авто передано новому владельцу.')
+                      const list = await r.listCars()
+                      nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
+                    } catch {
+                      alert('Не удалось передать авто (нет доступа к карточке).')
+                    }
+                  })
+                }
               >
                 Передать авто
               </button>
@@ -178,22 +188,25 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
             type="button"
             role="menuitem"
             className="footerHelpDd__item"
-            onClick={async () => {
-              setOpen(false)
-              if (!owner?.email || !r.updateOwnerMe) {
-                alert('Не удалось обновить тариф.')
-                return
-              }
-              try {
-                const next = await r.updateOwnerMe({ isPremium: !owner.isPremium })
-                invalidateRepo()
-                bumpSessionRefresh()
-                const prem = Boolean(next?.owner?.isPremium)
-                alert(prem ? 'Premium включён.' : 'Premium выключен.')
-              } catch {
-                alert('Не удалось обновить тариф.')
-              }
-            }}
+            disabled={premiumLock.pending}
+            onClick={() =>
+              void premiumLock.run(async () => {
+                setOpen(false)
+                if (!owner?.email || !r.updateOwnerMe) {
+                  alert('Не удалось обновить тариф.')
+                  return
+                }
+                try {
+                  const next = await r.updateOwnerMe({ isPremium: !owner.isPremium })
+                  invalidateRepo()
+                  bumpSessionRefresh()
+                  const prem = Boolean(next?.owner?.isPremium)
+                  alert(prem ? 'Premium включён.' : 'Premium выключен.')
+                } catch {
+                  alert('Не удалось обновить тариф.')
+                }
+              })
+            }
           >
             {owner?.isPremium ? 'Отключить Premium' : 'Подключить Premium'}
           </button>

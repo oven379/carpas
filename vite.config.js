@@ -1,32 +1,38 @@
-import { defineConfig } from 'vite'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('./package.json', import.meta.url)), 'utf-8'))
+
+const devProxy = (proxyTarget) => ({
+  '/api': { target: proxyTarget, changeOrigin: true },
+  '/storage': { target: proxyTarget, changeOrigin: true },
+})
+
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  // Явный порт и listen на всех интерфейсах: реже ломается связка localhost/IPv6 и проще открыть по 127.0.0.1
-  // (в Яндекс.Браузере «404 Яндекса» на localhost чаще всего значит: dev-сервер не запущен или порт другой).
-  server: {
-    host: true,
-    port: 5173,
-    strictPort: false,
-    // Без прокси браузер с :5173 ходит на :8080 — часто «Failed to fetch» и alert с общим текстом
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8088',
-        changeOrigin: true,
-      },
+// Прокси /api и /storage → Docker nginx (по умолчанию :8088). Иначе с :5173 «Failed to fetch» / 404.
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  const proxyTarget = String(env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8088').replace(/\/+$/, '')
+
+  return {
+    /* Не подменять import.meta.env.VITE_* — в части сборок это ломает весь import.meta.env */
+    define: {
+      __APP_VERSION__: JSON.stringify(pkg.version || ''),
     },
-  },
-  preview: {
-    host: true,
-    port: 4173,
-    strictPort: false,
-    proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:8088',
-        changeOrigin: true,
-      },
+    plugins: [react()],
+    server: {
+      host: true,
+      port: 5173,
+      strictPort: false,
+      proxy: devProxy(proxyTarget),
     },
-  },
+    preview: {
+      host: true,
+      port: 4173,
+      strictPort: false,
+      proxy: devProxy(proxyTarget),
+    },
+  }
 })

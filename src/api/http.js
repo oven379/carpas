@@ -21,12 +21,24 @@ function networkFailureUserHint(rawLower) {
     rawLower.includes('load failed') ||
     rawLower.includes('networkerror') ||
     rawLower.includes('ecconnrefused') ||
-    rawLower.includes('err_connection_refused')
+    rawLower.includes('err_connection_refused') ||
+    rawLower.includes('connection refused')
   )
 }
 
-/** Сообщение для alert/toast при ошибках API (сохранение форм и т.п.). */
-export function formatHttpErrorMessage(err, fallback = 'Запрос не выполнен.') {
+/** В dev Vite проксирует /api → :8088; без Docker пользователь видит ERR_CONNECTION_REFUSED в консоли. */
+function devApiReachabilityHint() {
+  try {
+    return typeof import.meta !== 'undefined' && import.meta.env?.DEV
+      ? ' Локально: запустите бэкенд — в корне проекта: docker compose up (API через nginx на порту 8088).'
+      : ''
+  } catch {
+    return ''
+  }
+}
+
+/** Сообщение для alert/toast при сетевых и серверных ошибках (формы и т.п.). */
+export function formatHttpErrorMessage(err, fallback = 'Операция не выполнена.') {
   if (err instanceof HttpError) {
     // Сначала сеть (status 0): иначе «Failed to fetch» из body.message уходит в общий return и показывается сырой текст
     if (err.status === 0) {
@@ -37,14 +49,14 @@ export function formatHttpErrorMessage(err, fallback = 'Запрос не вып
       const raw = b && typeof b === 'object' && typeof b.message === 'string' ? b.message : ''
       const m = raw.toLowerCase()
       if (networkFailureUserHint(m)) {
-        return 'Нет связи с API. Запустите backend (docker compose up), затем откройте сайт через npm run dev или npm run preview — запросы идут на /api через прокси Vite. Либо задайте VITE_API_BASE_URL при сборке.'
+        return `Не удалось связаться с сервером API. Проверьте интернет.${devApiReachabilityHint()}`
       }
-      if (raw) return `Сеть: ${raw}`.slice(0, 400)
-      return 'Нет связи с сервером.'
+      if (raw && !networkFailureUserHint(m)) return raw.slice(0, 400)
+      return `Нет связи с сервером.${devApiReachabilityHint()}`
     }
 
     // До разбора body.message: Laravel отдаёт 401 с текстом «Unauthenticated.» — показываем по-русски
-    if (err.status === 401) return 'Сессия истекла или вы не вошли. Войдите снова (владелец гаража — через вход для владельца).'
+    if (err.status === 401) return 'Сессия истекла или вы не вошли. Войдите снова с той же ролью (владелец или партнёр).'
     if (err.status === 403) return 'Нет доступа к этой операции.'
 
     const b = err.body
@@ -53,34 +65,38 @@ export function formatHttpErrorMessage(err, fallback = 'Запрос не вып
       if (top && top !== 'The given data was invalid.') return top
       const errs = b.errors
       if (errs && typeof errs === 'object') {
+        const collected = []
         for (const key of Object.keys(errs)) {
           const v = errs[key]
           if (Array.isArray(v) && v[0]) {
             const s = String(v[0])
-            if (s === 'slug_taken') return SLUG_TAKEN_HINT
-            return s
-          }
-          if (typeof v === 'string' && v) {
-            if (v === 'slug_taken') return SLUG_TAKEN_HINT
-            return v
+            collected.push(s === 'slug_taken' ? SLUG_TAKEN_HINT : s)
+          } else if (typeof v === 'string' && v) {
+            collected.push(v === 'slug_taken' ? SLUG_TAKEN_HINT : v)
           }
         }
+        if (collected.length) return collected.join('\n')
       }
+      if (top && top !== 'The given data was invalid.') return top
       if (top) return top
     }
     if (typeof b === 'string' && b.trim()) return b.trim().slice(0, 500)
-    if (err.status === 413) return 'Слишком большой запрос (например, фото). Уменьшите размер файла.'
+    if (err.status === 413) return 'Файл слишком большой (например, фото). Уменьшите размер и попробуйте снова.'
     if (err.status === 422) return 'Проверьте данные в форме.'
-    if (err.status >= 500)
-      return 'Ошибка сервера. Если недавно обновляли проект, выполните миграции БД (php artisan migrate).'
-    return `${fallback} (код ${err.status}).`
+    if (err.status >= 500) return 'Сервис временно недоступен. Попробуйте позже.'
+    return fallback
   }
   if (err instanceof Error && err.message) {
     const m = err.message.toLowerCase()
-    if (m.includes('failed to fetch') || m.includes('networkerror') || m.includes('load failed')) {
-      return 'Нет связи с API. Запустите backend и используйте npm run dev (прокси /api).'
+    if (
+      m.includes('failed to fetch') ||
+      m.includes('networkerror') ||
+      m.includes('load failed') ||
+      m.includes('connection refused')
+    ) {
+      return `Не удалось связаться с сервером API. Проверьте интернет.${devApiReachabilityHint()}`
     }
-    return `${fallback} (${err.message})`.slice(0, 500)
+    return fallback
   }
   return fallback
 }
@@ -91,7 +107,7 @@ export async function httpJson({ baseUrl, path, method = 'GET', body, token }) {
   try {
     bodyStr = body == null ? undefined : JSON.stringify(body)
   } catch {
-    throw new HttpError('Не удалось сформировать тело запроса (слишком большие данные?).', {
+    throw new HttpError('Данные слишком объёмные. Попробуйте уменьшить фото или количество вложений.', {
       status: 0,
       body: null,
     })
@@ -102,6 +118,7 @@ export async function httpJson({ baseUrl, path, method = 'GET', body, token }) {
   try {
     res = await fetch(url, {
       method,
+      cache: 'no-store',
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',

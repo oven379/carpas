@@ -1,9 +1,15 @@
 import { useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthLegalConsent, BackNav, Button, Card, Field, Input, ServiceHint } from '../components.jsx'
-import { useRepo, invalidateRepo } from '../useRepo.js'
-import { debugAuth, hasDetailingSession, hasOwnerSession, setSessionOwner } from '../auth.js'
-import { OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
+import { useRepo, refreshAllClientData } from '../useRepo.js'
+import {
+  debugAuth,
+  hasDetailingSession,
+  hasOwnerSession,
+  ownerToSessionSnapshot,
+  setSessionOwner,
+} from '../auth.js'
+import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 
@@ -76,7 +82,7 @@ export default function OwnerAuthPage() {
 
   function requireNamePhoneForRegister() {
     const name = String(ownName || '').trim()
-    const phone = String(ownPhone || '').trim()
+    const phone = formatPhoneRuInput(ownPhone).trim()
     if (!name) {
       alert('Укажите имя — так мы обратимся к вам в сервисе.')
       return null
@@ -91,9 +97,9 @@ export default function OwnerAuthPage() {
   function onRegisterClick() {
     if (!registerExpanded) {
       setRegisterExpanded(true)
-      return
+      return undefined
     }
-    void onRegisterSubmit()
+    return onRegisterSubmit()
   }
 
   async function onEnterGarage() {
@@ -112,15 +118,13 @@ export default function OwnerAuthPage() {
       const loginRes = await r.loginOwner({ email: em, password: pwd })
       debugAuth('OwnerAuth: ответ loginOwner', { ok: loginRes?.ok, reason: loginRes?.reason })
       if (loginRes?.ok) {
-        setSessionOwner(
-          {
-            email: loginRes.owner.email,
-            name: loginRes.owner.name,
-            phone: loginRes.owner.phone,
-          },
-          loginRes.token,
-        )
-        invalidateRepo()
+        const snap = ownerToSessionSnapshot(loginRes.owner)
+        if (!snap) {
+          alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
+          return
+        }
+        setSessionOwner(snap, loginRes.token)
+        refreshAllClientData()
         nav(nextAfterAuth, { replace: true })
         return
       }
@@ -140,15 +144,13 @@ export default function OwnerAuthPage() {
                 name: extra.name,
                 phone: extra.phone,
               })
-              setSessionOwner(
-                {
-                  email: reg.owner.email,
-                  name: reg.owner.name,
-                  phone: reg.owner.phone,
-                },
-                reg.token,
-              )
-              invalidateRepo()
+              const snap = ownerToSessionSnapshot(reg.owner)
+              if (!snap) {
+                alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
+                return
+              }
+              setSessionOwner(snap, reg.token)
+              refreshAllClientData()
               debugAuth('OwnerAuth: вход → not_found → авто-регистрация', { to: resolveAfterRegister() })
               nav(resolveAfterRegister(), { replace: true })
               return
@@ -168,8 +170,8 @@ export default function OwnerAuthPage() {
       }
       if (reason === 'bad_credentials') alert('Укажите почту и пароль')
       else alert('Не удалось войти')
-    } catch {
-      alert('Ошибка сети или сервера. Проверьте VITE_API_BASE_URL и что бэкенд запущен.')
+    } catch (e) {
+      alert(formatHttpErrorMessage(e, 'Не удалось войти.'))
     }
   }
 
@@ -188,15 +190,13 @@ export default function OwnerAuthPage() {
         name,
         phone,
       })
-      setSessionOwner(
-        {
-          email: reg.owner.email,
-          name: reg.owner.name,
-          phone: reg.owner.phone,
-        },
-        reg.token,
-      )
-      invalidateRepo()
+      const snap = ownerToSessionSnapshot(reg.owner)
+      if (!snap) {
+        alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
+        return
+      }
+      setSessionOwner(snap, reg.token)
+      refreshAllClientData()
       const dest = resolveAfterRegister()
       debugAuth('OwnerAuth: регистрация ok, перед navigate', { dest })
       nav(dest, { replace: true })
@@ -306,8 +306,11 @@ export default function OwnerAuthPage() {
                     <Input
                       className="input"
                       value={ownPhone}
-                      onChange={(e) => setOwnPhone(e.target.value)}
-                      placeholder="+7 …"
+                      onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
+                      onInput={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
+                      onBlur={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
+                      onAnimationStart={(e) => onAutofillAnimation(e, (v) => setOwnPhone(formatPhoneRuInput(v)))}
+                      placeholder="+7 900 123-45-67"
                       autoComplete="tel"
                       inputMode="tel"
                     />
@@ -321,7 +324,7 @@ export default function OwnerAuthPage() {
                 className="btn authOwner__submitGarage"
                 variant={registerExpanded ? 'outline' : 'primary'}
                 type="button"
-                onClick={() => void onEnterGarage()}
+                onClick={() => onEnterGarage()}
               >
                 В гараж
               </Button>
@@ -329,7 +332,7 @@ export default function OwnerAuthPage() {
                 className="btn"
                 variant={registerExpanded ? 'primary' : 'outline'}
                 type="button"
-                onClick={() => void onRegisterClick()}
+                onClick={() => onRegisterClick()}
               >
                 Регистрация
               </Button>

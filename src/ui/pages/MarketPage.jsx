@@ -7,8 +7,8 @@ import {
   OWNER_MAX_TOTAL_CARS,
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
-import { HeroCoverStat, Pill, ServiceHint } from '../components.jsx'
-import { getSessionOwner, hasOwnerSession } from '../auth.js'
+import { HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
@@ -16,10 +16,11 @@ import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
 export default function MarketPage() {
   const r = useRepo()
   const loc = useLocation()
-  const { owner, mode } = useDetailing()
-  const ownerEmail = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const { owner, mode, loading } = useDetailing()
+  const ownerEmail = String(owner?.email || '').trim()
   const [cars, setCars] = useState([])
   const [ownerClaims, setOwnerClaims] = useState([])
+  const [listBusy, setListBusy] = useState(true)
 
   useEffect(() => {
     if (loc.hash !== '#owner-vin-claim') return
@@ -35,8 +36,10 @@ export default function MarketPage() {
       if (!hasOwnerSession()) {
         setCars([])
         setOwnerClaims([])
+        setListBusy(false)
         return
       }
+      setListBusy(true)
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
@@ -47,6 +50,8 @@ export default function MarketPage() {
           setCars([])
           setOwnerClaims([])
         }
+      } finally {
+        if (!cancelled) setListBusy(false)
       }
     })()
     return () => {
@@ -56,6 +61,21 @@ export default function MarketPage() {
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
+  if (mode === 'owner' && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+  if (!ownerEmail) return <Navigate to="/auth/owner" replace />
+  if (listBusy) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
 
   const limits = ownerGarageLimits(cars)
 
@@ -70,8 +90,8 @@ export default function MarketPage() {
               </h1>
               <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
                 <p className="serviceHint__panelText">
-                  Здесь карточки и история по каждой машине. Профиль, баннер и публичная улица по ссылке <span className="mono">/g/…</span>{' '}
-                  — в разделе «Гараж». Кнопка «Добавить авто» может быть недоступна при лимите гаража.
+                  Здесь карточки и история по каждой машине. Профиль, баннер и витрина по ссылке <span className="mono">/g/…</span> — в
+                  разделе «Гараж» (режим «в гараже» или «на улице»). Кнопка «Добавить авто» может быть недоступна при лимите гаража.
                 </p>
               </ServiceHint>
             </div>
@@ -114,7 +134,7 @@ export default function MarketPage() {
         </div>
       </div>
 
-      <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/cars" />
+      <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/cars" cars={cars} />
 
       <OwnerVinClaimSection
         ownerEmail={ownerEmail}

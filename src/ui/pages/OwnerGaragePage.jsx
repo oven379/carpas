@@ -1,12 +1,21 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Card, HeroCoverStat, ServiceHint } from '../components.jsx'
-import { getSessionOwner, hasOwnerSession } from '../auth.js'
+import { Card, HeroCoverStat, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
-import { fmtDateTime, fmtKm } from '../../lib/format.js'
+import {
+  displayRuPhone,
+  fmtDateTime,
+  fmtKm,
+  normalizeHttpUrl,
+  parseGarageSocialLines,
+  shortExternalLinkLabel,
+} from '../../lib/format.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import {
   dedupeCarsById,
   OWNER_MAX_MANUAL_CARS,
@@ -41,21 +50,79 @@ function pickBestDetailingId(cars, ownerClaims) {
   return bestId
 }
 
+/** Данные сервиса для аватара в гараже: из списка авто, без /public/detailings (там только не «личные» кабинеты). */
+function linkedDetailingFromCars(bestId, cars) {
+  const id = String(bestId || '').trim()
+  if (!id) return null
+  for (const c of cars || []) {
+    if (String(c?.detailingId || '').trim() !== id) continue
+    return {
+      id,
+      name: String(c.detailingName || '').trim(),
+      logo: String(c.detailingLogo || '').trim(),
+    }
+  }
+  return { id, name: '', logo: '' }
+}
+
+function GarageLastVisitMetaRow({ visit }) {
+  const showAt = Boolean(visit.at)
+  const showKm = visit.mileageKm != null && visit.mileageKm !== ''
+  return (
+    <>
+      {showAt ? <span className="eventMeta__when">{fmtDateTime(visit.at)}</span> : null}
+      {showAt && showKm ? <span aria-hidden="true"> · </span> : null}
+      {showKm ? <span className="eventMeta__km">{fmtKm(visit.mileageKm)}</span> : null}
+    </>
+  )
+}
+
+function GaragePhoneGlyph() {
+  return (
+    <svg className="garageProfileCard__iconSvg" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1 17 17 0 01-18.56-18.56 1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.24 1.01l-2.2 2.2z"
+      />
+    </svg>
+  )
+}
+
+function GarageGlobeGlyph() {
+  return (
+    <svg className="garageProfileCard__iconSvg" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        d="M3 12h18M12 3c2.5 3.5 2.5 14.5 0 18M12 3c-2.5 3.5-2.5 14.5 0 18"
+      />
+    </svg>
+  )
+}
+
 export default function OwnerGaragePage() {
   const r = useRepo()
   const loc = useLocation()
   const nav = useNavigate()
   const [sp] = useSearchParams()
   const showSetupBanner = sp.get('from') === 'setup'
-  const { owner, mode } = useDetailing()
+  const { owner, mode, loading } = useDetailing()
 
   const [cars, setCars] = useState([])
   const [ownerClaims, setOwnerClaims] = useState([])
-  const [linkedDetailing, setLinkedDetailing] = useState(null)
+  const [listBusy, setListBusy] = useState(true)
   const [copyHint, setCopyHint] = useState('')
   /** Последний сохранённый визит по любому авто гаража (не черновик), для строки «Последний визит» в профиле */
   const [garageLastVisit, setGarageLastVisit] = useState(null)
   const [garageLastVisitLoading, setGarageLastVisitLoading] = useState(false)
+  const [lastVisitThumbBroken, setLastVisitThumbBroken] = useState(false)
 
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -75,7 +142,7 @@ export default function OwnerGaragePage() {
     }
   }, [publicUrl])
 
-  const ownerEmail = String(owner?.email || getSessionOwner()?.email || '').trim()
+  const ownerEmail = String(owner?.email || '').trim()
 
   useEffect(() => {
     if (loc.hash !== '#garage-vin-claim') return
@@ -130,8 +197,10 @@ export default function OwnerGaragePage() {
       if (!hasOwnerSession() || !ownerEmail) {
         setCars([])
         setOwnerClaims([])
+        setListBusy(false)
         return
       }
+      setListBusy(true)
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
@@ -142,6 +211,8 @@ export default function OwnerGaragePage() {
           setCars([])
           setOwnerClaims([])
         }
+      } finally {
+        if (!cancelled) setListBusy(false)
       }
     })()
     return () => {
@@ -149,27 +220,11 @@ export default function OwnerGaragePage() {
     }
   }, [ownerEmail, r, r._version])
 
-  useEffect(() => {
-    let cancelled = false
-    const bestId = pickBestDetailingId(cars, ownerClaims)
-    if (!bestId || typeof r.getDetailing !== 'function') {
-      setLinkedDetailing(null)
-      return () => {
-        cancelled = true
-      }
-    }
-    void (async () => {
-      try {
-        const d = await r.getDetailing(bestId)
-        if (!cancelled) setLinkedDetailing(d)
-      } catch {
-        if (!cancelled) setLinkedDetailing(null)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [cars, ownerClaims, r, r._version])
+  const bestDetailingId = useMemo(() => pickBestDetailingId(cars, ownerClaims), [cars, ownerClaims])
+  const linkedDetailing = useMemo(
+    () => (bestDetailingId ? linkedDetailingFromCars(bestDetailingId, cars) : null),
+    [bestDetailingId, cars],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -198,6 +253,10 @@ export default function OwnerGaragePage() {
           setGarageLastVisit(null)
           return
         }
+        const carRow = cars.find((c) => String(c?.id ?? '') === String(best.carId))
+        const carDisplayName = carRow
+          ? [String(carRow.make || '').trim(), String(carRow.model || '').trim()].filter(Boolean).join(' ').trim()
+          : ''
         const e = best.evt
         const evts = best.carEvents
         const linkLabel =
@@ -218,14 +277,17 @@ export default function OwnerGaragePage() {
         try {
           const allDocs = await r.listDocs(best.carId)
           const docs = Array.isArray(allDocs) ? allDocs : []
-          const forEvt = docs.filter((d) => String(d.eventId || '') === String(e.id))
-          photoUrl = String(forEvt[0]?.url || '').trim()
+          const forEvt = docs.filter((d) => String(d.eventId || '') === String(e.id) && String(d.url || '').trim())
+          const photoDocs = forEvt.filter((d) => String(d.kind || 'photo') === 'photo')
+          const pick = photoDocs[0] || forEvt[0]
+          photoUrl = String(pick?.url || '').trim()
         } catch {
           photoUrl = ''
         }
         if (cancelled) return
         setGarageLastVisit({
           carId: best.carId,
+          carDisplayName,
           eventId: e.id,
           linkLabel,
           headlineName,
@@ -250,18 +312,94 @@ export default function OwnerGaragePage() {
     }
   }, [ownerEmail, cars, r, r._version])
 
+  useEffect(() => {
+    setLastVisitThumbBroken(false)
+  }, [garageLastVisit?.eventId, garageLastVisit?.photoUrl])
+
+  const websiteRaw = String(owner?.garageWebsite || '').trim()
+  const websiteHref = websiteRaw ? normalizeHttpUrl(owner?.garageWebsite) : ''
+  const ownerSocialLinks = useMemo(() => {
+    const raw = owner?.garageSocial
+    if (!raw) return []
+    return parseGarageSocialLines(String(raw))
+      .map((line) => ({ line, href: normalizeHttpUrl(line) }))
+      .filter((x) => x.href)
+  }, [owner?.garageSocial])
+  const profileLinkChips = useMemo(() => {
+    const seen = new Set()
+    const out = []
+    const add = (href, title, kind) => {
+      const key = String(href || '').trim().toLowerCase()
+      if (!key || seen.has(key)) return
+      seen.add(key)
+      const label =
+        kind === 'showcase' && slug
+          ? `/g/${slug}`
+          : shortExternalLinkLabel(href, title)
+      out.push({
+        key: `${kind}-${out.length}`,
+        href,
+        title: title || href,
+        label,
+        kind,
+      })
+    }
+    if (websiteHref) add(websiteHref, websiteRaw, 'site')
+    for (const { line, href } of ownerSocialLinks) add(href, line, 'social')
+    if (publicUrl) add(publicUrl, publicUrl, 'showcase')
+    return out
+  }, [websiteHref, websiteRaw, ownerSocialLinks, publicUrl, slug])
+
+  /** Соцсети из настроек; улица /g/… и сайт не дублируем (сайт — иконка глобуса выше). */
+  const profileLinkChipsSocialOnly = useMemo(
+    () => profileLinkChips.filter((item) => item.kind !== 'site' && item.kind !== 'showcase'),
+    [profileLinkChips],
+  )
+
+  const linkOpensNewTab = useCallback((href) => {
+    if (typeof window === 'undefined') return true
+    try {
+      return new URL(href, window.location.origin).origin !== window.location.origin
+    } catch {
+      return true
+    }
+  }, [])
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
-  if (!hasOwnerSession() || !ownerEmail) return <Navigate to="/auth/owner" replace />
+  if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
+  if (mode === 'owner' && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+  if (!ownerEmail) return <Navigate to="/auth/owner" replace />
+  if (listBusy) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
 
   const limits = ownerGarageLimits(cars)
   const detInitials = String(linkedDetailing?.name || 'Д')
     .trim()
     .slice(0, 2)
     .toUpperCase()
-  const displayName = String(owner?.name || getSessionOwner()?.name || '').trim() || ownerEmail
+  const displayName = String(owner?.name || '').trim() || ownerEmail
   const initials = displayName.slice(0, 2).toUpperCase()
   const cityLine = String(owner?.garageCity || '').trim()
-  const phoneStr = String(owner?.phone || '').trim()
+  const garageCarStatTitle = `${cars.length} ${
+    cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'
+  } в гараже`
+  const addCarLimitTitle =
+    limits.totalCount >= OWNER_MAX_TOTAL_CARS
+      ? `В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`
+      : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто — остальное через «Найти авто по VIN» в сервисе`
+  const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner?.phone)
+  const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
   return (
     <div className="container garagePage">
@@ -273,8 +411,8 @@ export default function OwnerGaragePage() {
                 Настройки гаража сохранены
               </div>
               <p className="muted small" style={{ margin: '8px 0 0', maxWidth: '58ch', lineHeight: 1.5 }}>
-                На публичной улице по ссылке <span className="mono">/g/…</span> отображаются имя, число авто и поля, для которых вы
-                включили публикацию (город, телефон, сайт, соцсеть).
+                Витрина по ссылке <span className="mono">/g/…</span> управляется в настройках: режим «Выйти на улицу» показывает
+                заполненные контакты и авто; «Остаться в гараже» закрывает страницу для гостей.
               </p>
             </div>
             <div className="row gap wrap detPublicSetupBanner__actions">
@@ -296,38 +434,29 @@ export default function OwnerGaragePage() {
           </div>
         </Card>
       ) : null}
-      <div
-        className={`detHero detHero--card garageHero${owner?.garageBanner ? '' : ' garageHero--noBanner'}`}
-        style={
-          owner?.garageBanner
-            ? { backgroundImage: `url("${String(owner.garageBanner).replaceAll('"', '%22')}")` }
-            : undefined
-        }
-      >
-        <div className="detHero__overlay detHero__overlay--card detHero__overlay--garageOwner">
-          <Link
-            className="btn detHero__editBtn detHero__editBtn--icon"
-            data-variant="ghost"
-            to="/garage/settings"
-            aria-label="Настройки гаража: баннер, аватар, контакты, адрес страницы"
-            title="Настройки гаража"
-          >
-            <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
-          </Link>
-          <div className="detHero__bottomRow garageHero__bottomRow">
-            <div className="row gap wrap carHero__pills detHero__pills">
-              <HeroCoverStat
-                kind="car"
-                variant="overlay"
-                value={cars.length}
-                title={`${cars.length} ${cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в гараже`}
-              />
-            </div>
+      {bannerSurfaceVisible ? (
+        <div
+          className="detHero detHero--card garageHero"
+          style={{ backgroundImage: resolvedBackgroundImageUrl(owner.garageBanner) }}
+        >
+          <div className="detHero__overlay detHero__overlay--card detHero__overlay--garageOwner">
+            <Link
+              className="btn detHero__editBtn detHero__editBtn--icon"
+              data-variant="ghost"
+              to="/garage/settings"
+              aria-label="Настройки гаража: баннер, аватар, контакты, адрес страницы"
+              title="Настройки гаража"
+            >
+              <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
+            </Link>
           </div>
         </div>
-      </div>
+      ) : null}
 
-      <Card className="card pad garageProfileCard" style={{ marginTop: 12, marginBottom: 16 }}>
+      <Card
+        className="card pad garageProfileCard"
+        style={{ marginTop: bannerSurfaceVisible ? 12 : 0, marginBottom: 16 }}
+      >
         <div className="garageProfileCard__top">
           <div className="garageProfileCard__main">
             <div id="owner-garage-public-hint" className="row gap wrap" style={{ alignItems: 'center' }}>
@@ -343,7 +472,7 @@ export default function OwnerGaragePage() {
             {publicUrl ? (
               <button
                 type="button"
-                className="h2 garageProfileCard__nameAction"
+                className="garageProfileCard__displayName garageProfileCard__displayName--action"
                 onClick={() => copyPublicUrl()}
                 title={`Скопировать ссылку: ${publicUrl}`}
                 aria-label="Скопировать ссылку на публичную улицу"
@@ -351,50 +480,72 @@ export default function OwnerGaragePage() {
                 {displayName}
               </button>
             ) : (
-              <h2 className="h2 garageProfileCard__name">{displayName}</h2>
+              <h2 className="garageProfileCard__displayName">{displayName}</h2>
             )}
             {copyHint ? (
               <p className="muted small garageProfileCard__copyStatus" role="status">
                 {copyHint}
               </p>
             ) : null}
+            <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
+              <span className="garageProfileCard__metaKey">Город:</span>{' '}
+              {cityLine || (
+                <>
+                  не указан —{' '}
+                  <Link className="link" to="/garage/settings">
+                    настройки
+                  </Link>
+                </>
+              )}
+            </p>
+            <div className="garageProfileCard__iconRow" aria-label="Контакты">
+              {phoneTelHref ? (
+                <a
+                  className="garageProfileCard__iconTap"
+                  href={phoneTelHref}
+                  title={phoneDisplay}
+                  aria-label={`Позвонить: ${phoneDisplay}`}
+                >
+                  <GaragePhoneGlyph />
+                </a>
+              ) : phoneDisplay ? (
+                <span
+                  className="garageProfileCard__iconTap garageProfileCard__iconTap--disabled"
+                  title={`${phoneDisplay} — полный номер для звонка в настройках`}
+                  aria-hidden="true"
+                >
+                  <GaragePhoneGlyph />
+                </span>
+              ) : null}
+              {websiteHref ? (
+                <a
+                  className="garageProfileCard__iconTap garageProfileCard__iconTap--web"
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={websiteRaw}
+                  aria-label={`Открыть сайт: ${websiteRaw}`}
+                >
+                  <GarageGlobeGlyph />
+                </a>
+              ) : null}
+            </div>
+            {!phoneDisplay && !websiteHref ? (
+              <p className="muted small garageProfileCard__metaLine garageProfileCard__metaLine--spaced">
+                <Link className="link" to="/garage/settings">
+                  Телефон и сайт
+                </Link>
+                {' — в настройках.'}
+              </p>
+            ) : null}
             <div className="garageProfileCard__meta">
-              <p className="muted small garageProfileCard__metaLine">
-                <span className="garageProfileCard__metaKey">Город:</span>{' '}
-                {cityLine || (
-                  <>
-                    не указан —{' '}
-                    <Link className="link" to="/garage/settings">
-                      настройки
-                    </Link>
-                  </>
-                )}
-              </p>
-              <p className="muted small garageProfileCard__metaLine">
-                <span className="garageProfileCard__metaKey">Телефон:</span>{' '}
-                {phoneStr ? (
-                  phoneStr
-                ) : (
-                  <>
-                    не указан —{' '}
-                    <Link className="link" to="/garage/settings">
-                      настройки
-                    </Link>
-                  </>
-                )}
-              </p>
-              {activityLabel === 'Профиль обновлён' ? (
+              {garageLastVisitLoading ? (
                 <p className="muted small garageProfileCard__metaLine">
-                  <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
-                  {fmtDateTime(activityAt) || '—'}
+                  <span className="garageProfileCard__metaKey">Последний визит:</span>{' '}
+                  <PageLoadSpinner size="inline" />
                 </p>
               ) : null}
-              {activityLabel === 'Последний визит' && garageLastVisitLoading ? (
-                <p className="muted small garageProfileCard__metaLine">
-                  <span className="garageProfileCard__metaKey">{activityLabel}:</span> Загрузка…
-                </p>
-              ) : null}
-              {activityLabel === 'Последний визит' && !garageLastVisitLoading && garageLastVisit ? (
+              {!garageLastVisitLoading && garageLastVisit ? (
                 <div className="garageProfileCard__lastVisit">
                   <Link
                     className="garageProfileCard__lastVisitHit"
@@ -403,30 +554,34 @@ export default function OwnerGaragePage() {
                     })}
                     aria-label={`Открыть визит: ${garageLastVisit.headlineName}`}
                   >
-                    <div className="rowItem__meta carPage__meta garageProfileCard__lastVisitHead">
-                      <span className="metaStrong">Последний визит</span>
-                      {garageLastVisit.at ? (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          <span className="eventMeta__when">{fmtDateTime(garageLastVisit.at)}</span>
-                        </>
-                      ) : null}
-                      {garageLastVisit.mileageKm != null && garageLastVisit.mileageKm !== '' ? (
-                        <>
-                          <span aria-hidden="true"> · </span>
-                          <span className="eventMeta__km">{fmtKm(garageLastVisit.mileageKm)}</span>
-                        </>
+                    <div className="garageProfileCard__lastVisitHead">
+                      <div className="garageProfileCard__lastVisitLead">
+                        <span className="garageProfileCard__lastVisitLeadLabel">Последний визит:</span>
+                        {garageLastVisit.carDisplayName ? (
+                          <>
+                            {' '}
+                            <span className="garageProfileCard__lastVisitLeadCar">
+                              {garageLastVisit.carDisplayName}
+                            </span>
+                          </>
+                        ) : null}
+                      </div>
+                      {garageLastVisit.at ||
+                      (garageLastVisit.mileageKm != null && garageLastVisit.mileageKm !== '') ? (
+                        <div className="garageProfileCard__lastVisitMeta">
+                          <GarageLastVisitMetaRow visit={garageLastVisit} />
+                        </div>
                       ) : null}
                     </div>
                     <div className="rowItem__lastEvt">
                       <div className="rowItem__lastEvtTop">
-                        {garageLastVisit.photoUrl ? (
-                          <span
-                            className="rowItem__lastEvtPhoto"
-                            aria-hidden="true"
-                            style={{
-                              backgroundImage: `url("${String(garageLastVisit.photoUrl).replaceAll('"', '%22')}")`,
-                            }}
+                        {garageLastVisit.photoUrl && !lastVisitThumbBroken ? (
+                          <img
+                            className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
+                            alt=""
+                            src={resolvePublicMediaUrl(garageLastVisit.photoUrl)}
+                            decoding="async"
+                            onError={() => setLastVisitThumbBroken(true)}
                           />
                         ) : null}
                         <div className="rowItem__lastEvtText">
@@ -474,34 +629,71 @@ export default function OwnerGaragePage() {
                   </Link>
                 </div>
               ) : null}
-              {activityLabel === 'Последний визит' && !garageLastVisitLoading && !garageLastVisit ? (
+              {!garageLastVisitLoading && !garageLastVisit ? (
+                <p className="muted small garageProfileCard__metaLine">
+                  <span className="garageProfileCard__metaKey">Последний визит:</span> Нет истории
+                </p>
+              ) : null}
+              {activityLabel === 'Профиль обновлён' ? (
                 <p className="muted small garageProfileCard__metaLine">
                   <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
-                  {fmtDateTime(activityAt) || 'Нет истории'}
+                  {fmtDateTime(activityAt) || '—'}
+                </p>
+              ) : null}
+              {profileLinkChipsSocialOnly.length ? (
+                <div className="garageProfileCard__socialOnly">
+                  <div className="garageProfileCard__extraLinksRow">
+                    {profileLinkChipsSocialOnly.map((item) => {
+                      const ext = linkOpensNewTab(item.href)
+                      return (
+                        <a
+                          key={item.key}
+                          className="link garageProfileCard__extraLink"
+                          href={item.href}
+                          target={ext ? '_blank' : undefined}
+                          rel={ext ? 'noopener noreferrer' : undefined}
+                          title={item.title}
+                        >
+                          {item.label}
+                          {ext ? ' ↗' : ''}
+                        </a>
+                      )
+                    })}
+                  </div>
+                  {owner?.garagePrivate && publicUrl ? (
+                    <p className="muted small garageProfileCard__linkBlockNote">
+                      Для гостей витрина по ссылке сейчас закрыта — откройте настройки и включите «Выйти на улицу».
+                    </p>
+                  ) : null}
+                </div>
+              ) : owner?.garagePrivate && publicUrl ? (
+                <p className="muted small garageProfileCard__linkBlockNote garageProfileCard__metaLine--spaced">
+                  Для гостей витрина по ссылке сейчас закрыта — откройте настройки и включите «Выйти на улицу».
                 </p>
               ) : null}
             </div>
             {!publicUrl ? (
-              <>
-                <p className="muted small garageProfileCard__lead">
-                  Задайте короткий адрес улицы в настройках — появится ссылка для гостей (латиница, цифры, дефис).
-                </p>
-                <div className="row gap wrap garageProfileCard__actions">
-                  <Link className="btn" data-variant="primary" to="/garage/settings">
-                    Настройки гаража
-                  </Link>
-                </div>
-              </>
+              <p className="muted small garageProfileCard__lead">
+                Задайте короткий адрес улицы в настройках — появится ссылка для гостей (латиница, цифры, дефис). Открыть
+                настройки: нажмите на аватар справа{bannerSurfaceVisible ? ' или на значок карандаша на баннере' : ''}.
+              </p>
             ) : null}
           </div>
-          <div className="garageProfileCard__avatarCol" aria-hidden="true">
-            {owner?.garageAvatar ? (
-              <div className="garageProfileCard__avatar">
-                <img alt="" src={owner.garageAvatar} />
-              </div>
-            ) : (
-              <div className="garageProfileCard__avatar garageProfileCard__avatar--fallback">{initials}</div>
-            )}
+          <div className="garageProfileCard__avatarCol">
+            <Link
+              className="garageProfileCard__avatarLink"
+              to="/garage/settings"
+              aria-label="Настройки гаража: аватар, баннер и контакты"
+              title="Настройки гаража"
+            >
+              {owner?.garageAvatar ? (
+                <div className="garageProfileCard__avatar">
+                  <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
+                </div>
+              ) : (
+                <div className="garageProfileCard__avatar garageProfileCard__avatar--fallback">{initials}</div>
+              )}
+            </Link>
           </div>
         </div>
         <div className="garageProfileCard__footer">
@@ -517,7 +709,7 @@ export default function OwnerGaragePage() {
               }
             >
               {linkedDetailing.logo ? (
-                <img alt="" src={linkedDetailing.logo} />
+                <img alt="" src={resolvePublicMediaUrl(linkedDetailing.logo)} />
               ) : (
                 <span className="garageProfileCard__detAvatarFallback" aria-hidden="true">
                   {detInitials}
@@ -525,61 +717,44 @@ export default function OwnerGaragePage() {
               )}
             </Link>
           ) : null}
-          <div className="garageProfileCard__footerActions">
-            {limits.canVinClaim ? (
-              <Link
-                className="btn garageVinClaimBtn"
-                data-variant="outline"
-                to="/garage#garage-vin-claim"
-                aria-label="Найти авто по VIN"
-              >
-                <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
-                <span className="garageVinClaimBtn__short" aria-hidden="true">
-                  VIN
+          <div className="garageProfileCard__footerCallRow">
+            <div className="garageProfileCard__footerActions">
+              {limits.canVinClaim ? (
+                <Link
+                  className="btn garageVinClaimBtn"
+                  data-variant="outline"
+                  to="/garage#garage-vin-claim"
+                  aria-label="Найти авто по VIN"
+                >
+                  <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
+                  <span className="garageVinClaimBtn__short" aria-hidden="true">
+                    VIN
+                  </span>
+                </Link>
+              ) : (
+                <span
+                  className="btn btn--asDisabled garageVinClaimBtn"
+                  data-variant="outline"
+                  title={`В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`}
+                  aria-label="Найти авто по VIN"
+                >
+                  <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
+                  <span className="garageVinClaimBtn__short" aria-hidden="true">
+                    VIN
+                  </span>
                 </span>
-              </Link>
-            ) : (
-              <span
-                className="btn btn--asDisabled garageVinClaimBtn"
-                data-variant="outline"
-                title={`В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`}
-                aria-label="Найти авто по VIN"
-              >
-                <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
-                <span className="garageVinClaimBtn__short" aria-hidden="true">
-                  VIN
-                </span>
-              </span>
-            )}
-            {limits.canAddManual ? (
-              <Link
-                className="btn garageProfileCard__addCarBtn garageAddCarBtn"
-                data-variant="primary"
-                to="/create"
-                aria-label="Добавить автомобиль"
-              >
-                <span className="garageAddCarBtn__text">Добавить автомобиль</span>
-                <span className="garageAddCarBtn__icon" aria-hidden="true">
-                  <span className="carPage__icon carPage__icon--car" />
-                </span>
-              </Link>
-            ) : (
-              <span
-                className="btn garageProfileCard__addCarBtn garageAddCarBtn btn--asDisabled"
-                data-variant="primary"
-                title={
-                  limits.totalCount >= OWNER_MAX_TOTAL_CARS
-                    ? `Не больше ${OWNER_MAX_TOTAL_CARS} авто в гараже`
-                    : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто — остальное через «Найти авто по VIN» в сервисе`
-                }
-                aria-label="Добавить автомобиль"
-              >
-                <span className="garageAddCarBtn__text">Добавить автомобиль</span>
-                <span className="garageAddCarBtn__icon" aria-hidden="true">
-                  <span className="carPage__icon carPage__icon--car" />
-                </span>
-              </span>
-            )}
+              )}
+            </div>
+            <HeroCoverStat
+              kind="car"
+              variant="card"
+              className="garageProfileCard__carStat"
+              value={cars.length}
+              title={limits.canAddManual ? garageCarStatTitle : addCarLimitTitle}
+              to="/create"
+              linkDisabled={!limits.canAddManual}
+              aria-label={!limits.canAddManual ? garageCarStatTitle : undefined}
+            />
           </div>
         </div>
       </Card>
@@ -590,7 +765,7 @@ export default function OwnerGaragePage() {
             <h2 className="h2" style={{ marginBottom: 10 }}>
               Автомобили в гараже
             </h2>
-            <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" />
+            <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} />
             <OwnerVinClaimSection
               ownerEmail={ownerEmail}
               cars={cars}

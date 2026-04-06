@@ -52,17 +52,7 @@ export function hasDetailingSession() {
   return Boolean(getDetailingToken() && getSessionDetailingId())
 }
 
-const AUTH_DEBUG = import.meta.env.DEV
-
-export function debugAuth(phase, data = {}) {
-  if (!AUTH_DEBUG) return
-  console.log('[carpas:auth]', phase, {
-    hasOwnerSession: hasOwnerSession(),
-    hasDetailingSession: hasDetailingSession(),
-    path: typeof location !== 'undefined' ? location.pathname : '',
-    ...data,
-  })
-}
+export function debugAuth() {}
 
 export function isAuthed() {
   return hasOwnerSession() || hasDetailingSession()
@@ -88,7 +78,7 @@ export function setSessionOwner(owner, token = null) {
   bumpSessionRefresh()
 }
 
-/** Обновить в сессии текстовые поля владельца после сохранения в репозиторий (без баннера/аватара — объём). */
+/** Обновить в сессии поля владельца после ответа API (тексты + URL баннера/аватара из /owners/me). */
 export function mergeSessionOwnerScalars(patch) {
   const cur = getSessionOwner()
   if (!cur?.email || !patch || typeof patch !== 'object') return
@@ -98,6 +88,24 @@ export function mergeSessionOwnerScalars(patch) {
     phone: patch.phone != null ? String(patch.phone) : cur.phone,
     garageCity: patch.garageCity != null ? String(patch.garageCity) : cur.garageCity,
     garageSlug: patch.garageSlug != null ? String(patch.garageSlug) : cur.garageSlug,
+    garagePrivate:
+      patch.garagePrivate !== undefined ? Boolean(patch.garagePrivate) : Boolean(cur.garagePrivate),
+    garageBannerEnabled:
+      patch.garageBannerEnabled !== undefined
+        ? Boolean(patch.garageBannerEnabled)
+        : cur.garageBannerEnabled !== false,
+    garageBanner:
+      Object.prototype.hasOwnProperty.call(patch, 'garageBanner') && patch.garageBanner
+        ? String(patch.garageBanner)
+        : Object.prototype.hasOwnProperty.call(patch, 'garageBanner')
+          ? ''
+          : (cur.garageBanner ?? ''),
+    garageAvatar:
+      Object.prototype.hasOwnProperty.call(patch, 'garageAvatar') && patch.garageAvatar
+        ? String(patch.garageAvatar)
+        : Object.prototype.hasOwnProperty.call(patch, 'garageAvatar')
+          ? ''
+          : (cur.garageAvatar ?? ''),
     showPhonePublic:
       patch.showPhonePublic !== undefined
         ? ownerPublicFlagTrue(patch.showPhonePublic)
@@ -122,17 +130,22 @@ export function mergeSessionOwnerScalars(patch) {
   })
 }
 
-/** Снимок владельца для sessionStorage: скаляры для UI, без пароля и без base64 баннера/аватара. */
+/** Снимок владельца для sessionStorage (ответ login/register/me): публичные URL медиа, не сырые base64. */
 export function ownerToSessionSnapshot(o) {
   if (!o || typeof o !== 'object') return null
   const email = typeof o.email === 'string' ? o.email.trim() : ''
   if (!email) return null
+  const slug = o.garageSlug
   return {
     email,
     name: o.name != null ? String(o.name) : '',
     phone: o.phone != null ? String(o.phone) : '',
     garageCity: o.garageCity != null ? String(o.garageCity) : '',
-    garageSlug: o.garageSlug != null ? String(o.garageSlug) : '',
+    garageSlug: slug != null && slug !== '' ? String(slug) : '',
+    garagePrivate: Boolean(o.garagePrivate),
+    garageBannerEnabled: o.garageBannerEnabled !== false,
+    garageBanner: typeof o.garageBanner === 'string' ? o.garageBanner : '',
+    garageAvatar: typeof o.garageAvatar === 'string' ? o.garageAvatar : '',
     showPhonePublic: ownerPublicFlagTrue(o.showPhonePublic),
     garageWebsite: o.garageWebsite != null ? String(o.garageWebsite) : '',
     showWebsitePublic: ownerPublicFlagTrue(o.showWebsitePublic),
@@ -151,6 +164,22 @@ export function clearSession() {
   removeSS(SESSION_OWNER_KEY)
   removeSS(SESSION_OWNER_TOKEN_KEY)
   debugAuth('clearSession')
+  bumpSessionRefresh()
+}
+
+/** Только владелец (например 401 на /owners/* — токен протух или отозван). */
+export function clearOwnerSession() {
+  removeSS(SESSION_OWNER_KEY)
+  removeSS(SESSION_OWNER_TOKEN_KEY)
+  debugAuth('clearOwnerSession')
+  bumpSessionRefresh()
+}
+
+/** Только партнёр (401 на запросы с токеном детейлинга). */
+export function clearDetailingSession() {
+  removeSS(SESSION_DETAILING_KEY)
+  removeSS(SESSION_DETAILING_TOKEN_KEY)
+  debugAuth('clearDetailingSession')
   bumpSessionRefresh()
 }
 

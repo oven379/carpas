@@ -139,6 +139,14 @@ const PLATE_MAP_CYR_TO_LAT = new Map([
 export const RU_PLATE_LETTERS_LAT = 'ABEKMHOPCTYX'
 const RU_PLATE_LETTER_SET = new Set(RU_PLATE_LETTERS_LAT.split(''))
 
+/** Пример: основная часть слева, регион справа (как на белой табличке). */
+export const RU_PLATE_LAYOUT_DIAGRAM = '  A123BC   +   77\n  основная часть   регион'
+
+export const RU_PLATE_HINT_PARAGRAPHS = [
+  'Легковой номер РФ: первое поле — шесть знаков подряд (буква, три цифры, две буквы), как слева на табличке; второе — код региона, 2–3 цифры.',
+  'Буквы только А, В, Е, К, М, Н, О, Р, С, Т, У, Х (или латиницей A, B, E, K, M, H, O, P, C, T, Y, X). Остальное из ввода убирается. Номер можно не указывать.',
+]
+
 function plateToLatinUpper(ch) {
   const up = String(ch || '').toUpperCase()
   if (!up) return ''
@@ -187,10 +195,10 @@ export function describeRuPlateValidationError(plateRaw, plateRegionRaw) {
     return 'Укажите основную часть номера и код региона (2–3 цифры) либо оставьте госномер пустым.'
   }
   if (!/^[ABEKMHOPCTYX]\d{3}[ABEKMHOPCTYX]{2}$/.test(b)) {
-    return 'Формат как у легкового номера РФ: буква из набора А В Е К М Н О Р С Т У Х, три цифры, две буквы из того же набора. Другие латинские буквы на таких номерах не используются.'
+    return 'Первая часть: буква из АВЕКМНОРСТУХ, три цифры, две буквы (например A777AA). Регион — во втором поле.'
   }
   if (r.length < 2 || r.length > 3) {
-    return 'Код региона — 2 или 3 цифры (как на табличке справа).'
+    return 'Регион — 2 или 3 цифры.'
   }
   return null
 }
@@ -330,12 +338,45 @@ export function formatPhoneRuInput(raw) {
   return `+7${d}`
 }
 
+/**
+ * Показ и ссылка tel: для РФ: всегда +7 и до 10 цифр после кода страны.
+ * tel: только если набрано 10 цифр номера (без учёта ведущей 7).
+ */
+export function displayRuPhone(raw) {
+  const display = formatPhoneRuInput(raw)
+  if (!display) return { display: '', telHref: '' }
+  const national = display.replace(/^\+7/, '').replace(/\D/g, '')
+  if (national.length === 0) return { display: '', telHref: '' }
+  const telHref = national.length >= 10 ? `tel:+7${national.slice(0, 10)}` : ''
+  return { display, telHref }
+}
+
 /** Публичная страница на улице: не показываем полный номер. */
 export function fmtPlatePublic(plate, plateRegion) {
   const full = fmtPlateFull(plate, plateRegion)
   if (!full) return '—'
   if (full.length <= 3) return '•••'
   return `${full.slice(0, 2)}•••${full.slice(-2)}`
+}
+
+/** Короткая подпись ссылки для карточек (домен + усечённый путь). */
+export function shortExternalLinkLabel(href, rawLine = '') {
+  const h = String(href || '').trim()
+  if (!h) {
+    const s = String(rawLine || '').trim()
+    return s.length > 44 ? `${s.slice(0, 42)}…` : s
+  }
+  try {
+    const u = new URL(h)
+    const host = u.hostname.replace(/^www\./i, '')
+    let path = u.pathname + u.search
+    if (path === '/' || path === '') return host
+    if (path.length > 30) path = `${path.slice(0, 28)}…`
+    return `${host}${path}`
+  } catch {
+    const s = String(rawLine || h).trim()
+    return s.length > 44 ? `${s.slice(0, 42)}…` : s
+  }
 }
 
 /** Сайт и строки соцсетей: только http/https. */

@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { getApi } from '../api/index.js'
+import { bumpSessionRefresh } from './auth.js'
 
 const API = getApi()
 const listeners = new Set()
@@ -12,6 +13,14 @@ function emit() {
 
 export function invalidateRepo() {
   emit()
+}
+
+/** Сброс слияния параллельных GET, перезагрузка профиля из /me и повторная подгрузка списков в UI. */
+export function refreshAllClientData() {
+  const api = getApi()
+  if (typeof api.flushCoalescedRequests === 'function') api.flushCoalescedRequests()
+  bumpSessionRefresh()
+  invalidateRepo()
 }
 
 export function subscribeRepo(cb) {
