@@ -420,6 +420,13 @@ button.nav__action {
   margin: 0 0 10px;
 }
 
+/* «Клиент:» в карточках списков (жирность и кегль как у подзаголовков на широкой вёрстке) */
+.clientBlockLabel {
+  font-size: 20px;
+  font-weight: 650;
+  color: var(--text-h);
+}
+
 .muted {
   color: var(--text);
 }
@@ -1822,6 +1829,7 @@ a.heroCoverStat--link:focus-visible {
   border-radius: 14px;
   overflow: hidden;
   flex-shrink: 0;
+  margin-inline-start: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1871,15 +1879,24 @@ a.heroCoverStat--link:focus-visible {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
-.rowItem__ownerSummaryTitle {
+.rowItem__ownerSummaryOwnerLine {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rowItem__ownerSummaryLabel {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--text-h);
+}
+
+.rowItem__ownerSummaryName {
   font-weight: 650;
   color: var(--text-h);
   font-size: 15px;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
 }
 
 .rowItem__ownerSummaryPhone {
@@ -1960,6 +1977,29 @@ a.heroCoverStat--link:focus-visible {
   align-items: flex-start;
   gap: 12px;
   margin-top: 10px;
+}
+
+.requestsCard__clientBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.requestsCard__clientLine {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.requestsCard__clientName {
+  font-weight: 650;
+  color: var(--text-h);
+  font-size: 15px;
+}
+
+.requestsCard__ownerAccountLine {
+  margin-top: 6px;
+  line-height: 1.5;
 }
 
 .requestsCard__ownerMeta {
@@ -2064,6 +2104,8 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 
 @media (max-width: 640px) {
   .requestsCard__ownerBlock {
+    flex-direction: row-reverse;
+    justify-content: space-between;
     gap: 10px;
     margin-top: 8px;
     align-items: flex-start;
@@ -5522,6 +5564,23 @@ a.thumbCard__fileDoc {
   font-weight: 650;
 }
 
+/* Плашка «важно» / «совет» и текст в одной линии; перенос только у текста справа от плашки */
+.recItem__row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.recItem__row .pill {
+  flex-shrink: 0;
+}
+
+.recItem__row .recTitle {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .recWhy {
   margin-top: 6px;
 }
@@ -6029,6 +6088,14 @@ a.btn.carPage__recsAddVisitFull,
     font-size: 18px;
   }
 
+  .clientBlockLabel {
+    font-size: 18px;
+  }
+
+  .requestsCard__clientLine .clientBlockLabel {
+    font-size: 18px;
+  }
+
   /* Шапка страницы: заголовок и кнопки столбцом, без горизонтального скролла */
   .container > .row.spread.gap {
     flex-direction: column;
@@ -6361,6 +6428,10 @@ a.btn.carPage__recsAddVisitFull,
   /* Дашборд детейлинга: вместо отдельной колонки — полоса «аватар + контекст» над кнопкой */
   .rowItem--ownerPeek .rowItem__ownerPeek {
     display: none !important;
+  }
+
+  .rowItem--ownerPeek .rowItem__sub--hideWhenOwnerSummary {
+    display: none;
   }
 
   .rowItem__ownerSummary {
