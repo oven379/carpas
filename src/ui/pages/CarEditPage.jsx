@@ -11,6 +11,7 @@ import {
   fmtPlateFull,
   normDigits,
   normPlateBase,
+  normPlateBaseUi,
   normPlateRegion,
   normVin,
   parsePlateFull,
@@ -170,7 +171,7 @@ export default function CarEditPage({ mode }) {
       const hero = car.hero || ''
       setDraft({
         vin: car.vin || '',
-        plate: car.plate || '',
+        plate: normPlateBaseUi(car.plate || ''),
         plateRegion: car.plateRegion || '',
         make: car.make || '',
         model: car.model || '',
@@ -199,7 +200,7 @@ export default function CarEditPage({ mode }) {
       if (vin) base.vin = vin
       if (plate) {
         const parsed = parsePlateFull(plate)
-        base.plate = parsed.plate
+        base.plate = normPlateBaseUi(parsed.plate)
         base.plateRegion = parsed.plateRegion
       }
       if (plateRegion) base.plateRegion = normPlateRegion(plateRegion)
@@ -449,9 +450,9 @@ export default function CarEditPage({ mode }) {
                 className="input mono"
                 value={draft.plate}
                 maxLength={6}
-                title="Шесть знаков: буква, три цифры, две буквы"
-                onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBase(e.target.value) }))}
-                placeholder="A777AA"
+                title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы"
+                onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBaseUi(e.target.value) }))}
+                placeholder="А777АА"
               />
               <Input
                 className="input mono"
@@ -676,7 +677,10 @@ export default function CarEditPage({ mode }) {
                       draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
                     if (who === 'owner' && plateKey && r.findCarsByPlate) {
                       try {
-                        const matches2 = await r.findCarsByPlate({ plate: draft.plate, plateRegion: draft.plateRegion })
+                        const matches2 = await r.findCarsByPlate({
+                          plate: normPlateBase(draft.plate),
+                          plateRegion: normPlateRegion(draft.plateRegion),
+                        })
                         if (Array.isArray(matches2) && matches2.length) {
                           const msg =
                             'Авто с таким госномером уже может быть в сервисе (возможен дубль). Создать карточку всё равно?'

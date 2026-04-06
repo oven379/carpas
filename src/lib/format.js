@@ -135,43 +135,83 @@ const PLATE_MAP_CYR_TO_LAT = new Map([
   ['Х', 'X'],
 ])
 
+/** Латиница → кириллица для тех же букв ГОСТ (как на российской табличке). */
+export const PLATE_MAP_LAT_TO_CYR = new Map(
+  [...PLATE_MAP_CYR_TO_LAT.entries()].map(([cyr, lat]) => [lat, cyr]),
+)
+
 /** Латинские буквы, допустимые на российских госномерах (как на табличке: АВЕКМНОРСТУХ). */
 export const RU_PLATE_LETTERS_LAT = 'ABEKMHOPCTYX'
 const RU_PLATE_LETTER_SET = new Set(RU_PLATE_LETTERS_LAT.split(''))
 
 /** Пример: основная часть слева, регион справа (как на белой табличке). */
-export const RU_PLATE_LAYOUT_DIAGRAM = '  A123BC   +   77\n  основная часть   регион'
+export const RU_PLATE_LAYOUT_DIAGRAM = '  А123ВС   +   77\n  основная часть   регион'
 
 export const RU_PLATE_HINT_PARAGRAPHS = [
   'Легковой номер РФ: первое поле — шесть знаков подряд (буква, три цифры, две буквы), как слева на табличке; второе — код региона, 2–3 цифры.',
-  'Буквы только А, В, Е, К, М, Н, О, Р, С, Т, У, Х (или латиницей A, B, E, K, M, H, O, P, C, T, Y, X). Остальное из ввода убирается. Номер можно не указывать.',
+  'Буквы только из набора ГОСТ: А, В, Е, К, М, Н, О, Р, С, Т, У, Х (кириллица). Для удобства также принимаются те же буквы латиницей (A, B, E, K, M, H, O, P, C, T, Y, X). Остальные символы из ввода убираются. Номер можно не указывать.',
 ]
 
-function plateToLatinUpper(ch) {
-  const up = String(ch || '').toUpperCase()
-  if (!up) return ''
-  if (PLATE_MAP_CYR_TO_LAT.has(up)) return PLATE_MAP_CYR_TO_LAT.get(up)
-  // если уже латиница/цифра — возвращаем как есть
-  return up
+function plateCharToLatinUpper(ch) {
+  const u = String(ch || '').toLocaleUpperCase('ru-RU')
+  if (!u) return ''
+  if (PLATE_MAP_CYR_TO_LAT.has(u)) return PLATE_MAP_CYR_TO_LAT.get(u)
+  if (u.length === 1 && u >= '0' && u <= '9') return u
+  if (u.length === 1 && u >= 'A' && u <= 'Z' && RU_PLATE_LETTER_SET.has(u)) return u
+  return ''
 }
 
-// Госномер (base): только цифры и буквы из RU_PLATE_LETTERS_LAT (после маппинга разрешённой кириллицы).
-// Храним базовую часть отдельно от региона (6 символов: A123BC).
+/**
+ * Поле ввода: только цифры и буквы АВЕКМНОРСТУХ (кириллица в верхнем регистре).
+ * Латинские «близнецы» превращаются в кириллицу, чтобы на экране был номер «как на табличке».
+ */
+export function normPlateBaseUi(raw, { maxLen = 6 } = {}) {
+  const s = String(raw || '')
+  if (!s) return ''
+  let out = ''
+  for (const ch of s) {
+    if (out.length >= maxLen) break
+    if (ch >= '0' && ch <= '9') {
+      out += ch
+      continue
+    }
+    const u = String(ch).toLocaleUpperCase('ru-RU')
+    if (PLATE_MAP_CYR_TO_LAT.has(u)) {
+      out += u
+      continue
+    }
+    if (u.length === 1 && u >= 'A' && u <= 'Z' && RU_PLATE_LETTER_SET.has(u)) {
+      out += PLATE_MAP_LAT_TO_CYR.get(u) || u
+    }
+  }
+  return out
+}
+
+// Госномер (base) для API и БД: латиница ABEKMHOPCTYX + цифры, 6 символов (A123BC).
 export function normPlateBase(raw, { maxLen = 6 } = {}) {
   const s = String(raw || '')
   if (!s) return ''
   let out = ''
   for (const ch of s) {
     if (out.length >= maxLen) break
-    const x = plateToLatinUpper(ch)
-    const code = x.charCodeAt(0)
-    const isDigit = code >= 48 && code <= 57
-    const isUpper = code >= 65 && code <= 90
-    if (isDigit) {
-      out += x
+    const lat = plateCharToLatinUpper(ch)
+    if (!lat) continue
+    if (lat >= '0' && lat <= '9') {
+      out += lat
       continue
     }
-    if (isUpper && RU_PLATE_LETTER_SET.has(x)) out += x
+    if (lat >= 'A' && lat <= 'Z' && RU_PLATE_LETTER_SET.has(lat)) out += lat
+  }
+  return out
+}
+
+/** Отображение сохранённой латинской базы кириллицей (как на номере РФ). */
+export function plateLatinBaseToCyrillicDisplay(latinPlate) {
+  const b = normPlateBase(latinPlate, { maxLen: 6 })
+  let out = ''
+  for (const ch of b) {
+    if (ch >= '0' && ch <= '9') out += ch
+    else out += PLATE_MAP_LAT_TO_CYR.get(ch) || ch
   }
   return out
 }
@@ -195,7 +235,7 @@ export function describeRuPlateValidationError(plateRaw, plateRegionRaw) {
     return 'Укажите основную часть номера и код региона (2–3 цифры) либо оставьте госномер пустым.'
   }
   if (!/^[ABEKMHOPCTYX]\d{3}[ABEKMHOPCTYX]{2}$/.test(b)) {
-    return 'Первая часть: буква из АВЕКМНОРСТУХ, три цифры, две буквы (например A777AA). Регион — во втором поле.'
+    return 'Первая часть: буква из АВЕКМНОРСТУХ, три цифры, две буквы (например А777АА). Регион — во втором поле.'
   }
   if (r.length < 2 || r.length > 3) {
     return 'Регион — 2 или 3 цифры.'
@@ -207,13 +247,13 @@ function normPlateStringForParse(raw) {
   const s = String(raw || '')
   let out = ''
   for (const ch of s) {
-    const x = plateToLatinUpper(ch)
-    const code = x.charCodeAt(0)
-    if (code >= 48 && code <= 57) {
+    const x = plateCharToLatinUpper(ch)
+    if (!x) continue
+    if (x >= '0' && x <= '9') {
       out += x
       continue
     }
-    if (code >= 65 && code <= 90 && RU_PLATE_LETTER_SET.has(x)) out += x
+    if (x >= 'A' && x <= 'Z' && RU_PLATE_LETTER_SET.has(x)) out += x
   }
   return out
 }
@@ -248,7 +288,8 @@ export function parsePlateFull(raw) {
 export function fmtPlateFull(plate, plateRegion) {
   const b = normPlateBase(plate, { maxLen: 6 })
   const r = normPlateRegion(plateRegion, { maxLen: 3 })
-  return r ? `${b}${r}` : b
+  const bShow = plateLatinBaseToCyrillicDisplay(b)
+  return r ? `${bShow}${r}` : bShow
 }
 
 /** Кириллица (и часть укр. букв) → латиница для slug в URL. */
