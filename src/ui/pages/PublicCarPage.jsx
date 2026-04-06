@@ -133,7 +133,7 @@ export default function PublicCarPage() {
           <div className="recList">
             {recs.map((x, idx) => (
               <div key={idx} className="recItem">
-                <div className="row gap wrap">
+                <div className="recItem__row">
                   <span className="pill" data-tone={x.tone || 'neutral'}>
                     {x.tone === 'accent' ? 'важно' : 'совет'}
                   </span>

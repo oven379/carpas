@@ -88,6 +88,20 @@ function inferPrefill(qRaw) {
   }
 }
 
+/** 10 цифр после страны для API search-duplicate (без VIN в строке). */
+function duplicateSearchPhoneKey(qRaw) {
+  if (resolveVinFromDashboardQuery(qRaw)) return ''
+  const pre = inferPrefill(qRaw)
+  if (!pre.clientPhone) return ''
+  const d = onlyDigits(pre.clientPhone)
+  if (d.length < 10) return ''
+  let x = d
+  if (x.startsWith('8')) x = `7${x.slice(1)}`
+  if (x.startsWith('7') && x.length === 11) x = x.slice(1)
+  const last10 = x.slice(-10)
+  return /^\d{10}$/.test(last10) ? last10 : ''
+}
+
 function isStrictHit(car, qRaw) {
   const q = String(qRaw || '').trim()
   if (!q) return false
@@ -191,38 +205,54 @@ export default function DetailingDashboardPage() {
   const strictHits = useMemo(() => cars.filter((c) => isStrictHit(c, q)), [cars, q])
   const quickTargetCar = strictHits.length === 1 ? strictHits[0] : null
 
-  const [externalVinHits, setExternalVinHits] = useState([])
+  const [externalLinkHits, setExternalLinkHits] = useState([])
+  const [externalLinkKind, setExternalLinkKind] = useState(null)
   const [linkEvidenceByCarId, setLinkEvidenceByCarId] = useState({})
   const [linkBusyId, setLinkBusyId] = useState(null)
 
   useEffect(() => {
     if (!detailingId || mode !== 'detailing') {
-      setExternalVinHits([])
+      setExternalLinkHits([])
+      setExternalLinkKind(null)
       return
     }
     if (strictHits.length > 0) {
-      setExternalVinHits([])
+      setExternalLinkHits([])
+      setExternalLinkKind(null)
       return
     }
     const v = resolveVinFromDashboardQuery(q)
-    if (!v) {
-      setExternalVinHits([])
+    const phoneKey = v ? '' : duplicateSearchPhoneKey(q)
+    if (!v && !phoneKey) {
+      setExternalLinkHits([])
+      setExternalLinkKind(null)
       return
     }
     let cancelled = false
     ;(async () => {
       try {
         if (!r.findDuplicateCarsForDetailing) {
-          if (!cancelled) setExternalVinHits([])
+          if (!cancelled) {
+            setExternalLinkHits([])
+            setExternalLinkKind(null)
+          }
           return
         }
-        const res = await r.findDuplicateCarsForDetailing({ vin: v })
+        const res = await r.findDuplicateCarsForDetailing(
+          v ? { vin: v } : { clientPhone: `+7${phoneKey}` },
+        )
         const list = Array.isArray(res) ? res : []
         const mine = new Set(cars.map((c) => String(c.id)))
         const ext = list.filter((c) => !mine.has(String(c.id)))
-        if (!cancelled) setExternalVinHits(ext)
+        if (!cancelled) {
+          setExternalLinkHits(ext)
+          setExternalLinkKind(v ? 'vin' : 'phone')
+        }
       } catch {
-        if (!cancelled) setExternalVinHits([])
+        if (!cancelled) {
+          setExternalLinkHits([])
+          setExternalLinkKind(null)
+        }
       }
     })()
     return () => {
@@ -404,10 +434,10 @@ export default function DetailingDashboardPage() {
             onChange={(e) => setSp({ q: e.target.value }, { replace: true })}
           />
           <div className="detSearchCard__actions">
-            <ServiceHint scopeId="detailing-dash-empty-hint" variant="compact" label="Справка: список авто">
+              <ServiceHint scopeId="detailing-dash-empty-hint" variant="compact" label="Справка: список авто">
               <p className="serviceHint__panelText">
-                Список авто на обслуживании. Панель поиска и «Добавить авто» закреплены под шапкой при прокрутке длинного
-                списка.
+                Список авто на обслуживании. В поиске можно указать VIN или номер телефона (10 цифр) — если машина в
+                личном гараже клиента уже есть в КарПас, появится блок «Добавить к нам», как при совпадении по VIN.
               </p>
             </ServiceHint>
             <button
@@ -421,9 +451,10 @@ export default function DetailingDashboardPage() {
                   return
                 }
                 const vinResolved = resolveVinFromDashboardQuery(q)
-                if (vinResolved && externalVinHits.length > 0) {
+                const phoneScrollKey = duplicateSearchPhoneKey(q)
+                if ((vinResolved || phoneScrollKey) && externalLinkHits.length > 0) {
                   document
-                    .getElementById('det-external-vin-card')
+                    .getElementById('det-external-link-card')
                     ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   return
                 }
@@ -449,18 +480,20 @@ export default function DetailingDashboardPage() {
         </div>
       </Card>
 
-      {externalVinHits.length > 0 ? (
-        <Card id="det-external-vin-card" className="card pad detExternalVinCard" style={{ marginTop: 12 }}>
+      {externalLinkHits.length > 0 ? (
+        <Card id="det-external-link-card" className="card pad detExternalVinCard" style={{ marginTop: 12 }}>
           <div className="cardTitle" style={{ margin: 0 }}>
-            Этот VIN есть в системе, но не в вашем списке
+            {externalLinkKind === 'phone'
+              ? 'По этому телефону есть авто в системе, но не в вашем списке'
+              : 'Этот VIN есть в системе, но не в вашем списке'}
           </div>
           <p className="muted small" style={{ margin: '8px 0 12px', maxWidth: '62ch', lineHeight: 1.5 }}>
-            Для авто из <strong>личного гаража</strong> владельца: подтвердите год и/или город и нажмите «Добавить к нам»
-            — карточка появится у вас и останется у клиента (без дубля). Карточка <strong>другого сервиса</strong> сюда не
-            переносится — создайте новую у себя или дождитесь заявки клиента.
+            Для авто из <strong>личного гаража</strong> владельца: подтвердите год и/или город (как в заявке с улицы) и
+            нажмите «Добавить к нам» — карточка появится у вас и останется у клиента (без дубля). Карточка{' '}
+            <strong>другого сервиса</strong> сюда не переносится — создайте новую у себя или дождитесь заявки клиента.
           </p>
           <div className="list">
-            {externalVinHits.slice(0, 8).map((c) => {
+            {externalLinkHits.slice(0, 8).map((c) => {
               const fromGarage = Boolean(c.vinHitFromOwnerGarage)
               const ev = linkEvidenceByCarId[c.id] || { year: '', city: '' }
               const yearOpts = buildYearOptions(c.year)
@@ -569,12 +602,16 @@ export default function DetailingDashboardPage() {
           const ownerSlug = String(c.ownerGarageSlug || '').trim()
           const ownerAvatarRaw = String(c.ownerGarageAvatar || '').trim()
           const ownerAvatar = ownerAvatarRaw ? resolvePublicMediaUrl(ownerAvatarRaw) : ''
-          const accountPhone = String(c.ownerAccountPhone || '').trim()
-          const carOwnerPhone = String(c.ownerPhone || '').trim()
-          const phoneForOwnerPeek = accountPhone || carOwnerPhone
-          const { display: ownerPhoneRaw, telHref: ownerPhoneHref } = displayRuPhone(phoneForOwnerPeek)
-          // В кабинете партнёра показываем номер для связи; «на улице» /g/… регулируется отдельно у владельца.
-          const ownerPhonePublic = true
+          /* Телефон в полосе владельца — из ЛК/гаража (поле владельца), не «клиентский» номер в карточке авто */
+          const garageOwnerPhone = String(c.ownerAccountPhone || '').trim()
+          const { display: ownerPhoneRaw, telHref: ownerPhoneHref } = displayRuPhone(garageOwnerPhone)
+          const clientSummaryText =
+            c.clientName ||
+            c.clientPhone ||
+            c.clientEmail ||
+            c.ownerEmail ||
+            c.ownerPhone ||
+            '—'
           return (
             <div key={c.id} className={`rowItem${ownerInApp ? ' rowItem--ownerPeek' : ''}`}>
               <Link
@@ -614,14 +651,34 @@ export default function DetailingDashboardPage() {
                       </>
                     ) : null}
                   </div>
-                  <div className="rowItem__sub">
-                    Клиент:{' '}
-                    {c.clientName || c.clientPhone || c.clientEmail || c.ownerEmail || c.ownerPhone || '—'}
+                  <div
+                    className={
+                      ownerInApp
+                        ? 'rowItem__sub rowItem__sub--hideWhenOwnerSummary'
+                        : 'rowItem__sub'
+                    }
+                  >
+                    <span className="clientBlockLabel">Клиент:</span> {clientSummaryText}
                   </div>
                 </div>
               </Link>
               {ownerInApp ? (
                 <div className="rowItem__ownerSummary">
+                  <div className="rowItem__ownerSummaryBody">
+                    <div className="rowItem__ownerSummaryOwnerLine">
+                      <span className="rowItem__ownerSummaryLabel">Владелец:</span>{' '}
+                      <span className="rowItem__ownerSummaryName">{ownerPeekLabel}</span>
+                    </div>
+                    {ownerPhoneHref ? (
+                      <a className="rowItem__ownerSummaryPhone" href={ownerPhoneHref}>
+                        {ownerPhoneRaw}
+                      </a>
+                    ) : garageOwnerPhone ? (
+                      <span className="muted small">{ownerPhoneRaw || garageOwnerPhone}</span>
+                    ) : (
+                      <span className="muted small">Телефон в гараже не указан</span>
+                    )}
+                  </div>
                   {ownerSlug ? (
                     <Link
                       className="rowItem__ownerSummaryAvatar"
@@ -651,20 +708,6 @@ export default function DetailingDashboardPage() {
                       )}
                     </span>
                   )}
-                  <div className="rowItem__ownerSummaryBody">
-                    <div className="rowItem__ownerSummaryTitle">{ownerPeekLabel}</div>
-                    {ownerPhonePublic && ownerPhoneHref ? (
-                      <a className="rowItem__ownerSummaryPhone" href={ownerPhoneHref}>
-                        {ownerPhoneRaw}
-                      </a>
-                    ) : ownerPhoneRaw && !ownerPhonePublic ? (
-                      <span className="muted small" title="Владелец не разрешил публикацию телефона на улице">
-                        Телефон скрыт на улице
-                      </span>
-                    ) : (
-                      <span className="muted small">Телефон в аккаунте не указан</span>
-                    )}
-                  </div>
                 </div>
               ) : null}
               {ownerInApp ? (

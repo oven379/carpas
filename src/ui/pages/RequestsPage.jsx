@@ -5,6 +5,7 @@ import { BackNav, Card, PageLoadSpinner, Pill, ServiceHint } from '../components
 import { useDetailing } from '../useDetailing.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import { displayRuPhone } from '../../lib/format.js'
 
 function eqNorm(a, b) {
   const x = String(a || '').trim().toLowerCase()
@@ -114,6 +115,9 @@ export default function RequestsPage() {
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
           const ownerLabel = String(x.ownerName || '').trim() || String(x.ownerEmail || 'Владелец').trim()
           const ownerInitial = (ownerLabel.slice(0, 2) || '?').toUpperCase()
+          const ownerDisplayName = String(x.ownerName || '').trim() || String(x.ownerEmail || '').trim() || '—'
+          const phoneForCall = String(car?.ownerAccountPhone || x.ownerAccountPhone || '').trim()
+          const { display: ownerPhoneDisplay, telHref: ownerPhoneTelHref } = displayRuPhone(phoneForCall)
           return (
             <Card key={x.id} className="card pad">
               <div className="row spread gap requestsCard__row">
@@ -158,32 +162,46 @@ export default function RequestsPage() {
                       </div>
                     )}
                     <div className="requestsCard__ownerMeta">
-                      <div className="rowItem__sub requestsCard__ownerLine">
-                        <span className="requestsCard__ownerLineLabel">Владелец:</span>{' '}
-                        {ownerGarageSlug ? (
-                          <>
-                            <span className="mono requestsCard__ownerPlain">{x.ownerEmail}</span>
-                            <span className="requestsCard__ownerLineSep" aria-hidden="true">
-                              {' '}
-                              ·{' '}
-                            </span>
-                            <Link
-                              className="requestsCard__ownerPublicLink"
-                              to={`/g/${encodeURIComponent(ownerGarageSlug)}`}
-                              state={{ from: `${loc.pathname}${loc.search}` }}
-                            >
-                              ссылка аккаунта владельца авто
-                            </Link>
-                          </>
+                      <div className="requestsCard__clientBlock">
+                        <div className="requestsCard__clientLine">
+                          <span className="clientBlockLabel">Клиент:</span>{' '}
+                          <span className="requestsCard__clientName">{ownerDisplayName}</span>
+                        </div>
+                        {ownerPhoneTelHref ? (
+                          <a className="rowItem__ownerSummaryPhone" href={ownerPhoneTelHref}>
+                            {ownerPhoneDisplay}
+                          </a>
+                        ) : phoneForCall ? (
+                          <span className="muted small">{ownerPhoneDisplay || phoneForCall}</span>
                         ) : (
-                          <span
-                            className="requestsCard__ownerPlain"
-                            title="Публичная страница гаража не задана — указан только аккаунт"
-                          >
-                            <span className="requestsCard__carpasIdTag mono muted">carpas/id:</span>{' '}
-                            <span className="mono">{x.ownerEmail}</span>
-                          </span>
+                          <span className="muted small">Телефон в гараже не указан</span>
                         )}
+                        <div className="muted small requestsCard__ownerLine requestsCard__ownerAccountLine">
+                          {ownerGarageSlug ? (
+                            <>
+                              <span className="mono requestsCard__ownerPlain">{x.ownerEmail}</span>
+                              <span className="requestsCard__ownerLineSep" aria-hidden="true">
+                                {' '}
+                                ·{' '}
+                              </span>
+                              <Link
+                                className="requestsCard__ownerPublicLink"
+                                to={`/g/${encodeURIComponent(ownerGarageSlug)}`}
+                                state={{ from: `${loc.pathname}${loc.search}` }}
+                              >
+                                ссылка аккаунта владельца авто
+                              </Link>
+                            </>
+                          ) : (
+                            <span
+                              className="requestsCard__ownerPlain"
+                              title="Публичная страница гаража не задана — указан только аккаунт"
+                            >
+                              <span className="requestsCard__carpasIdTag mono muted">carpas/id:</span>{' '}
+                              <span className="mono">{x.ownerEmail}</span>
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {car?.vin ? (
                         <div className="muted small requestsCard__vin">VIN: {car.vin}</div>

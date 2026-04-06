@@ -619,7 +619,9 @@ export default function CarEditPage({ mode }) {
                     const clientEmail = String(draft.clientEmail || '').trim().toLowerCase()
 
                     if (who === 'detailing' && r.findDuplicateCarsForDetailing) {
-                      if (vin || (clientPhone && clientEmail)) {
+                      const phoneDigitsLen = String(clientPhone || '').replace(/\D/g, '').length
+                      const phoneAloneOk = phoneDigitsLen >= 10
+                      if (vin || (clientPhone && clientEmail) || phoneAloneOk) {
                         try {
                           const dupes = await r.findDuplicateCarsForDetailing({
                             vin,
@@ -636,7 +638,7 @@ export default function CarEditPage({ mode }) {
                               ? '\nИсточник: личный гараж владельца в КарПас.'
                               : ''
                             const msg =
-                              'Найдена существующая карточка по VIN и/или телефону и почте клиента:\n\n' +
+                              'Найдена существующая карточка по VIN и/или телефону клиента:\n\n' +
                               `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
                               vinLine +
                               (plateLine ? `\nГосномер: ${plateLine}` : '') +

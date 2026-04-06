@@ -184,6 +184,7 @@ class ApiResources
             'detailingId' => (string) $c->detailing_id,
             'ownerEmail' => $ow?->email ?? '',
             'ownerName' => trim((string) ($ow?->name ?? '')),
+            'ownerAccountPhone' => trim((string) ($ow?->phone ?? '')),
             'ownerGarageSlug' => trim((string) ($ow?->garage_slug ?? '')),
             'ownerGarageAvatar' => MediaStorage::publicUrl($ow?->garage_avatar ?? null),
             'status' => $c->status,

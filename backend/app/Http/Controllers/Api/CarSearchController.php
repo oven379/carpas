@@ -55,7 +55,60 @@ class CarSearchController extends Controller
     }
 
     /**
-     * Кабинет партнёра: поиск карточек до создания дубля — по VIN и/или паре телефон + почта клиента.
+     * Карточки с совпадением нормализованного телефона (client_phone, owner_phone на авто, phone владельца в ЛК).
+     */
+    private static function carsMatchingPhoneDigits(string $phoneCmp): Collection
+    {
+        if (strlen($phoneCmp) < 10) {
+            return collect();
+        }
+        $tail = substr($phoneCmp, -7);
+        $found = collect();
+
+        $pushMatches = function (Collection $batch) use (&$found, $phoneCmp) {
+            foreach ($batch as $c) {
+                $c->loadMissing('owner');
+                if (self::comparablePhoneDigits($c->client_phone) === $phoneCmp) {
+                    $found->push($c);
+
+                    continue;
+                }
+                if (self::comparablePhoneDigits($c->owner_phone) === $phoneCmp) {
+                    $found->push($c);
+
+                    continue;
+                }
+                if ($c->owner && self::comparablePhoneDigits($c->owner->phone) === $phoneCmp) {
+                    $found->push($c);
+                }
+            }
+        };
+
+        $narrowAndLoad = function ($base) use ($tail) {
+            return $base
+                ->where(function ($q) use ($tail) {
+                    $q->where('client_phone', 'like', '%'.$tail.'%')
+                        ->orWhere('owner_phone', 'like', '%'.$tail.'%')
+                        ->orWhereHas('owner', function ($oq) use ($tail) {
+                            $oq->where('phone', 'like', '%'.$tail.'%');
+                        });
+                })
+                ->with(['detailing', 'owner'])
+                ->orderByDesc('updated_at')
+                ->limit(150)
+                ->get();
+        };
+
+        $pushMatches($narrowAndLoad(self::nonPersonalCarsQuery()));
+        $pushMatches($narrowAndLoad(
+            Car::query()->whereHas('detailing', fn ($q) => $q->where('is_personal', true)),
+        ));
+
+        return $found;
+    }
+
+    /**
+     * Кабинет партнёра: поиск карточек до создания дубля — по VIN, по телефону (как запасной фактор), и/или паре телефон + почта клиента.
      */
     public function duplicateCandidatesForDetailing(Request $request)
     {
@@ -67,8 +120,9 @@ class CarSearchController extends Controller
         $wantVin = $vin !== '';
         $phoneCmp = self::comparablePhoneDigits($phoneRaw);
         $wantContact = $email !== '' && $phoneCmp !== '';
+        $wantPhoneSolo = $phoneCmp !== '' && strlen($phoneCmp) >= 10 && $email === '' && ! $wantVin;
 
-        if (! $wantVin && ! $wantContact) {
+        if (! $wantVin && ! $wantContact && ! $wantPhoneSolo) {
             return response()->json([]);
         }
 
@@ -91,6 +145,10 @@ class CarSearchController extends Controller
                     ->limit(50)
                     ->get(),
             );
+        }
+
+        if ($wantPhoneSolo) {
+            $found = $found->merge(self::carsMatchingPhoneDigits($phoneCmp));
         }
 
         if ($wantContact) {

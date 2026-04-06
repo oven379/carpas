@@ -1,0 +1,69 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Car;
+use App\Models\Owner;
+use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\Sanctum;
+
+class CarSearchDuplicateTest extends FeatureTestCase
+{
+    public function test_duplicate_search_finds_personal_garage_by_phone_only(): void
+    {
+        $owner = Owner::query()->create([
+            'email' => 'phone-search-owner@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Пётр',
+            'phone' => '+79161234567',
+        ]);
+
+        $personalDet = \App\Models\Detailing::query()->create([
+            'name' => 'Личный',
+            'email' => 'pd-phone-'.uniqid('', true).'@example.test',
+            'password' => Hash::make('secret'),
+            'is_personal' => true,
+            'owner_id' => $owner->id,
+        ]);
+
+        $partner = $this->detailing();
+
+        Car::query()->create([
+            'detailing_id' => $personalDet->id,
+            'owner_id' => $owner->id,
+            'vin' => 'WPH1234567890ABCD',
+            'plate' => '',
+            'plate_region' => '',
+            'make' => 'VW',
+            'model' => 'Golf',
+            'year' => 2021,
+            'mileage_km' => 10000,
+            'price_rub' => 0,
+            'color' => 'серый',
+            'city' => 'Казань',
+            'hero' => null,
+            'segment' => 'mass',
+            'seller' => null,
+            'client_phone' => '',
+            'owner_phone' => '',
+        ]);
+
+        Sanctum::actingAs($partner);
+
+        $res = $this->getJson('/api/cars/search-duplicate?clientPhone='.urlencode('9161234567'));
+        $res->assertOk();
+        $res->assertJsonCount(1);
+        $res->assertJsonPath('0.make', 'VW');
+        $res->assertJsonPath('0.vinHitFromOwnerGarage', true);
+    }
+
+    public function test_duplicate_search_phone_only_requires_ten_digits(): void
+    {
+        $partner = $this->detailing();
+        Sanctum::actingAs($partner);
+
+        $this->getJson('/api/cars/search-duplicate?clientPhone='.urlencode('12345'))
+            ->assertOk()
+            ->assertJsonCount(0);
+    }
+}
