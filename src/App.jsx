@@ -8,7 +8,7 @@ import FooterSupport from './ui/FooterSupport.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 
-const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
+const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
 const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
 const CarPage = lazy(() => import('./ui/pages/CarPage.jsx'))
 const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
@@ -79,17 +79,20 @@ function SyncClientDataOnTabReturn() {
 }
 
 export default function App() {
+  const loc = useLocation()
+  const aboutLandingChrome = loc.pathname === '/about'
+
   return (
     <div className="app">
       <SyncClientDataOnTabReturn />
-      <TopNav />
-      <main className="main">
+      {aboutLandingChrome ? null : <TopNav />}
+      <main className={aboutLandingChrome ? 'main main--aboutLanding' : 'main'}>
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Navigate to="/auth" replace />} />
-            <Route path="/about" element={<HomePage />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route
               path="/cars"
               element={
@@ -191,9 +194,11 @@ export default function App() {
           </Routes>
         </Suspense>
       </main>
-      <footer className="footer">
-        <FooterSupport />
-      </footer>
+      {aboutLandingChrome ? null : (
+        <footer className="footer">
+          <FooterSupport />
+        </footer>
+      )}
     </div>
   )
 }

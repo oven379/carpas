@@ -204,6 +204,13 @@ button.nav__action {
   min-width: 0;
 }
 
+/* Лендинг /about: полноэкранный блок без отступов основного layout */
+.main--aboutLanding {
+  padding: 0;
+  flex: 1;
+  min-height: 100svh;
+}
+
 /* Ленивая загрузка страниц (React.lazy): по центру всего окна, под шапкой (z-index ниже .nav) */
 .routeFallback {
   position: fixed;
