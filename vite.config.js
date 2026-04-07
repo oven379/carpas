@@ -30,6 +30,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': aboutLandingRoot,
       },
+      /* R3F + react-reconciler: одна копия React, иначе падает ReactCurrentBatchConfig */
+      dedupe: ['react', 'react-dom'],
     },
     server: {
       host: true,
