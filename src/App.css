@@ -64,6 +64,29 @@
   box-sizing: border-box;
 }
 
+/* Вордмарк в шапке: фиолетовая обводка (читаемость белой части на светлой теме), масштаб в узкой колонке */
+.navLogoFrame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: min(132px, 100%);
+  padding: 3px 7px;
+  border-radius: 10px;
+  border: 2px solid #9333ea;
+  box-sizing: border-box;
+  line-height: 0;
+  background: color-mix(in oklab, var(--bg) 40%, transparent);
+}
+
+.navLogoFrame .navWordmarkSvg {
+  display: block;
+  width: auto;
+  height: 18px;
+  max-width: 100%;
+}
+
 /* Вордмарк: тёмный фон под белую часть логотипа */
 .brandWordmarkWrap {
   display: inline-flex;
@@ -461,27 +484,27 @@ button.nav__action {
   margin-bottom: 0;
 }
 
-/* История на карточке авто: переход в полную историю */
+/* История на карточке авто: превью сверху, «Открыть» по центру блока */
+.carPage__sectionRow--history {
+  align-items: stretch;
+}
+
+.carPage__sectionRow--history .carPage__sectionHead {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 100%;
+}
+
 .carPage__historyHeaderActions {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 8px;
   flex-shrink: 0;
   flex-wrap: wrap;
-}
-
-@media (max-width: 640px) {
-  .carPage__sectionRow--history {
-    flex-wrap: wrap;
-  }
-
-  .carPage__sectionRow--history .carPage__historyHeaderActions {
-    width: 100%;
-    justify-content: flex-end;
-    margin-top: 2px;
-  }
+  width: 100%;
+  margin-top: 4px;
 }
 
 .carPage__sectionMeta {
@@ -1440,6 +1463,27 @@ a.heroCoverStat--link:focus-visible {
 /* Предпросмотр услуг в настройках лендинга — та же кнопка в углу, что на /d/… */
 .detailingSettings__servicesPreview.detPublicServicesCard {
   padding-top: 2px;
+}
+
+.detailingCustomOfferRow {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.detailingCustomOfferRow .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailingCustomOfferAddBtn {
+  flex-shrink: 0;
+  width: 48px;
+  min-height: 44px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 600;
 }
 
 .steps {
@@ -2768,12 +2812,32 @@ a.backNav {
   min-width: 0;
 }
 
-.carPage__titleRow .h1 {
+.carPage__titleNameRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.carPage__titleNameRow .h1 {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* «Визит» у названия — только узкие экраны; на баннере кнопки убраны */
+.carPage__titleVisitBtn {
+  display: none;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .carPage__titleVisitBtn {
+    display: inline-flex;
+  }
 }
 
 .carPage__titleActions {
@@ -2838,13 +2902,6 @@ a.backNav {
   height: 22px;
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
-}
-
-/* Быстрый «новый визит» на обложке — только мобилка (на широкой вёрстке скрыт) */
-@media (min-width: 641px) {
-  .carPage__heroAddVisitBtn {
-    display: none !important;
-  }
 }
 
 /* Гараж владельца: на узких экранах — короткая подпись «VIN» */
@@ -4800,6 +4857,27 @@ button.garageSettings__thumb:focus-visible {
   margin-right: auto;
 }
 
+/* /auth: кнопка роли + ServiceHint в одной строке */
+.authHub--roleRows {
+  margin-top: 0;
+  max-width: min(420px, 100%);
+  gap: 14px;
+}
+
+.authHub__roleRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.authHub__roleRow .authHub__btn--role {
+  flex: 1;
+  min-width: 0;
+}
+
 /* На всех экранах: не допускаем горизонтального скролла из-за authHub */
 .authHub,
 .authHub .btn.authHub__btn {
@@ -5726,6 +5804,11 @@ a.thumbCard__fileDoc {
   font-weight: 650;
 }
 
+.historyCareTips__charCount {
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
 .link {
   display: inline-flex;
   align-items: center;
@@ -6301,6 +6384,16 @@ a.btn.carPage__recsAddVisitFull,
     gap: 10px;
   }
 
+  .authHub__roleRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .authHub__roleRow .authHub__btn--role {
+    width: 100%;
+  }
+
   .authHub .btn.authHub__btn {
     min-height: 44px;
     padding: 11px 14px;
@@ -6387,7 +6480,12 @@ a.btn.carPage__recsAddVisitFull,
     flex-wrap: nowrap;
   }
 
-  .carPage__titleRow .h1 {
+  .carPage__titleRow .carPage__titleNameRow {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .carPage__titleNameRow .h1 {
     flex: 1;
     min-width: 0;
   }
@@ -6444,8 +6542,10 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .nav__brand {
-    width: fit-content;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: calc(100% - 128px);
+    overflow: hidden;
   }
 
   .nav__brand .brandWordmarkWrap {
@@ -6458,9 +6558,22 @@ a.btn.carPage__recsAddVisitFull,
     width: auto;
   }
 
+  .navLogoFrame {
+    max-width: min(104px, calc(100vw - 168px));
+    padding: 2px 5px;
+    border-radius: 8px;
+    border-width: 2px;
+  }
+
+  .navLogoFrame .navWordmarkSvg {
+    height: 13px;
+    width: auto;
+    max-width: 100%;
+  }
+
   .nav__brandTagline {
     padding-left: 0;
-    max-width: min(200px, 46vw);
+    max-width: min(160px, calc(100vw - 168px));
     font-size: 10px;
     letter-spacing: 0.01em;
   }

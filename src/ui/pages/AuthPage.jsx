@@ -24,12 +24,14 @@ export default function AuthPage() {
             </p>
             <ServiceHint scopeId="auth-hub-hint" variant="compact" label="Справка: вход и данные">
               <p className="serviceHint__panelText">
-                Выберите роль: владелец или партнёр (детейлинг / СТО). На этом устройстве вы остаётесь в аккаунте, пока не выйдете; смена
+                Здесь выбирается роль перед входом. На этом устройстве вы остаётесь в аккаунте, пока не выйдете; смена
                 аккаунта — через меню в шапке после входа.
               </p>
             </ServiceHint>
           </div>
-          <p className="muted authHub__intro">Выберите роль: владелец или партнёрская сеть (детейлинг / СТО).</p>
+          <p className="muted authHub__intro">
+            Выберите роль ниже: владелец или сервис (детейлинг / СТО). У каждой роли — свой кабинет.
+          </p>
           <ul className="authSplit__benefits">
             <li>История работ и визитов по авто в одном месте — с пробегом, фото и документами.</li>
             <li>Гараж владельца и кабинет сервиса дополняют друг друга: прозрачность для клиента и порядок в работе.</li>
@@ -40,26 +42,39 @@ export default function AuthPage() {
         <div className="authHub__actions authSplit__formCol">
           <Card className="card pad authSplit__formCard authHub__card">
             <p className="muted small authHub__cardTitle" style={{ margin: '0 0 14px' }}>
-              Выберите роль
+              Кто входит
             </p>
-            <div className="authHub">
-              <Link className="btn authHub__btn authHub__btn--neutral" to="/auth/owner" state={{ from }}>
-                Мой гараж
-              </Link>
-              <Link className="btn authHub__btn authHub__btn--accent" to="/auth/partner" state={{ from }}>
-                Войти в кабинет
-              </Link>
-            </div>
-            <div id="auth-hub-card-hint" className="row gap wrap" style={{ alignItems: 'center', marginTop: 14 }}>
-              <div className="cardTitle" style={{ margin: 0 }}>
-                Дальше
+            <div className="authHub authHub--roleRows">
+              <div className="authHub__roleRow">
+                <Link className="btn authHub__btn authHub__btn--neutral authHub__btn--role" to="/auth/owner" state={{ from }}>
+                  Я владелец
+                </Link>
+                <ServiceHint
+                  scopeId="auth-role-owner-hint"
+                  variant="compact"
+                  label="Справка: кабинет владельца"
+                >
+                  <p className="serviceHint__panelText">
+                    Гараж и карточки авто, своя история и документы, публичная ссылка на машину. Записи можно добавлять
+                    самостоятельно; записи сервиса отображаются отдельно в общей ленте.
+                  </p>
+                </ServiceHint>
               </div>
-              <ServiceHint scopeId="auth-hub-card-hint" variant="compact" label="Справка: выбор роли">
-                <p className="serviceHint__panelText">
-                  Партнёрам: на следующем шаге — вход или регистрация. Услуги детейлинга и ТО задаются при первой настройке
-                  лендинга.
-                </p>
-              </ServiceHint>
+              <div className="authHub__roleRow">
+                <Link className="btn authHub__btn authHub__btn--accent authHub__btn--role" to="/auth/partner" state={{ from }}>
+                  Сервис (детейлинг / СТО)
+                </Link>
+                <ServiceHint
+                  scopeId="auth-role-partner-hint"
+                  variant="compact"
+                  label="Справка: кабинет сервиса"
+                >
+                  <p className="serviceHint__panelText">
+                    Автомобили клиентов, визиты и фото, лендинг с услугами и контактами. Первый вход — настройка страницы
+                    для клиентов; далее вход или регистрация партнёра.
+                  </p>
+                </ServiceHint>
+              </div>
             </div>
           </Card>
         </div>

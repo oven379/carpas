@@ -25,3 +25,6 @@ dist-ssr
 
 # Локальные артефакты прогонов
 test_out.txt
+
+# Референс для вёрстки, в коде не используется
+public/preloader-reference.png

@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
 import { lazy, Suspense, useEffect } from 'react'
 import './App.css'
 import { PageLoadSpinner, TopNav } from './ui/components.jsx'
@@ -84,9 +85,10 @@ export default function App() {
       <TopNav />
       <main className="main">
         <ScrollToTopOnRouteChange />
+        <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={<AuthPage />} />
+            <Route path="/" element={<Navigate to="/auth" replace />} />
             <Route path="/about" element={<HomePage />} />
             <Route
               path="/cars"
@@ -185,7 +187,7 @@ export default function App() {
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
             <Route path="/auth/partner" element={<PartnerLoginPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<Navigate to="/auth" replace />} />
           </Routes>
         </Suspense>
       </main>

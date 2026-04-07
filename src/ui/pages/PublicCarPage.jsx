@@ -7,7 +7,10 @@ import { getCareRecommendations } from '../../lib/recommendations.js'
 import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
-import { resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { absoluteUrl } from '../../lib/siteOrigin.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { Seo } from '../../seo/Seo.jsx'
+import { truncateMetaDescription } from '../../seo/seoUtils.js'
 
 function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   const v = String(s || '')
@@ -18,8 +21,16 @@ function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   return `${a}${'•'.repeat(Math.min(12, v.length - keepStart - keepEnd))}${b}`
 }
 
+function mediaUrlToOgImage(url) {
+  const u = resolvePublicMediaUrl(url)
+  if (!u) return undefined
+  if (/^https?:\/\//i.test(u)) return u
+  return absoluteUrl(u.startsWith('/') ? u : `/${u}`)
+}
+
 export default function PublicCarPage() {
-  const { token } = useParams()
+  const { token: tokenParam } = useParams()
+  const token = String(tokenParam || '').trim()
   const r = useRepo()
   const [photoLb, setPhotoLb] = useState(null)
   const [payload, setPayload] = useState(undefined)
@@ -27,7 +38,7 @@ export default function PublicCarPage() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      const t = String(token || '').trim()
+      const t = token
       if (!t) {
         setPayload(null)
         return
@@ -65,16 +76,31 @@ export default function PublicCarPage() {
   if (payload === undefined) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        {token ? (
+          <Seo
+            title="Публичная история авто · КарПас"
+            description="Публичная страница истории обслуживания автомобиля в сервисе КарПас."
+            canonicalPath={`/share/${token}`}
+          />
+        ) : null}
         <PageLoadSpinner />
       </div>
     )
   }
-  if (!payload || !car) return <Navigate to="/" replace />
+  if (!payload || !car) return <Navigate to="/auth" replace />
 
   const heroStyle = car.hero ? { backgroundImage: resolvedBackgroundImageUrl(car.hero) } : undefined
+  const yearPart = car.year != null && String(car.year).trim() !== '' ? `, ${car.year}` : ''
+  const seoTitle = `${car.make} ${car.model}${yearPart} — публичная история · КарПас`
+  const seoDesc = truncateMetaDescription(
+    `Публичная история в КарПас: ${car.make} ${car.model}.${car.city ? ` ${String(car.city).trim()}.` : ''} Записи добавляют владелец и сервис; отображение зависит от настроек карточки.`,
+  )
+  const canonicalPath = `/share/${token}`
+  const ogImage = mediaUrlToOgImage(car.hero)
 
   return (
     <div className="container">
+      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} />
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">

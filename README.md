@@ -71,3 +71,6 @@ npm run build
 
 - API and auth: **`FRONTEND_BACKEND_API.md`**
 - Backend only: **`backend/README.md`**
+- SEO (мета-теги, robots, sitemap, чеклист продакшена): **`SEO_INTERNAL.md`**
+
+Установка зависимостей: в корне есть **`.npmrc`** (`legacy-peer-deps=true`) из‑за `react-helmet-async` и React 19.

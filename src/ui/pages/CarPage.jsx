@@ -1,12 +1,11 @@
-import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useRepo, invalidateRepo } from '../useRepo.js'
+import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
-import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { buildCarSubRoutePath, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import {
@@ -18,7 +17,6 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
-import { useAsyncActionLock } from '../useAsyncActionLock.js'
 
 function CarPageOwnerLastVisitPreview({ lastEvt, photoUrl, histPath }) {
   const [thumbBroken, setThumbBroken] = useState(false)
@@ -101,8 +99,6 @@ export default function CarPage() {
   const { id } = useParams()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const nav = useNavigate()
-  const deleteCarLock = useAsyncActionLock()
   const [washIdx, setWashIdx] = useState(0)
   const [recsOpen, setRecsOpen] = useState(false)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
@@ -447,9 +443,22 @@ export default function CarPage() {
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
             <BackNav to={listReturn} title={backTitle} />
-            <h1 className="h1" style={{ margin: 0 }}>
-              {car.make} {car.model}
-            </h1>
+            <div className="carPage__titleNameRow">
+              <h1 className="h1" style={{ margin: 0 }}>
+                {car.make} {car.model}
+              </h1>
+              {mode === 'owner' || mode === 'detailing' ? (
+                <Link
+                  className="btn carPage__titleVisitBtn"
+                  data-variant="primary"
+                  to={newVisitPath}
+                  aria-label="Новый визит"
+                  title="Новый визит"
+                >
+                  Визит
+                </Link>
+              ) : null}
+            </div>
           </div>
           <p className="muted carPage__meta">
             <span>{car.city || '—'}</span>
@@ -491,16 +500,6 @@ export default function CarPage() {
           {mode === 'owner' || mode === 'detailing' ? (
             <div className="heroActions" aria-label="Действия">
               <Link
-                className="btn carPage__iconBtn carPage__heroAddVisitBtn"
-                data-variant="ghost"
-                to={newVisitPath}
-                aria-label="Добавить визит"
-                title="Добавить визит"
-              >
-                <span className="carPage__icon carPage__icon--plus" aria-hidden="true" />
-                <span className="carPage__btnText">Добавить визит</span>
-              </Link>
-              <Link
                 className="btn carPage__iconBtn"
                 data-variant="ghost"
                 to={buildCarSubRoutePath(id, 'edit', fromParam)}
@@ -510,35 +509,6 @@ export default function CarPage() {
                 <span className="carPage__icon carPage__icon--edit" aria-hidden="true" />
                 <span className="carPage__btnText">Редактировать</span>
               </Link>
-              <button
-                type="button"
-                className="btn carPage__iconBtn"
-                data-variant="danger"
-                aria-label="Удалить"
-                title="Удалить"
-                disabled={deleteCarLock.pending}
-                aria-busy={deleteCarLock.pending || undefined}
-                onClick={() =>
-                  void deleteCarLock.run(async () => {
-                  const msg =
-                    'Удалить авто навсегда?\n\n' +
-                    'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
-                    'Альтернатива: вместо удаления вы можете передать авто другому хозяину.'
-                  if (!confirm(msg)) return
-                  try {
-                    await r.deleteCar(id)
-                    invalidateRepo()
-                    const list = await r.listCars()
-                    nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
-                  } catch {
-                    alert('Не удалось удалить авто (нет доступа).')
-                  }
-                  })
-                }
-              >
-                <span className="carPage__icon carPage__icon--trash" aria-hidden="true" />
-                <span className="carPage__btnText">Удалить</span>
-              </button>
             </div>
           ) : null}
           <div className="row gap wrap carHero__pills">
@@ -943,7 +913,7 @@ export default function CarPage() {
           </Card>
 
           <Card className="card pad">
-            <div className="row spread gap carPage__sectionRow carPage__sectionRow--history">
+            <div className="col gap carPage__sectionRow carPage__sectionRow--history">
               <div className="carPage__sectionHead">
                 <h2 className="h2 carPage__sectionTitle">История авто</h2>
                 {lastHistoryEvent?.at ? (

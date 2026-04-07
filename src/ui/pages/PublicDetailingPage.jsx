@@ -6,7 +6,10 @@ import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill 
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 import { displayRuPhone } from '../../lib/format.js'
+import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { Seo } from '../../seo/Seo.jsx'
+import { truncateMetaDescription } from '../../seo/seoUtils.js'
 
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
@@ -30,6 +33,13 @@ function socialHref(label, value) {
     return `https://instagram.com/${handle}`
   }
   return ensureUrl(v)
+}
+
+function mediaUrlToOgImage(url) {
+  const u = resolvePublicMediaUrl(url)
+  if (!u) return undefined
+  if (/^https?:\/\//i.test(u)) return u
+  return absoluteUrl(u.startsWith('/') ? u : `/${u}`)
 }
 
 export default function PublicDetailingPage() {
@@ -83,11 +93,68 @@ export default function PublicDetailingPage() {
   if (payload === undefined) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <Seo
+          title="Страница сервиса · КарПас"
+          description="Публичная страница детейлинга или СТО в сервисе КарПас: контакты, услуги, режим работы."
+          canonicalPath={`/d/${idNorm}`}
+        />
         <PageLoadSpinner />
       </div>
     )
   }
   if (!det) return <Navigate to="/about" replace />
+
+  const devName = String(det.name || 'Сервис').trim()
+  const citySeo = String(det.city || '').trim()
+  const seoTitle = `${devName} — услуги и контакты${citySeo ? `, ${citySeo}` : ''} · КарПас`
+  const servicesLine = Array.isArray(det.servicesOffered) ? det.servicesOffered.slice(0, 6).join(', ') : ''
+  const seoDescRaw =
+    String(det.description || '').trim() ||
+    [servicesLine && `Услуги: ${servicesLine}.`, `${devName} — детейлинг и СТО в КарПас.`, citySeo && citySeo].filter(Boolean).join(' ')
+  const seoDesc = truncateMetaDescription(seoDescRaw)
+  const canonicalPath = `/d/${idNorm}`
+  const ogImage = mediaUrlToOgImage(det.cover)
+  const absPage = absoluteUrl(canonicalPath).startsWith('http')
+  const hasAddressParts = Boolean(citySeo || String(det.address || '').trim())
+  const addressSchema = hasAddressParts
+    ? {
+        '@type': 'PostalAddress',
+        ...(citySeo ? { addressLocality: citySeo } : {}),
+        ...(String(det.address || '').trim() ? { streetAddress: String(det.address).trim() } : {}),
+      }
+    : null
+  const jsonLdDet =
+    absPage && devName
+      ? [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'О сервисе КарПас',
+                item: absoluteUrl('/about'),
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: devName,
+                item: absoluteUrl(canonicalPath),
+              },
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'AutomotiveBusiness',
+            name: devName,
+            url: absoluteUrl(canonicalPath),
+            ...(addressSchema && (addressSchema.addressLocality || addressSchema.streetAddress)
+              ? { address: addressSchema }
+              : {}),
+          },
+        ]
+      : null
 
   const publicCoverBg = resolvedBackgroundImageUrl(det.cover)
   const detInitials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
@@ -116,6 +183,13 @@ export default function PublicDetailingPage() {
 
   return (
     <div className="container">
+      <Seo
+        title={seoTitle}
+        description={seoDesc}
+        canonicalPath={canonicalPath}
+        ogImage={ogImage}
+        jsonLd={jsonLdDet}
+      />
       {showSetupSuccess ? (
         <Card className="card pad" style={{ marginBottom: 16 }}>
           <div className="cardTitle" style={{ marginBottom: 6 }}>

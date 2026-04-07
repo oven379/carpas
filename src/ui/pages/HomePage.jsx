@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { useRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtInt } from '../../lib/format.js'
+import { Seo } from '../../seo/Seo.jsx'
+import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
+import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
 
 export default function HomePage() {
   const r = useRepo()
@@ -36,9 +39,12 @@ export default function HomePage() {
     }
   }, [r, r._version])
 
+  const homeJsonLd = useMemo(() => buildHomePageJsonLd(), [])
+
   if (!bootReady) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '48px 0' }}>
+        <Seo title={HOME_TITLE} description={HOME_META_DESCRIPTION} canonicalPath="/about" jsonLd={homeJsonLd} />
         <PageLoadSpinner />
       </div>
     )
@@ -46,13 +52,16 @@ export default function HomePage() {
 
   return (
     <div className="container">
+      <Seo title={HOME_TITLE} description={HOME_META_DESCRIPTION} canonicalPath="/about" jsonLd={homeJsonLd} />
       <div className="hero2">
         <div>
-          <h1 className="h1">КарПас — подтверждённая история авто</h1>
+          <h1 className="h1">КарПас — история обслуживания авто</h1>
           <p className="muted">
-            История работ по вашему авто в одном месте: что сделали, на каком пробеге, с
-            фото/документами. Можно быстро показать историю по публичной ссылке — без доступа к
-            личному кабинету.
+            {HOME_META_DESCRIPTION}{' '}
+            <Link className="link" to="/auth">
+              Зарегистрироваться
+            </Link>
+            {' — там формы входа, регистрации и выбора роли.'}
           </p>
           <div className="row gap">
             <Link className="btn" data-variant="primary" to="/cars">
@@ -121,8 +130,8 @@ export default function HomePage() {
             <div className="stepNum">02</div>
             <div className="cardTitle">Сервисы фиксируют визиты</div>
             <p className="muted small">
-              Детейлинг/СТО добавляет работы, пробег, фото и рекомендации — история становится
-              «подтверждённой». {PHOTO_LANDSCAPE_HINT_SENTENCE}
+              Детейлинг/СТО добавляет работы, пробег, фото и рекомендации из своего кабинета — в общей ленте будет
+              видно, что запись от сервиса. {PHOTO_LANDSCAPE_HINT_SENTENCE}
             </p>
           </Card>
           <Card className="card pad">
@@ -195,6 +204,28 @@ export default function HomePage() {
             <summary>Можно ли отозвать публичную ссылку?</summary>
             <div className="faqBody muted small">
               Да: ссылку можно отозвать в кабинете или выпустить новую — по старой ссылке войти уже не получится.
+            </div>
+          </details>
+          <details className="faqItem">
+            <summary>Чем отличаются публичные ссылки?</summary>
+            <div className="faqBody muted small">
+              <p style={{ margin: '0 0 10px' }}>
+                Это три разных адреса; у каждого своя задача. Посторонний по ссылке не получает пароль к вашему кабинету.
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '1.2em' }}>
+                <li>
+                  <strong>/share/…</strong> — одна машина: то, что вы включили в публичную историю этой карточки (визиты,
+                  данные авто по вашим настройкам).
+                </li>
+                <li>
+                  <strong>/g/…</strong> — публичная «витрина» гаража: список авто и профиль, если вы их открыли; личные
+                  документы из кабинета сами по себе не публикуются.
+                </li>
+                <li>
+                  <strong>/d/…</strong> — страница детейлинга для клиентов: контакты, услуги, режим работы; не открывает
+                  список машин в кабинете сервиса.
+                </li>
+              </ul>
             </div>
           </details>
         </div>

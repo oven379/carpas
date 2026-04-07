@@ -1,11 +1,20 @@
 /** Заголовок визита в истории: лимит символов (пробелы учитываются). Менять только здесь. */
 export const VISIT_TITLE_MAX_LEN = 40
 
-/** Советы по уходу из визита детейлинга (поля «Важно» / «Совет 1–3»). */
-export const VISIT_CARE_TIP_MAX_LEN = 240
+/** Свободный комментарий к визиту (что обслуживали). */
+export const VISIT_NOTE_MAX_LEN = 2000
+
+/** Советы по уходу из визита детейлинга (поля «Важно» / «Совет 1–3»). Короткие строки — удобнее на карточке авто. */
+export const VISIT_CARE_TIP_MAX_LEN = 120
 
 /** Режим работы детейлинга/СТО (публичная страница на улице и кабинет). */
 export const DETAILING_WORKING_HOURS_MAX_LEN = 200
+
+/**
+ * Своя услуга в настройках лендинга: короткое название для чипов и списков.
+ * Оптимально 40–56 символов; 50 — баланс между информативностью и читаемостью на мобилке.
+ */
+export const DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN = 50
 
 /** Подпись в пустых зонах выбора изображения (баннер, аватар, обложка карточки). */
 export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажмите для загрузки'
@@ -375,14 +384,14 @@ export function getPhoneRuNationalDigits(raw) {
   return d.slice(0, 10)
 }
 
-/** Отображение национальной части: «999 99 99 999» (3‑2‑2‑3). */
+/** Отображение национальной части: «999 999 00 00» (3‑3‑2‑2), привычный вид мобильного номера РФ. */
 export function formatPhoneRuNationalDisplay(digits) {
   const d = String(digits || '').replace(/\D/g, '').slice(0, 10)
   if (!d) return ''
   const p0 = d.slice(0, 3)
-  const p1 = d.slice(3, 5)
-  const p2 = d.slice(5, 7)
-  const p3 = d.slice(7, 10)
+  const p1 = d.slice(3, 6)
+  const p2 = d.slice(6, 8)
+  const p3 = d.slice(8, 10)
   const parts = [p0]
   if (p1) parts.push(p1)
   if (p2) parts.push(p2)
@@ -391,7 +400,7 @@ export function formatPhoneRuNationalDisplay(digits) {
 }
 
 /**
- * Поле ввода телефона РФ: префикс +7, далее до 10 цифр в маске «+7 999 99 99 999».
+ * Поле ввода телефона РФ: префикс +7, далее до 10 цифр в маске «+7 999 999 00 00».
  * Ввод 8… или с лидирующей 7 нормализуется. Пусто — пустая строка.
  */
 export function formatPhoneRuInput(raw) {

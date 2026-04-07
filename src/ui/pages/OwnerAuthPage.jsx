@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthLegalConsent, BackNav, Button, Card, Field, Input, PhoneRuInput, ServiceHint } from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import {
@@ -16,11 +16,15 @@ import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 export default function OwnerAuthPage() {
   const r = useRepo()
   const { detailing } = useDetailing()
+  const [spQuery, setSpQuery] = useSearchParams()
   const [ownEmail, setOwnEmail] = useState('')
   const [ownPassword, setOwnPassword] = useState('')
   const [ownName, setOwnName] = useState('')
   const [ownPhone, setOwnPhone] = useState('')
-  const [registerExpanded, setRegisterExpanded] = useState(false)
+  /** Вход: почта/пароль и «В гараж». Регистрация: те же поля + имя/телефон и только «Зарегистрироваться» → настройки гаража. */
+  const [authMode, setAuthMode] = useState(() =>
+    spQuery.get('register') === '1' || spQuery.get('mode') === 'register' ? 'register' : 'login',
+  )
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const ownEmailRef = useRef(null)
   const ownPasswordRef = useRef(null)
@@ -94,22 +98,19 @@ export default function OwnerAuthPage() {
     return { name, phone }
   }
 
-  function onRegisterClick() {
-    if (!registerExpanded) {
-      setRegisterExpanded(true)
-      return undefined
+  function setRegisterMode(next) {
+    setAuthMode(next ? 'register' : 'login')
+    const nextParams = new URLSearchParams(spQuery)
+    if (next) {
+      nextParams.set('register', '1')
+    } else {
+      nextParams.delete('register')
+      nextParams.delete('mode')
     }
-    return onRegisterSubmit()
+    setSpQuery(nextParams, { replace: true })
   }
 
   async function onEnterGarage() {
-    if (registerExpanded) {
-      const { em, pwd } = readCreds()
-      if (!em || !pwd) {
-        setRegisterExpanded(false)
-        return
-      }
-    }
     if (!requireConsent()) return
     const creds = requireEmailPassword()
     if (!creds) return
@@ -134,37 +135,8 @@ export default function OwnerAuthPage() {
         return
       }
       if (reason === 'not_found') {
-        if (registerExpanded) {
-          const extra = requireNamePhoneForRegister()
-          if (extra) {
-            try {
-              const reg = await r.registerOwner({
-                email: em,
-                password: pwd,
-                name: extra.name,
-                phone: extra.phone,
-              })
-              const snap = ownerToSessionSnapshot(reg.owner)
-              if (!snap) {
-                alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
-                return
-              }
-              setSessionOwner(snap, reg.token)
-              refreshAllClientData()
-              debugAuth('OwnerAuth: вход → not_found → авто-регистрация', { to: resolveAfterRegister() })
-              nav(resolveAfterRegister(), { replace: true })
-              return
-            } catch (e) {
-              const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
-              const hint =
-                e instanceof HttpError && e.status === 422 ? ' Возможно, аккаунт уже существует — попробуйте «В гараж».' : ''
-              alert(`${base}${hint}`)
-              return
-            }
-          }
-        }
         alert(
-          'Аккаунт с такой почтой ещё не создан. Раскройте «Регистрация», заполните имя и телефон, затем снова нажмите «Регистрация» или «В гараж».',
+          'Аккаунта с такой почтой нет. Переключитесь на «Регистрация», заполните имя и телефон и нажмите «Зарегистрироваться».',
         )
         return
       }
@@ -203,7 +175,7 @@ export default function OwnerAuthPage() {
     } catch (e) {
       const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
       const hint =
-        e instanceof HttpError && e.status === 422 ? ' Если аккаунт уже есть, нажмите «В гараж».' : ''
+        e instanceof HttpError && e.status === 422 ? ' Если аккаунт уже есть, переключитесь на «Вход».' : ''
       alert(`${base}${hint}`)
     }
   }
@@ -232,11 +204,9 @@ export default function OwnerAuthPage() {
                 </span>
                 <ServiceHint scopeId="owner-auth-intro-hint" variant="compact" label="Справка: мой гараж">
                   <p className="serviceHint__panelText">
-                    Сначала видны только почта и пароль. Первый раз <strong>«Регистрация»</strong> только раскрывает имя и телефон.
-                    Когда поля заполнены и стоит галочка согласия, нажмите снова <strong>«Регистрация»</strong> (фиолетовая кнопка) —
-                    создастся аккаунт и откроются настройки гаража. Если форма регистрации уже раскрыта, кнопка{' '}
-                    <strong>«В гараж»</strong> при новой почте тоже создаст аккаунт (если имя и телефон заполнены), иначе выполнит
-                    вход существующего пользователя. Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
+                    <strong>Вход</strong> — почта, пароль и «В гараж». <strong>Регистрация</strong> — те же поля плюс имя и телефон;
+                    на форме одна кнопка <strong>«Зарегистрироваться»</strong> — после создания аккаунта открываются настройки гаража.
+                    Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
                   </p>
                 </ServiceHint>
               </div>
@@ -270,7 +240,7 @@ export default function OwnerAuthPage() {
                   ref={ownPasswordRef}
                   className="input mono"
                   type="password"
-                  autoComplete={registerExpanded ? 'new-password' : 'current-password'}
+                  autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                   value={ownPassword}
                   onChange={(e) => setOwnPassword(e.target.value)}
                   onInput={(e) => setOwnPassword(e.currentTarget.value)}
@@ -279,7 +249,7 @@ export default function OwnerAuthPage() {
                   placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
                 />
               </Field>
-              {registerExpanded ? (
+              {authMode === 'register' ? (
                 <>
                   <div className="field field--full serviceHint__fieldWrap" id="owner-auth-name">
                     <div className="field__top serviceHint__fieldTop">
@@ -316,37 +286,39 @@ export default function OwnerAuthPage() {
               ) : null}
               <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
-            <div className="row gap wrap authFormActions authFormActions--dual" style={{ marginTop: 14 }}>
-              <Button
-                className="btn authOwner__submitGarage"
-                variant={registerExpanded ? 'outline' : 'primary'}
-                type="button"
-                onClick={() => onEnterGarage()}
-              >
-                В гараж
-              </Button>
-              <Button
-                className="btn"
-                variant={registerExpanded ? 'primary' : 'outline'}
-                type="button"
-                onClick={() => onRegisterClick()}
-              >
-                Регистрация
-              </Button>
+            <div className="row gap wrap authFormActions" style={{ marginTop: 14 }}>
+              {authMode === 'login' ? (
+                <>
+                  <Button className="btn authOwner__submitGarage" variant="primary" type="button" onClick={() => onEnterGarage()}>
+                    В гараж
+                  </Button>
+                  <button
+                    type="button"
+                    className="btn"
+                    data-variant="outline"
+                    onClick={() => setRegisterMode(true)}
+                  >
+                    Регистрация
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Button className="btn authOwner__submitGarage" variant="primary" type="button" onClick={() => onRegisterSubmit()}>
+                    Зарегистрироваться
+                  </Button>
+                  <p className="muted small" style={{ margin: 0, width: '100%' }}>
+                    <button
+                      type="button"
+                      className="link"
+                      style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', font: 'inherit' }}
+                      onClick={() => setRegisterMode(false)}
+                    >
+                      Уже есть аккаунт — войти
+                    </button>
+                  </p>
+                </>
+              )}
             </div>
-            {registerExpanded ? (
-              <p className="muted small" style={{ marginTop: 12, marginBottom: 0 }}>
-                <button
-                  type="button"
-                  className="link"
-                  style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', font: 'inherit' }}
-                  onClick={() => setRegisterExpanded(false)}
-                >
-                  Только вход
-                </button>
-                {' — скрыть имя и телефон'}
-              </p>
-            ) : null}
           </Card>
         </div>
       </div>

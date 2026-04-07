@@ -78,7 +78,7 @@ export const PhoneRuInput = forwardRef(function PhoneRuInput(
         autoComplete={autoComplete}
         className="input phoneRuField__input"
         value={innerDisplayed}
-        placeholder="999 99 99 999"
+        placeholder="999 999 00 00"
         {...rest}
         onBlur={onBlur}
         onChange={(e) => {
@@ -379,9 +379,11 @@ export function TopNav() {
   return (
     <header className="nav">
       <div className="nav__inner">
-        <NavLink to="/" className="nav__brand" aria-label="КарПас — на главную">
+        <NavLink to="/auth" className="nav__brand" aria-label="КарПас — вход в сервис">
           <span className="nav__brandStack">
-            <Logo />
+            <span className="navLogoFrame">
+              <Logo />
+            </span>
             <span className="nav__brandTagline">История Вашего автомобиля</span>
           </span>
         </NavLink>

@@ -42,6 +42,8 @@ import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import { useAsyncActionLock } from '../useAsyncActionLock.js'
+import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
 
 function emptyDraft() {
   return {
@@ -90,7 +92,8 @@ export default function CarEditPage({ mode }) {
   const nav = useNavigate()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const { owner, mode: who, loading } = useDetailing()
+  const { owner, mode: who, loading, detailingId } = useDetailing()
+  const deleteCarLock = useAsyncActionLock()
   const [car, setCar] = useState(null)
   const [carReady, setCarReady] = useState(mode !== 'edit')
 
@@ -581,8 +584,8 @@ export default function CarEditPage({ mode }) {
           </div>
         </div>
 
-        <div className="row spread gap topBorder">
-          <div className="row gap">
+        <div className="row spread gap topBorder carEditFormActions">
+          <div className="row gap wrap carEditFormActions__buttons">
             <Button
               className="btn"
               variant="primary"
@@ -729,8 +732,36 @@ export default function CarEditPage({ mode }) {
             <Link className="btn" data-variant="ghost" to={backNavTo}>
               Отмена
             </Link>
+            {mode === 'edit' && id ? (
+              <Button
+                className="btn"
+                variant="danger"
+                type="button"
+                disabled={saveBusy || deleteCarLock.pending}
+                aria-busy={deleteCarLock.pending || undefined}
+                onClick={() =>
+                  void deleteCarLock.run(async () => {
+                    const msg =
+                      'Удалить авто навсегда?\n\n' +
+                      'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
+                      'Альтернатива: вместо удаления вы можете передать авто другому хозяину.'
+                    if (!confirm(msg)) return
+                    try {
+                      await r.deleteCar(id)
+                      invalidateRepo()
+                      const list = await r.listCars()
+                      nav(getPathAfterCarRemovedFromScope(list, { mode: who, owner, detailingId }), { replace: true })
+                    } catch {
+                      alert('Не удалось удалить авто (нет доступа).')
+                    }
+                  })
+                }
+              >
+                Удалить авто
+              </Button>
+            ) : null}
           </div>
-          <div className="muted small">Изменения сохраняются в вашем кабинете.</div>
+          <div className="muted small carEditFormActions__hint">Изменения сохраняются в вашем кабинете.</div>
         </div>
       </Card>
     </div>

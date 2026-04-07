@@ -1,5 +1,5 @@
 import { Navigate, useNavigate } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   BackNav,
   Button,
@@ -24,11 +24,17 @@ import {
   MAINTENANCE_ITEM_SET,
   MAINTENANCE_SERVICES,
   OFFERED_SERVICE_MAX_LEN,
+  dedupeOfferedStrings,
 } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
-import { DETAILING_WORKING_HOURS_MAX_LEN, displayRuPhone, formatPhoneRuInput } from '../../lib/format.js'
+import {
+  DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
+  DETAILING_WORKING_HOURS_MAX_LEN,
+  displayRuPhone,
+  formatPhoneRuInput,
+} from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
 function ServiceGroupSelectAllCheckbox({ items, selectedList, onToggleGroup, groupLabel }) {
@@ -68,6 +74,7 @@ export default function DetailingSettingsPage() {
   const { detailingId, mode, detailing, loading, applyDetailingSnapshot } = useDetailing()
   const [carsCount, setCarsCount] = useState(0)
   const [previewServicesExpanded, setPreviewServicesExpanded] = useState(false)
+  const [customOfferInput, setCustomOfferInput] = useState('')
 
   const [draft, setDraft] = useState(() => ({
     name: '',
@@ -117,6 +124,8 @@ export default function DetailingSettingsPage() {
     }
   }, [mode, detailingId, r, r._version])
 
+  const catalogOfferSet = useMemo(() => new Set([...DETAILING_ITEM_SET, ...MAINTENANCE_ITEM_SET]), [])
+
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
   if (loading) {
     return (
@@ -141,6 +150,31 @@ export default function DetailingSettingsPage() {
       return { ...d, servicesOffered: next }
     })
   }
+
+  function addCustomOfferedLine() {
+    const s = String(customOfferInput || '')
+      .trim()
+      .slice(0, DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN)
+    if (!s) return
+    setDraft((d) => {
+      const cur = Array.isArray(d.servicesOffered) ? d.servicesOffered : []
+      return { ...d, servicesOffered: dedupeOfferedStrings([...cur, s], OFFERED_SERVICE_MAX_LEN) }
+    })
+    setCustomOfferInput('')
+  }
+
+  function removeOfferedLine(label) {
+    const v = String(label || '').trim()
+    if (!v) return
+    setDraft((d) => ({
+      ...d,
+      servicesOffered: (Array.isArray(d.servicesOffered) ? d.servicesOffered : []).filter((x) => x !== v),
+    }))
+  }
+
+  const customOffersOnly = (Array.isArray(draft.servicesOffered) ? draft.servicesOffered : []).filter(
+    (s) => !catalogOfferSet.has(s),
+  )
 
   return (
     <div className="container">
@@ -373,12 +407,65 @@ export default function DetailingSettingsPage() {
               placeholder="Например: Пн–Пт 10:00–20:00, Сб 11:00–17:00"
             />
           </Field>
+          <Field
+            className="field--full"
+            label="Своя услуга"
+            hint={`до ${DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов · отображается на лендинге и в списке при создании визита`}
+          >
+            <div className="detailingCustomOfferRow">
+              <Input
+                className="input"
+                value={customOfferInput}
+                maxLength={DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN}
+                onChange={(e) =>
+                  setCustomOfferInput(
+                    String(e.target.value).slice(0, DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN),
+                  )
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addCustomOfferedLine()
+                  }
+                }}
+                placeholder="Введите название вашей услуги."
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className="btn detailingCustomOfferAddBtn"
+                data-variant="outline"
+                aria-label="Добавить услугу"
+                onClick={addCustomOfferedLine}
+              >
+                +
+              </button>
+            </div>
+            {customOffersOnly.length ? (
+              <div className="row gap wrap" style={{ marginTop: 10 }}>
+                {customOffersOnly.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className="pill"
+                    data-tone="neutral"
+                    title="Убрать из списка"
+                    onClick={() => removeOfferedLine(s)}
+                  >
+                    {s}
+                    <span aria-hidden="true"> ×</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </Field>
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Услуги</span>
               <ServiceHint scopeId="detailing-settings-services" variant="compact" label="Справка: услуги на лендинге">
                 <p className="serviceHint__panelText">
-                  Отметьте детейлинг и ТО, что предлагаете клиентам на публичной странице.
+                  Отметьте детейлинг и ТО, что предлагаете клиентам на публичной странице. Свои названия добавляйте полем выше
+                  («Своя услуга»).
                   {detailing.profileCompleted === false ? (
                     <>
                       {' '}

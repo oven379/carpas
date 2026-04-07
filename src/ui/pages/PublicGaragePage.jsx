@@ -10,8 +10,18 @@ import {
   normalizeHttpUrl,
   parseGarageSocialLines,
 } from '../../lib/format.js'
+import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
+import { Seo } from '../../seo/Seo.jsx'
+import { truncateMetaDescription } from '../../seo/seoUtils.js'
+
+function mediaUrlToOgImage(url) {
+  const u = resolvePublicMediaUrl(url)
+  if (!u) return undefined
+  if (/^https?:\/\//i.test(u)) return u
+  return absoluteUrl(u.startsWith('/') ? u : `/${u}`)
+}
 
 export default function PublicGaragePage() {
   const { slug } = useParams()
@@ -52,6 +62,11 @@ export default function PublicGaragePage() {
   if (data === undefined) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <Seo
+          title="Публичный гараж · КарПас"
+          description="Публичная витрина гаража в сервисе КарПас: список автомобилей по настройкам владельца."
+          canonicalPath={`/g/${slugNorm}`}
+        />
         <PageLoadSpinner />
       </div>
     )
@@ -61,6 +76,12 @@ export default function PublicGaragePage() {
   if (data.garagePrivate) {
     return (
       <div className="container" style={{ padding: '40px 16px 48px' }}>
+        <Seo
+          title="Гараж недоступен · КарПас"
+          description="Публичная витрина гаража отключена владельцем."
+          canonicalPath={`/g/${slugNorm}`}
+          noindex
+        />
         <div className="breadcrumbs" style={{ marginBottom: 16 }}>
           <Link to="/about">О сервисе</Link>
           <span> / </span>
@@ -136,8 +157,18 @@ export default function PublicGaragePage() {
     })
   })
 
+  const seoTitle = `${displayName} — публичный гараж${cityLabel ? `, ${cityLabel}` : ''} · КарПас`
+  const seoDesc = truncateMetaDescription(
+    `Публичная витрина гаража в КарПас: автомобили по настройкам владельца.${cityLabel ? ` ${cityLabel}.` : ''} Личные документы из кабинета сами по себе не публикуются.`,
+  )
+  const canonicalPath = `/g/${slugNorm}`
+  const ogImage = bannerSurfaceVisible
+    ? mediaUrlToOgImage(owner.garageBanner)
+    : mediaUrlToOgImage(owner.garageAvatar)
+
   return (
     <div className="container">
+      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} />
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">

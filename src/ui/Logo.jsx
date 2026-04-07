@@ -1,7 +1,8 @@
 /** Горизонтальный вордмарк (inline SVG). `size` — высота в px, ширина подбирается по пропорции. */
-export default function Logo({ size = 18 }) {
+export default function Logo({ size = 18, className = '' }) {
   const h = Number(size) || 18
   const w = Math.round((351 / 55) * h)
+  const cls = ['navWordmarkSvg', className].filter(Boolean).join(' ')
   return (
     <svg
       width={w}
@@ -9,8 +10,7 @@ export default function Logo({ size = 18 }) {
       viewBox="0 0 351 55"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className="block shrink-0 sm:max-w-[min(100%,130px)]"
-      style={{ maxWidth: 'min(100%, 110px)' }}
+      className={cls}
       role="img"
       aria-label="КарПас"
     >

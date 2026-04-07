@@ -145,6 +145,41 @@ export function splitOfferedByCatalog(flatList) {
   return { detailingServicesOffered: det, maintenanceServicesOffered: maint }
 }
 
+/**
+ * Группы для выпадающего выбора услуг в визите: только позиции из профиля, по структуре каталога;
+ * строки вне каталога — в группе «Дополнительно».
+ */
+export function buildProfileGroupedForPicker(catalogGroups, profileFlat) {
+  const profile = dedupeOfferedStrings(profileFlat)
+  const profileSet = new Set(profile)
+  const used = new Set()
+  const groups = []
+  for (const g of catalogGroups || []) {
+    const title = g.group || g.title || ''
+    const items = (g.items || []).filter((it) => profileSet.has(it))
+    for (const it of items) used.add(it)
+    if (items.length) groups.push({ title, items })
+  }
+  const custom = profile.filter((s) => !used.has(s))
+  if (custom.length) groups.push({ title: 'Дополнительно', items: custom })
+  return groups
+}
+
+/** Список услуг детейлинга из профиля для формы визита (с учётом раздельных полей API и плоского legacy). */
+export function visitProfileDetailingList(det) {
+  if (!det) return []
+  const d = det.detailingServicesOffered
+  if (Array.isArray(d) && d.length) return d
+  return splitOfferedByCatalog(det.servicesOffered || []).detailingServicesOffered
+}
+
+export function visitProfileMaintenanceList(det) {
+  if (!det) return []
+  const m = det.maintenanceServicesOffered
+  if (Array.isArray(m) && m.length) return m
+  return splitOfferedByCatalog(det.servicesOffered || []).maintenanceServicesOffered
+}
+
 export const WASH_SERVICE_MARKERS = new Set(
   DETAILING_SERVICES.find((g) => g.group === CARE_GROUP)?.items || [],
 )
