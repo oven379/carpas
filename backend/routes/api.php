@@ -13,7 +13,9 @@ use App\Http\Controllers\Api\OwnerCarController;
 use App\Http\Controllers\Api\OwnerCarDocController;
 use App\Http\Controllers\Api\OwnerCarEventController;
 use App\Http\Controllers\Api\OwnerCarShareController;
+use App\Http\Controllers\Api\AdminSupportController;
 use App\Http\Controllers\Api\PublicShowcaseController;
+use App\Http\Controllers\Api\SupportTicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -23,20 +25,38 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
 
+Route::middleware('throttle:30,1')->post('/support/tickets', [SupportTicketController::class, 'store']);
+
+Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
+
+Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
+    Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
+    Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
+});
+
 Route::get('/public/stats', [PublicShowcaseController::class, 'stats']);
 Route::get('/public/cars/recent', [PublicShowcaseController::class, 'recentCars']);
+Route::get('/public/landing/garage-cards', [PublicShowcaseController::class, 'landingGarageCards']);
 Route::get('/public/detailings/{id}', [PublicShowcaseController::class, 'detailing']);
 Route::get('/public/garages/{slug}', [PublicShowcaseController::class, 'ownerGarage']);
 
 Route::post('/detailings', [DetailingAuthController::class, 'register']);
 Route::post('/detailings/login', [DetailingAuthController::class, 'login']);
+Route::post('/detailings/forgot-password', [DetailingAuthController::class, 'forgotPassword']);
 Route::get('/detailings/oauth/yandex/url', [DetailingYandexOAuthController::class, 'url']);
 Route::post('/detailings/oauth/yandex/callback', [DetailingYandexOAuthController::class, 'callback']);
 
 Route::post('/owners/register', [OwnerAuthController::class, 'register']);
 Route::post('/owners/login', [OwnerAuthController::class, 'login']);
+Route::post('/owners/forgot-password', [OwnerAuthController::class, 'forgotPassword']);
 
 Route::get('/share/{token}', [CarShareController::class, 'byToken']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/support/inbox', [SupportTicketController::class, 'inbox']);
+    Route::get('/support/unread-count', [SupportTicketController::class, 'unreadCount']);
+    Route::patch('/support/tickets/{id}/read', [SupportTicketController::class, 'markRead']);
+});
 
 Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/me', [OwnerAuthController::class, 'me']);

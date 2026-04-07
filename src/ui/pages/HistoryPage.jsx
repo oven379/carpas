@@ -17,6 +17,8 @@ import {
   fmtDateTime,
   fmtKm,
   normDigits,
+  PHOTO_UPLOAD_EMPTY_THUMB_HINT,
+  PHOTO_UPLOAD_HINTS_PARAGRAPH,
   VISIT_CARE_TIP_MAX_LEN,
   VISIT_NOTE_MAX_LEN,
   VISIT_TITLE_MAX_LEN,
@@ -34,6 +36,7 @@ import {
   visitProfileDetailingList,
   visitProfileMaintenanceList,
 } from '../../lib/serviceCatalogs.js'
+import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
 import {
@@ -424,17 +427,20 @@ export default function HistoryPage() {
   }, [events, mode])
 
   const visibleEvents = useMemo(() => {
+    const byDateDesc = (a, b) => String(b.at || '').localeCompare(String(a.at || ''))
+    const withDraftsFirst = (list) =>
+      [...list].sort((a, b) => {
+        const ad = a.isDraft ? 1 : 0
+        const bd = b.isDraft ? 1 : 0
+        if (ad !== bd) return bd - ad
+        return byDateDesc(a, b)
+      })
     if (mode === 'owner') {
-      if (tab === 'owner') return ownerEvents
-      if (tab === 'service') return serviceEvents
-      return events
+      if (tab === 'owner') return withDraftsFirst(ownerEvents)
+      if (tab === 'service') return withDraftsFirst(serviceEvents)
+      return withDraftsFirst(events)
     }
-    return [...events].sort((a, b) => {
-      const ad = a.isDraft ? 1 : 0
-      const bd = b.isDraft ? 1 : 0
-      if (ad !== bd) return bd - ad
-      return String(b.at || '').localeCompare(String(a.at || ''))
-    })
+    return withDraftsFirst(events)
   }, [mode, tab, ownerEvents, serviceEvents, events])
 
   useEffect(() => {
@@ -479,6 +485,7 @@ export default function HistoryPage() {
     services: [],
     maintenanceServices: [],
     type: 'visit',
+    allowPublicPhotos: true,
     ...EMPTY_CARE_DRAFT,
   })
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
@@ -487,8 +494,10 @@ export default function HistoryPage() {
   const [photoLb, setPhotoLb] = useState(null)
   const formRef = useRef(null)
   const formTopRef = useRef(null)
+  const historyListTopRef = useRef(null)
   const initFormKeyRef = useRef('')
   const visitPhotosInputId = useId()
+  const visitPublicConsentId = useId()
   const visitPhotosInputRef = useRef(null)
 
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -557,6 +566,7 @@ export default function HistoryPage() {
             ? [...ne.maintenanceServices]
             : [],
         type: ne.type || 'visit',
+        allowPublicPhotos: ne.allowPublicPhotos !== false,
         ...careDraftFromEvent(ne),
       })
       const next = new URLSearchParams(sp)
@@ -600,6 +610,7 @@ export default function HistoryPage() {
                 ? [...ne.maintenanceServices]
                 : [],
             type: ne.type || 'visit',
+            allowPublicPhotos: ne.allowPublicPhotos !== false,
             ...careDraftFromEvent(ne),
           })
         } else {
@@ -619,6 +630,7 @@ export default function HistoryPage() {
           services: [],
           maintenanceServices: [],
           type: 'visit',
+          allowPublicPhotos: true,
           ...EMPTY_CARE_DRAFT,
         })
       }
@@ -671,15 +683,15 @@ export default function HistoryPage() {
 
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
-      ? 'Новый визит'
-      : 'Добавить визит / событие'
+      ? 'Новый визит:'
+      : 'Добавить визит / событие:'
     : editAllowed
       ? editingEvent?.isDraft
-        ? 'Новый визит (черновик)'
-        : 'Редактировать визит'
+        ? 'Новый визит (черновик):'
+        : 'Редактировать визит:'
       : editingEvent?.source === 'service' && mode === 'owner'
-        ? 'Визит сервиса (просмотр)'
-        : 'Просмотр визита'
+        ? 'Визит сервиса (просмотр):'
+        : 'Просмотр визита:'
   const editingPhotos = useMemo(() => {
     if (!editingId || !editAllowed) return []
     return docsForEvent(editingId)
@@ -728,6 +740,7 @@ export default function HistoryPage() {
               important: sliceCareTip(draft.careImportant),
               tips: [sliceCareTip(draft.careTip1), sliceCareTip(draft.careTip2), sliceCareTip(draft.careTip3)],
             },
+            allowPublicPhotos: Boolean(draft.allowPublicPhotos),
           }
         : {}),
     }
@@ -903,6 +916,7 @@ export default function HistoryPage() {
                   services: [],
                   maintenanceServices: [],
                   type: 'visit',
+                  allowPublicPhotos: true,
                   ...EMPTY_CARE_DRAFT,
                 })
                 const next = new URLSearchParams(sp)
@@ -962,6 +976,10 @@ export default function HistoryPage() {
         </div>
       </div>
 
+      <div
+        className={`historyPage__mainStack${showNew ? ' historyPage__mainStack--formOpen' : ''}`}
+      >
+      <div className="historyPage__listCol" ref={historyListTopRef}>
       <div className="list">
         {visibleEvents.map((e, cardIdx) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
@@ -1000,43 +1018,47 @@ export default function HistoryPage() {
             aria-label={canOpen(e) ? (canEditAny(e) ? 'Визит: открыть редактирование' : 'Визит: открыть просмотр') : undefined}
             title={canOpen(e) ? (canEditAny(e) ? 'Нажмите, чтобы отредактировать' : 'Нажмите, чтобы посмотреть') : undefined}
           >
-            <button
-              type="button"
-              data-visit-expand-toggle
-              className="dropdownCaretBtn dropdownCaretBtn--floating"
-              aria-expanded={visitExpanded}
-              aria-label={visitExpanded ? 'Свернуть карточку визита' : 'Развернуть карточку визита'}
-              title={visitExpanded ? 'Свернуть' : 'Развернуть'}
-              onClick={(ev) => {
-                ev.preventDefault()
-                ev.stopPropagation()
-                toggleVisitCardExpand(e)
-              }}
-              onPointerDown={(ev) => {
-                ev.stopPropagation()
-              }}
-              onKeyDown={(ev) => {
-                ev.stopPropagation()
-                if (ev.key === 'Enter' || ev.key === ' ') {
-                  ev.preventDefault()
-                  toggleVisitCardExpand(e)
-                }
-              }}
-            >
-              <DropdownCaretIcon open={visitExpanded} />
-            </button>
             <div
               className={`row spread gap eventRow${showServiceCornerAvatar && visitExpanded ? ' eventRow--withServiceAvatar' : ''}`}
             >
               <div className="eventMain">
-                <div className="rowItem__title">{e.title || 'Событие'}</div>
-                <div className="rowItem__meta">
-                  <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
-                  <span className="eventMeta__sep" aria-hidden="true">
-                    {' '}
-                    ·{' '}
-                  </span>
-                  <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
+                <div className="eventCard__head">
+                  <div className="eventCard__headText">
+                    <div className="rowItem__title">{e.title || 'Событие'}</div>
+                    <div className="rowItem__meta">
+                      <span className="eventMeta__when">{fmtDateTime(e.at)}</span>
+                      <span className="eventMeta__sep" aria-hidden="true">
+                        {' '}
+                        ·{' '}
+                      </span>
+                      <span className="eventMeta__km">{fmtKm(e.mileageKm)}</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    data-visit-expand-toggle
+                    className="dropdownCaretBtn eventCard__expandBtn"
+                    aria-expanded={visitExpanded}
+                    aria-label={visitExpanded ? 'Свернуть карточку визита' : 'Развернуть карточку визита'}
+                    title={visitExpanded ? 'Свернуть' : 'Развернуть'}
+                    onClick={(ev) => {
+                      ev.preventDefault()
+                      ev.stopPropagation()
+                      toggleVisitCardExpand(e)
+                    }}
+                    onPointerDown={(ev) => {
+                      ev.stopPropagation()
+                    }}
+                    onKeyDown={(ev) => {
+                      ev.stopPropagation()
+                      if (ev.key === 'Enter' || ev.key === ' ') {
+                        ev.preventDefault()
+                        toggleVisitCardExpand(e)
+                      }
+                    }}
+                  >
+                    <DropdownCaretIcon open={visitExpanded} />
+                  </button>
                 </div>
                 {mode === 'detailing' && e.isDraft ? (
                   <div className="historyDraftCardBar row gap wrap" onClick={(ev) => ev.stopPropagation()}>
@@ -1077,10 +1099,6 @@ export default function HistoryPage() {
                     ) : (
                       <>Запись из кабинета детейлинга</>
                     )}
-                  </div>
-                ) : visitExpanded && visitReadonlyCard && mode === 'owner' ? (
-                  <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
-                    Окно редактирования истекло
                   </div>
                 ) : null}
                 {visitExpanded && Array.isArray(e.maintenanceServices) && e.maintenanceServices.length ? (
@@ -1237,9 +1255,11 @@ export default function HistoryPage() {
           </Card>
         ) : null}
       </div>
+      </div>
 
       {showNew ? (
-        <Card className="card pad" style={{ marginTop: 12 }} ref={formRef}>
+        <div className="historyPage__formCol">
+        <Card className="card pad" ref={formRef}>
           {mode === 'detailing' ? (
             <>
               <p className="muted small historyLastVisitPreviewHead">Последний сохранённый визит по этому авто</p>
@@ -1286,6 +1306,9 @@ export default function HistoryPage() {
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, title: clampVisitTitleInput(e.target.value) }))
                 }
+                onBlur={createBlurFixRuFreeText((next) =>
+                  setDraft((d) => ({ ...d, title: clampVisitTitleInput(next) })),
+                )}
                 placeholder="ТО-2 / Визит…"
                 disabled={formLocked}
               />
@@ -1367,6 +1390,9 @@ export default function HistoryPage() {
                 maxLength={VISIT_NOTE_MAX_LEN}
                 value={draft.note}
                 onChange={(e) => setDraft((d) => ({ ...d, note: clampVisitNoteInput(e.target.value) }))}
+                onBlur={createBlurFixRuFreeText((next) =>
+                  setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
+                )}
                 placeholder="Впишите, что и как обслуживалось — это нужно для истории вашего авто"
                 disabled={formLocked}
               />
@@ -1396,8 +1422,17 @@ export default function HistoryPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="muted small" style={{ marginTop: 6 }}>
-                    {editAllowed ? 'Пока нет фото — добавьте через кнопку ниже.' : 'Фото визита будут здесь.'}
+                  <div className="muted small" style={{ marginTop: 6, lineHeight: 1.45 }}>
+                    {editAllowed ? (
+                      <>
+                        Пока нет фото — добавьте через кнопку ниже.
+                        <span style={{ display: 'block', marginTop: 6, fontWeight: 650 }}>
+                          {PHOTO_UPLOAD_EMPTY_THUMB_HINT}
+                        </span>
+                      </>
+                    ) : (
+                      'Фото визита будут здесь.'
+                    )}
                   </div>
                 )}
                 {editAllowed && !formLocked ? (
@@ -1435,6 +1470,11 @@ export default function HistoryPage() {
                             : 'Файлы прикрепятся сразу после выбора'}
                     </span>
                   </div>
+                ) : null}
+                {editAllowed && !formLocked ? (
+                  <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+                    {PHOTO_UPLOAD_HINTS_PARAGRAPH}
+                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -1477,6 +1517,40 @@ export default function HistoryPage() {
                         : 'Файлы прикрепятся сразу после выбора'}
                   </span>
                 </div>
+                {!formLocked ? (
+                  <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+                    {PHOTO_UPLOAD_HINTS_PARAGRAPH}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+            {mode === 'detailing' && editingId ? (
+              <div className="field field--full visitPublicPhotosField topBorder">
+                {formLocked ? (
+                  <p className="muted small" style={{ margin: 0, lineHeight: 1.45 }}>
+                    Публикация фото на публичной странице сервиса (/d/…):{' '}
+                    <strong>{editingEvent?.allowPublicPhotos !== false ? 'разрешена' : 'запрещена'}</strong>
+                  </p>
+                ) : (
+                  <>
+                    <label className="authConsent visitPublicPhotosConsent" htmlFor={visitPublicConsentId}>
+                      <input
+                        id={visitPublicConsentId}
+                        type="checkbox"
+                        className="authConsent__input"
+                        checked={Boolean(draft.allowPublicPhotos)}
+                        onChange={(e) => setDraft((d) => ({ ...d, allowPublicPhotos: e.target.checked }))}
+                      />
+                      <span className="authConsent__text">
+                        Разрешаю публиковать фото этого визита на публичной странице сервиса — блок «Фото работ» для клиентов.
+                      </span>
+                    </label>
+                    <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+                      Без этой отметки фото визита и снимки после мойки с карточки авто не показываются на публичной странице:
+                      их видите вы, владелец и детейлинг только в личных кабинетах.
+                    </p>
+                  </>
+                )}
               </div>
             ) : null}
             {mode === 'detailing' ? (
@@ -1500,6 +1574,12 @@ export default function HistoryPage() {
                     placeholder="Необязательно: что важно донести клиенту…"
                     disabled={formLocked}
                     onChange={(e) => setDraft((d) => ({ ...d, careImportant: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) =>
+                      setDraft((d) => ({
+                        ...d,
+                        careImportant: String(next).slice(0, VISIT_CARE_TIP_MAX_LEN),
+                      })),
+                    )}
                   />
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
                     {draft.careImportant.length} / {VISIT_CARE_TIP_MAX_LEN}
@@ -1535,6 +1615,12 @@ export default function HistoryPage() {
                       placeholder="Необязательно"
                       disabled={formLocked}
                       onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({
+                          ...d,
+                          [key]: String(next).slice(0, VISIT_CARE_TIP_MAX_LEN),
+                        })),
+                      )}
                     />
                     <div className="muted small historyCareTips__charCount" aria-live="polite">
                       {String(draft[key] ?? '').length} / {VISIT_CARE_TIP_MAX_LEN}
@@ -1593,6 +1679,7 @@ export default function HistoryPage() {
                     services: [],
                     maintenanceServices: [],
                     type: 'visit',
+                    allowPublicPhotos: true,
                     ...EMPTY_CARE_DRAFT,
                   })
                   invalidateRepo()
@@ -1606,6 +1693,9 @@ export default function HistoryPage() {
                     setTab('all')
                   }
                   setSp(next, { replace: true })
+                  window.requestAnimationFrame(() => {
+                    historyListTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  })
                 } catch (e) {
                   alert(formatHttpErrorMessage(e, 'Не удалось сохранить историю. Попробуйте ещё раз.'))
                 }
@@ -1715,7 +1805,10 @@ export default function HistoryPage() {
             </>
           )}
         </Card>
+        </div>
       ) : null}
+      </div>
+
       <PhotoLightbox
         open={Boolean(photoLb)}
         items={photoLb?.items ?? []}

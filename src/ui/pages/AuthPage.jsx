@@ -1,5 +1,7 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
+import Logo from '../Logo.jsx'
+import { BRAND_TAGLINE } from '../../lib/brandConstants.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -16,6 +18,10 @@ export default function AuthPage() {
 
   return (
     <div className="container authPage">
+      <div className="authPage__brandLockup">
+        <Logo size={32} />
+        <p className="authPage__brandTagline">{BRAND_TAGLINE}</p>
+      </div>
       <div className="authSplit authSplit--hub">
         <div className="authHub__info authSplit__lede">
           <div id="auth-hub-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
@@ -76,6 +82,10 @@ export default function AuthPage() {
                 </ServiceHint>
               </div>
             </div>
+            <p className="muted small" style={{ margin: '14px 0 0', lineHeight: 1.45 }}>
+              Забыли пароль — на экране входа владельца или партнёра откройте «Забыли пароль?» и укажите почту аккаунта. Смена пароля
+              из кабинета — в настройках гаража или лендинга.
+            </p>
           </Card>
         </div>
       </div>

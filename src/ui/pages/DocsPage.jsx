@@ -5,7 +5,7 @@ import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Button, Card, Field, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile, fileToDataUrl } from '../../lib/imageCompression.js'
-import { fmtDateTime } from '../../lib/format.js'
+import { fmtDateTime, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../../lib/format.js'
 import { DOCS_UPLOAD_BATCH_MAX } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
@@ -108,6 +108,9 @@ export default function DocsPage() {
                 Сюда загружайте личные документы по авто (ПТС, договоры, сканы). Они хранятся только у вас в гараже и не
                 показываются по публичной ссылке. Фото моек и работ смотрите в разделе «История». За одну загрузку — не
                 более {DOCS_UPLOAD_BATCH_MAX} файлов (можно добавить ещё партией).
+              </p>
+              <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
+                Если прикрепляете снимки (JPEG, PNG и т.д.): {PHOTO_UPLOAD_HINTS_PARAGRAPH}
               </p>
             </ServiceHint>
           </div>
@@ -227,6 +230,9 @@ export default function DocsPage() {
                 Добавить
               </Button>
             </div>
+            <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
+              Для фото-файлов: {PHOTO_UPLOAD_HINTS_PARAGRAPH}
+            </p>
           </Field>
         </div>
       </Card>

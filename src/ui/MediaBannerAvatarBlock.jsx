@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { PHOTO_UPLOAD_EMPTY_THUMB_HINT, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../lib/format.js'
 import { compressImageFile } from '../lib/imageCompression.js'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 
@@ -61,6 +62,10 @@ export default function MediaBannerAvatarBlock({
   headerExtra = null,
   /** Если false — колонка загрузки баннера скрыта (аватар остаётся). */
   showBannerColumn = true,
+  /** Подпись под блоком превью: альбомная съёмка и госномер. */
+  showPhotoUploadHints = true,
+  /** Вторая строка внутри пустого превью баннера (короткая). */
+  showBannerEmptyThumbHint = true,
   className = '',
 }) {
   const bannerRef = useRef(null)
@@ -121,7 +126,9 @@ export default function MediaBannerAvatarBlock({
               {avatarUrl ? (
                 <img alt={`Превью: ${avatarLabel}`} src={avatarSrc} />
               ) : (
-                <span className="garageSettings__thumbEmpty">{avatarEmptyHint}</span>
+                <span className="garageSettings__thumbEmpty">
+                  <span className="garageSettings__thumbEmptyPrimary">{avatarEmptyHint}</span>
+                </span>
               )}
             </button>
             {avatarUrl ? (
@@ -151,7 +158,12 @@ export default function MediaBannerAvatarBlock({
                 {bannerUrl ? (
                   <img alt={`Превью: ${bannerLabel}`} src={bannerSrc} />
                 ) : (
-                  <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">{bannerEmptyHint}</span>
+                  <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
+                    <span className="garageSettings__thumbEmptyPrimary">{bannerEmptyHint}</span>
+                    {showPhotoUploadHints && showBannerEmptyThumbHint ? (
+                      <span className="garageSettings__thumbEmptySecondary">{PHOTO_UPLOAD_EMPTY_THUMB_HINT}</span>
+                    ) : null}
+                  </span>
                 )}
               </button>
               {bannerUrl ? (
@@ -165,6 +177,10 @@ export default function MediaBannerAvatarBlock({
           </div>
         ) : null}
       </div>
+
+      {showPhotoUploadHints ? (
+        <p className="muted small mediaBannerAvatarBlock__photoHints">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
+      ) : null}
     </div>
   )
 }

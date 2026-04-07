@@ -12,6 +12,8 @@ use App\Models\Owner;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -102,6 +104,50 @@ class OwnerAuthController extends Controller
         ]);
     }
 
+    public function forgotPassword(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+        $email = mb_strtolower(trim($data['email']));
+        $owner = Owner::query()->where('email', $email)->first();
+
+        if ($owner) {
+            $plain = bin2hex(random_bytes(8));
+            $owner->password = Hash::make($plain);
+            $owner->save();
+            $owner->tokens()->delete();
+
+            $body = implode("\n", [
+                'Здравствуйте!',
+                '',
+                'Вы запросили восстановление доступа к КарПас (кабинет владельца).',
+                'Логин (почта): '.$owner->email,
+                'Новый пароль: '.$plain,
+                '',
+                'Войдите с этими данными. При желании смените пароль в настройках гаража.',
+                '',
+                'Если это были не вы, войдите и сразу установите свой пароль.',
+            ]);
+
+            try {
+                Mail::raw($body, function ($message) use ($email) {
+                    $message->to($email)->subject('КарПас: восстановление доступа');
+                });
+            } catch (\Throwable $e) {
+                Log::error('owner_forgot_password_mail_failed', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Если указанная почта зарегистрирована, мы отправили на неё письмо с логином и новым паролем.',
+        ]);
+    }
+
     public function me(Request $request)
     {
         /** @var Owner $o */
@@ -114,6 +160,27 @@ class OwnerAuthController extends Controller
     {
         /** @var Owner $o */
         $o = $request->user();
+
+        if ($request->filled('newPassword')) {
+            $pwdData = $request->validate([
+                'currentPassword' => ['required', 'string'],
+                'newPassword' => ['required', 'string', 'min:4', 'max:255'],
+            ]);
+            if (!Hash::check($pwdData['currentPassword'], $o->password)) {
+                throw ValidationException::withMessages([
+                    'currentPassword' => ['Неверный текущий пароль.'],
+                ]);
+            }
+            $o->password = Hash::make($pwdData['newPassword']);
+            $o->save();
+            $o->tokens()->delete();
+
+            return response()->json([
+                'owner' => ApiResources::owner($o->fresh()),
+                'passwordChanged' => true,
+            ]);
+        }
+
         $patch = $request->all();
 
         if (array_key_exists('name', $patch)) {

@@ -5,12 +5,14 @@ import { useDetailing } from './useDetailing.js'
 import { bumpSessionRefresh, hasOwnerSession, isAuthed } from './auth.js'
 import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 import { useAsyncActionLock } from './useAsyncActionLock.js'
+import { useSupport } from './support/useSupport.js'
 
 /**
  * «Поддержка» с выпадающим меню для владельца (шапка или футер).
  * `placement="footer"` — меню открывается вверх, стиль как у ссылок в футере.
  */
 export default function OwnerSupportDropdown({ placement = 'nav' }) {
+  const { openModal, unreadCount } = useSupport()
   const r = useRepo()
   const nav = useNavigate()
   const shareLock = useAsyncActionLock()
@@ -67,22 +69,6 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
     }
   }, [open])
 
-  const supportTextGeneric =
-    'Поддержка КарПас\n\n' +
-    `Страница: ${location.href}\n` +
-    `Браузер: ${navigator.userAgent}\n\n` +
-    'Опишите проблему и отправьте это сообщение в поддержку.'
-
-  async function copySupport(text) {
-    setOpen(false)
-    try {
-      await navigator.clipboard.writeText(text)
-      alert('Текст для поддержки скопирован. Вставьте его в сообщение.')
-    } catch {
-      prompt('Скопируйте текст для поддержки', text)
-    }
-  }
-
   const isFooter = placement === 'footer'
   const rootClass = isFooter ? 'footerHelpDd' : 'navSupportDd'
   const menuClass = isFooter ? 'footerHelpDd__menu' : 'navSupportDd__menu'
@@ -101,11 +87,35 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
         aria-haspopup="menu"
         onClick={() => setOpen((o) => !o)}
       >
-        Поддержка
+        <span className="ownerSupportDd__triggerInner">
+          <span className="ownerSupportDd__triggerLabel">Поддержка</span>
+          {unreadCount > 0 ? (
+            <span
+              className="supportUnreadBadge supportUnreadBadge--inMenu"
+              title="Есть ответ поддержки"
+              aria-label={`Непрочитанных ответов: ${unreadCount}`}
+            >
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          ) : null}
+        </span>
         <span className={chevClass} aria-hidden="true" />
       </button>
       {open ? (
         <div className={menuClass} role="menu">
+          {unreadCount > 0 ? (
+            <button
+              type="button"
+              role="menuitem"
+              className="footerHelpDd__item footerHelpDd__item--accentHint"
+              onClick={() => {
+                setOpen(false)
+                openModal()
+              }}
+            >
+              Ответ поддержки{unreadCount > 1 ? ` (${unreadCount})` : ''}
+            </button>
+          ) : null}
           {car ? (
             <>
               <button
@@ -171,15 +181,13 @@ export default function OwnerSupportDropdown({ placement = 'nav' }) {
             role="menuitem"
             className="footerHelpDd__item"
             onClick={() => {
-              void copySupport(
-                car
-                  ? 'Поддержка КарПас\n\n' +
-                      `Авто: ${car.make} ${car.model} · VIN: ${car.vin || '—'}\n` +
-                      `Страница: ${location.href}\n` +
-                      `Браузер: ${navigator.userAgent}\n\n` +
-                      'Опишите проблему и отправьте это сообщение в поддержку.'
-                  : supportTextGeneric,
-              )
+              setOpen(false)
+              openModal({
+                carId: carId || undefined,
+                bodyPrefix: car
+                  ? `Авто: ${car.make} ${car.model} · VIN: ${car.vin || '—'}\n\n`
+                  : '',
+              })
             }}
           >
             Написать в поддержку

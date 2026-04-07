@@ -1,17 +1,19 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
+import { BRAND_TAGLINE } from '../lib/brandConstants.js'
 import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, hasOwnerSession } from './auth.js'
 import { ComboBox } from './ComboBox.jsx'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
-import { SUPPORT_LINK_HREF } from './supportConfig.js'
+import { SupportButton } from './support/SupportHub.jsx'
 import {
   formatPhoneRuInput,
   formatPhoneRuNationalDisplay,
   getPhoneRuNationalDigits,
 } from '../lib/format.js'
+import { OPEN_SERVICE_ABOUT_STATE } from '../lib/serviceLandingNav.js'
 
 export { default as ServiceHint } from './ServiceHint.jsx'
 export { PageLoadSpinner } from './PageLoadSpinner.jsx'
@@ -114,11 +116,11 @@ export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onCh
       />
       <span className="authConsent__text">
         Я соглашаюсь с{' '}
-        <Link className="authConsent__legalLink" to="/about">
+        <Link className="authConsent__legalLink" to="/">
           политикой конфиденциальности
         </Link>{' '}
         и{' '}
-        <Link className="authConsent__legalLink" to="/about">
+        <Link className="authConsent__legalLink" to="/">
           правилами использования сервиса
         </Link>
         .
@@ -379,12 +381,12 @@ export function TopNav() {
   return (
     <header className="nav">
       <div className="nav__inner">
-        <NavLink to="/auth" className="nav__brand" aria-label="КарПас — вход в сервис">
-          <span className="nav__brandStack">
+        <NavLink end className="nav__brand" to="/" aria-label="КарПас — главная страница сервиса">
+          <span className="navBrandLockup">
             <span className="navLogoFrame">
               <Logo />
             </span>
-            <span className="nav__brandTagline">История Вашего автомобиля</span>
+            <span className="nav__brandTagline">{BRAND_TAGLINE}</span>
           </span>
         </NavLink>
         <nav className="nav__links">
@@ -396,6 +398,10 @@ export function TopNav() {
                     Заявки ({pendingClaims})
                   </NavLink>
                 ) : null}
+                <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+                  О сервисе
+                </Link>
+                <SupportButton className="nav__action">Поддержка</SupportButton>
                 <button type="button" className="nav__action" onClick={logout}>
                   Выйти
                 </button>
@@ -404,29 +410,34 @@ export function TopNav() {
           </div>
           <div className="nav__linksPersist">
             {isPublicShowcasePage ? (
-              <Link className="nav__action nav__action--showcaseLogin" to="/auth">
-                Войти
-              </Link>
+              <>
+                <Link className="nav__action nav__action--showcaseLogin" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+                  О сервисе
+                </Link>
+                <SupportButton className="nav__action nav__action--showcaseLogin">Поддержка</SupportButton>
+                <Link className="nav__action nav__action--showcaseLogin" to="/auth">
+                  Войти
+                </Link>
+              </>
             ) : (
               <>
                 {onAuthHub ? (
-                  <Link className="nav__action" to="/about">
+                  <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
                     О сервисе
                   </Link>
                 ) : null}
                 {hasOwnerSession() ? (
                   <>
+                    <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+                      О сервисе
+                    </Link>
                     <OwnerSupportDropdown />
                     <button type="button" className="nav__action" onClick={logout}>
                       Выйти
                     </button>
                   </>
                 ) : null}
-                {mode === 'guest' && !onAuthHub ? (
-                  <a className="nav__action" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
-                    Поддержка
-                  </a>
-                ) : null}
+                {mode === 'guest' && !onAuthHub ? <SupportButton className="nav__action">Поддержка</SupportButton> : null}
               </>
             )}
           </div>

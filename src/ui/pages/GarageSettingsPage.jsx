@@ -1,14 +1,19 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
 import { BackNav, Card, ComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
-import { hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
+import { clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { formatPhoneRuInput, normalizeGarageSlugInput, parseGarageSocialLines } from '../../lib/format.js'
+import {
+  formatPhoneRuInput,
+  normalizeGarageSlugInput,
+  parseGarageSocialLines,
+  PHOTO_UPLOAD_HINTS_PARAGRAPH,
+} from '../../lib/format.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
-import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 
 export default function GarageSettingsPage() {
@@ -336,7 +341,7 @@ export default function GarageSettingsPage() {
                 в справке у переключателя. Сброс фото — крестик в углу превью.
               </p>
               <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
-                {PHOTO_LANDSCAPE_HINT_SENTENCE}
+                {PHOTO_UPLOAD_HINTS_PARAGRAPH}
               </p>
             </ServiceHint>
           </div>
@@ -380,6 +385,17 @@ export default function GarageSettingsPage() {
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, garageAvatar: url }))}
           />
         </div>
+
+        <AuthChangePasswordSection
+          variant="owner"
+          r={r}
+          onPasswordChanged={() => {
+            alert('Пароль обновлён. Войдите снова, указав почту и новый пароль.')
+            clearOwnerSession()
+            refreshAllClientData()
+            navigate('/auth/owner', { replace: true })
+          }}
+        />
 
         <div className="row gap wrap historyFormActions garageSettings__actionsRow">
           <button

@@ -2,7 +2,7 @@
 # Sitemap: https://ВАШ-ДОМЕН.ru/sitemap.xml
 
 User-agent: *
-Allow: /about
+Allow: /
 Allow: /d/
 Allow: /g/
 Allow: /share/

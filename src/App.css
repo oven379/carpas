@@ -38,22 +38,26 @@
   min-width: 0;
 }
 
-/* Логотип + слоган колонкой, слоган плотно под вордмарком */
-.nav__brandStack {
+/* Одна колонка: рамка лого и слоган не шире друг друга */
+.navBrandLockup {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0;
   line-height: 1.12;
   min-width: 0;
+  max-width: min(210px, 100%);
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Слоган вровень левому краю SVG-логотипа (без отступа под рамку — в шапке Logo без обёртки) */
+/* Слоган строго по ширине рамки (ellipsis внутри lockup) */
 .nav__brandTagline {
   display: block;
   margin: 0;
   padding: 2px 0 0;
-  max-width: 56vw;
+  max-width: 100%;
+  width: 100%;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -71,10 +75,12 @@
   justify-content: center;
   flex-shrink: 1;
   min-width: 0;
-  max-width: min(132px, 100%);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   padding: 3px 7px;
   border-radius: 10px;
-  border: 2px solid #9333ea;
+  border: 1px solid #9333ea;
   box-sizing: border-box;
   line-height: 0;
   background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
@@ -83,8 +89,65 @@
 .navLogoFrame .navWordmarkSvg {
   display: block;
   width: auto;
-  height: 18px;
+  height: auto;
   max-width: 100%;
+  max-height: 22px;
+}
+
+/* Вордмарк «КАР.ПАС» + куб (Logo.jsx) */
+.brandLogoMark {
+  --brandLogoH: 18px;
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  line-height: 1;
+  box-sizing: border-box;
+  padding-bottom: calc(var(--brandLogoH) * 0.44);
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  font-size: calc(var(--brandLogoH) * 0.56);
+  vertical-align: middle;
+}
+
+.brandLogoMark__kar {
+  color: #c782ff;
+}
+
+.brandLogoMark__pas {
+  color: #a8a1b1;
+}
+
+.brandLogoMark__dotCube {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.brandLogoMark__dot {
+  color: #c782ff;
+  font-size: 1em;
+  line-height: 1;
+}
+
+.brandLogoMark__cube {
+  position: absolute;
+  left: 50%;
+  top: calc(100% - 0.04em);
+  transform: translateX(-50%);
+  width: calc(var(--brandLogoH) * 0.4);
+  height: calc(var(--brandLogoH) * 0.46);
+  display: block;
+  pointer-events: none;
 }
 
 /* Вордмарк: тёмный фон под белую часть логотипа */
@@ -856,6 +919,24 @@ button[data-variant]:focus-visible,
   outline-offset: 2px;
 }
 
+/* <Link class="btn">: браузерный :visited не должен ломать контраст кнопок */
+a.btn {
+  text-decoration: none;
+}
+
+a.btn:visited {
+  color: var(--text-h);
+}
+
+a.btn[data-variant='primary']:visited {
+  color: #fff;
+}
+
+a.btn[data-variant='ghost']:visited,
+a.btn[data-variant='outline']:visited {
+  color: var(--text-h);
+}
+
 .input,
 .textarea {
   width: 100%;
@@ -1078,6 +1159,10 @@ input.input:-webkit-autofill {
   font-size: 14px;
   font-weight: 650;
   letter-spacing: -0.01em;
+}
+
+span.field__label::after {
+  content: ':';
 }
 
 /* Блок выбора услуг: заголовок заметнее подписей групп и строк справочника */
@@ -1369,6 +1454,571 @@ a.heroCoverStat--link:focus-visible {
   margin: 10px 0 26px;
 }
 
+.visitPublicPhotosField {
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+/* Главная: баннер с вордмарком и слоганом как в шапке */
+.homeLandingBanner {
+  margin: 8px 0 0;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--code-bg) 42%, var(--bg));
+  overflow: hidden;
+}
+
+.homeLandingBanner--hasPhoto {
+  position: relative;
+  background: color-mix(in oklab, var(--code-bg) 30%, var(--bg));
+}
+
+.homeLandingBanner--hasPhoto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--homeBanner-img);
+  background-size: cover;
+  background-position: center;
+}
+
+.homeLandingBanner--hasPhoto::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--bg) 35%, transparent) 0%,
+    color-mix(in oklab, var(--bg) 82%, transparent) 100%
+  );
+}
+
+.homeLandingBanner--hasPhoto .homeLandingBanner__inner {
+  position: relative;
+  z-index: 1;
+}
+
+.homeLandingBanner__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 22px clamp(16px, 4vw, 28px) 20px;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.homeLandingBanner__brandTagline {
+  margin: 0;
+  max-width: 22rem;
+  font-size: clamp(13px, 2.6vw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  line-height: 1.3;
+  text-align: left;
+  align-self: flex-start;
+}
+
+.homeLandingBanner__brandStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
+.homeLandingBanner__brandStack .homeLandingBanner__logoRow {
+  justify-content: flex-start;
+  width: auto;
+}
+
+.homeLandingBanner--hasPhoto .homeLandingBanner__brandTagline,
+.homeLandingBanner--hasPhoto .homeLandingBanner__tagline {
+  text-shadow: 0 1px 3px color-mix(in oklab, var(--bg) 55%, var(--text-h) 45%);
+}
+
+.homeLandingBanner__markImg {
+  display: block;
+  max-width: min(280px, 88vw);
+  max-height: 88px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.homeLandingInfoLogoImg {
+  display: block;
+  width: 100%;
+  max-width: 120px;
+  max-height: 56px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
+.detPublicInfoCard__logo--homeImg {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.homeLandingBanner__logoRow {
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.homeLandingBanner__inner > .homeLandingBanner__tagline {
+  text-align: center;
+}
+
+.homeLandingSplit {
+  margin-top: 12px;
+}
+
+.homeLandingBanner__mark.brandLogoMark {
+  --brandLogoH: 72px;
+  display: inline-flex;
+  max-width: min(320px, 92vw);
+  font-size: calc(var(--brandLogoH) * 0.56);
+}
+
+.homeLandingBanner__mark.brandLogoMark .brandLogoMark__cube {
+  width: calc(var(--brandLogoH) * 0.4);
+  height: calc(var(--brandLogoH) * 0.46);
+}
+
+.homeLandingBanner__tagline {
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+}
+
+.kv__row--stack {
+  align-items: flex-start;
+}
+
+.kv__v--block {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Главная: «Как это работает» — тот же UI, что блок «Советы» на карточке авто */
+.homeHowItWorksRecs {
+  width: 100%;
+}
+
+.homeHowItWorksRecs__bar {
+  width: 100%;
+}
+
+.homeHowItWorksRecs__bar .carPage__recsSelect {
+  width: 100%;
+  min-width: 0;
+}
+
+.homeHowItWorksRecs__list.recList {
+  margin-top: 12px;
+}
+
+/* Главная: один блок «О сервисе» — заголовок слева, квадратная кнопка-шеврон справа */
+.homeLandingAbout {
+  width: 100%;
+}
+
+.homeLandingAbout__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.homeLandingAbout__title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--heading);
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.28;
+  letter-spacing: -0.22px;
+  color: var(--text-h);
+}
+
+.homeLandingAbout__toggle {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: #12131a;
+  color: #f3f4f6;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.homeLandingAbout__toggle:hover {
+  border-color: color-mix(in oklab, var(--accent) 78%, white);
+  background: color-mix(in oklab, #12131a 88%, var(--accent));
+}
+
+.homeLandingAbout__toggle:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 72%, white);
+  outline-offset: 2px;
+}
+
+.homeLandingAbout__toggleIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.homeLandingAbout__toggle[aria-expanded='true'] .homeLandingAbout__toggleIcon {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .homeLandingAbout__toggleIcon {
+    transition-duration: 0.01ms;
+  }
+}
+
+.homeLandingAboutPanel {
+  margin-top: 12px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  color: var(--text);
+}
+
+.homeLandingAboutPanel__p {
+  line-height: 1.55;
+}
+
+.homeLandingAboutPanel__lead {
+  color: var(--text-h);
+  font-weight: 500;
+}
+
+.homeLandingAboutPanel__label {
+  margin: 0 0 8px;
+  font-family: var(--heading);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.15px;
+  color: var(--text-h);
+}
+
+.homeLandingAboutPanel__label::after {
+  content: ':';
+}
+
+.homeLandingAboutPanel__steps {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.55;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.homeLandingAboutPanel__steps li {
+  padding-left: 2px;
+}
+
+.homeLandingAboutPanel__steps--bullets {
+  list-style: disc;
+  padding-left: 1.35em;
+}
+
+.homeLandingAboutPanel__stepNote {
+  margin: 8px 0 0;
+  line-height: 1.5;
+  max-width: 52ch;
+}
+
+.homeLandingAboutPanel__cta {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  width: 100%;
+}
+
+.homeLandingAboutPanel__ctaHint {
+  flex: 1 1 12rem;
+  min-width: min(100%, 12rem);
+  line-height: 1.45;
+  text-align: left;
+}
+
+/* Кнопка всегда справа: на одной строке с текстом или на новой строке под ним */
+.homeLandingAboutPanel__ctaBtn {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+/* «О сервисе»: CTA — прозрачный фон, постоянная фиолетовая обводка */
+.homeLandingAboutPanel .homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta {
+  justify-content: center;
+  min-height: 44px;
+  padding: 11px 16px;
+  border-radius: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12px;
+  background: transparent;
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  box-shadow: none;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    filter 0.12s ease;
+}
+
+.homeLandingAboutPanel .homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta:not(:disabled):hover {
+  filter: none;
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 85%, white);
+  color: var(--accent);
+}
+
+.homeLandingAboutPanel .homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta:not(:disabled):active {
+  filter: none;
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+}
+
+.homeLandingAboutPanel .homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
+}
+
+.homeLandingAboutPanel a.homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta:visited,
+.homeLandingAboutPanel a.homeLandingAboutPanel__ctaBtn.btn.authHub__btn--cta:visited:hover {
+  color: var(--accent);
+}
+
+/* Главная: блок «Возможности» — список-карточки (сетка 2 колонки от 720px) */
+.homeLandingFeatures {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.homeLandingFeatures__item {
+  margin: 0;
+  padding: 12px 14px 12px 16px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
+  border-left: 3px solid color-mix(in oklab, var(--accent) 52%, var(--border));
+  background: color-mix(in oklab, var(--bg) 97%, var(--code-bg));
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+@media (min-width: 720px) {
+  .homeLandingFeatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+/* Главная: «Начать свою историю» — на узком экране кнопки столбцом на всю ширину */
+.homeLandingStartCard__actions.homeLandingHub {
+  align-items: stretch;
+}
+
+@media (max-width: 520px) {
+  .homeLandingStartCard__actions.homeLandingHub {
+    flex-direction: column;
+  }
+
+  .homeLandingStartCard__actions.homeLandingHub .btn.authHub__btn {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+}
+
+/* Главная: сетка «Гаражи» */
+.homeGarageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 12px;
+}
+
+.homeGarageCard {
+  position: relative;
+  display: block;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--bg);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.homeGarageCard:hover {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  box-shadow: 0 6px 22px color-mix(in oklab, black 12%, transparent);
+}
+
+.homeGarageCard__top {
+  position: relative;
+}
+
+.homeGarageCard__media {
+  aspect-ratio: 4 / 3;
+  background-size: cover;
+  background-position: center;
+  background-color: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
+}
+
+.homeGarageCard__avatar {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 2px solid color-mix(in oklab, var(--bg) 92%, transparent);
+  overflow: hidden;
+  box-shadow: 0 2px 10px color-mix(in oklab, black 18%, transparent);
+}
+
+.homeGarageCard__avatar--img {
+  background: var(--bg);
+}
+
+.homeGarageCard__avatar--img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.homeGarageCard__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--bg) 78%, var(--code-bg));
+}
+
+.homeGarageCard__body {
+  padding: 10px 12px 12px;
+}
+
+.homeGarageCard__title {
+  font-weight: 650;
+  font-size: 14px;
+  color: var(--text-h);
+  line-height: 1.25;
+}
+
+.homeGarageCard__meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: color-mix(in oklab, var(--text) 92%, var(--text-h));
+}
+
+/* Главная: FAQ под «Возможностями» — выпадающие строки в стиле carPage__recsSelect */
+.homeFaqDd {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.homeFaqDd__item {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.homeFaqDd__summary {
+  list-style: none;
+}
+
+.homeFaqDd__summary::-webkit-details-marker {
+  display: none;
+}
+
+summary.carPage__recsSelect {
+  list-style: none;
+}
+
+summary.carPage__recsSelect::-webkit-details-marker {
+  display: none;
+}
+
+.homeFaqDd__summary.carPage__recsSelect {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 0;
+  border: none;
+  min-height: 48px;
+}
+
+.homeFaqDd__item[open] .homeFaqDd__summary.carPage__recsSelect {
+  background: color-mix(in oklab, var(--accent) 10%, var(--bg));
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--accent) 22%, transparent),
+    inset 0 -1px 0 color-mix(in oklab, var(--border) 88%, transparent);
+}
+
+.homeFaqDd__item[open] .carPage__recsSelectChev {
+  transform: rotate(180deg);
+}
+
+.homeFaqDd__panel {
+  padding: 12px 14px 14px;
+  line-height: 1.5;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+  background: color-mix(in oklab, var(--bg) 96%, var(--code-bg));
+}
+
 .cards3 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1383,6 +2033,15 @@ a.heroCoverStat--link:focus-visible {
   color: var(--text-h);
   font-weight: 650;
   margin-bottom: 6px;
+}
+
+.cardTitle::after {
+  content: ':';
+}
+
+/* Админка: подзаголовки панелей перед текстом или таблицей */
+.h2.adminPreview__panelTitle::after {
+  content: ':';
 }
 
 /* Публичный лендинг: акцент на тип сервиса в строке под заголовком */
@@ -1747,7 +2406,6 @@ a.heroCoverStat--link:focus-visible {
 
 .eventMain {
   min-width: 0;
-  padding-right: 120px;
 }
 
 .eventCard--clickable {
@@ -1813,6 +2471,29 @@ a.heroCoverStat--link:focus-visible {
 .eventCard--collapsible {
   position: relative;
   isolation: isolate;
+}
+
+/* Шапка карточки визита: заголовок + стрелка в одной строке, стрелка по центру по вертикали */
+.eventCard__head {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.eventCard__headText {
+  flex: 1;
+  min-width: 0;
+}
+
+.eventCard__expandBtn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
 }
 
 /* Стрелка раскрытия: как «Назад» / «Открыть» — без рамки и заливки, серый stroke */
@@ -2530,6 +3211,32 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   scroll-margin-top: calc(56px + 12px + env(safe-area-inset-top, 0px));
 }
 
+/* Список и форма визита: на десктопе список сверху; на мобилке при открытой форме — форма выше списка */
+.historyPage__mainStack--formOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.historyPage__listCol {
+  min-width: 0;
+  scroll-margin-top: calc(56px + 12px + env(safe-area-inset-top, 0px));
+}
+
+.historyPage__formCol {
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .historyPage__mainStack--formOpen .historyPage__listCol {
+    order: 2;
+  }
+
+  .historyPage__mainStack--formOpen .historyPage__formCol {
+    order: 1;
+  }
+}
+
 .marketSearch {
   margin-top: 18px;
 }
@@ -2763,6 +3470,11 @@ a.backNav {
 
 .footerHelpDd__item:hover {
   background: color-mix(in oklab, var(--accent) 14%, var(--bg));
+}
+
+.footerHelpDd__item--accentHint {
+  font-weight: 600;
+  color: var(--accent);
 }
 
 .carHero {
@@ -4184,6 +4896,8 @@ button.garageSettings__thumb:focus-visible {
 
 .garageSettings__thumbEmpty {
   display: flex;
+  flex-direction: column;
+  gap: 6px;
   min-height: 100%;
   min-width: 0;
   align-items: center;
@@ -4197,9 +4911,26 @@ button.garageSettings__thumb:focus-visible {
   pointer-events: none;
 }
 
+.garageSettings__thumbEmptyPrimary {
+  display: block;
+}
+
+.garageSettings__thumbEmptySecondary {
+  display: block;
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 600;
+  color: color-mix(in oklab, var(--accent) 55%, var(--text));
+}
+
 .garageSettings__thumbEmpty--banner {
   font-size: 12px;
   padding: 14px 18px;
+}
+
+.mediaBannerAvatarBlock__photoHints {
+  margin: 12px 0 0;
+  line-height: 1.45;
 }
 
 .garageSettings__socialList {
@@ -4478,6 +5209,11 @@ button.garageSettings__thumb:focus-visible {
   width: 100%;
 }
 
+.carEditCoverBlock__photoHints {
+  margin: 10px 0 0;
+  line-height: 1.45;
+}
+
 /* Одно поле: префикс origin/g/ + редактируемый slug + копирование полного URL */
 .garageSettings__urlComposer {
   display: flex;
@@ -4652,6 +5388,10 @@ button.garageSettings__thumb:focus-visible {
   color: var(--text-h);
 }
 
+.authHub__cardTitle::after {
+  content: ':';
+}
+
 /* Заголовок в левой колонке экранов входа (владелец / партнёр) */
 .authPage__head--splitAside {
   margin-top: 4px;
@@ -4666,7 +5406,32 @@ button.garageSettings__thumb:focus-visible {
   margin-top: 12px;
 }
 
-/* /auth: логотип только в шапке; слева сразу «Вход в сервис», справа карточка на одной линии */
+.authPage__brandLockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  margin: 4px 0 8px;
+}
+
+.authPage__brandLockup .navWordmarkSvg {
+  display: block;
+  width: auto;
+  max-width: min(320px, 92vw);
+  height: auto;
+  max-height: 56px;
+}
+
+.authPage__brandTagline {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+}
+
+/* /auth: слоган под вордмарком на странице; в шапке — тот же бренд */
 .authSplit--hub {
   grid-template-rows: auto;
 }
@@ -4891,15 +5656,34 @@ button.garageSettings__thumb:focus-visible {
   min-width: 0;
 }
 
-/* На всех экранах: не допускаем горизонтального скролла из-за authHub */
+/* На всех экранах: не допускаем горизонтального скролла из-за authHub / лендинга */
 .authHub,
-.authHub .btn.authHub__btn {
+.authHub .btn.authHub__btn,
+.homeLandingHub .btn.authHub__btn {
   max-width: 100%;
 }
 
-/* Кнопки выбора роли: аккуратные, без «раздувания» */
+/* Главная: те же кнопки, что на /auth, в ряд (не колонка 360px) */
+.homeLandingHub {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+  align-items: stretch;
+  box-sizing: border-box;
+}
+
+.homeLandingHub .btn.authHub__btn {
+  flex: 1 1 min(200px, 100%);
+  min-width: 0;
+}
+
+/* Кнопки выбора роли на /auth и те же классы на лендинге */
 .authHub .btn.authHub__btn {
   width: 100%;
+}
+
+:is(.authHub, .homeLandingHub) .btn.authHub__btn {
   justify-content: center;
   min-height: 44px;
   padding: 11px 16px;
@@ -4915,49 +5699,78 @@ button.garageSettings__thumb:focus-visible {
     box-shadow 120ms ease;
 }
 
-.authHub .btn.authHub__btn:not(:disabled):hover {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn:not(:disabled):hover {
   transform: none;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
   filter: brightness(1.03);
 }
 
-.authHub .btn.authHub__btn:not(:disabled):active {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn:not(:disabled):active {
   transform: none;
   filter: brightness(0.98);
 }
 
-.authHub .btn.authHub__btn--neutral {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--neutral {
   background: color-mix(in oklab, var(--code-bg) 52%, var(--bg));
   border-color: color-mix(in oklab, var(--border) 82%, var(--text-h));
   color: var(--text-h);
 }
 
-.authHub .btn.authHub__btn--neutral:not(:disabled):hover {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--neutral:not(:disabled):hover {
   background: color-mix(in oklab, var(--accent) 10%, var(--bg));
   border-color: color-mix(in oklab, var(--accent) 42%, var(--border));
   color: var(--text-h);
 }
 
-.authHub .btn.authHub__btn--accent {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--accent {
   background: color-mix(in oklab, var(--accent) 10%, var(--bg));
   border-color: color-mix(in oklab, var(--accent) 62%, var(--border));
   color: var(--accent);
 }
 
-.authHub .btn.authHub__btn--accent:not(:disabled):hover {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--accent:not(:disabled):hover {
   background: color-mix(in oklab, var(--accent) 18%, var(--bg));
   border-color: color-mix(in oklab, var(--accent) 72%, var(--border));
 }
 
-.authHub .btn.authHub__btn--cta {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--cta {
   background: var(--accent);
   border-color: color-mix(in oklab, var(--accent) 82%, white);
   color: white;
 }
 
-.authHub .btn.authHub__btn--cta:not(:disabled):hover {
+:is(.authHub, .homeLandingHub) .btn.authHub__btn--cta:not(:disabled):hover {
   filter: brightness(1.08);
   border-color: color-mix(in oklab, var(--accent) 90%, white);
+}
+
+a.btn.authHub__btn--cta:visited,
+a.btn.authHub__btn--cta:visited:hover {
+  color: #fff;
+}
+
+a.btn.authHub__btn--neutral:visited,
+a.btn.authHub__btn--accent:visited {
+  color: inherit;
+}
+
+/* CTA + шеврон «вперёд» (как OpenAction в кабинете), внутри фиолетовой кнопки */
+.homeLandingBtn--withChev {
+  gap: 4px;
+  padding-left: 14px;
+  padding-right: 6px;
+}
+
+.homeLandingBtn--withChev .openAction {
+  width: 36px;
+  height: 36px;
+  margin: 0 -4px 0 0;
+  color: color-mix(in oklab, white 90%, transparent);
+}
+
+.homeLandingBtn--withChev .openAction:hover {
+  color: #fff;
+  background: color-mix(in oklab, white 14%, transparent);
 }
 
 .authPage .formGrid > *,
@@ -5032,6 +5845,10 @@ button.garageSettings__thumb:focus-visible {
 .kv__k {
   color: var(--text);
   font-size: 13px;
+}
+
+.kv__k::after {
+  content: ':';
 }
 
 .kv__v {
@@ -6041,11 +6858,15 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   border-radius: 12px;
   background: var(--bg);
   color: var(--text-h);
-  font: 16px/1.25 var(--sans);
+  /* Как у .input / .btn: нативный <button> иначе выглядит «чужим» (iOS/Safari) */
+  appearance: none;
+  -webkit-appearance: none;
+  font: 15px/1.3 var(--sans);
   font-weight: 650;
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
   transition:
     border-color 0.12s ease,
     background-color 0.12s ease,
@@ -6407,7 +7228,7 @@ a.btn.carPage__recsAddVisitFull,
     width: 100%;
   }
 
-  .authHub .btn.authHub__btn {
+  :is(.authHub, .homeLandingHub) .btn.authHub__btn {
     min-height: 44px;
     padding: 11px 14px;
     border-radius: 12px;
@@ -6557,8 +7378,13 @@ a.btn.carPage__recsAddVisitFull,
   .nav__brand {
     flex: 0 1 auto;
     min-width: 0;
-    max-width: calc(100% - 128px);
+    max-width: calc(100% - 152px);
     overflow: hidden;
+  }
+
+  .navBrandLockup {
+    max-width: min(100px, calc(100vw - 188px));
+    width: 100%;
   }
 
   .nav__brand .brandWordmarkWrap {
@@ -6572,21 +7398,20 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .navLogoFrame {
-    max-width: min(104px, calc(100vw - 168px));
     padding: 2px 5px;
     border-radius: 8px;
-    border-width: 2px;
+    border-width: 1px;
   }
 
   .navLogoFrame .navWordmarkSvg {
-    height: 13px;
+    height: auto;
+    max-height: 18px;
     width: auto;
     max-width: 100%;
   }
 
   .nav__brandTagline {
     padding-left: 0;
-    max-width: min(160px, calc(100vw - 168px));
     font-size: 10px;
     letter-spacing: 0.01em;
   }
@@ -6886,10 +7711,6 @@ a.btn.carPage__recsAddVisitFull,
     box-shadow: none;
   }
 
-  .eventMain {
-    padding-right: 110px;
-  }
-
   .historyFormActions {
     flex-direction: column;
     align-items: stretch;
@@ -7096,4 +7917,660 @@ a.btn.carPage__recsAddVisitFull,
     top: 4px;
     right: 4px;
   }
+}
+
+/* --- /admin/preview: макет админ-панели (без бэкенда) --- */
+.adminPreviewPage {
+  padding-top: 16px;
+  padding-bottom: 48px;
+}
+
+.adminPreview__layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.adminPreview__aside {
+  position: sticky;
+  top: 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.adminPreview__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.adminPreview__navBtn {
+  text-align: left;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.adminPreview__navBtn:hover {
+  background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
+}
+
+.adminPreview__navBtn--active {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  color: var(--text-h);
+}
+
+.adminPreview__h1 {
+  font-size: clamp(22px, 3vw, 28px);
+  margin: 0;
+}
+
+.adminPreview__panelTitle {
+  font-size: 17px;
+  margin: 0;
+}
+
+.adminPreview__kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.adminPreview__kpiVal {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-h);
+  margin: 6px 0 4px;
+}
+
+.adminPreview__chartCard {
+  min-height: 200px;
+}
+
+.adminPreview__chartPlaceholder {
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+  padding: 28px 20px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.adminPreview__fakeSearch {
+  display: inline-flex;
+  align-items: center;
+  min-width: 160px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: default;
+  opacity: 0.85;
+}
+
+.adminPreview__tableWrap {
+  overflow-x: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.adminPreview__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adminPreview__table th,
+.adminPreview__table td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.adminPreview__table th {
+  font-weight: 650;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.adminPreview__table tbody tr:hover td {
+  background: color-mix(in oklab, var(--code-bg) 40%, transparent);
+}
+
+.adminPreview__partnerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.adminPreview__partnerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.adminPreview__partnerRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.adminPreview__partnerName {
+  font-weight: 650;
+  color: var(--text-h);
+}
+
+.adminPreview__modList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adminPreview__modCard {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--code-bg) 28%, var(--bg));
+}
+
+.adminPreview__modTitle {
+  font-weight: 650;
+  margin-bottom: 4px;
+  color: var(--text-h);
+}
+
+.adminPreview__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminPreview__toggleList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.adminPreview__toggleList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+
+.adminPreview__toggleList li:last-child {
+  border-bottom: none;
+}
+
+.adminPreview__fakeToggle {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in oklab, #22c55e 22%, var(--bg));
+  color: var(--text-h);
+  border: 1px solid color-mix(in oklab, #22c55e 40%, var(--border));
+}
+
+.adminPreview__fakeToggle--off {
+  background: color-mix(in oklab, var(--muted) 15%, var(--bg));
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+@media (max-width: 860px) {
+  .adminPreview__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .adminPreview__aside {
+    position: static;
+  }
+
+  .adminPreview__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .adminPreview__navBtn {
+    width: auto;
+    flex: 1 1 auto;
+    min-width: calc(50% - 4px);
+    text-align: center;
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+}
+
+/* Полноэкранные служебные страницы /admin/379team и /admin/panel */
+.app--adminSolo .main--adminSolo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: min(100svh, 100dvh);
+  padding-top: 0;
+}
+
+.adminLoginPage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px 48px;
+  box-sizing: border-box;
+}
+
+.adminLoginPage__inner {
+  width: min(400px, 100%);
+  text-align: center;
+}
+
+.adminLoginPage__logoWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.adminLoginPage__brandTagline {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: var(--accent);
+}
+
+.adminLoginPage__logoFrame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 28px;
+  border-radius: 16px;
+  border: 2px solid #9333ea;
+  background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
+  line-height: 0;
+}
+
+.adminLoginPage__tagline {
+  margin: 0 0 22px;
+  font-size: clamp(17px, 2.8vw, 20px);
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--text-h);
+}
+
+.adminLoginPage__form {
+  text-align: left;
+}
+
+.adminLoginPage__form .field {
+  margin-bottom: 14px;
+}
+
+.adminLoginPage__submit {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.adminLoginPage__hint {
+  margin: 14px 0 0;
+  line-height: 1.45;
+}
+
+.adminLoginPage__error {
+  margin: 0 0 10px;
+  color: #e11d48;
+  font-weight: 600;
+}
+
+.adminChart__head {
+  margin-bottom: 6px;
+}
+
+.adminChart__explain {
+  margin: 0 0 12px;
+  line-height: 1.45;
+}
+
+.adminChart__svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.adminChart__gridLine {
+  stroke: color-mix(in oklab, var(--border) 85%, transparent);
+  stroke-width: 1;
+}
+
+.adminChart__monthLabel {
+  fill: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.adminChart__legend {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+.adminChart__legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adminChart__legendSwatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.adminMono {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: color-mix(in oklab, var(--code-bg) 70%, var(--bg));
+  padding: 1px 6px;
+  border-radius: 6px;
+}
+
+.adminExplainCard {
+  border: 1px solid color-mix(in oklab, var(--border) 80%, var(--accent) 12%);
+}
+
+.adminSuperCard {
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border));
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+}
+
+.adminSuperCard__text {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.adminTicketDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  vertical-align: middle;
+  box-shadow: 0 0 0 2px color-mix(in oklab, #ef4444 25%, var(--bg));
+}
+
+/* ——— Поддержка: модалка и бейдж ——— */
+.supportModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 16px;
+  background: color-mix(in oklab, var(--text-h) 45%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+.supportModal {
+  width: min(520px, 100%);
+  max-height: min(90vh, 720px);
+  overflow: auto;
+  box-shadow: var(--shadow);
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border));
+}
+
+.supportModal__head {
+  align-items: flex-start;
+}
+
+.supportModal__title {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.supportModal__lead {
+  margin: 0 0 16px;
+  line-height: 1.45;
+}
+
+.supportAdminReply {
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-border);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--accent) 14%, var(--bg)) 0%,
+    color-mix(in oklab, var(--accent) 6%, var(--bg)) 100%
+  );
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.supportAdminReply__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.supportAdminReply__meta {
+  margin: 4px 0 8px;
+}
+
+.supportAdminReply__text {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  color: var(--text-h);
+  font-size: 15px;
+}
+
+.supportAdminReply__actions {
+  margin-top: 12px;
+}
+
+.supportModal__ok {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--open-action) 12%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--open-action) 35%, var(--border));
+}
+
+.supportModal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.supportModal__err {
+  color: #b91c1c;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .supportModal__err {
+    color: #fca5a5;
+  }
+}
+
+.supportModal__submitRow {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.supportBtn__inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+}
+
+.supportBtn__label {
+  flex: 1;
+  min-width: 0;
+}
+
+.supportUnreadBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border-radius: 999px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent) 0%, #9333ea 100%);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--accent) 35%, var(--bg));
+  flex-shrink: 0;
+}
+
+.supportUnreadBadge--inMenu {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  font-size: 10px;
+}
+
+.ownerSupportDd__triggerInner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ownerSupportDd__triggerLabel {
+  flex-shrink: 0;
+}
+
+/* Админка: список тикетов */
+.adminSupportList {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adminSupportCard {
+  text-align: left;
+}
+
+.adminSupportCard__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  margin: 0 0 6px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--text-h);
+  cursor: pointer;
+  text-align: left;
+}
+
+.adminSupportCard__head:hover .adminSupportCard__from {
+  color: var(--accent);
+}
+
+.adminSupportCard__id {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.adminSupportCard__from {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.adminSupportCard__chev {
+  flex-shrink: 0;
+  opacity: 0.55;
+  font-size: 12px;
+}
+
+.adminSupportCard__path,
+.adminSupportCard__ctx {
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.adminSupportCard__body {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.adminSupportCard__block--reply {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+}
+
+.adminSupportCard__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.adminSupportCard__text {
+  white-space: pre-wrap;
+  line-height: 1.5;
+  font-size: 14px;
 }

@@ -86,7 +86,7 @@ export default function MarketPage() {
           <div className="marketHead__titleRow">
             <div id="market-cars-hint" className="row gap wrap" style={{ alignItems: 'center', flex: 1, minWidth: 0 }}>
               <h1 className="h1" style={{ margin: 0 }}>
-                Мои автомобили
+                Мой гараж
               </h1>
               <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
                 <p className="serviceHint__panelText">

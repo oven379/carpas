@@ -46,6 +46,7 @@ class CarEventApiTest extends FeatureTestCase
         $store->assertOk();
         $store->assertJsonPath('title', 'Мойка');
         $store->assertJsonPath('mileageKm', 12000);
+        $store->assertJsonPath('allowPublicPhotos', true);
         $eventId = $store->json('id');
 
         $this->getJson("/api/cars/{$car->id}/events")
@@ -80,6 +81,10 @@ class CarEventApiTest extends FeatureTestCase
         $store->assertJsonPath('careTips.tips.0', 'Совет один');
         $store->assertJsonPath('careTips.tips.1', 'Совет два');
         $eventId = $store->json('id');
+
+        $this->patchJson("/api/events/{$eventId}", [
+            'allowPublicPhotos' => false,
+        ])->assertOk()->assertJsonPath('allowPublicPhotos', false);
 
         $this->getJson("/api/cars/{$car->id}/events")
             ->assertOk()

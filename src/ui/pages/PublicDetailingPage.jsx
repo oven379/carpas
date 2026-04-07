@@ -10,6 +10,7 @@ import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
+import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
 
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
@@ -88,7 +89,7 @@ export default function PublicDetailingPage() {
     [lastWorkPhotos],
   )
 
-  if (!idNorm) return <Navigate to="/about" replace />
+  if (!idNorm) return <Navigate to="/" replace />
 
   if (payload === undefined) {
     return (
@@ -102,7 +103,7 @@ export default function PublicDetailingPage() {
       </div>
     )
   }
-  if (!det) return <Navigate to="/about" replace />
+  if (!det) return <Navigate to="/" replace />
 
   const devName = String(det.name || 'Сервис').trim()
   const citySeo = String(det.city || '').trim()
@@ -134,7 +135,7 @@ export default function PublicDetailingPage() {
                 '@type': 'ListItem',
                 position: 1,
                 name: 'О сервисе КарПас',
-                item: absoluteUrl('/about'),
+                item: absoluteUrl('/'),
               },
               {
                 '@type': 'ListItem',
@@ -203,14 +204,16 @@ export default function PublicDetailingPage() {
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
-            <Link to="/about">О сервисе</Link>
+            <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+              О сервисе
+            </Link>
             <span> / </span>
             <span>Страница детейлинга</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
             <BackNav
               title="Назад"
-              fallbackTo={isOwnerViewingOwnPage ? '/detailing' : '/about'}
+              fallbackTo={isOwnerViewingOwnPage ? '/detailing' : '/'}
             />
             <h1 className="h1" style={{ margin: 0 }}>
               {det.name || 'Детейлинг / СТО'}
@@ -252,7 +255,7 @@ export default function PublicDetailingPage() {
         <Card className="card pad">
           <div className="detPublicInfoCard__headRow">
             <div className="detPublicInfoCard__headMain">
-              <h2 className="h2">Информация</h2>
+              <h2 className="h2">Информация:</h2>
               <div className="kv">
             <div className="kv__row">
               <span className="kv__k">Город</span>
@@ -358,7 +361,8 @@ export default function PublicDetailingPage() {
                   Фото работ
                 </div>
                 <div className="muted small" style={{ marginTop: 6 }}>
-                  До 10 снимков: фото к визитам и снимки после мойки с карточек авто (по дате работ).
+                  До 10 снимков: только визиты детейлинга, где при сохранении отмечено разрешение на публикацию, плюс фото
+                  после мойки с карточки авто при том же условии (по дате работ).
                 </div>
               </div>
             </div>

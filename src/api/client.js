@@ -1,4 +1,4 @@
-import { httpJson, HttpError } from './http.js'
+import { httpJson, httpFormData, HttpError } from './http.js'
 import {
   clearDetailingSession,
   clearOwnerSession,
@@ -148,6 +148,10 @@ export function createApiClient() {
       return await req('public/cars/recent', { query: { limit: String(limit) }, token: null })
     },
 
+    async publicLandingGarageCards({ limit = 12 } = {}) {
+      return await req('public/landing/garage-cards', { query: { limit: String(limit) }, token: null })
+    },
+
     async publicDetailingShowcase(id) {
       return await req(`public/detailings/${id}`, { token: null })
     },
@@ -184,6 +188,14 @@ export function createApiClient() {
 
     async loginOwner(body) {
       return await authLoginReq('owners/login', body)
+    },
+
+    async forgotOwnerPassword(body) {
+      return await req('owners/forgot-password', { method: 'POST', body, token: null })
+    },
+
+    async forgotDetailingPassword(body) {
+      return await req('detailings/forgot-password', { method: 'POST', body, token: null })
     },
 
     async getMeOwner() {
@@ -434,6 +446,62 @@ export function createApiClient() {
           city: String(city || '').trim(),
         },
         token: dTok(),
+      })
+    },
+
+    async createSupportTicket({ body, page_path, page_title, context, guest_email, attachment }) {
+      const fd = new FormData()
+      fd.append('body', String(body || '').trim())
+      fd.append('page_path', String(page_path || '/').slice(0, 512))
+      if (page_title) fd.append('page_title', String(page_title).slice(0, 255))
+      if (context && typeof context === 'object') {
+        fd.append('context', JSON.stringify(context))
+      }
+      if (guest_email) fd.append('guest_email', String(guest_email).trim())
+      if (attachment instanceof File) fd.append('attachment', attachment)
+      const token = oTok() || dTok() || null
+      return await httpFormData({
+        baseUrl: baseUrl(),
+        path: 'support/tickets',
+        method: 'POST',
+        formData: fd,
+        token,
+      })
+    },
+
+    async supportInbox() {
+      const token = oTok() || dTok()
+      if (!token) return []
+      return await req('support/inbox', { token })
+    },
+
+    async supportUnreadCount() {
+      const token = oTok() || dTok()
+      if (!token) return { unread_count: 0 }
+      return await req('support/unread-count', { token })
+    },
+
+    async supportMarkRead(ticketId) {
+      const token = oTok() || dTok()
+      return await req(`support/tickets/${encodeURIComponent(String(ticketId))}/read`, {
+        method: 'PATCH',
+        token,
+      })
+    },
+
+    async adminSupportLogin(body) {
+      return await req('admin/support/login', { method: 'POST', body, token: null })
+    },
+
+    async adminSupportTickets(adminToken) {
+      return await req('admin/support/tickets', { token: adminToken })
+    },
+
+    async adminSupportReply(adminToken, ticketId, message) {
+      return await req(`admin/support/tickets/${encodeURIComponent(String(ticketId))}/reply`, {
+        method: 'POST',
+        body: { message: String(message || '').trim() },
+        token: adminToken,
       })
     },
   }

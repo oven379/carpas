@@ -1,4 +1,8 @@
-import { VISIT_CARE_TIP_MAX_LEN } from './format.js'
+import {
+  PHOTO_UPLOAD_LANDSCAPE_LINE,
+  PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
+  VISIT_CARE_TIP_MAX_LEN,
+} from './format.js'
 import { VISIT_MAX_PHOTOS } from './uploadLimits.js'
 
 /**
@@ -7,8 +11,7 @@ import { VISIT_MAX_PHOTOS } from './uploadLimits.js'
  */
 
 /** Рекомендация для всех подсказок про прикрепление/показ фото в приложении. */
-export const PHOTO_LANDSCAPE_HINT_SENTENCE =
-  'Лучше делать снимки в горизонтальной ориентации (альбомная съёмка) — так они лучше смотрятся в карточке и галереях.'
+export const PHOTO_LANDSCAPE_HINT_SENTENCE = PHOTO_UPLOAD_LANDSCAPE_LINE
 
 export const HISTORY_PAGE_HINT = {
   scopeId: 'history-page-hint',
@@ -17,7 +20,9 @@ export const HISTORY_PAGE_HINT = {
     'Здесь визиты и события: ТО, ремонты, детейлинг, заметки. Можно фильтровать записи от сервиса и свои записи.',
   detailing:
     'Здесь визиты по карточке клиента. Добавьте визит с заголовком, пробегом, комментарием и фото — запись появится у владельца в истории. ' +
-    PHOTO_LANDSCAPE_HINT_SENTENCE,
+    PHOTO_LANDSCAPE_HINT_SENTENCE +
+    ' ' +
+    PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
 }
 
 /** Черновик визита в кабинете детейлинга: не путать с сохранённой записью. */
@@ -79,16 +84,17 @@ export const FORM_PHOTOS_EDIT_HINT = {
 }
 
 export function formPhotosEditHintText(count) {
+  const tail = `${PHOTO_LANDSCAPE_HINT_SENTENCE} ${PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE}`
   if (count) {
-    return `Загружено фотографий: ${count} из ${VISIT_MAX_PHOTOS}. Удалить можно через меню на снимке, если разрешено редактирование. ${PHOTO_LANDSCAPE_HINT_SENTENCE}`
+    return `Загружено фотографий: ${count} из ${VISIT_MAX_PHOTOS}. Удалить можно через меню на снимке, если разрешено редактирование. ${tail}`
   }
-  return `Пока нет фото. При разрешённом редактировании используйте кнопку загрузки ниже — снимки сохраняются сразу после выбора. ${PHOTO_LANDSCAPE_HINT_SENTENCE}`
+  return `Пока нет фото. При разрешённом редактировании используйте кнопку загрузки ниже — снимки сохраняются сразу после выбора. ${tail}`
 }
 
 export const FORM_ADD_PHOTOS_HINT = {
   scopeId: 'history-add-photos-hint',
   label: 'Справка: загрузка фото',
-  text: `Не более ${VISIT_MAX_PHOTOS} фото на один визит — можно выбрать несколько файлов за раз; после выбора они сразу прикрепляются к визиту (для нового визита запись создаётся автоматически). ${PHOTO_LANDSCAPE_HINT_SENTENCE}`,
+  text: `Не более ${VISIT_MAX_PHOTOS} фото на один визит — можно выбрать несколько файлов за раз; после выбора они сразу прикрепляются к визиту (для нового визита запись создаётся автоматически). ${PHOTO_LANDSCAPE_HINT_SENTENCE} ${PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE}`,
 }
 
 /** Поле «Важно» в форме визита (детейлинг) */
@@ -129,7 +135,9 @@ export const CAR_WASH_PHOTOS_HINT = {
   label: 'Справка: фото последнего визита',
   text:
     'Показываются снимки последнего по дате визита, к которому они прикреплены в «Истории». Удалить фото можно в разделе «Редактировать» карточки. ' +
-    PHOTO_LANDSCAPE_HINT_SENTENCE,
+    PHOTO_LANDSCAPE_HINT_SENTENCE +
+    ' ' +
+    PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
 }
 
 /** Блок «Советы» на карточке авто */

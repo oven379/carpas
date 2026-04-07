@@ -4,12 +4,13 @@ import { CABINET_META_DESCRIPTION } from './seoConstants.js'
 
 /**
  * Мета по умолчанию для кабинета, авторизации и служебных маршрутов (noindex).
- * Публичные /about, /d/*, /g/*, /share/* задают свой <Seo> на странице.
+ * Публичные /, /d/*, /g/*, /share/* задают свой <Seo> на странице.
  */
 export function CabinetRouteSeo() {
   const { pathname } = useLocation()
 
-  if (pathname === '/about') return null
+  if (pathname === '/' || pathname === '/about') return null
+  if (pathname.startsWith('/admin/')) return null
   if (/^\/d\/[^/]+\/?$/.test(pathname)) return null
   if (/^\/g\/[^/]+\/?$/.test(pathname)) return null
   if (/^\/share\/[^/]+\/?$/.test(pathname)) return null
@@ -19,7 +20,7 @@ export function CabinetRouteSeo() {
   else if (pathname.startsWith('/auth/owner')) title = 'Вход владельца · КарПас'
   else if (pathname.startsWith('/auth/partner/apply')) title = 'Регистрация партнёра · КарПас'
   else if (pathname.startsWith('/auth/partner')) title = 'Вход партнёра · КарПас'
-  else if (pathname.startsWith('/cars')) title = 'Мои автомобили · КарПас'
+  else if (pathname.startsWith('/cars')) title = 'Мой гараж · КарПас'
   else if (pathname.startsWith('/garage/settings')) title = 'Настройки гаража · КарПас'
   else if (pathname.startsWith('/garage')) title = 'Мой гараж · КарПас'
   else if (pathname.startsWith('/create')) title = 'Добавить автомобиль · КарПас'

@@ -3,12 +3,14 @@ import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
 import { lazy, Suspense, useEffect } from 'react'
 import './App.css'
 import { PageLoadSpinner, TopNav } from './ui/components.jsx'
+import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 
 const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
+const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
 const CarPage = lazy(() => import('./ui/pages/CarPage.jsx'))
 const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
@@ -26,6 +28,8 @@ const PublicDetailingPage = lazy(() => import('./ui/pages/PublicDetailingPage.js
 const OwnerGaragePage = lazy(() => import('./ui/pages/OwnerGaragePage.jsx'))
 const GarageSettingsPage = lazy(() => import('./ui/pages/GarageSettingsPage.jsx'))
 const PublicGaragePage = lazy(() => import('./ui/pages/PublicGaragePage.jsx'))
+const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
+const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
 
 function RouteFallback() {
   return (
@@ -81,18 +85,33 @@ function SyncClientDataOnTabReturn() {
 export default function App() {
   const loc = useLocation()
   const aboutLandingChrome = loc.pathname === '/about'
+  const adminSolo =
+    loc.pathname === '/admin/379team' || loc.pathname === '/admin/panel'
+  const soloChrome = aboutLandingChrome || adminSolo
 
   return (
-    <div className="app">
+    <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
       <SyncClientDataOnTabReturn />
-      {aboutLandingChrome ? null : <TopNav />}
-      <main className={aboutLandingChrome ? 'main main--aboutLanding' : 'main'}>
+      {soloChrome ? null : <TopNav />}
+      <main
+        className={`main${aboutLandingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}`}
+      >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={<HomePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
+            <Route path="/admin/379team" element={<AdminLoginPage />} />
+            <Route
+              path="/admin/panel"
+              element={
+                <AdminPanelGuard>
+                  <AdminPanelPage />
+                </AdminPanelGuard>
+              }
+            />
             <Route
               path="/cars"
               element={
@@ -190,11 +209,11 @@ export default function App() {
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
             <Route path="/auth/partner" element={<PartnerLoginPage />} />
-            <Route path="*" element={<Navigate to="/auth" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </main>
-      {aboutLandingChrome ? null : (
+      {soloChrome ? null : (
         <footer className="footer">
           <FooterSupport />
         </footer>

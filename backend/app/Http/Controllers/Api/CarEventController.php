@@ -135,9 +135,13 @@ class CarEventController extends Controller
             'note' => ['nullable', 'string'],
             'careTips' => ['nullable', 'array'],
             'isDraft' => ['nullable'],
+            'allowPublicPhotos' => ['nullable'],
         ]);
 
         $isDraft = $request->boolean('isDraft');
+        $allowPublic = $request->has('allowPublicPhotos')
+            ? $request->boolean('allowPublicPhotos')
+            : true;
 
         if ($isDraft) {
             $existing = CarEvent::query()
@@ -158,6 +162,7 @@ class CarEventController extends Controller
             'owner_id' => null,
             'source' => 'service',
             'is_draft' => $isDraft,
+            'allow_public_photos' => $allowPublic,
             'at' => $data['at'] ?? now()->toISOString(),
             'type' => $data['type'] ?? 'visit',
             'title' => trim((string) ($data['title'] ?? '')),
@@ -209,6 +214,9 @@ class CarEventController extends Controller
         }
         if (array_key_exists('isDraft', $data)) {
             $evt->is_draft = $request->boolean('isDraft');
+        }
+        if (array_key_exists('allowPublicPhotos', $data)) {
+            $evt->allow_public_photos = $request->boolean('allowPublicPhotos');
         }
 
         if ($wasDraft && ! $evt->is_draft) {

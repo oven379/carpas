@@ -25,11 +25,14 @@ import {
   normPlateRegion,
   normVin,
   parsePlateFull,
+  PHOTO_UPLOAD_EMPTY_THUMB_HINT,
+  PHOTO_UPLOAD_HINTS_PARAGRAPH,
   RU_PLATE_HINT_PARAGRAPHS,
   RU_PLATE_LAYOUT_DIAGRAM,
 } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
+import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import {
   addCustomMake,
   addCustomModel,
@@ -38,7 +41,6 @@ import {
 } from '../../lib/customDicts.js'
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import { ownerGarageLimits } from '../../lib/garageLimits.js'
-import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
@@ -506,6 +508,7 @@ export default function CarEditPage({ mode }) {
                   className="input"
                   value={draft.clientName}
                   onChange={(e) => setDraft((d) => ({ ...d, clientName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, clientName: next })))}
                   placeholder="Например: Иван"
                   autoComplete="name"
                 />
@@ -544,7 +547,7 @@ export default function CarEditPage({ mode }) {
             <div className="field__top serviceHint__fieldTop carEditCoverBlock__labelRow">
               <span className="field__label">Настройка обложки</span>
               <ServiceHint scopeId="car-edit-hero-hint" variant="compact" label="Справка: обложка карточки">
-                <p className="serviceHint__panelText">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
+                <p className="serviceHint__panelText">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
               </ServiceHint>
             </div>
           </div>
@@ -570,7 +573,8 @@ export default function CarEditPage({ mode }) {
                 <img alt="Превью обложки карточки" src={resolvePublicMediaUrl(draft.hero)} />
               ) : (
                 <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
-                  Нажмите для загрузки
+                  <span className="garageSettings__thumbEmptyPrimary">Нажмите для загрузки</span>
+                  <span className="garageSettings__thumbEmptySecondary">{PHOTO_UPLOAD_EMPTY_THUMB_HINT}</span>
                 </span>
               )}
             </button>
@@ -582,6 +586,7 @@ export default function CarEditPage({ mode }) {
               />
             ) : null}
           </div>
+          <p className="muted small carEditCoverBlock__photoHints">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
         </div>
 
         <div className="row spread gap topBorder carEditFormActions">

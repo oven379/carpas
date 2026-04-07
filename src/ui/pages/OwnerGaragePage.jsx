@@ -742,7 +742,7 @@ export default function OwnerGaragePage() {
         {cars.length ? (
           <>
             <h2 className="h2" style={{ marginBottom: 10 }}>
-              Автомобили в гараже
+              Автомобили в гараже:
             </h2>
             <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} />
             <OwnerVinClaimSection

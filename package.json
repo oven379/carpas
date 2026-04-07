@@ -1,13 +1,16 @@
 {
   "name": "car-passport-mvp",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "verify": "npm run lint && npm run build",
+    "docker:migrate": "docker compose run --rm backend php artisan migrate --force",
+    "test:backend": "docker compose run --rm backend php artisan test"
   },
   "dependencies": {
     "@al-bani/car-brands": "^1.4.0",
@@ -38,6 +41,6 @@
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.15",
     "typescript": "5.6.3",
-    "vite": "^8.0.1"
+    "vite": "^8.0.6"
   }
 }

@@ -20,7 +20,7 @@ function networkFailureUserHint(rawLower) {
     rawLower.includes('failed to fetch') ||
     rawLower.includes('load failed') ||
     rawLower.includes('networkerror') ||
-    rawLower.includes('ecconnrefused') ||
+    rawLower.includes('econnrefused') ||
     rawLower.includes('err_connection_refused') ||
     rawLower.includes('connection refused')
   )
@@ -125,6 +125,36 @@ export async function httpJson({ baseUrl, path, method = 'GET', body, token }) {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: bodyStr,
+    })
+    text = await res.text()
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    throw new HttpError(`network: ${msg}`, { status: 0, body: { message: msg } })
+  }
+
+  const parsed = text ? safeJson(text) : null
+
+  if (!res.ok) {
+    throw new HttpError(`HTTP ${res.status}`, { status: res.status, body: parsed ?? text })
+  }
+
+  return parsed
+}
+
+/** multipart/form-data (вложения); не задавать Content-Type — браузер поставит boundary */
+export async function httpFormData({ baseUrl, path, method = 'POST', formData, token }) {
+  const url = joinUrl(baseUrl, path)
+  let res
+  let text
+  try {
+    res = await fetch(url, {
+      method,
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
     })
     text = await res.text()
   } catch (e) {

@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
 import { AuthLegalConsent, BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
@@ -92,6 +93,11 @@ export default function PartnerLoginPage() {
               </Field>
               <AuthLegalConsent inputId="partner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
+            <AuthForgotPasswordBlock
+              sendForgot={async (email) => {
+                return await r.forgotDetailingPassword({ email })
+              }}
+            />
             <div className="row gap wrap authFormActions authFormActions--dual" style={{ marginTop: 14 }}>
               <Button
                 className="btn"

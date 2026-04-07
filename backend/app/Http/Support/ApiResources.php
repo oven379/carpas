@@ -146,6 +146,7 @@ class ApiResources
             'ownerId' => $e->owner_id ? (string) $e->owner_id : null,
             'source' => $e->source ?? 'service',
             'isDraft' => (bool) ($e->is_draft ?? false),
+            'allowPublicPhotos' => (bool) ($e->allow_public_photos ?? true),
             'at' => optional($e->at)->toISOString(),
             'type' => $e->type ?? 'visit',
             'title' => $e->title ?? '',

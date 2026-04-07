@@ -1,5 +1,6 @@
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
 import {
   BackNav,
   Button,
@@ -15,6 +16,7 @@ import {
   ServiceHint,
   Textarea,
 } from '../components.jsx'
+import { clearDetailingSession } from '../auth.js'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
@@ -28,12 +30,13 @@ import {
 } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
-import { PHOTO_LANDSCAPE_HINT_SENTENCE } from '../../lib/historyVisitHints.js'
+import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import {
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
   DETAILING_WORKING_HOURS_MAX_LEN,
   displayRuPhone,
   formatPhoneRuInput,
+  PHOTO_UPLOAD_HINTS_PARAGRAPH,
 } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
@@ -330,7 +333,7 @@ export default function DetailingSettingsPage() {
             bannerRemoveLabel="Убрать обложку"
             bannerHintSlot={
               <ServiceHint scopeId="detailing-settings-banner-hint" variant="compact" label="Справка: баннер">
-                <p className="serviceHint__panelText">{PHOTO_LANDSCAPE_HINT_SENTENCE}</p>
+                <p className="serviceHint__panelText">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
               </ServiceHint>
             }
           />
@@ -380,6 +383,7 @@ export default function DetailingSettingsPage() {
               className="input"
               value={draft.address}
               onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
+              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, address: next })))}
               placeholder="Улица, дом"
               autoComplete="street-address"
             />
@@ -404,6 +408,12 @@ export default function DetailingSettingsPage() {
                   workingHours: String(e.target.value).slice(0, DETAILING_WORKING_HOURS_MAX_LEN),
                 }))
               }
+              onBlur={createBlurFixRuFreeText((next) =>
+                setDraft((d) => ({
+                  ...d,
+                  workingHours: String(next).slice(0, DETAILING_WORKING_HOURS_MAX_LEN),
+                })),
+              )}
               placeholder="Например: Пн–Пт 10:00–20:00, Сб 11:00–17:00"
             />
           </Field>
@@ -422,6 +432,9 @@ export default function DetailingSettingsPage() {
                     String(e.target.value).slice(0, DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN),
                   )
                 }
+                onBlur={createBlurFixRuFreeText((next) =>
+                  setCustomOfferInput(String(next).slice(0, DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN)),
+                )}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
@@ -546,6 +559,7 @@ export default function DetailingSettingsPage() {
               rows={4}
               value={draft.description}
               onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, description: next })))}
               placeholder="Коротко: специализация, гарантия, чем отличаетесь…"
             />
           </Field>
@@ -575,6 +589,17 @@ export default function DetailingSettingsPage() {
             />
           </Field>
         </div>
+
+        <AuthChangePasswordSection
+          variant="detailing"
+          r={r}
+          onPasswordChanged={() => {
+            alert('Пароль обновлён. Войдите снова, указав почту партнёра и новый пароль.')
+            clearDetailingSession()
+            refreshAllClientData()
+            nav('/auth/partner', { replace: true })
+          }}
+        />
 
         <div className="row gap topBorder">
           <Button

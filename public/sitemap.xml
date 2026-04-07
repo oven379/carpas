@@ -2,7 +2,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <!-- Замените домен на боевой. Динамические URL (/d/, /g/, /share/) добавляйте отдельным sitemap с бэкенда или при сборке. -->
   <url>
-    <loc>https://example.com/about</loc>
+    <loc>https://example.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>

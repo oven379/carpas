@@ -134,7 +134,7 @@ export default function PublicCarPage() {
 
       <div className="split">
         <Card className="card pad">
-          <h2 className="h2">Данные автомобиля</h2>
+          <h2 className="h2">Данные автомобиля:</h2>
           <div className="kv">
             <div className="kv__row">
               <span className="kv__k">VIN</span>
@@ -155,7 +155,7 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">Советы по уходу</h2>
+          <h2 className="h2">Советы по уходу:</h2>
           <div className="recList">
             {recs.map((x, idx) => (
               <div key={idx} className="recItem">
@@ -172,7 +172,7 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">История обслуживания автомобиля</h2>
+          <h2 className="h2">История обслуживания автомобиля:</h2>
           {events.length ? (
             <div className="miniList">
               {events.map((e) => (
@@ -217,7 +217,7 @@ export default function PublicCarPage() {
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="row spread gap">
-          <h2 className="h2">Фото и документы из истории</h2>
+          <h2 className="h2">Фото и документы из истории:</h2>
           <span className="muted small">{docs.length} шт.</span>
         </div>
         {docs.length ? (

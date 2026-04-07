@@ -692,7 +692,7 @@ export default function CarPage() {
 
               <div className="topBorder carPage__carDataSection">
                 <div className="row spread gap carPage__ownerDataBar carPage__carDataBar" style={{ alignItems: 'center' }}>
-                  <h2 className="h2 carPage__dataTitle">Данные авто</h2>
+                  <h2 className="h2 carPage__dataTitle">Данные авто:</h2>
                   <button
                     type="button"
                     className="dropdownCaretBtn dropdownCaretBtn--suffix"
@@ -776,7 +776,7 @@ export default function CarPage() {
           ) : (
             <>
               <div className="row spread gap carPage__ownerDataBar carPage__carDataBar" style={{ alignItems: 'center' }}>
-                <h2 className="h2 carPage__dataTitle">Данные авто</h2>
+                <h2 className="h2 carPage__dataTitle">Данные авто:</h2>
                 <button
                   type="button"
                   className="dropdownCaretBtn dropdownCaretBtn--suffix"
@@ -915,7 +915,7 @@ export default function CarPage() {
           <Card className="card pad">
             <div className="col gap carPage__sectionRow carPage__sectionRow--history">
               <div className="carPage__sectionHead">
-                <h2 className="h2 carPage__sectionTitle">История авто</h2>
+                <h2 className="h2 carPage__sectionTitle">История авто:</h2>
                 {lastHistoryEvent?.at ? (
                   <>
                     <p className="carPage__historyLastLabel muted small">Последний визит</p>
@@ -1011,7 +1011,7 @@ export default function CarPage() {
           {mode === 'owner' ? (
             <Card className="card pad">
               <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
-                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы</h2>
+                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы:</h2>
                 <OpenAction
                   to={buildCarSubRoutePath(id, 'docs', fromParam)}
                   title="Документы"

@@ -19,6 +19,20 @@ export const DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN = 50
 /** Подпись в пустых зонах выбора изображения (баннер, аватар, обложка карточки). */
 export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажмите для загрузки'
 
+/** Горизонтальная ориентация снимков (обложка, визит, баннер и т.д.). */
+export const PHOTO_UPLOAD_LANDSCAPE_LINE =
+  'Делайте снимок в горизонтальной (альбомной) ориентации — так лучше смотрится в карточке и галереях.'
+
+/** Госномер на кадре с автомобилем. */
+export const PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE =
+  'Важно: если в кадре автомобиль, на снимке не должно быть читаемого регистрационного номера (госномера).'
+
+/** Два правила одним абзацем — под зоны загрузки фото. */
+export const PHOTO_UPLOAD_HINTS_PARAGRAPH = `${PHOTO_UPLOAD_LANDSCAPE_LINE} ${PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE}`
+
+/** Для короткой подписи в пустой миниатюре (рядом с полным текстом снизу). */
+export const PHOTO_UPLOAD_EMPTY_THUMB_HINT = 'Альбомная съёмка · без госномера в кадре'
+
 /** Демо: раньше был единый пароль; оставлен для совместимости со старыми подсказками в коде партнёров. */
 export const OWNER_DEMO_PASSWORD = '1111'
 

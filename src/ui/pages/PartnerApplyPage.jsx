@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import {
   AuthLegalConsent,
   BackNav,
@@ -168,6 +168,12 @@ export default function PartnerApplyPage() {
                   Подать заявку
                 </Button>
               </div>
+              <p className="muted small" style={{ marginTop: 14, lineHeight: 1.45 }}>
+                <Link className="link" to="/auth/partner">
+                  Уже есть аккаунт — войти
+                </Link>
+                . Забыли пароль — на экране входа нажмите «Забыли пароль?» и укажите почту организации.
+              </p>
             </div>
           </Card>
         </div>

@@ -10,6 +10,8 @@ use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class DetailingAuthController extends Controller
@@ -94,6 +96,53 @@ class DetailingAuthController extends Controller
         ]);
     }
 
+    public function forgotPassword(Request $request)
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+        $email = mb_strtolower(trim($data['email']));
+        $d = Detailing::query()
+            ->where('email', $email)
+            ->where('is_personal', false)
+            ->first();
+
+        if ($d) {
+            $plain = bin2hex(random_bytes(8));
+            $d->password = Hash::make($plain);
+            $d->save();
+            $d->tokens()->delete();
+
+            $body = implode("\n", [
+                'Здравствуйте!',
+                '',
+                'Вы запросили восстановление доступа к КарПас (кабинет сервиса / детейлинга).',
+                'Логин (почта): '.$d->email,
+                'Новый пароль: '.$plain,
+                '',
+                'Войдите с этими данными. При желании смените пароль в настройках лендинга.',
+                '',
+                'Если это были не вы, войдите и сразу установите свой пароль.',
+            ]);
+
+            try {
+                Mail::raw($body, function ($message) use ($email) {
+                    $message->to($email)->subject('КарПас: восстановление доступа (партнёр)');
+                });
+            } catch (\Throwable $e) {
+                Log::error('detailing_forgot_password_mail_failed', [
+                    'email' => $email,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Если указанная почта зарегистрирована у партнёра, мы отправили на неё письмо с логином и новым паролем.',
+        ]);
+    }
+
     public function me(Request $request)
     {
         /** @var Detailing $d */
@@ -108,6 +157,26 @@ class DetailingAuthController extends Controller
         $d = $request->user();
         if ($d->is_personal) {
             abort(403);
+        }
+
+        if ($request->filled('newPassword')) {
+            $pwdData = $request->validate([
+                'currentPassword' => ['required', 'string'],
+                'newPassword' => ['required', 'string', 'min:4', 'max:255'],
+            ]);
+            if (!Hash::check($pwdData['currentPassword'], $d->password)) {
+                throw ValidationException::withMessages([
+                    'currentPassword' => ['Неверный текущий пароль.'],
+                ]);
+            }
+            $d->password = Hash::make($pwdData['newPassword']);
+            $d->save();
+            $d->tokens()->delete();
+
+            return response()->json([
+                'detailing' => ApiResources::detailing($d->fresh()),
+                'passwordChanged' => true,
+            ]);
         }
 
         $patch = $request->all();

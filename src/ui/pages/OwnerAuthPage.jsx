@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
 import { AuthLegalConsent, BackNav, Button, Card, Field, Input, PhoneRuInput, ServiceHint } from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import {
@@ -286,6 +287,13 @@ export default function OwnerAuthPage() {
               ) : null}
               <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
+            {authMode === 'login' ? (
+              <AuthForgotPasswordBlock
+                sendForgot={async (email) => {
+                  return await r.forgotOwnerPassword({ email })
+                }}
+              />
+            ) : null}
             <div className="row gap wrap authFormActions" style={{ marginTop: 14 }}>
               {authMode === 'login' ? (
                 <>

@@ -7,6 +7,7 @@ import './App.css'
 import App from './App.jsx'
 import RootErrorBoundary from './ui/RootErrorBoundary.jsx'
 import { DetailingSessionProvider } from './ui/useDetailing.js'
+import { SupportProvider } from './ui/support/SupportHub.jsx'
 
 const rootEl = document.getElementById('root')
 if (!rootEl) {
@@ -18,9 +19,11 @@ createRoot(rootEl).render(
     <HelmetProvider>
       <BrowserRouter>
         <DetailingSessionProvider>
-          <RootErrorBoundary>
-            <App />
-          </RootErrorBoundary>
+          <SupportProvider>
+            <RootErrorBoundary>
+              <App />
+            </RootErrorBoundary>
+          </SupportProvider>
         </DetailingSessionProvider>
       </BrowserRouter>
     </HelmetProvider>

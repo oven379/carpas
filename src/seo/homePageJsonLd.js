@@ -21,8 +21,8 @@ const FAQ_ITEMS = [
 ]
 
 export function buildHomePageJsonLd() {
-  const aboutUrl = absoluteUrl('/about')
-  const absOk = aboutUrl.startsWith('http')
+  const homeUrl = absoluteUrl('/')
+  const absOk = homeUrl.startsWith('http')
 
   const faq = {
     '@context': 'https://schema.org',
@@ -44,7 +44,7 @@ export function buildHomePageJsonLd() {
     description:
       'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга и СТО. Публичная ссылка на историю при продаже авто.',
   }
-  if (absOk) org.url = aboutUrl
+  if (absOk) org.url = homeUrl
 
   const website = {
     '@context': 'https://schema.org',
@@ -53,7 +53,7 @@ export function buildHomePageJsonLd() {
     inLanguage: 'ru-RU',
     publisher: { '@type': 'Organization', name: 'КарПас' },
   }
-  if (absOk) website.url = aboutUrl
+  if (absOk) website.url = homeUrl
 
   return [org, website, faq]
 }

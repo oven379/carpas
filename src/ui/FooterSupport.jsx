@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useDetailing } from './useDetailing.js'
 import { isAuthed } from './auth.js'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
-import { SUPPORT_LINK_HREF } from './supportConfig.js'
+import { SupportButton } from './support/SupportHub.jsx'
 
 function isOwnerGarageRoute(pathname) {
   return pathname === '/garage' || pathname === '/garage/settings'
@@ -21,13 +21,13 @@ export default function FooterSupport() {
   return (
     <div className="footer__bar">
       <nav className="footerLegal" aria-label="Правовая информация">
-        <Link className="authConsent__legalLink" to="/about">
+        <Link className="authConsent__legalLink" to="/">
           Политика конфиденциальности
         </Link>
         <span className="footerLegal__sep" aria-hidden="true">
           ·
         </span>
-        <Link className="authConsent__legalLink" to="/about">
+        <Link className="authConsent__legalLink" to="/">
           Согласие с правилами сервиса
         </Link>
         {__APP_VERSION__ ? (
@@ -45,15 +45,9 @@ export default function FooterSupport() {
         {footerSupportMenu ? (
           <OwnerSupportDropdown placement="footer" />
         ) : (
-          <a
-            className="btn footerHelpDd__link"
-            data-variant="outline"
-            href={SUPPORT_LINK_HREF}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <SupportButton className="btn footerHelpDd__link" data-variant="outline">
             Поддержка
-          </a>
+          </SupportButton>
         )}
       </div>
     </div>

@@ -4,7 +4,7 @@
 export function ownerGarageListCrumbLabel(listReturnPath) {
   const p = String(listReturnPath || '')
   if (p === '/garage' || p.startsWith('/garage?')) return 'В гараж'
-  return 'Мои автомобили'
+  return 'Мой гараж'
 }
 
 /**

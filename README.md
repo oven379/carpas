@@ -63,14 +63,36 @@ If you open the app by **PC’s LAN IP** (e.g. `http://192.168.1.10:5173`), the 
 ### 5. Quality checks
 
 ```bash
-npm run lint
-npm run build
+npm run verify
 ```
 
-### 6. Deeper docs
+(эквивалентно подряд: `npm run lint` и `npm run build`)
+
+На Windows при **`npm ci`** иногда бывает `EPERM` на нативном модуле Vite/Rolldown (файл занят процессом) — закройте dev-сервер и IDE, либо выполните **`npm install`**.
+
+### 6. Бэкенд: миграции и тесты (Docker)
+
+С поднятыми **db** и **redis** (или полным `docker compose up`):
+
+```bash
+npm run docker:migrate
+npm run test:backend
+```
+
+### 7. Deeper docs
 
 - API and auth: **`FRONTEND_BACKEND_API.md`**
 - Backend only: **`backend/README.md`**
 - SEO (мета-теги, robots, sitemap, чеклист продакшена): **`SEO_INTERNAL.md`**
 
 Установка зависимостей: в корне есть **`.npmrc`** (`legacy-peer-deps=true`) из‑за `react-helmet-async` и React 19.
+
+### 8. Продакшен (краткий чеклист)
+
+**Бэкенд (Laravel):** скопировать `backend/.env.example` → `backend/.env`, задать `APP_KEY` (`php artisan key:generate`), `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` с публичным URL API, рабочие `DB_*` и `REDIS_*`. Выполнить `php artisan migrate --force`, при необходимости `php artisan storage:link` (вложения поддержки и медиа в `/storage`). Переменные `ADMIN_SUPPORT_*` — уникальные секреты; фронт админки тикетов хранит Bearer в `sessionStorage` после логина.
+
+**Фронт:** `npm ci && npm run build`, отдавать каталог **`dist/`** тем же хостом, что и SPA (или настроить прокси `/api` и `/storage` на бэкенд). В проде клиент ходит на **относительный** путь `/api` — отдельный `VITE_*` для URL API не требуется.
+
+**Docker:** `docker compose up -d --build` подходит для разработки; на проде обычно отдельные сервисы БД/Redis и образ PHP-FPM + nginx (см. `backend/Dockerfile`, `backend/docker/nginx/default.conf`).
+
+**Проверки перед выкладкой:** `npm run verify`, `docker compose run --rm backend php artisan test` (или `npm run test:backend`), `docker compose run --rm backend php artisan migrate --force`.

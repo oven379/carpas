@@ -14,6 +14,106 @@ use Illuminate\Http\Request;
 
 class PublicShowcaseController extends Controller
 {
+    /** Первое фото визита/мойки, допустимое для публичной витрины (согласие allow_public_photos). */
+    private function carFirstPublicShowcasePhotoUrl(Car $car): ?string
+    {
+        $evt = CarEvent::query()
+            ->where('car_id', $car->id)
+            ->where('source', 'service')
+            ->where('is_draft', false)
+            ->where('allow_public_photos', true)
+            ->whereExists(function ($q) {
+                $q->selectRaw('1')
+                    ->from('car_docs')
+                    ->whereColumn('car_docs.event_id', 'car_events.id')
+                    ->whereNotNull('car_docs.url')
+                    ->where('car_docs.url', '!=', '')
+                    ->where(function ($q2) {
+                        $q2->where('car_docs.kind', 'photo')->orWhereNull('car_docs.kind');
+                    });
+            })
+            ->orderByDesc('at')
+            ->orderByDesc('id')
+            ->first();
+
+        if ($evt) {
+            $doc = CarDoc::query()
+                ->where('car_id', $car->id)
+                ->where('event_id', $evt->id)
+                ->whereNotNull('url')
+                ->where('url', '!=', '')
+                ->where(function ($q) {
+                    $q->where('kind', 'photo')->orWhereNull('kind');
+                })
+                ->orderByDesc('created_at')
+                ->first();
+            if ($doc && $doc->url) {
+                return MediaStorage::publicUrl($doc->url);
+            }
+        }
+
+        $wash = $car->wash_photos ?? [];
+        if (! is_array($wash) || $wash === []) {
+            return null;
+        }
+        $evtForTs = CarEvent::query()
+            ->where('car_id', $car->id)
+            ->where('source', 'service')
+            ->where('is_draft', false)
+            ->orderByDesc('at')
+            ->orderByDesc('id')
+            ->first();
+        if (! $evtForTs || ! $evtForTs->allow_public_photos) {
+            return null;
+        }
+        foreach ($wash as $raw) {
+            if (is_string($raw) && trim($raw) !== '') {
+                return MediaStorage::publicUrl($raw);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Карточки для главной: авто у партнёрских детейлингов, у которых есть публично разрешённое фото.
+     */
+    public function landingGarageCards(Request $request)
+    {
+        $limit = min(24, max(1, (int) $request->query('limit', 12)));
+
+        $cars = Car::query()
+            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->with('detailing')
+            ->orderByDesc('updated_at')
+            ->limit(400)
+            ->get();
+
+        $out = [];
+        foreach ($cars as $car) {
+            if (count($out) >= $limit) {
+                break;
+            }
+            $photo = $this->carFirstPublicShowcasePhotoUrl($car);
+            if (! $photo) {
+                continue;
+            }
+            $out[] = [
+                'id' => (string) $car->id,
+                'make' => $car->make ?? '',
+                'model' => $car->model ?? '',
+                'year' => $car->year,
+                'mileageKm' => (int) ($car->mileage_km ?? 0),
+                'photo' => $photo,
+                'detailingId' => (string) ($car->detailing_id ?? ''),
+                'detailingName' => $car->detailing?->name ?? '',
+                'detailingLogo' => MediaStorage::publicUrl($car->detailing?->logo ?? null),
+            ];
+        }
+
+        return response()->json($out);
+    }
+
     public function stats()
     {
         return response()->json([
@@ -49,6 +149,7 @@ class PublicShowcaseController extends Controller
                 ->where('car_id', $car->id)
                 ->where('source', 'service')
                 ->where('is_draft', false)
+                ->where('allow_public_photos', true)
                 ->whereExists(function ($q) {
                     $q->selectRaw('1')
                         ->from('car_docs')
@@ -101,7 +202,10 @@ class PublicShowcaseController extends Controller
                 ->orderByDesc('at')
                 ->orderByDesc('id')
                 ->first();
-            $tsWash = optional($evtForTs?->at)->toISOString() ?? optional($car->updated_at)->toISOString() ?? '';
+            if (! $evtForTs || ! $evtForTs->allow_public_photos) {
+                continue;
+            }
+            $tsWash = optional($evtForTs->at)->toISOString() ?? optional($car->updated_at)->toISOString() ?? '';
             foreach ($wash as $raw) {
                 if (! is_string($raw) || trim($raw) === '') {
                     continue;

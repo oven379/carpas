@@ -13,6 +13,7 @@ import {
 import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
+import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 
@@ -57,7 +58,7 @@ export default function PublicGaragePage() {
     }
   }, [slugNorm, r, r._version])
 
-  if (!slugNorm) return <Navigate to="/about" replace />
+  if (!slugNorm) return <Navigate to="/" replace />
 
   if (data === undefined) {
     return (
@@ -71,7 +72,7 @@ export default function PublicGaragePage() {
       </div>
     )
   }
-  if (!data?.owner) return <Navigate to="/about" replace />
+  if (!data?.owner) return <Navigate to="/" replace />
 
   if (data.garagePrivate) {
     return (
@@ -83,7 +84,9 @@ export default function PublicGaragePage() {
           noindex
         />
         <div className="breadcrumbs" style={{ marginBottom: 16 }}>
-          <Link to="/about">О сервисе</Link>
+          <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+            О сервисе
+          </Link>
           <span> / </span>
           <span>Гараж владельца</span>
         </div>
@@ -102,7 +105,7 @@ export default function PublicGaragePage() {
             <button type="button" className="btn" data-variant="primary" onClick={() => nav(-1)}>
               Понял!
             </button>
-            <Link className="btn" data-variant="ghost" to="/about">
+            <Link className="btn" data-variant="ghost" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
               О сервисе
             </Link>
           </div>
@@ -172,12 +175,14 @@ export default function PublicGaragePage() {
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
-            <Link to="/about">О сервисе</Link>
+            <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
+              О сервисе
+            </Link>
             <span> / </span>
             <span>Гараж владельца</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
-            <BackNav fallbackTo="/about" title="Назад" stateFromKey="from" />
+            <BackNav fallbackTo="/" title="Назад" stateFromKey="from" />
             <h1 className="h1" style={{ margin: 0 }}>
               {displayName}
             </h1>
@@ -229,7 +234,7 @@ export default function PublicGaragePage() {
 
       <div style={{ marginTop: 16 }}>
         <h2 className="h2" style={{ marginBottom: 10 }}>
-          Автомобили в гараже
+          Автомобили в гараже:
         </h2>
         {cars.length ? (
           <div className="list">
@@ -278,7 +283,7 @@ export default function PublicGaragePage() {
           <Link className="btn" data-variant="primary" to="/auth/owner">
             Войти как владелец
           </Link>
-          <Link className="btn" data-variant="ghost" to="/about">
+          <Link className="btn" data-variant="ghost" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
             О сервисе
           </Link>
         </div>
