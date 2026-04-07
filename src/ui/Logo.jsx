@@ -1,34 +1,49 @@
+import brandWordmarkSrc from '../assets/brand-wordmark.svg?url'
+import { BRAND_TAGLINE } from '../lib/brandConstants.js'
+
 /**
- * Вордмарк КарПас по макету: «КАР.ПАС» — «КАР» и точка #c782ff, «ПАС» #a8a1b1;
- * под точкой — изометрический куб (верх #c4bdd4, слева #c782ff, справа #00e5be).
- * `size` — целевая высота блока (включая куб под базовой линией), px.
+ * Фирменный вордмарк (SVG) + слоган под ним. `tagline={false}` — только картинка (компактные блоки).
+ * `size` — высота графики в px (ширина подбирается по пропорции 351:55).
  */
-export default function Logo({ size = 18, className = '' }) {
-  const h = Number(size) || 18
-  const cls = ['brandLogoMark', 'navWordmarkSvg', className].filter(Boolean).join(' ')
+export default function Logo({ size = 18, className = '', tagline = true }) {
+  const h = Math.max(10, Number(size) || 18)
+  const style = { '--brandLogoH': `${h}px` }
+  const aria = tagline ? `КарПас. ${BRAND_TAGLINE}` : 'КарПас'
+
+  const img = (
+    <img
+      src={brandWordmarkSrc}
+      alt=""
+      className="brandLogoLockup__img"
+      style={{ height: `${h}px`, width: 'auto' }}
+      decoding="async"
+    />
+  )
+
+  if (!tagline) {
+    return (
+      <span
+        className={['brandLogoLockup', 'brandLogoLockup--markOnly', 'navWordmarkSvg', className]
+          .filter(Boolean)
+          .join(' ')}
+        style={style}
+        role="img"
+        aria-label={aria}
+      >
+        {img}
+      </span>
+    )
+  }
+
   return (
     <span
-      className={cls}
-      style={{ '--brandLogoH': `${h}px` }}
+      className={['brandLogoLockup', 'navWordmarkSvg', className].filter(Boolean).join(' ')}
+      style={style}
       role="img"
-      aria-label="КарПас"
+      aria-label={aria}
     >
-      <span className="brandLogoMark__kar">КАР</span>
-      <span className="brandLogoMark__dotCube">
-        <span className="brandLogoMark__dot">.</span>
-        <svg
-          className="brandLogoMark__cube"
-          viewBox="0 0 24 28"
-          xmlns="http://www.w3.org/2000/svg"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path fill="#c4bdd4" d="M12 3l8 5-8 5-8-5z" />
-          <path fill="#c782ff" d="M4 8l8 5v11l-8-5V8Z" />
-          <path fill="#00e5be" d="M20 8l-8 5v11l8-5V8Z" />
-        </svg>
-      </span>
-      <span className="brandLogoMark__pas">ПАС</span>
+      {img}
+      <span className="brandLogoLockup__tagline">{BRAND_TAGLINE}</span>
     </span>
   )
 }

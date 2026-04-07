@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "react-router-dom";
+import Logo from "../../../ui/Logo.jsx";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { PerspectiveCamera } from "@react-three/drei";
@@ -425,44 +426,6 @@ const Beams: FC<BeamsProps> = ({
 // UI
 // ============================================================================
 
-function CarPassLogo() {
-  return (
-    <svg
-      width={351}
-      height={55}
-      viewBox="0 0 351 55"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="block h-3.5 w-auto max-w-[min(100%,110px)] shrink-0 sm:h-4 sm:max-w-[min(100%,130px)]"
-      role="img"
-      aria-label="КарПас"
-    >
-      <path
-        d="M268.397 1.406L291.782 53.132H277.055L272.541 43.364L246.937 43.29L242.275 53.132H227.327L228.234 51.2292L251.969 1.406H268.397ZM260.109 15.244L253.079 30.044H266.769L260.109 15.244Z"
-        fill="white"
-      />
-      <path
-        d="M349.862 37.518C345.644 48.322 334.544 54.242 318.634 54.242C309.458 54.242 301.91 52.244 296.212 48.322C289.33 43.586 285.63 36.26 285.63 27.084C285.63 10.138 297.988 0 318.634 0C334.914 0 346.458 6.512 350.306 17.982L337.652 22.2C335.062 14.43 324.628 13.246 318.634 13.246C298.95 13.246 298.95 23.68 298.95 27.084C298.95 36.26 305.61 40.922 318.634 40.922C325.738 40.922 334.766 39.516 337.504 32.634L349.862 37.518Z"
-        fill="white"
-      />
-      <path d="M228.234 51.2292V1.406H203.777H179.32V14.726H214.914V53.132H227.327L228.234 51.2292Z" fill="white" />
-      <path d="M166 53.132H179.32L179.264 38.1328H166.279L166 38.6328L166 53.132Z" fill="white" />
-      <path
-        d="M130.474 37.3325V52.1325H117.154V0.480469H156.966C162.812 0.480469 167.696 1.81247 171.47 4.40247C176.206 7.65847 178.796 12.7645 178.796 18.9065C178.796 30.3025 170.434 37.3325 156.966 37.3325H130.474ZM130.474 13.8005V24.0125H156.966C165.476 24.0125 165.476 20.6085 165.476 18.9065C165.476 17.4265 165.476 13.8005 156.966 13.8005H130.474Z"
-        fill="#C782FF"
-      />
-      <path
-        d="M94.5934 0.40625L117.977 52.1323H103.251L98.7374 42.3643L73.1334 42.2903L68.4714 52.1323H53.5234L78.1654 0.40625H94.5934ZM86.3054 14.2443L79.2754 29.0443H92.9654L86.3054 14.2443Z"
-        fill="#C782FF"
-      />
-      <path
-        d="M58.978 52.0583H37.074L13.32 33.3363V52.1323H0V0.40625H13.32V19.0543L36.334 0.480253H57.942L26.418 26.1583L58.978 52.0583Z"
-        fill="#C782FF"
-      />
-    </svg>
-  );
-}
-
 type HeroButtonProps = {
   variant?: "accent" | "outline" | "ghost";
   size?: "sm" | "lg";
@@ -557,7 +520,7 @@ export default function EtherealBeamsHero() {
 
       <div className="absolute inset-0 z-[1] bg-gradient-to-t from-black/60 via-black/20 to-black/40" />
 
-      <header className="relative z-20 w-full shrink-0 px-6 pt-4 sm:pt-5 lg:px-8">
+      <header className="etherealHeroHeader relative z-20 w-full shrink-0 px-6 pt-4 sm:pt-5 lg:px-8">
         <div className="mx-auto w-full max-w-4xl">
           <div className="relative overflow-hidden rounded-[18px] border border-white/[0.12] bg-white/[0.07] shadow-[0_8px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] backdrop-blur-2xl backdrop-saturate-150">
             <div
@@ -568,9 +531,9 @@ export default function EtherealBeamsHero() {
               className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_120%_at_0%_0%,rgba(199,130,255,0.08)_0%,transparent_55%)]"
               aria-hidden
             />
-            <div className="relative flex h-[3.25rem] items-center justify-between px-4 py-2 sm:h-[3.75rem] sm:px-6 sm:py-2.5">
-              <Link to="/auth" className="shrink-0 no-underline">
-                <CarPassLogo />
+            <div className="relative flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2 sm:min-h-[3.75rem] sm:px-6 sm:py-2.5">
+              <Link to="/" className="shrink-0 min-w-0 no-underline text-inherit">
+                <Logo size={16} className="max-w-[min(100%,124px)] sm:max-w-[min(100%,140px)]" />
               </Link>
               <HeroButton variant="accent" size="sm" className="rounded-[12px] font-semibold" to="/auth">
                 Зарегистрироваться

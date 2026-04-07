@@ -28,3 +28,11 @@ test_out.txt
 
 # Референс для вёрстки, в коде не используется
 public/preloader-reference.png
+
+# Capacitor / Android Studio
+android/app/build
+android/.gradle
+android/build
+android/local.properties
+*.keystore
+!debug.keystore

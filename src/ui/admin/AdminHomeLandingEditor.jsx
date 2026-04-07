@@ -151,7 +151,7 @@ export default function AdminHomeLandingEditor() {
           <Field
             className="field--full"
             label="Дополнительная строка под H1"
-            hint="необязательно; «История Вашего авто!» под логотипом задаётся в коде"
+            hint="необязательно; слоган «История Вашего авто» под логотипом задаётся в коде"
           >
             <Input className="input" value={form.bannerTagline} onChange={setF('bannerTagline')} placeholder="" />
           </Field>

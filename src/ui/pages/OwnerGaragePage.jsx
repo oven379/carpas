@@ -15,6 +15,7 @@ import {
   shortExternalLinkLabel,
 } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import {
   dedupeCarsById,
@@ -378,12 +379,7 @@ export default function OwnerGaragePage() {
   }
 
   const limits = ownerGarageLimits(cars)
-  const detInitials = String(linkedDetailing?.name || 'Д')
-    .trim()
-    .slice(0, 2)
-    .toUpperCase()
   const displayName = String(owner?.name || '').trim() || ownerEmail
-  const initials = displayName.slice(0, 2).toUpperCase()
   const cityLine = String(owner?.garageCity || '').trim()
   const garageCarStatTitle = `${cars.length} ${
     cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'
@@ -665,13 +661,13 @@ export default function OwnerGaragePage() {
               aria-label="Настройки гаража: аватар, баннер и контакты"
               title="Настройки гаража"
             >
-              {owner?.garageAvatar ? (
-                <div className="garageProfileCard__avatar">
+              <div className="garageProfileCard__avatar">
+                {owner?.garageAvatar ? (
                   <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
-                </div>
-              ) : (
-                <div className="garageProfileCard__avatar garageProfileCard__avatar--fallback">{initials}</div>
-              )}
+                ) : (
+                  <DefaultAvatar alt="" />
+                )}
+              </div>
             </Link>
           </div>
         </div>
@@ -690,9 +686,7 @@ export default function OwnerGaragePage() {
               {linkedDetailing.logo ? (
                 <img alt="" src={resolvePublicMediaUrl(linkedDetailing.logo)} />
               ) : (
-                <span className="garageProfileCard__detAvatarFallback" aria-hidden="true">
-                  {detInitials}
-                </span>
+                <DefaultAvatar alt="" />
               )}
             </Link>
           ) : null}

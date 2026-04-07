@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import Logo from '../Logo.jsx'
-import { BRAND_TAGLINE } from '../../lib/brandConstants.js'
 import { Button, Input } from '../components.jsx'
 import { adminGateCredentialsOk } from '../../lib/adminGateCredentials.js'
 import { hasAdminMockSession, setAdminMockSession } from '../../lib/adminMockSession.js'
@@ -64,7 +63,6 @@ export default function AdminLoginPage() {
           <div className="adminLoginPage__logoFrame">
             <Logo size={44} />
           </div>
-          <p className="adminLoginPage__brandTagline">{BRAND_TAGLINE}</p>
         </div>
         <p className="adminLoginPage__tagline">
           Ну что ты братик? Поможем людям быть счастливее?

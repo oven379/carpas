@@ -51,26 +51,10 @@
   box-sizing: border-box;
 }
 
-/* Слоган строго по ширине рамки (ellipsis внутри lockup) */
-.nav__brandTagline {
-  display: block;
-  margin: 0;
-  padding: 2px 0 0;
-  max-width: 100%;
-  width: 100%;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  box-sizing: border-box;
-}
-
-/* Вордмарк в шапке: фиолетовая обводка (читаемость белой части на светлой теме), масштаб в узкой колонке */
+/* Вордмарк в шапке: без подложки — слоган под картинкой */
 .navLogoFrame {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 1;
@@ -78,12 +62,11 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 3px 7px;
-  border-radius: 10px;
-  border: 1px solid #9333ea;
-  box-sizing: border-box;
-  line-height: 0;
-  background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
+  padding: 0;
+  line-height: 1.12;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .navLogoFrame .navWordmarkSvg {
@@ -91,89 +74,55 @@
   width: auto;
   height: auto;
   max-width: 100%;
-  max-height: 22px;
+  max-height: none;
 }
 
-/* Вордмарк «КАР.ПАС» + куб (Logo.jsx) */
-.brandLogoMark {
-  --brandLogoH: 18px;
-  position: relative;
+.navLogoFrame .brandLogoLockup__img {
+  max-width: 100%;
+}
+
+/* Марка (SVG) + слоган под ней (Logo.jsx) */
+.brandLogoLockup {
   display: inline-flex;
-  align-items: baseline;
-  flex-wrap: nowrap;
-  line-height: 1;
-  box-sizing: border-box;
-  padding-bottom: calc(var(--brandLogoH) * 0.44);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
-  font-weight: 800;
-  letter-spacing: 0.07em;
-  white-space: nowrap;
-  font-size: calc(var(--brandLogoH) * 0.56);
-  vertical-align: middle;
-}
-
-.brandLogoMark__kar {
-  color: #c782ff;
-}
-
-.brandLogoMark__pas {
-  color: #a8a1b1;
-}
-
-.brandLogoMark__dotCube {
-  position: relative;
-  display: inline-block;
-  line-height: 0;
-}
-
-.brandLogoMark__dot {
-  color: #c782ff;
-  font-size: 1em;
-  line-height: 1;
-}
-
-.brandLogoMark__cube {
-  position: absolute;
-  left: 50%;
-  top: calc(100% - 0.04em);
-  transform: translateX(-50%);
-  width: calc(var(--brandLogoH) * 0.4);
-  height: calc(var(--brandLogoH) * 0.46);
-  display: block;
-  pointer-events: none;
-}
-
-/* Вордмарк: тёмный фон под белую часть логотипа */
-.brandWordmarkWrap {
-  display: inline-flex;
+  flex-direction: column;
   align-items: center;
-  flex: 0 0 auto;
-  padding: 2px 6px;
-  border-radius: 8px;
-  border: 1px solid color-mix(in oklab, var(--border) 70%, #6b5ce7 18%);
-  background: #0a0a0a;
+  gap: calc(var(--brandLogoH) * 0.2);
   line-height: 0;
+  box-sizing: border-box;
 }
 
-.brandWordmarkImg {
+.brandLogoLockup--markOnly {
+  gap: 0;
+}
+
+.brandLogoLockup__img {
   display: block;
+  flex-shrink: 0;
+  max-width: 100%;
   width: auto;
   height: auto;
-  max-width: 100%;
-  vertical-align: middle;
 }
 
-/* Вордмарк в шапке: единый размер на десктопе (перекрывает width/height у <img>) */
-.nav__brand .brandWordmarkImg {
-  height: 18px;
-  width: auto;
+.brandLogoLockup__tagline {
+  display: block;
+  margin: 0;
+  padding: 0;
+  max-width: 18em;
+  text-align: center;
+  font-size: calc(max(10px, var(--brandLogoH) * 0.28));
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: color-mix(in oklab, var(--text) 78%, var(--text-h));
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: manual;
+}
+
+.navLogoFrame .brandLogoLockup__tagline {
+  max-width: min(16em, 100%);
+  font-size: calc(max(9px, var(--brandLogoH) * 0.26));
 }
 
 .nav__links {
@@ -272,6 +221,11 @@ button.nav__action {
   padding: 0;
   flex: 1;
   min-height: 100svh;
+}
+
+/* Лого в шапке презентационного /about (тёмный фон) */
+.etherealHeroHeader .brandLogoLockup__tagline {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 /* Ленивая загрузка страниц (React.lazy): по центру всего окна, под шапкой (z-index ниже .nav) */
@@ -611,7 +565,8 @@ button.nav__action {
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg) 8%);
 }
 
-.carPage__historyServiceAvatar img {
+.carPage__historyServiceAvatar img,
+.carPage__historyServiceAvatar .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -1510,22 +1465,10 @@ a.heroCoverStat--link:focus-visible {
   box-sizing: border-box;
 }
 
-.homeLandingBanner__brandTagline {
-  margin: 0;
-  max-width: 22rem;
-  font-size: clamp(13px, 2.6vw, 15px);
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--accent);
-  line-height: 1.3;
-  text-align: left;
-  align-self: flex-start;
-}
-
 .homeLandingBanner__brandStack {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   width: fit-content;
   max-width: 100%;
@@ -1534,19 +1477,35 @@ a.heroCoverStat--link:focus-visible {
 }
 
 .homeLandingBanner__brandStack .homeLandingBanner__logoRow {
-  justify-content: flex-start;
+  justify-content: center;
   width: auto;
 }
 
-.homeLandingBanner--hasPhoto .homeLandingBanner__brandTagline,
+.homeLandingBanner__customLockup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+}
+
+.homeLandingBanner__heroTagline {
+  font-size: clamp(11px, 2.4vw, 14px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklab, var(--text) 80%, var(--text-h));
+}
+
+.homeLandingBanner--hasPhoto .brandLogoLockup__tagline,
+.homeLandingBanner--hasPhoto .homeLandingBanner__heroTagline,
 .homeLandingBanner--hasPhoto .homeLandingBanner__tagline {
   text-shadow: 0 1px 3px color-mix(in oklab, var(--bg) 55%, var(--text-h) 45%);
 }
 
 .homeLandingBanner__markImg {
   display: block;
-  max-width: min(280px, 88vw);
-  max-height: 88px;
+  max-width: min(560px, 96vw);
+  max-height: 152px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -1559,6 +1518,22 @@ a.heroCoverStat--link:focus-visible {
   max-height: 56px;
   margin: 0 auto;
   object-fit: contain;
+}
+
+/* Аватар в блоке «Информация» на главной (портрет, заполняет скруглённый квадрат) */
+.homeLanding__infoAvatarWrap.detPublicInfoCard__logo--homeImg {
+  padding: 0;
+  overflow: hidden;
+}
+
+.homeLandingInfoLogoImg--avatar {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  object-fit: cover;
+  object-position: center 22%;
 }
 
 .detPublicInfoCard__logo--homeImg {
@@ -1586,16 +1561,22 @@ a.heroCoverStat--link:focus-visible {
   margin-top: 12px;
 }
 
-.homeLandingBanner__mark.brandLogoMark {
-  --brandLogoH: 72px;
-  display: inline-flex;
-  max-width: min(320px, 92vw);
-  font-size: calc(var(--brandLogoH) * 0.56);
+.homeLandingBanner__mark.brandLogoLockup {
+  --brandLogoH: 128px;
+  max-width: min(640px, 98vw);
 }
 
-.homeLandingBanner__mark.brandLogoMark .brandLogoMark__cube {
-  width: calc(var(--brandLogoH) * 0.4);
-  height: calc(var(--brandLogoH) * 0.46);
+.homeLandingBanner__mark .brandLogoLockup__img {
+  height: auto !important;
+  width: min(600px, 96vw);
+  max-height: 152px;
+}
+
+.homeLandingBanner__mark .brandLogoLockup__tagline {
+  font-size: clamp(12px, 2.5vw, 15px);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: color-mix(in oklab, var(--text) 78%, var(--text-h));
 }
 
 .homeLandingBanner__tagline {
@@ -1929,7 +1910,8 @@ a.heroCoverStat--link:focus-visible {
   background: var(--bg);
 }
 
-.homeGarageCard__avatar--img img {
+.homeGarageCard__avatar--img img,
+.homeGarageCard__avatar--img .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -2096,6 +2078,22 @@ summary.carPage__recsSelect::-webkit-details-marker {
   display: block;
   pointer-events: none;
   user-select: none;
+}
+
+.detPublicInfoCard__logo .brandLogoLockup {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 6px;
+}
+
+.detPublicInfoCard__logo .brandLogoLockup__img {
+  height: auto !important;
+  max-height: 48px;
+  max-width: 100%;
+  width: auto;
+  object-fit: contain;
 }
 
 .detPublicInfoCard__logo--fallback {
@@ -2373,7 +2371,8 @@ summary.carPage__recsSelect::-webkit-details-marker {
   box-sizing: border-box;
 }
 
-.eventCardServiceAvatar__img {
+.eventCardServiceAvatar__img,
+.eventCardServiceAvatar__inner .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -3001,7 +3000,8 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   outline-offset: 2px;
 }
 
-.requestsCard__ownerAvatar img {
+.requestsCard__ownerAvatar img,
+.requestsCard__ownerAvatar .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -3795,7 +3795,8 @@ a.backNav {
   bottom: 108px;
 }
 
-.detHero__logo img {
+.detHero__logo img,
+.detHero__logo .defaultAvatarImg {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -3805,6 +3806,16 @@ a.backNav {
   object-fit: cover;
   object-position: center;
   border-radius: inherit;
+}
+
+/* Плейсхолдер аватара (src/assets/default-avatar.png), чуть тусклее макета */
+.defaultAvatarImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: brightness(0.86) saturate(0.85);
 }
 
 .detHero__logo span {
@@ -3939,7 +3950,8 @@ a.btn.btn--asDisabled {
   outline-offset: 2px;
 }
 
-.garageProfileCard__detAvatar img {
+.garageProfileCard__detAvatar img,
+.garageProfileCard__detAvatar .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -3990,7 +4002,8 @@ a.garageProfileCard__avatarLink:focus-visible {
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
 }
 
-.garageProfileCard__avatar img {
+.garageProfileCard__avatar img,
+.garageProfileCard__avatar .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -4868,6 +4881,29 @@ button.garageSettings__thumb:focus-visible {
   outline-offset: 2px;
 }
 
+.garageSettings__thumbPlaceholderAvatar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.garageSettings__thumbEmpty--onPlaceholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  text-align: center;
+  box-sizing: border-box;
+  background: color-mix(in oklab, var(--bg) 55%, transparent);
+}
+
 .garageSettings__thumb--avatar {
   width: 112px;
   height: 112px;
@@ -5420,15 +5456,7 @@ button.garageSettings__thumb:focus-visible {
   width: auto;
   max-width: min(320px, 92vw);
   height: auto;
-  max-height: 56px;
-}
-
-.authPage__brandTagline {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+  max-height: none;
 }
 
 /* /auth: слоган под вордмарком на странице; в шапке — тот же бренд */
@@ -6046,7 +6074,8 @@ a.detBadge.detBadge--btn:active {
   opacity: 0.92;
 }
 
-.detBadge img {
+.detBadge img,
+.detBadge .defaultAvatarImg {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -7378,42 +7407,36 @@ a.btn.carPage__recsAddVisitFull,
   .nav__brand {
     flex: 0 1 auto;
     min-width: 0;
-    max-width: calc(100% - 152px);
+    max-width: calc(100% - 138px);
     overflow: hidden;
   }
 
   .navBrandLockup {
-    max-width: min(100px, calc(100vw - 188px));
+    max-width: min(138px, calc(100vw - 160px));
     width: 100%;
   }
 
-  .nav__brand .brandWordmarkWrap {
-    padding: 2px 5px;
-    border-radius: 7px;
-  }
-
-  .nav__brand .brandWordmarkImg {
-    height: 15px;
-    width: auto;
-  }
-
   .navLogoFrame {
-    padding: 2px 5px;
-    border-radius: 8px;
-    border-width: 1px;
+    padding: 0;
   }
 
   .navLogoFrame .navWordmarkSvg {
     height: auto;
-    max-height: 18px;
+    max-height: none;
     width: auto;
     max-width: 100%;
   }
 
-  .nav__brandTagline {
-    padding-left: 0;
-    font-size: 10px;
-    letter-spacing: 0.01em;
+  .navLogoFrame .brandLogoLockup__img {
+    height: auto !important;
+    max-height: 28px;
+    width: auto;
+  }
+
+  .navLogoFrame .brandLogoLockup__tagline {
+    font-size: calc(max(7px, var(--brandLogoH) * 0.22));
+    letter-spacing: 0.03em;
+    line-height: 1.15;
   }
 
   .nav__links {
@@ -8201,23 +8224,24 @@ a.btn.carPage__recsAddVisitFull,
   margin-bottom: 16px;
 }
 
-.adminLoginPage__brandTagline {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 650;
-  letter-spacing: 0.02em;
-  color: var(--accent);
-}
-
 .adminLoginPage__logoFrame {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 28px;
-  border-radius: 16px;
-  border: 2px solid #9333ea;
-  background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
-  line-height: 0;
+  padding: 0;
+  line-height: 1.12;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.adminLoginPage__logoFrame .brandLogoLockup__img {
+  max-width: min(300px, 86vw);
+  height: auto !important;
+  max-height: 56px;
 }
 
 .adminLoginPage__tagline {

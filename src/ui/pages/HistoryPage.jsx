@@ -65,6 +65,7 @@ import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/vis
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { ServicePicker } from '../ServicePicker.jsx'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
@@ -652,10 +653,6 @@ export default function HistoryPage() {
     }
   }, [car, detailingId, detailing])
   const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
-  const detBadgeInitials = useMemo(() => {
-    const nm = String(detForBadge?.name || 'Д').trim()
-    return nm.slice(0, 2).toUpperCase()
-  }, [detForBadge?.name])
 
   const visitPickerDetGroups = useMemo(
     () => buildProfileGroupedForPicker(DETAILING_SERVICES, visitProfileDetailingList(detailing)),
@@ -988,7 +985,6 @@ export default function HistoryPage() {
           const showServiceCornerAvatar =
             e.source === 'service' && (mode !== 'owner' || !detForBadge)
           const serviceDetLabel = String(e.detailingName || '').trim() || 'Сервис'
-          const serviceDetInitials = serviceDetLabel.slice(0, 2).toUpperCase()
           const detBrandTarget = showDetFooter ? detailingBrandHref(detForBadge) : null
           const cardInnerLink = Boolean(showDetFooter && detBrandTarget)
           const visitReadonlyCard = Boolean(canOpen(e) && !canEditAny(e))
@@ -1192,9 +1188,7 @@ export default function HistoryPage() {
                         className="eventCardServiceAvatar__img"
                       />
                     ) : (
-                      <span className="eventCardServiceAvatar__fallback" aria-hidden="true">
-                        {serviceDetInitials}
-                      </span>
+                      <DefaultAvatar alt="" className="eventCardServiceAvatar__img" />
                     )}
                   </div>
                 </div>
@@ -1206,7 +1200,7 @@ export default function HistoryPage() {
                   const detBadgeInner = detForBadge?.logo ? (
                     <img alt="" src={resolvePublicMediaUrl(detForBadge.logo)} />
                   ) : (
-                    <span aria-hidden="true">{detBadgeInitials}</span>
+                    <DefaultAvatar alt="" />
                   )
                   const detBadgeNode =
                     detBrandTarget?.kind === 'external' ? (

@@ -16,6 +16,7 @@ import {
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
 
 function CarPageOwnerLastVisitPreview({ lastEvt, photoUrl, histPath }) {
@@ -226,13 +227,6 @@ export default function CarPage() {
     const raw = String(owner?.garageAvatar || '').trim()
     return raw ? resolvePublicMediaUrl(raw) : ''
   }, [owner?.garageAvatar])
-
-  const ownerAvatarFallbackLetters = useMemo(() => {
-    const n = String(owner?.name || '').trim()
-    if (n.length >= 2) return n.slice(0, 2).toUpperCase()
-    const em = String(owner?.email || ownerEmailResolved || '').trim()
-    return em.slice(0, 2).toUpperCase() || '?'
-  }, [owner?.name, owner?.email, ownerEmailResolved])
 
   const servicingAtDetailingName = useMemo(() => {
     if (!lastHistoryEvent || String(lastHistoryEvent.source || '') !== 'service') return ''
@@ -606,16 +600,12 @@ export default function CarPage() {
                           servicingAtDetailingLogo ? (
                             <img alt="" src={servicingAtDetailingLogo} />
                           ) : (
-                            <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
-                              {(servicingAtDetailingName || 'Сервис').slice(0, 2).toUpperCase()}
-                            </span>
+                            <DefaultAvatar alt="" />
                           )
                         ) : ownerGarageAvatarResolved ? (
                           <img alt="" src={ownerGarageAvatarResolved} />
                         ) : (
-                          <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
-                            {ownerAvatarFallbackLetters}
-                          </span>
+                          <DefaultAvatar alt="" />
                         )}
                       </div>
                       <div className="carPage__ownerServiceStack">
@@ -636,9 +626,7 @@ export default function CarPage() {
                   ) : ownerServiceSummary.ownerLink === 'pending' ? (
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
                       <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <span className="carPage__historyServiceAvatarFallback">
-                          {ownerServiceSummary.serviceName.slice(0, 2).toUpperCase()}
-                        </span>
+                        <DefaultAvatar alt="" />
                       </div>
                       <div className="carPage__ownerServiceStack">
                         <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
@@ -660,9 +648,7 @@ export default function CarPage() {
                   ) : (
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
                       <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <span className="carPage__historyServiceAvatarFallback">
-                          {ownerServiceSummary.serviceName.slice(0, 2).toUpperCase()}
-                        </span>
+                        <DefaultAvatar alt="" />
                       </div>
                       <div className="carPage__ownerServiceStack">
                         <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
@@ -935,7 +921,6 @@ export default function CarPage() {
                         (() => {
                           const serviceLabel =
                             String(lastHistoryEvent.detailingName || '').trim() || 'Сервис'
-                          const initials = serviceLabel.slice(0, 2).toUpperCase()
                           const historySvcLogo = String(
                             lastHistoryEvent.detailingLogo || car?.detailingLogo || '',
                           ).trim()
@@ -948,9 +933,7 @@ export default function CarPage() {
                               {historySvcLogo ? (
                                 <img alt="" src={resolvePublicMediaUrl(historySvcLogo)} />
                               ) : (
-                                <span className="carPage__historyServiceAvatarFallback" aria-hidden="true">
-                                  {initials}
-                                </span>
+                                <DefaultAvatar alt="" />
                               )}
                             </div>
                           )

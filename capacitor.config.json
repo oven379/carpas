@@ -1,0 +1,11 @@
+{
+  "appId": "ru.carpassport.app",
+  "appName": "КарПас",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": true
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}

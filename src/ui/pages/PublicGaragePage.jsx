@@ -12,6 +12,7 @@ import {
 } from '../../lib/format.js'
 import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
 import { Seo } from '../../seo/Seo.jsx'
@@ -118,7 +119,6 @@ export default function PublicGaragePage() {
   const cars = Array.isArray(data.cars) ? data.cars : []
   const displayName = String(owner.name || '').trim() || 'Гараж'
   const cityLabel = String(owner.garageCity || '').trim()
-  const initials = displayName.slice(0, 2).toUpperCase()
   const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner.phone)
   const websiteRaw = String(owner.garageWebsite || '').trim()
   const websiteHref = websiteRaw ? normalizeHttpUrl(owner.garageWebsite) : ''
@@ -209,15 +209,13 @@ export default function PublicGaragePage() {
         }
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
-          {owner.garageAvatar ? (
-            <div className="detHero__logo detHero__logo--card">
+          <div className="detHero__logo detHero__logo--card">
+            {owner.garageAvatar ? (
               <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
-            </div>
-          ) : (
-            <div className="detHero__logo detHero__logo--card garageHero__avatarFallback" aria-hidden="true">
-              {initials}
-            </div>
-          )}
+            ) : (
+              <DefaultAvatar alt="" />
+            )}
+          </div>
           <div className="detHero__bottomRow garageHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
               <HeroCoverStat

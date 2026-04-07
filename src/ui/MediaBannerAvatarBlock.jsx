@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { PHOTO_UPLOAD_EMPTY_THUMB_HINT, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../lib/format.js'
 import { compressImageFile } from '../lib/imageCompression.js'
+import DefaultAvatar from './DefaultAvatar.jsx'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 
 const PRESETS = {
@@ -126,9 +127,12 @@ export default function MediaBannerAvatarBlock({
               {avatarUrl ? (
                 <img alt={`Превью: ${avatarLabel}`} src={avatarSrc} />
               ) : (
-                <span className="garageSettings__thumbEmpty">
-                  <span className="garageSettings__thumbEmptyPrimary">{avatarEmptyHint}</span>
-                </span>
+                <>
+                  <DefaultAvatar alt="" className="garageSettings__thumbPlaceholderAvatar" />
+                  <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--onPlaceholder">
+                    <span className="garageSettings__thumbEmptyPrimary">{avatarEmptyHint}</span>
+                  </span>
+                </>
               )}
             </button>
             {avatarUrl ? (

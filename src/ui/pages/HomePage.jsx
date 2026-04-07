@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   MARKETING_LANDING_STORAGE_KEY,
@@ -10,6 +10,8 @@ import { fmtKm } from '../../lib/format.js'
 import { useRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner } from '../components.jsx'
 import Logo from '../Logo.jsx'
+import DefaultAvatar from '../DefaultAvatar.jsx'
+import homeLandingAvatarUrl from '../../assets/home-landing-avatar.png?url'
 import { Seo } from '../../seo/Seo.jsx'
 import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
 import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
@@ -30,16 +32,13 @@ function escapeCssUrl(u) {
 }
 
 const LANDING_GARAGE_CARDS_TIMEOUT_MS = 12_000
+/** С `App.css` (@media max-width: 720px) — на телефонах лендинг с узкой шапкой. */
+const HOME_LANDING_MOBILE_MQ = '(max-width: 720px)'
 
-/** После первого ухода с главной — «О сервисе» по умолчанию свёрнуто при следующих заходах. */
-const HOME_ABOUT_VISITED_KEY = 'carPass_homeLandingAboutVisited'
-
-function readHomeAboutInitiallyOpen() {
-  try {
-    return localStorage.getItem(HOME_ABOUT_VISITED_KEY) !== '1'
-  } catch {
-    return true
-  }
+/** Десктоп: «О сервисе» развёрнуто; мобилка: свёрнуто при первой отрисовке. */
+function readHomeAboutInitiallyOpenForViewport() {
+  if (typeof window === 'undefined') return true
+  return !window.matchMedia(HOME_LANDING_MOBILE_MQ).matches
 }
 
 function withTimeout(promise, ms) {
@@ -65,9 +64,8 @@ export default function HomePage() {
   const [garageCards, setGarageCards] = useState([])
   /** Только блок «Гаражи» — страницу целиком не держим за этим запросом (без API/прокси иначе «вечный» спиннер). */
   const [garagesLoading, setGaragesLoading] = useState(true)
-  const [homeLandingInfoOpen, setHomeLandingInfoOpen] = useState(readHomeAboutInitiallyOpen)
+  const [homeLandingInfoOpen, setHomeLandingInfoOpen] = useState(readHomeAboutInitiallyOpenForViewport)
   const [landing, setLanding] = useState(() => readMarketingLanding())
-  const homeAboutStrictCleanupOnce = useRef(false)
 
   /** Явный заход по «О сервисе» — раскрыть блок и убрать state из истории. */
   useLayoutEffect(() => {
@@ -76,21 +74,6 @@ export default function HomePage() {
     setHomeLandingInfoOpen(true)
     navigate({ pathname: loc.pathname, search: loc.search, hash: loc.hash }, { replace: true, state: {} })
   }, [loc.pathname, loc.search, loc.hash, loc.state, navigate])
-
-  useEffect(() => {
-    return () => {
-      /* В dev Strict Mode первый ложный unmount не пишем в localStorage */
-      if (import.meta.env.DEV && !homeAboutStrictCleanupOnce.current) {
-        homeAboutStrictCleanupOnce.current = true
-        return
-      }
-      try {
-        localStorage.setItem(HOME_ABOUT_VISITED_KEY, '1')
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [])
 
   useEffect(() => {
     let c = false
@@ -140,6 +123,8 @@ export default function HomePage() {
     ? { '--homeBanner-img': `url("${escapeCssUrl(landing.bannerImageUrl)}")` }
     : undefined
 
+  const infoCardAvatarSrc = String(landing.infoCardLogoUrl || '').trim() || homeLandingAvatarUrl
+
   return (
     <div className="container homeLanding">
       <Seo title={seoTitle} description={seoDesc} canonicalPath="/" jsonLd={homeJsonLd} />
@@ -155,12 +140,14 @@ export default function HomePage() {
           <div className="homeLandingBanner__brandStack">
             <div className="homeLandingBanner__logoRow">
               {landing.bannerLogoUrl ? (
-                <img src={landing.bannerLogoUrl} alt="" className="homeLandingBanner__markImg" decoding="async" />
+                <div className="homeLandingBanner__customLockup">
+                  <img src={landing.bannerLogoUrl} alt="" className="homeLandingBanner__markImg" decoding="async" />
+                  <span className="brandLogoLockup__tagline homeLandingBanner__heroTagline">{BRAND_TAGLINE}</span>
+                </div>
               ) : (
-                <Logo size={72} className="homeLandingBanner__mark" />
+                <Logo size={128} className="homeLandingBanner__mark" />
               )}
             </div>
-            <p className="homeLandingBanner__brandTagline">{BRAND_TAGLINE}</p>
           </div>
           {String(landing.bannerTagline || '').trim() ? (
             <p className="homeLandingBanner__tagline muted small">{landing.bannerTagline}</p>
@@ -186,19 +173,15 @@ export default function HomePage() {
             </div>
             <div className="detPublicInfoCard__logoCol">
               <div
-                className={`detPublicInfoCard__logo${landing.infoCardLogoUrl ? ' detPublicInfoCard__logo--homeImg' : ''}`}
+                className="detPublicInfoCard__logo detPublicInfoCard__logo--homeImg homeLanding__infoAvatarWrap"
                 title="КарПас"
-                style={
-                  landing.infoCardLogoUrl
-                    ? undefined
-                    : { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10 }
-                }
               >
-                {landing.infoCardLogoUrl ? (
-                  <img src={landing.infoCardLogoUrl} alt="" className="homeLandingInfoLogoImg" decoding="async" />
-                ) : (
-                  <Logo size={30} />
-                )}
+                <img
+                  src={infoCardAvatarSrc}
+                  alt=""
+                  className="homeLandingInfoLogoImg homeLandingInfoLogoImg--avatar"
+                  decoding="async"
+                />
               </div>
             </div>
           </div>
@@ -362,10 +345,6 @@ export default function HomePage() {
             <div className="homeGarageGrid">
               {garageCards.map((c) => {
                 const title = [c.make, c.model].filter(Boolean).join(' ').trim() || 'Автомобиль'
-                const initials = String(c.detailingName || 'С')
-                  .trim()
-                  .slice(0, 1)
-                  .toUpperCase()
                 return (
                   <Link key={c.id} className="homeGarageCard" to={`/d/${c.detailingId}`}>
                     <div className="homeGarageCard__top">
@@ -378,17 +357,13 @@ export default function HomePage() {
                         }
                       />
                       <div
-                        className={
-                          c.detailingLogo
-                            ? 'homeGarageCard__avatar homeGarageCard__avatar--img'
-                            : 'homeGarageCard__avatar homeGarageCard__avatar--fallback'
-                        }
+                        className="homeGarageCard__avatar homeGarageCard__avatar--img"
                         title={c.detailingName || 'Сервис'}
                       >
                         {c.detailingLogo ? (
                           <img src={c.detailingLogo} alt="" loading="lazy" decoding="async" />
                         ) : (
-                          <span aria-hidden="true">{initials}</span>
+                          <DefaultAvatar alt="" />
                         )}
                       </div>
                     </div>

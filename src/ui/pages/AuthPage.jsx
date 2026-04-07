@@ -1,7 +1,6 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
 import Logo from '../Logo.jsx'
-import { BRAND_TAGLINE } from '../../lib/brandConstants.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -20,7 +19,6 @@ export default function AuthPage() {
     <div className="container authPage">
       <div className="authPage__brandLockup">
         <Logo size={32} />
-        <p className="authPage__brandTagline">{BRAND_TAGLINE}</p>
       </div>
       <div className="authSplit authSplit--hub">
         <div className="authHub__info authSplit__lede">

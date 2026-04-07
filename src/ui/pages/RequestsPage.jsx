@@ -5,6 +5,7 @@ import { BackNav, Card, PageLoadSpinner, Pill, ServiceHint } from '../components
 import { useDetailing } from '../useDetailing.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import DefaultAvatar from '../DefaultAvatar.jsx'
 import { displayRuPhone } from '../../lib/format.js'
 
 function eqNorm(a, b) {
@@ -116,7 +117,6 @@ export default function RequestsPage() {
           const ownerGarageCity = String(x.ownerGarageCity || '').trim()
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
           const ownerLabel = String(x.ownerName || '').trim() || String(x.ownerEmail || 'Владелец').trim()
-          const ownerInitial = (ownerLabel.slice(0, 2) || '?').toUpperCase()
           const ownerDisplayName = String(x.ownerName || '').trim() || String(x.ownerEmail || '').trim() || '—'
           const phoneForCall = String(car?.ownerAccountPhone || x.ownerAccountPhone || '').trim()
           const { display: ownerPhoneDisplay, telHref: ownerPhoneTelHref } = displayRuPhone(phoneForCall)
@@ -124,14 +124,11 @@ export default function RequestsPage() {
           const navState = { from: `${loc.pathname}${loc.search}` }
           const carHeroBg = car?.hero ? resolvedBackgroundImageUrl(car.hero) : undefined
           const showMakePill = Boolean(String(ev.make || '').trim())
-          const avatarInner =
-            ownerAvatar ? (
-              <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
-            ) : (
-              <span className="requestsCard__ownerAvatarFallback" aria-hidden="true">
-                {ownerInitial}
-              </span>
-            )
+          const avatarInner = ownerAvatar ? (
+            <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
+          ) : (
+            <DefaultAvatar alt="" />
+          )
           const avatarCorner = garagePath ? (
             <Link
               className="requestsCard__avatarCorner requestsCard__ownerAvatar requestsCard__ownerAvatar--link"

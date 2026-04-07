@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="КарПас">
-  <rect width="32" height="32" rx="6" fill="#0f0f12"/>
-  <g transform="translate(4 5) scale(0.92)">
-    <path fill="#c4bdd4" d="M12 3l8 5-8 5-8-5z"/>
-    <path fill="#c782ff" d="M4 8l8 5v11l-8-5V8Z"/>
-    <path fill="#00e5be" d="M20 8l-8 5v11l8-5V8Z"/>
-  </g>
-</svg>

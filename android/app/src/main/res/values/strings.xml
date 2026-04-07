@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">КарПас</string>
+    <string name="title_activity_main">КарПас</string>
+    <string name="package_name">ru.carpassport.app</string>
+    <string name="custom_url_scheme">ru.carpassport.app</string>
+</resources>

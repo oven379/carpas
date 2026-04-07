@@ -1,7 +1,6 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
-import { BRAND_TAGLINE } from '../lib/brandConstants.js'
 import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, hasOwnerSession } from './auth.js'
@@ -386,7 +385,6 @@ export function TopNav() {
             <span className="navLogoFrame">
               <Logo />
             </span>
-            <span className="nav__brandTagline">{BRAND_TAGLINE}</span>
           </span>
         </NavLink>
         <nav className="nav__links">

@@ -1,3 +1,4 @@
+import { Capacitor } from '@capacitor/core'
 import { httpJson, httpFormData, HttpError } from './http.js'
 import {
   clearDetailingSession,
@@ -28,6 +29,15 @@ function isSameOriginApiHost(hostname) {
 export function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_BASE_URL
   const trimmed = raw && String(raw).trim() ? String(raw).replace(/\/+$/, '') : ''
+
+  /** Capacitor WebView: нет того же origin, что у API — нужен полный URL (см. .env.example). */
+  if (Capacitor.isNativePlatform()) {
+    if (trimmed) return trimmed
+    if (Capacitor.getPlatform() === 'android') {
+      return 'http://10.0.2.2:8088/api'
+    }
+    return 'http://127.0.0.1:8088/api'
+  }
 
   if (trimmed && import.meta.env.DEV) {
     try {
