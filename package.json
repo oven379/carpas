@@ -36,6 +36,13 @@
     "tailwind-merge": "^3.5.0",
     "three": "^0.169.0"
   },
+  "overrides": {
+    "camera-controls": "3.1.0"
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.0.0-rc.13",
+    "@rolldown/binding-linux-x64-musl": "1.0.0-rc.13"
+  },
   "devDependencies": {
     "@capacitor/cli": "^7.4.0",
     "@eslint/js": "^9.39.4",
