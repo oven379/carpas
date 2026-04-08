@@ -192,6 +192,14 @@ export function createApiClient() {
       return await req('detailings/me', { method: 'PATCH', body: patch, token: dTok() })
     },
 
+    async registerDetailingDevicePush(body) {
+      return await req('detailings/me/device-push-token', { method: 'POST', body, token: dTok() })
+    },
+
+    async unregisterDetailingDevicePush(body) {
+      return await req('detailings/me/device-push-token', { method: 'DELETE', body, token: dTok() })
+    },
+
     async registerOwner(body) {
       return await req('owners/register', { method: 'POST', body, token: null })
     },
@@ -220,6 +228,14 @@ export function createApiClient() {
     async updateOwnerMe(patch) {
       flushCoalescedRequests()
       return await req('owners/me', { method: 'PATCH', body: patch, token: oTok() })
+    },
+
+    async registerOwnerDevicePush(body) {
+      return await req('owners/me/device-push-token', { method: 'POST', body, token: oTok() })
+    },
+
+    async unregisterOwnerDevicePush(body) {
+      return await req('owners/me/device-push-token', { method: 'DELETE', body, token: oTok() })
     },
 
     async detailingYandexUrl() {
@@ -511,6 +527,18 @@ export function createApiClient() {
       return await req(`admin/support/tickets/${encodeURIComponent(String(ticketId))}/reply`, {
         method: 'POST',
         body: { message: String(message || '').trim() },
+        token: adminToken,
+      })
+    },
+
+    async adminPushStats(adminToken) {
+      return await req('admin/support/push/stats', { token: adminToken })
+    },
+
+    async adminPushBroadcast(adminToken, body) {
+      return await req('admin/support/push/broadcast', {
+        method: 'POST',
+        body,
         token: adminToken,
       })
     },

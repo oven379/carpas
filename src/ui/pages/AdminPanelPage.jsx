@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
-import { Card, Field, Input, Pill, Textarea } from '../components.jsx'
+import { Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
 import AdminHomeLandingEditor from '../admin/AdminHomeLandingEditor.jsx'
 import { clearAdminMockSession } from '../../lib/adminMockSession.js'
 import { clearAdminApiToken, getAdminApiToken, hasAdminApiToken } from '../../lib/adminApiSession.js'
@@ -14,6 +14,7 @@ const NAV = [
   { id: 'landing', label: 'Главная' },
   { id: 'users', label: 'Пользователи' },
   { id: 'support', label: 'Поддержка' },
+  { id: 'push', label: 'Push' },
   { id: 'cars', label: 'Автомобили' },
   { id: 'partners', label: 'Партнёры' },
   { id: 'mods', label: 'Модерация' },
@@ -415,6 +416,205 @@ function PanelSupport() {
   )
 }
 
+function PanelPush() {
+  const token = getAdminApiToken()
+  const [stats, setStats] = useState(null)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [statsErr, setStatsErr] = useState('')
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [audience, setAudience] = useState('all')
+  const [sendBusy, setSendBusy] = useState(false)
+  const [sendErr, setSendErr] = useState('')
+  const [sendOk, setSendOk] = useState('')
+
+  const loadStats = useCallback(async () => {
+    if (!hasAdminApiToken()) return
+    const s = await getApi().adminPushStats(getAdminApiToken())
+    setStats(s && typeof s === 'object' ? s : null)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!hasAdminApiToken()) {
+      setStatsLoading(false)
+      setStats(null)
+      return undefined
+    }
+    setStatsLoading(true)
+    setStatsErr('')
+    ;(async () => {
+      try {
+        await loadStats()
+      } catch (e) {
+        if (!cancelled) setStatsErr(formatHttpErrorMessage(e, 'Не удалось загрузить статистику push.'))
+      } finally {
+        if (!cancelled) setStatsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, loadStats])
+
+  if (!hasAdminApiToken()) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Push-уведомления
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Раздел доступен после входа с учётными данными из <code className="adminMono">ADMIN_SUPPORT_LOGIN</code> /{' '}
+          <code className="adminMono">ADMIN_SUPPORT_PASSWORD</code> — тогда сохраняется токен API и рассылка идёт через FCM
+          на зарегистрированные устройства приложения.
+        </p>
+      </Card>
+    )
+  }
+
+  const fcmOk = stats?.fcm_configured === true
+
+  return (
+    <div className="adminPreview__stack">
+      <Card className="card pad">
+        <div className="row spread gap wrap" style={{ marginBottom: 12 }}>
+          <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
+            Push-уведомления
+          </h2>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={statsLoading}
+            onClick={() =>
+              void (async () => {
+                setStatsErr('')
+                setStatsLoading(true)
+                try {
+                  await loadStats()
+                } catch (e) {
+                  setStatsErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                } finally {
+                  setStatsLoading(false)
+                }
+              })()
+            }
+          >
+            Обновить
+          </button>
+        </div>
+        {statsErr ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
+            {statsErr}
+          </p>
+        ) : null}
+        {!fcmOk && !statsLoading ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
+            FCM не настроен на сервере: задайте <code className="adminMono">FIREBASE_PROJECT_ID</code> и JSON сервисного
+            аккаунта (см. <code className="adminMono">backend/.env.example</code>). Рассылка вернёт ошибку 503, пока это не
+            сделано.
+          </p>
+        ) : null}
+        {statsLoading ? (
+          <p className="muted small" style={{ marginBottom: 16 }}>
+            Загрузка…
+          </p>
+        ) : stats ? (
+          <ul className="muted small" style={{ margin: '0 0 16px', paddingLeft: 18, lineHeight: 1.6 }}>
+            <li>Всего токенов: {stats.total ?? '—'}</li>
+            <li>Владельцы: {stats.owners ?? '—'} · Партнёры (детейлинг): {stats.detailings ?? '—'}</li>
+            <li>Android: {stats.android ?? '—'} · iOS: {stats.ios ?? '—'}</li>
+            <li>FCM: {fcmOk ? 'настроен' : 'не настроен'}</li>
+          </ul>
+        ) : null}
+
+        <Field label="Заголовок" className="field--full" hint="до 120 символов">
+          <Input
+            className="input"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={120}
+            placeholder="Например: Обновление сервиса"
+          />
+        </Field>
+        <Field label="Текст" className="field--full" hint="до 2000 символов">
+          <Textarea
+            className="input"
+            rows={5}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            maxLength={2000}
+            style={{ resize: 'vertical', minHeight: 100 }}
+            placeholder="Краткое сообщение для пользователей"
+          />
+        </Field>
+        <Field label="Аудитория" className="field--full">
+          <select
+            className="input"
+            value={audience}
+            onChange={(e) => setAudience(e.target.value)}
+            style={{ width: '100%', maxWidth: 360 }}
+          >
+            <option value="all">Все зарегистрированные устройства</option>
+            <option value="owners">Только владельцы</option>
+            <option value="detailings">Только партнёры (детейлинг)</option>
+          </select>
+        </Field>
+        {sendErr ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginTop: 12 }}>
+            {sendErr}
+          </p>
+        ) : null}
+        {sendOk ? (
+          <p className="muted small" style={{ marginTop: 12 }}>
+            {sendOk}
+          </p>
+        ) : null}
+        <div style={{ marginTop: 14 }}>
+          <Button
+            variant="primary"
+            disabled={sendBusy || !String(title).trim() || !String(body).trim()}
+            onClick={() =>
+              void (async () => {
+                setSendErr('')
+                setSendOk('')
+                setSendBusy(true)
+                try {
+                  const res = await getApi().adminPushBroadcast(getAdminApiToken(), {
+                    title: String(title).trim(),
+                    body: String(body).trim(),
+                    audience,
+                  })
+                  if (res && res.ok === false) {
+                    setSendErr(String(res.message || 'Отправка не выполнена.'))
+                    return
+                  }
+                  if (res?.sent != null) {
+                    setSendOk(
+                      `Отправлено: ${res.sent}, ошибок: ${res.failed ?? 0}` +
+                        (res.message ? `. ${res.message}` : ''),
+                    )
+                  } else {
+                    setSendOk('Запрос выполнен.')
+                  }
+                  await loadStats()
+                } catch (e) {
+                  setSendOk('')
+                  setSendErr(formatHttpErrorMessage(e, 'Не удалось отправить рассылку.'))
+                } finally {
+                  setSendBusy(false)
+                }
+              })()
+            }
+          >
+            {sendBusy ? 'Отправка…' : 'Отправить push'}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  )
+}
+
 function PanelUsers() {
   return (
     <div className="adminPreview__stack">
@@ -631,6 +831,7 @@ export default function AdminPanelPage() {
   else if (tab === 'landing') body = <PanelLanding />
   else if (tab === 'users') body = <PanelUsers />
   else if (tab === 'support') body = <PanelSupport />
+  else if (tab === 'push') body = <PanelPush />
   else if (tab === 'cars') body = <PanelCars />
   else if (tab === 'partners') body = <PanelPartners />
   else if (tab === 'mods') body = <PanelMods />

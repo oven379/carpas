@@ -10,8 +10,6 @@ import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
-import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
-
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -134,7 +132,7 @@ export default function PublicDetailingPage() {
               {
                 '@type': 'ListItem',
                 position: 1,
-                name: 'О сервисе КарПас',
+                name: 'КарПас',
                 item: absoluteUrl('/'),
               },
               {
@@ -204,9 +202,7 @@ export default function PublicDetailingPage() {
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
-            <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-              О сервисе
-            </Link>
+            <Link to="/">Главная</Link>
             <span> / </span>
             <span>Страница детейлинга</span>
           </div>
@@ -341,7 +337,7 @@ export default function PublicDetailingPage() {
 
           <div className="topBorder">
             <div className="cardTitle" style={{ marginBottom: 8 }}>
-              О сервисе
+              Описание
             </div>
             {det.description ? (
               <p className="muted" style={{ lineHeight: 1.55 }}>

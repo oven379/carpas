@@ -14,17 +14,43 @@
   backdrop-filter: blur(8px);
   background: color-mix(in oklab, var(--bg) 92%, transparent);
   border-bottom: 1px solid var(--border);
+  overflow: visible;
 }
 
 .nav__inner {
   width: min(1126px, 100%);
   margin: 0 auto;
-  padding: 14px max(16px, env(safe-area-inset-left, 0px)) 14px max(16px, env(safe-area-inset-right, 0px));
+  padding: calc(14px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-left, 0px)) 20px
+    max(16px, env(safe-area-inset-right, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   box-sizing: border-box;
+}
+
+/* Вордмарк по вертикали совпадает с рядом кнопок (min-height как у .nav__action) */
+.brandLogoMarkAlign {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.brandLogoMarkAlign--footer {
+  min-height: 44px;
+}
+
+.brandLogoMarkAlign--aboutHero {
+  min-height: 2.75rem;
+}
+
+@media (min-width: 640px) {
+  .brandLogoMarkAlign--aboutHero {
+    min-height: 3.25rem;
+  }
 }
 
 .nav__brand {
@@ -36,9 +62,11 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  min-height: 44px;
+  box-sizing: border-box;
 }
 
-/* Одна колонка: рамка лого и слоган не шире друг друга */
+/* Колонка под вордмарк в шапке */
 .navBrandLockup {
   display: flex;
   flex-direction: column;
@@ -51,7 +79,7 @@
   box-sizing: border-box;
 }
 
-/* Вордмарк в шапке: без подложки — слоган под картинкой */
+/* Вордмарк в шапке: без подложки */
 .navLogoFrame {
   display: inline-flex;
   flex-direction: column;
@@ -382,20 +410,67 @@ button.nav__action {
   font-size: 14px;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: stretch;
   gap: 0;
   flex-wrap: nowrap;
 }
 
-/* Ссылки слева (колонка с переносами), «Поддержка» всегда в правой колонке — в т.ч. на узком экране */
+/* Бренд | правовые ссылки | Поддержка; на узком экране лого на всю ширину, снизу — ссылки и кнопка */
 .footer__bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px 12px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: flex-start;
+  gap: 10px 14px;
   width: 100%;
   min-width: 0;
+}
+
+.footerBrandSlot {
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: min(200px, 38vw);
+}
+
+.footerBrandSlot__link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.footerBrandSlot .brandLogoLockup {
+  align-items: flex-start;
+}
+
+.footerBrandSlot .brandLogoLockup__tagline {
+  text-align: left;
+}
+
+.footerBrandSlot__link:hover .brandLogoLockup__tagline {
+  color: color-mix(in oklab, var(--text-h) 88%, var(--muted));
+}
+
+@media (max-width: 560px) {
+  .footer__bar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'brand brand'
+      'legal support';
+  }
+
+  .footerBrandSlot {
+    grid-area: brand;
+    max-width: 100%;
+  }
+
+  .footerLegal {
+    grid-area: legal;
+  }
+
+  .footerSupportSlot {
+    grid-area: support;
+    justify-self: end;
+  }
 }
 
 /* «Войти» на публичных страницах /g/ /d/ (на улице): явно прозрачный фон, серая обводка */
@@ -7394,73 +7469,96 @@ a.btn.carPage__recsAddVisitFull,
     justify-content: flex-start;
   }
 
-  /* Навигация: логотип и кнопки в один ряд (мобилка) */
+  /*
+   * Шапка (мобилка): flex-basis 100% у .nav__links всегда уводил кнопки на вторую строку.
+   * flex: 1 1 auto — лого и действия в одном ряду, пока хватает ширины; при нехватке — перенос.
+   */
   .nav__inner {
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding-top: 12px;
-    padding-bottom: 12px;
+    row-gap: 10px;
+    /* Не терять safe-area: иначе лого упирается в вырез / статус-бар */
+    padding-top: calc(10px + env(safe-area-inset-top, 0px));
+    padding-bottom: 18px;
+    padding-left: max(14px, env(safe-area-inset-left, 0px));
+    padding-right: max(14px, env(safe-area-inset-right, 0px));
   }
 
   .nav__brand {
     flex: 0 1 auto;
     min-width: 0;
-    max-width: calc(100% - 138px);
-    overflow: hidden;
+    max-width: 100%;
+    overflow: visible;
+    align-items: center;
+    min-height: 44px;
   }
 
   .navBrandLockup {
-    max-width: min(138px, calc(100vw - 160px));
-    width: 100%;
+    max-width: min(168px, calc(100vw - 108px));
+    width: auto;
+    align-items: flex-start;
   }
 
   .navLogoFrame {
     padding: 0;
-  }
-
-  .navLogoFrame .navWordmarkSvg {
-    height: auto;
-    max-height: none;
-    width: auto;
+    align-items: flex-start;
     max-width: 100%;
   }
 
-  .navLogoFrame .brandLogoLockup__img {
-    height: auto !important;
-    max-height: 28px;
-    width: auto;
+  .navLogoFrame .brandLogoLockup {
+    align-items: flex-start;
+    gap: 2px;
+    max-width: 100%;
   }
 
-  .navLogoFrame .brandLogoLockup__tagline {
-    font-size: calc(max(7px, var(--brandLogoH) * 0.22));
-    letter-spacing: 0.03em;
-    line-height: 1.15;
+  .navLogoFrame .navWordmarkSvg {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    line-height: 0;
+  }
+
+  /* Как на мобильном вебе: компактный вордмарк (Logo size=16 + слоган) */
+  .navLogoFrame .brandLogoLockup__img {
+    display: block;
+    height: 16px !important;
+    width: auto !important;
+    max-height: 16px;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: left center;
   }
 
   .nav__links {
-    flex: 1;
+    flex: 1 1 auto;
+    width: auto;
     min-width: 0;
+    max-width: 100%;
     justify-content: flex-end;
-    flex-wrap: nowrap;
+    align-items: center;
+    flex-wrap: wrap;
     overflow: visible;
     column-gap: 8px;
-    row-gap: 0;
+    row-gap: 8px;
   }
 
   .nav__linksScroll {
-    flex: 1;
+    flex: 1 1 auto;
     min-width: 0;
     justify-content: flex-end;
+    align-items: center;
     flex-wrap: wrap;
     overflow-x: hidden;
     overflow-y: visible;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     column-gap: 8px;
-    row-gap: 0;
-    padding-bottom: 2px;
+    row-gap: 8px;
+    padding-bottom: 0;
   }
 
   .nav__linksScroll::-webkit-scrollbar {
@@ -7469,11 +7567,16 @@ a.btn.carPage__recsAddVisitFull,
 
   .nav__linksScroll--partnerTools {
     flex-wrap: nowrap;
+    overflow-x: auto;
   }
 
   .nav__linksPersist {
+    flex: 0 1 auto;
     flex-shrink: 0;
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    align-items: center;
+    row-gap: 8px;
   }
 
   .nav__action {
@@ -8449,14 +8552,8 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .supportModal__err {
-  color: #b91c1c;
+  color: #fca5a5;
   margin: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .supportModal__err {
-    color: #fca5a5;
-  }
 }
 
 .supportModal__submitRow {

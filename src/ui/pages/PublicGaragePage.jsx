@@ -14,7 +14,6 @@ import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
-import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 
@@ -85,9 +84,7 @@ export default function PublicGaragePage() {
           noindex
         />
         <div className="breadcrumbs" style={{ marginBottom: 16 }}>
-          <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-            О сервисе
-          </Link>
+          <Link to="/">Главная</Link>
           <span> / </span>
           <span>Гараж владельца</span>
         </div>
@@ -106,8 +103,8 @@ export default function PublicGaragePage() {
             <button type="button" className="btn" data-variant="primary" onClick={() => nav(-1)}>
               Понял!
             </button>
-            <Link className="btn" data-variant="ghost" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-              О сервисе
+            <Link className="btn" data-variant="ghost" to="/">
+              На главную
             </Link>
           </div>
         </Card>
@@ -175,9 +172,7 @@ export default function PublicGaragePage() {
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
-            <Link to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-              О сервисе
-            </Link>
+            <Link to="/">Главная</Link>
             <span> / </span>
             <span>Гараж владельца</span>
           </div>
@@ -281,8 +276,8 @@ export default function PublicGaragePage() {
           <Link className="btn" data-variant="primary" to="/auth/owner">
             Войти как владелец
           </Link>
-          <Link className="btn" data-variant="ghost" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-            О сервисе
+          <Link className="btn" data-variant="ghost" to="/">
+            На главную
           </Link>
         </div>
       </Card>

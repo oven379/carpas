@@ -12,7 +12,6 @@ import {
   formatPhoneRuNationalDisplay,
   getPhoneRuNationalDigits,
 } from '../lib/format.js'
-import { OPEN_SERVICE_ABOUT_STATE } from '../lib/serviceLandingNav.js'
 
 export { default as ServiceHint } from './ServiceHint.jsx'
 export { PageLoadSpinner } from './PageLoadSpinner.jsx'
@@ -383,7 +382,7 @@ export function TopNav() {
         <NavLink end className="nav__brand" to="/" aria-label="КарПас — главная страница сервиса">
           <span className="navBrandLockup">
             <span className="navLogoFrame">
-              <Logo />
+              <Logo size={16} tagline={false} markWrapperClassName="brandLogoMarkAlign" />
             </span>
           </span>
         </NavLink>
@@ -396,9 +395,6 @@ export function TopNav() {
                     Заявки ({pendingClaims})
                   </NavLink>
                 ) : null}
-                <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-                  О сервисе
-                </Link>
                 <SupportButton className="nav__action">Поддержка</SupportButton>
                 <button type="button" className="nav__action" onClick={logout}>
                   Выйти
@@ -409,9 +405,6 @@ export function TopNav() {
           <div className="nav__linksPersist">
             {isPublicShowcasePage ? (
               <>
-                <Link className="nav__action nav__action--showcaseLogin" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-                  О сервисе
-                </Link>
                 <SupportButton className="nav__action nav__action--showcaseLogin">Поддержка</SupportButton>
                 <Link className="nav__action nav__action--showcaseLogin" to="/auth">
                   Войти
@@ -419,16 +412,8 @@ export function TopNav() {
               </>
             ) : (
               <>
-                {onAuthHub ? (
-                  <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-                    О сервисе
-                  </Link>
-                ) : null}
                 {hasOwnerSession() ? (
                   <>
-                    <Link className="nav__action" to="/" state={OPEN_SERVICE_ABOUT_STATE}>
-                      О сервисе
-                    </Link>
                     <OwnerSupportDropdown />
                     <button type="button" className="nav__action" onClick={logout}>
                       Выйти

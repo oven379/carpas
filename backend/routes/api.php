@@ -13,7 +13,9 @@ use App\Http\Controllers\Api\OwnerCarController;
 use App\Http\Controllers\Api\OwnerCarDocController;
 use App\Http\Controllers\Api\OwnerCarEventController;
 use App\Http\Controllers\Api\OwnerCarShareController;
+use App\Http\Controllers\Api\AdminPushController;
 use App\Http\Controllers\Api\AdminSupportController;
+use App\Http\Controllers\Api\DevicePushTokenController;
 use App\Http\Controllers\Api\PublicShowcaseController;
 use App\Http\Controllers\Api\SupportTicketController;
 use Illuminate\Http\Request;
@@ -32,6 +34,9 @@ Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
 Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
     Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
+    Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);
+    Route::post('/admin/support/push/broadcast', [AdminPushController::class, 'broadcast'])
+        ->middleware('throttle:12,1');
 });
 
 Route::get('/public/stats', [PublicShowcaseController::class, 'stats']);
@@ -61,6 +66,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/me', [OwnerAuthController::class, 'me']);
     Route::patch('/owners/me', [OwnerAuthController::class, 'updateMe']);
+    Route::post('/owners/me/device-push-token', [DevicePushTokenController::class, 'storeOwner']);
+    Route::delete('/owners/me/device-push-token', [DevicePushTokenController::class, 'destroyOwner']);
 
     Route::get('/owners/cars/search-by-vin', [CarSearchController::class, 'byVin']);
     Route::get('/owners/cars/search-by-plate', [CarSearchController::class, 'byPlate']);
@@ -94,6 +101,8 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
 Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::get('/me', [DetailingAuthController::class, 'me']);
     Route::patch('/detailings/me', [DetailingAuthController::class, 'updateMe']);
+    Route::post('/detailings/me/device-push-token', [DevicePushTokenController::class, 'storeDetailing']);
+    Route::delete('/detailings/me/device-push-token', [DevicePushTokenController::class, 'destroyDetailing']);
 
     Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
     Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);

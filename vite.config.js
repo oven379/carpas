@@ -21,11 +21,26 @@ export default defineConfig(({ mode }) => {
   ).replace(/\/+$/, '')
 
   return {
+    /* Capacitor WebView: относительные пути к chunk'ам (иначе /assets/… не грузится после cap sync без --base ./). */
+    base: './',
     /* Не подменять import.meta.env.VITE_* — в части сборок это ломает весь import.meta.env */
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version || ''),
     },
-    plugins: [react()],
+    plugins: [
+      react(),
+      {
+        name: 'favicon-cache-bust',
+        transformIndexHtml(html) {
+          const q = `?v=${encodeURIComponent(pkg.version || '0')}`
+          return html
+            .replace(/href="(\.\/)?favicon\.svg(\?[^"]*)?"/g, `href="$1favicon.svg${q}"`)
+            .replace(/href="(\.\/)?favicon-32\.png(\?[^"]*)?"/g, `href="$1favicon-32.png${q}"`)
+            .replace(/href="(\.\/)?favicon-16\.png(\?[^"]*)?"/g, `href="$1favicon-16.png${q}"`)
+            .replace(/href="(\.\/)?apple-touch-icon\.png(\?[^"]*)?"/g, `href="$1apple-touch-icon.png${q}"`)
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': aboutLandingRoot,
@@ -34,9 +49,11 @@ export default defineConfig(({ mode }) => {
       dedupe: ['react', 'react-dom'],
     },
     server: {
+      /* true = все интерфейсы; и http://127.0.0.1:5173, и http://localhost:5173 */
       host: true,
       port: 5173,
-      strictPort: false,
+      /* если 5173 занят — явная ошибка, а не тихий переход на 5174 (и «не открывается» старый URL) */
+      strictPort: true,
       proxy: devProxy(proxyTarget),
     },
     preview: {
@@ -44,6 +61,10 @@ export default defineConfig(({ mode }) => {
       port: 4173,
       strictPort: false,
       proxy: devProxy(proxyTarget),
+    },
+    /* R3F/three/list-of-cars дают крупный vendor; предупреждение 500 kB не значит ошибку сборки */
+    build: {
+      chunkSizeWarningLimit: 1200,
     },
   }
 })

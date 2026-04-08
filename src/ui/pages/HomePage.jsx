@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   MARKETING_LANDING_STORAGE_KEY,
   MARKETING_LANDING_UPDATED,
@@ -17,6 +17,8 @@ import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
 import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { BRAND_TAGLINE } from '../../lib/brandConstants.js'
+import { hasDetailingSession, hasOwnerSession } from '../auth.js'
+import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 const FEATURE_ITEMS = [
   'История в телефоне — детейлинг, СТО, ваши записи, фото и документы',
@@ -61,6 +63,7 @@ export default function HomePage() {
   const loc = useLocation()
   const navigate = useNavigate()
   const r = useRepo()
+  const { detailing } = useDetailing()
   const [garageCards, setGarageCards] = useState([])
   /** Только блок «Гаражи» — страницу целиком не держим за этим запросом (без API/прокси иначе «вечный» спиннер). */
   const [garagesLoading, setGaragesLoading] = useState(true)
@@ -76,6 +79,7 @@ export default function HomePage() {
   }, [loc.pathname, loc.search, loc.hash, loc.state, navigate])
 
   useEffect(() => {
+    if (hasOwnerSession() || hasDetailingSession()) return
     let c = false
     setGaragesLoading(true)
     ;(async () => {
@@ -124,6 +128,12 @@ export default function HomePage() {
     : undefined
 
   const infoCardAvatarSrc = String(landing.infoCardLogoUrl || '').trim() || homeLandingAvatarUrl
+
+  if (hasOwnerSession()) return <Navigate to="/garage" replace />
+  if (hasDetailingSession()) {
+    if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
+    return <Navigate to="/detailing" replace />
+  }
 
   return (
     <div className="container homeLanding">

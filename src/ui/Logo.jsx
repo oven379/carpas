@@ -4,8 +4,9 @@ import { BRAND_TAGLINE } from '../lib/brandConstants.js'
 /**
  * Фирменный вордмарк (SVG) + слоган под ним. `tagline={false}` — только картинка (компактные блоки).
  * `size` — высота графики в px (ширина подбирается по пропорции 351:55).
+ * `markWrapperClassName` — обёртка только вокруг картинки (например выравнивание по высоте кнопок 44px).
  */
-export default function Logo({ size = 18, className = '', tagline = true }) {
+export default function Logo({ size = 18, className = '', tagline = true, markWrapperClassName = '' }) {
   const h = Math.max(10, Number(size) || 18)
   const style = { '--brandLogoH': `${h}px` }
   const aria = tagline ? `КарПас. ${BRAND_TAGLINE}` : 'КарПас'
@@ -20,6 +21,8 @@ export default function Logo({ size = 18, className = '', tagline = true }) {
     />
   )
 
+  const mark = markWrapperClassName ? <span className={markWrapperClassName}>{img}</span> : img
+
   if (!tagline) {
     return (
       <span
@@ -30,7 +33,7 @@ export default function Logo({ size = 18, className = '', tagline = true }) {
         role="img"
         aria-label={aria}
       >
-        {img}
+        {mark}
       </span>
     )
   }
@@ -42,7 +45,7 @@ export default function Logo({ size = 18, className = '', tagline = true }) {
       role="img"
       aria-label={aria}
     >
-      {img}
+      {mark}
       <span className="brandLogoLockup__tagline">{BRAND_TAGLINE}</span>
     </span>
   )

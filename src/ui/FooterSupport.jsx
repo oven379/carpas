@@ -3,6 +3,7 @@ import { useDetailing } from './useDetailing.js'
 import { isAuthed } from './auth.js'
 import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SupportButton } from './support/SupportHub.jsx'
+import Logo from './Logo.jsx'
 
 function isOwnerGarageRoute(pathname) {
   return pathname === '/garage' || pathname === '/garage/settings'
@@ -20,6 +21,11 @@ export default function FooterSupport() {
 
   return (
     <div className="footer__bar">
+      <div className="footerBrandSlot">
+        <Link to="/" className="footerBrandSlot__link" aria-label="КарПас — главная страница сервиса">
+          <Logo size={14} markWrapperClassName="brandLogoMarkAlign brandLogoMarkAlign--footer" />
+        </Link>
+      </div>
       <nav className="footerLegal" aria-label="Правовая информация">
         <Link className="authConsent__legalLink" to="/">
           Политика конфиденциальности

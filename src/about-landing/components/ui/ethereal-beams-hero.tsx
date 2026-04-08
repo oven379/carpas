@@ -533,7 +533,11 @@ export default function EtherealBeamsHero() {
             />
             <div className="relative flex min-h-[3.25rem] items-center justify-between gap-3 px-4 py-2 sm:min-h-[3.75rem] sm:px-6 sm:py-2.5">
               <Link to="/" className="shrink-0 min-w-0 no-underline text-inherit">
-                <Logo size={16} className="max-w-[min(100%,124px)] sm:max-w-[min(100%,140px)]" />
+                <Logo
+                  size={16}
+                  className="max-w-[min(100%,124px)] sm:max-w-[min(100%,140px)]"
+                  markWrapperClassName="brandLogoMarkAlign brandLogoMarkAlign--aboutHero"
+                />
               </Link>
               <HeroButton variant="accent" size="sm" className="rounded-[12px] font-semibold" to="/auth">
                 Зарегистрироваться
