@@ -8,10 +8,36 @@ use App\Http\Support\CareTips;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Owner;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 
 class OwnerCarEventController extends Controller
 {
+    private const OWNER_CARE_TIPS_NONSPACE_MAX = 300;
+
+    /** @param  array<string, mixed>|null  $normalized  результат CareTips::normalize */
+    private static function assertOwnerVisitCareTipsNonSpaceLimit(?array $normalized): void
+    {
+        if ($normalized === null) {
+            return;
+        }
+        $chunks = [trim((string) ($normalized['important'] ?? ''))];
+        foreach ($normalized['tips'] ?? [] as $t) {
+            $chunks[] = trim((string) $t);
+        }
+        foreach ($chunks as $chunk) {
+            if ($chunk === '') {
+                continue;
+            }
+            $nonSpace = preg_replace('/\s+/u', '', $chunk);
+            if (mb_strlen($nonSpace) > self::OWNER_CARE_TIPS_NONSPACE_MAX) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Совет к визиту: не более 300 символов без пробелов.',
+                ], 422));
+            }
+        }
+    }
+
     private function assertOwnerCar(Owner $owner, $carId): Car
     {
         return Car::query()->where('owner_id', $owner->id)->findOrFail($carId);
@@ -50,6 +76,9 @@ class OwnerCarEventController extends Controller
             'careTips' => ['nullable', 'array'],
         ]);
 
+        $care = CareTips::normalize($data['careTips'] ?? null);
+        self::assertOwnerVisitCareTipsNonSpaceLimit($care);
+
         $evt = CarEvent::query()->create([
             'detailing_id' => $car->detailing_id,
             'car_id' => $car->id,
@@ -62,7 +91,7 @@ class OwnerCarEventController extends Controller
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
-            'care_tips' => CareTips::normalize($data['careTips'] ?? null),
+            'care_tips' => $care,
         ]);
 
         return response()->json(ApiResources::event($evt));
@@ -101,7 +130,9 @@ class OwnerCarEventController extends Controller
             $evt->note = $data['note'];
         }
         if (array_key_exists('careTips', $data)) {
-            $evt->care_tips = CareTips::normalize($data['careTips']);
+            $care = CareTips::normalize($data['careTips']);
+            self::assertOwnerVisitCareTipsNonSpaceLimit($care);
+            $evt->care_tips = $care;
         }
         $evt->save();
 

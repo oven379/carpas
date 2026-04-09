@@ -3,6 +3,7 @@ import {
   PHOTO_UPLOAD_LANDSCAPE_LINE,
   PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
   VISIT_CARE_ADVICE_MAX_LEN,
+  VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE,
 } from './format.js'
 import { VISIT_MAX_PHOTOS } from './uploadLimits.js'
 
@@ -125,7 +126,7 @@ export const FORM_OWNER_VISIT_ADVICE_HINT = {
 }
 
 export function formOwnerVisitAdviceHintText() {
-  return `Необязательно, один текст до ${VISIT_CARE_ADVICE_MAX_LEN} символов. Сохраняется в этой записи истории: в блоке «Совет» на странице гаража и в карточке авто показывается совет из последнего по дате визита (ваш или сервиса). Общий текст «напоминание себе» из настроек гаража используется, если в последнем вашем визите поле пустое.`
+  return `Необязательно. До ${VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE} символов без учёта пробелов (пробелы можно ставить свободно). Сохраняется в записи визита; в блоке «Совет» на гараже и карточке авто показывается текст из последнего по дате визита. Общий совет из настроек гаража подставляется, если в последнем вашем визите поле пустое.`
 }
 
 /** Карточка владельца «Последний визит» на странице авто */

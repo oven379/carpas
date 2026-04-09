@@ -15,6 +15,32 @@ export const VISIT_CARE_TIP_MAX_LEN = 120
 /** Единый текст совета детейлинга для владельца (форма визита и карточка авто). */
 export const VISIT_CARE_ADVICE_MAX_LEN = 2000
 
+/** Совет владельца к своему визиту: лимит по символам без пробелов (пробелы в тексте не считаются). */
+export const VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE = 300
+
+export function countVisitOwnerCareAdviceNonSpaceChars(raw) {
+  return String(raw ?? '').replace(/\s/gu, '').length
+}
+
+/** Обрезает строку так, чтобы непробельных символов было не больше VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE. */
+export function clampVisitOwnerCareAdviceInput(raw) {
+  const max = VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE
+  let n = 0
+  let out = ''
+  for (const ch of String(raw ?? '')) {
+    if (/\s/u.test(ch)) {
+      out += ch
+      continue
+    }
+    if (n >= max) {
+      continue
+    }
+    out += ch
+    n += 1
+  }
+  return out
+}
+
 /** Режим работы детейлинга/СТО (публичная страница на улице и кабинет). */
 export const DETAILING_WORKING_HOURS_MAX_LEN = 200
 

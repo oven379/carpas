@@ -22,13 +22,16 @@ import {
   PHOTO_UPLOAD_HINTS_PARAGRAPH,
   VISIT_CARE_ADVICE_MAX_LEN,
   VISIT_NOTE_MAX_LEN,
+  VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE,
   VISIT_TITLE_MAX_LEN,
+  clampVisitOwnerCareAdviceInput,
+  countVisitOwnerCareAdviceNonSpaceChars,
 } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import { dedupeOfferedStrings, normalizeCarEventServices, OFFERED_SERVICE_MAX_LEN, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
-import { getCareRecommendations, mergeStoredCareTipsToPlainText } from '../../lib/recommendations.js'
+import { mergeStoredCareTipsToPlainText } from '../../lib/recommendations.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
@@ -269,11 +272,15 @@ const EMPTY_CARE_DRAFT = {
   careAdviceText: '',
 }
 
-function careDraftFromEvent(evt) {
+function careDraftFromEvent(evt, ownerNonSpaceClamp = false) {
   const ct = evt?.careTips
   if (!ct || typeof ct !== 'object') return { ...EMPTY_CARE_DRAFT }
+  const merged = mergeStoredCareTipsToPlainText(ct)
+  if (ownerNonSpaceClamp) {
+    return { careAdviceText: clampVisitOwnerCareAdviceInput(merged) }
+  }
   return {
-    careAdviceText: mergeStoredCareTipsToPlainText(ct).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+    careAdviceText: merged.slice(0, VISIT_CARE_ADVICE_MAX_LEN),
   }
 }
 
@@ -554,7 +561,7 @@ export default function HistoryPage() {
             : [],
         type: ne.type || 'visit',
         allowPublicPhotos: ne.allowPublicPhotos !== false,
-        ...careDraftFromEvent(ne),
+        ...careDraftFromEvent(ne, mode === 'owner'),
       })
       const next = new URLSearchParams(sp)
       next.set('new', '1')
@@ -598,7 +605,7 @@ export default function HistoryPage() {
                 : [],
             type: ne.type || 'visit',
             allowPublicPhotos: ne.allowPublicPhotos !== false,
-            ...careDraftFromEvent(ne),
+            ...careDraftFromEvent(ne, mode === 'owner'),
           })
         } else {
           setShowNew(false)
@@ -678,32 +685,6 @@ export default function HistoryPage() {
   const visitPhotosRoom =
     editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
-  /** Плашка перед фото: свой совет из настроек или рекомендации последнего визита сервиса. */
-  const ownerVisitAdviceContext = useMemo(() => {
-    if (mode !== 'owner') return null
-    const finalized = events
-      .filter((e) => !e.isDraft && (!editingId || String(e.id) !== String(editingId)))
-      .slice()
-      .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
-    const last = finalized[0]
-    const selfText = String(owner?.garageVisitSelfAdvice || '').trim()
-    if (!last) {
-      return { variant: 'noVisits', selfText }
-    }
-    if (last.source === 'service') {
-      const recs = getCareRecommendations({
-        car: null,
-        events: [normalizeCarEventServices(last)],
-      })
-      return {
-        variant: 'afterService',
-        serviceText: String(recs[0]?.title || '').trim(),
-      }
-    }
-    const prevVisitAdvice = mergeStoredCareTipsToPlainText(normalizeCarEventServices(last).careTips).trim()
-    return { variant: 'afterOwner', selfText, prevVisitAdvice: prevVisitAdvice || null }
-  }, [mode, events, editingId, owner?.garageVisitSelfAdvice])
-
   if ((mode === 'owner' || mode === 'detailing') && loading) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
@@ -749,9 +730,7 @@ export default function HistoryPage() {
         : mode === 'owner'
           ? {
               careTips: {
-                important: String(draft.careAdviceText || '')
-                  .trim()
-                  .slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                important: clampVisitOwnerCareAdviceInput(String(draft.careAdviceText || '')),
                 tips: [],
               },
             }
@@ -1412,58 +1391,13 @@ export default function HistoryPage() {
                 }
               />
             ) : null}
-            {mode === 'owner' && showNew && !detailingAwaitDraft && ownerVisitAdviceContext ? (
-              <div className="historyOwnerAdviceCallout" role="note">
-                <div className="historyOwnerAdviceCallout__head">
-                  {ownerVisitAdviceContext.variant === 'afterService'
-                    ? 'Совет с последнего визита сервиса'
-                    : ownerVisitAdviceContext.variant === 'afterOwner'
-                      ? 'Контекст: последний визит — ваш'
-                      : 'Совет себе на этот визит'}
-                </div>
-                {ownerVisitAdviceContext.variant === 'afterService' ? (
-                  <div className="historyOwnerAdviceCallout__body">
-                    <p className="historyOwnerAdviceCallout__serviceText">{ownerVisitAdviceContext.serviceText}</p>
-                    <p className="muted small historyOwnerAdviceCallout__foot">
-                      Пока в истории этого авто последней идёт запись от сервиса, здесь показывается его совет. После вашего визита
-                      снова отобразится напоминание из{' '}
-                      <Link className="link" to="/garage/settings">
-                        настроек гаража
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                ) : (
-                  <div className="historyOwnerAdviceCallout__body">
-                    {ownerVisitAdviceContext.variant === 'afterOwner' && ownerVisitAdviceContext.prevVisitAdvice ? (
-                      <p className="historyOwnerAdviceCallout__self">{ownerVisitAdviceContext.prevVisitAdvice}</p>
-                    ) : ownerVisitAdviceContext.selfText ? (
-                      <p className="historyOwnerAdviceCallout__self">{ownerVisitAdviceContext.selfText}</p>
-                    ) : (
-                      <p className="muted small">
-                        В{' '}
-                        <Link className="link" to="/garage/settings">
-                          настройках гаража
-                        </Link>{' '}
-                        можно задать общий совет себе — он подставится, если в последнем вашем визите поле совета пустое.
-                      </p>
-                    )}
-                    <p className="muted small historyOwnerAdviceCallout__foot">
-                      Поле «Совет к этому визиту» ниже сохраняется в этой записи (один текст). На гараже и в карточке авто показывается совет
-                      из последнего по дате визита.
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : null}
             {mode === 'owner' &&
             showNew &&
             !detailingAwaitDraft &&
             (!editingId || editingEvent?.source === 'owner') ? (
               <div className="historyCareTips historyCareTipsForCarCard topBorder">
                 <p className="muted small historyCareTipsForCarCard__intro">
-                  Один совет к этому визиту — как у сервиса в своей форме: сохраняется в записи и участвует в блоке «Совет» на гараже и карточке
-                  авто, пока визит последний по дате.
+                  Запишите совет или вывод из этого визита.
                 </p>
                 <div className="field field--full serviceHint__fieldWrap" id={FORM_OWNER_VISIT_ADVICE_HINT.scopeId}>
                   <div className="field__top serviceHint__fieldTop">
@@ -1475,26 +1409,26 @@ export default function HistoryPage() {
                   <Textarea
                     className="textarea"
                     rows={4}
-                    maxLength={VISIT_CARE_ADVICE_MAX_LEN}
                     value={draft.careAdviceText}
                     placeholder="Короткое напоминание к этой записи…"
                     disabled={formLocked}
                     onChange={(e) =>
                       setDraft((d) => ({
                         ...d,
-                        careAdviceText: String(e.target.value || '').slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                        careAdviceText: clampVisitOwnerCareAdviceInput(e.target.value),
                       }))
                     }
                     onBlur={createBlurFixRuFreeText((next) =>
                       setDraft((d) => ({
                         ...d,
-                        careAdviceText: String(next).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                        careAdviceText: clampVisitOwnerCareAdviceInput(next),
                       })),
                     )}
                     aria-label="Совет к этому визиту"
                   />
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
-                    {String(draft.careAdviceText || '').length} / {VISIT_CARE_ADVICE_MAX_LEN}
+                    {countVisitOwnerCareAdviceNonSpaceChars(draft.careAdviceText)} / {VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE}{' '}
+                    <span className="muted">(без пробелов)</span>
                   </div>
                 </div>
               </div>

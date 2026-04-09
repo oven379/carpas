@@ -68,6 +68,26 @@ class OwnerCarEventApiTest extends FeatureTestCase
             ->assertJsonPath('careTips.important', 'Проверить давление через неделю');
     }
 
+    public function test_owner_store_rejects_care_tips_over_non_space_limit(): void
+    {
+        [$owner, $car] = $this->ownerWithPersonalDetailing();
+        Sanctum::actingAs($owner);
+
+        $tooLong = str_repeat('x', 301);
+
+        $this->postJson("/api/owners/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'title' => 'Визит',
+            'mileageKm' => 1400,
+            'services' => [],
+            'maintenanceServices' => [],
+            'careTips' => [
+                'important' => $tooLong,
+                'tips' => [],
+            ],
+        ])->assertStatus(422);
+    }
+
     public function test_owner_can_patch_care_tips_on_own_visit(): void
     {
         [$owner, $car] = $this->ownerWithPersonalDetailing();
