@@ -75,8 +75,8 @@ export function VisitFormServicesBlock({
   const rootRef = useRef(null)
   const searchRef = useRef(null)
 
-  const svc = Array.isArray(services) ? services : []
-  const maint = Array.isArray(maintenanceServices) ? maintenanceServices : []
+  const svc = useMemo(() => (Array.isArray(services) ? services : []), [services])
+  const maint = useMemo(() => (Array.isArray(maintenanceServices) ? maintenanceServices : []), [maintenanceServices])
 
   const catalogOpts = useMemo(() => ({ useFullCatalog: useFullCatalogFallback }), [useFullCatalogFallback])
   const searchable = useMemo(() => visitFormSearchableOptionStrings(detailing, catalogOpts), [detailing, catalogOpts])
