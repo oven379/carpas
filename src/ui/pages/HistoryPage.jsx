@@ -20,7 +20,7 @@ import {
   normDigits,
   PHOTO_UPLOAD_EMPTY_THUMB_HINT,
   PHOTO_UPLOAD_HINTS_PARAGRAPH,
-  VISIT_CARE_TIP_MAX_LEN,
+  VISIT_CARE_ADVICE_MAX_LEN,
   VISIT_NOTE_MAX_LEN,
   VISIT_TITLE_MAX_LEN,
 } from '../../lib/format.js'
@@ -28,13 +28,13 @@ import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import { dedupeOfferedStrings, normalizeCarEventServices, OFFERED_SERVICE_MAX_LEN, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
+import { getCareRecommendations, mergeStoredCareTipsToPlainText } from '../../lib/recommendations.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
 import {
   FORM_ADD_PHOTOS_HINT,
-  FORM_CARE_IMPORTANT_HINT,
-  FORM_CARE_TIPS_SECTION_HINT,
+  FORM_CARE_ADVICE_HINT,
   FORM_COMMENT_HINT,
   FORM_MILEAGE_HINT,
   FORM_PHOTOS_EDIT_HINT,
@@ -42,8 +42,7 @@ import {
   FORM_TITLE_HINT,
   HISTORY_DRAFT_DET_HINT,
   HISTORY_PAGE_HINT,
-  formCareImportantHintText,
-  formCareTipsSectionHintText,
+  formCareAdviceHintText,
   formMileageHintText,
   formPhotosEditHintText,
   formTitleHintText,
@@ -265,21 +264,14 @@ function visitFormNoteFromEvent(ne) {
 }
 
 const EMPTY_CARE_DRAFT = {
-  careImportant: '',
-  careTip1: '',
-  careTip2: '',
-  careTip3: '',
+  careAdviceText: '',
 }
 
 function careDraftFromEvent(evt) {
   const ct = evt?.careTips
   if (!ct || typeof ct !== 'object') return { ...EMPTY_CARE_DRAFT }
-  const tips = Array.isArray(ct.tips) ? ct.tips : []
   return {
-    careImportant: String(ct.important || ''),
-    careTip1: String(tips[0] || ''),
-    careTip2: String(tips[1] || ''),
-    careTip3: String(tips[2] || ''),
+    careAdviceText: mergeStoredCareTipsToPlainText(ct).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
   }
 }
 
@@ -485,6 +477,8 @@ export default function HistoryPage() {
   const [photoLb, setPhotoLb] = useState(null)
   const formRef = useRef(null)
   const formTopRef = useRef(null)
+  /** Блок «Фото визита» — прокрутка после загрузки, без срыва к заголовку формы */
+  const visitPhotosSectionRef = useRef(null)
   const historyListTopRef = useRef(null)
   const initFormKeyRef = useRef('')
   const visitPhotosInputId = useId()
@@ -651,6 +645,7 @@ export default function HistoryPage() {
   const readonlyFormNotice = editingId && !editAllowed && editingEvent ? visitReadonlyFormNotice(mode, editingEvent) : ''
   const detailingAwaitDraft = mode === 'detailing' && wantNew && !editParam
 
+  /* Не зависеть от edit=: после выбора фото URL получает edit=<id> — повторная прокрутка к заголовку срывает блок загрузки. */
   useLayoutEffect(() => {
     if (!showNew) return
     const target =
@@ -660,7 +655,7 @@ export default function HistoryPage() {
     run()
     const idRaf = window.requestAnimationFrame(() => window.requestAnimationFrame(run))
     return () => window.cancelAnimationFrame(idRaf)
-  }, [showNew, detailingAwaitDraft, editParam, wantNew, id])
+  }, [showNew, detailingAwaitDraft, wantNew, id])
 
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
@@ -681,6 +676,31 @@ export default function HistoryPage() {
   const visitPhotosRoom =
     editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
+  /** Плашка перед фото: свой совет из настроек или рекомендации последнего визита сервиса. */
+  const ownerVisitAdviceContext = useMemo(() => {
+    if (mode !== 'owner') return null
+    const finalized = events
+      .filter((e) => !e.isDraft && (!editingId || String(e.id) !== String(editingId)))
+      .slice()
+      .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
+    const last = finalized[0]
+    const selfText = String(owner?.garageVisitSelfAdvice || '').trim()
+    if (!last) {
+      return { variant: 'noVisits', selfText }
+    }
+    if (last.source === 'service') {
+      const recs = getCareRecommendations({
+        car: null,
+        events: [normalizeCarEventServices(last)],
+      })
+      return {
+        variant: 'afterService',
+        serviceText: String(recs[0]?.title || '').trim(),
+      }
+    }
+    return { variant: 'afterOwner', selfText }
+  }, [mode, events, editingId, owner?.garageVisitSelfAdvice])
+
   if ((mode === 'owner' || mode === 'detailing') && loading) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
@@ -700,8 +720,6 @@ export default function HistoryPage() {
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 
-  const sliceCareTip = (v) => String(v ?? '').slice(0, VISIT_CARE_TIP_MAX_LEN)
-
   const buildVisitPayload = () => {
     const visitServicesPayload =
       mode === 'detailing' || mode === 'owner'
@@ -718,8 +736,10 @@ export default function HistoryPage() {
       ...(mode === 'detailing'
         ? {
             careTips: {
-              important: sliceCareTip(draft.careImportant),
-              tips: [sliceCareTip(draft.careTip1), sliceCareTip(draft.careTip2), sliceCareTip(draft.careTip3)],
+              important: String(draft.careAdviceText || '')
+                .trim()
+                .slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+              tips: [],
             },
             allowPublicPhotos: Boolean(draft.allowPublicPhotos),
           }
@@ -844,6 +864,21 @@ export default function HistoryPage() {
         r.syncCarWashPhotosFromLatestEvent(id, scope)
       }
       invalidateRepo()
+      if (toAdd.length > 0) {
+        window.requestAnimationFrame(() => {
+          window.requestAnimationFrame(() => {
+            try {
+              visitPhotosSectionRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'nearest',
+              })
+            } catch {
+              visitPhotosSectionRef.current?.scrollIntoView({ block: 'nearest' })
+            }
+          })
+        })
+      }
     } catch (err) {
       const msg = String(err?.message || err || '')
       if (msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('storage')) {
@@ -1365,8 +1400,59 @@ export default function HistoryPage() {
                 }
               />
             ) : null}
+            {mode === 'owner' && showNew && !detailingAwaitDraft && ownerVisitAdviceContext ? (
+              <div className="historyOwnerAdviceCallout" role="note">
+                <div className="historyOwnerAdviceCallout__head">
+                  {ownerVisitAdviceContext.variant === 'afterService'
+                    ? 'Совет с последнего визита сервиса'
+                    : ownerVisitAdviceContext.variant === 'afterOwner'
+                      ? 'Ваш совет себе (последний визит — ваш)'
+                      : 'Совет себе на этот визит'}
+                </div>
+                {ownerVisitAdviceContext.variant === 'afterService' ? (
+                  <div className="historyOwnerAdviceCallout__body">
+                    <p className="historyOwnerAdviceCallout__serviceText">{ownerVisitAdviceContext.serviceText}</p>
+                    <p className="muted small historyOwnerAdviceCallout__foot">
+                      Пока в истории этого авто последней идёт запись от сервиса, здесь показывается его совет. После вашего визита
+                      снова отобразится напоминание из{' '}
+                      <Link className="link" to="/garage/settings">
+                        настроек гаража
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                ) : (
+                  <div className="historyOwnerAdviceCallout__body">
+                    {ownerVisitAdviceContext.selfText ? (
+                      <p className="historyOwnerAdviceCallout__self">{ownerVisitAdviceContext.selfText}</p>
+                    ) : (
+                      <p className="muted small">
+                        Текст пока не задан — добавьте напоминание в{' '}
+                        <Link className="link" to="/garage/settings">
+                          настройках гаража
+                        </Link>
+                        ; он будет показываться здесь, пока последним по дате остаётся ваш визит.
+                      </p>
+                    )}
+                    {ownerVisitAdviceContext.variant === 'afterOwner' ? (
+                      <p className="muted small historyOwnerAdviceCallout__foot">
+                        Редактировать совет можно в{' '}
+                        <Link className="link" to="/garage/settings">
+                          настройках гаража
+                        </Link>
+                        .
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            ) : null}
             {editingId ? (
-              <div className="field field--full serviceHint__fieldWrap" id={FORM_PHOTOS_EDIT_HINT.scopeId}>
+              <div
+                className="field field--full serviceHint__fieldWrap"
+                id={FORM_PHOTOS_EDIT_HINT.scopeId}
+                ref={visitPhotosSectionRef}
+              >
                 <div className="field__top serviceHint__fieldTop">
                   <span className="field__label">Фото визита</span>
                   <ServiceHint scopeId={FORM_PHOTOS_EDIT_HINT.scopeId} variant="compact" label={FORM_PHOTOS_EDIT_HINT.label}>
@@ -1447,7 +1533,11 @@ export default function HistoryPage() {
               </div>
             ) : null}
             {!editingId ? (
-              <div className="field field--full serviceHint__fieldWrap" id={FORM_ADD_PHOTOS_HINT.scopeId}>
+              <div
+                className="field field--full serviceHint__fieldWrap"
+                id={FORM_ADD_PHOTOS_HINT.scopeId}
+                ref={visitPhotosSectionRef}
+              >
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                   <ServiceHint scopeId={FORM_ADD_PHOTOS_HINT.scopeId} variant="compact" label={FORM_ADD_PHOTOS_HINT.label}>
                     <p className="serviceHint__panelText">{FORM_ADD_PHOTOS_HINT.text}</p>
@@ -1524,77 +1614,41 @@ export default function HistoryPage() {
             {mode === 'detailing' ? (
               <div className="historyCareTips historyCareTipsForCarCard topBorder">
                 <p className="muted small historyCareTipsForCarCard__intro">
-                  Советы для владельца на карточке авто — в блоке «Советы» после сохранения визита. Только для кабинета детейлинга.
+                  Один совет для владельца — в выпадающем блоке «Совет» на карточке авто после сохранения визита. Только для кабинета
+                  детейлинга.
                 </p>
-                <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_IMPORTANT_HINT.scopeId}>
+                <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_ADVICE_HINT.scopeId}>
                   <div className="field__top serviceHint__fieldTop">
-                    <span className="field__label">
-                      Важно <span className="pill" data-tone="accent">Важно</span>
-                    </span>
-                    <ServiceHint scopeId={FORM_CARE_IMPORTANT_HINT.scopeId} variant="compact" label={FORM_CARE_IMPORTANT_HINT.label}>
-                      <p className="serviceHint__panelText">{formCareImportantHintText()}</p>
+                    <span className="field__label">Совет от сервиса</span>
+                    <ServiceHint scopeId={FORM_CARE_ADVICE_HINT.scopeId} variant="compact" label={FORM_CARE_ADVICE_HINT.label}>
+                      <p className="serviceHint__panelText">{formCareAdviceHintText()}</p>
                     </ServiceHint>
                   </div>
-                  <Input
-                    className="input"
-                    value={draft.careImportant}
-                    maxLength={VISIT_CARE_TIP_MAX_LEN}
-                    placeholder="Необязательно: что важно донести клиенту…"
+                  <Textarea
+                    className="textarea"
+                    rows={4}
+                    maxLength={VISIT_CARE_ADVICE_MAX_LEN}
+                    value={draft.careAdviceText}
+                    placeholder="Короткое напоминание клиенту после визита…"
                     disabled={formLocked}
-                    onChange={(e) => setDraft((d) => ({ ...d, careImportant: e.target.value }))}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        careAdviceText: String(e.target.value || '').slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                      }))
+                    }
                     onBlur={createBlurFixRuFreeText((next) =>
                       setDraft((d) => ({
                         ...d,
-                        careImportant: String(next).slice(0, VISIT_CARE_TIP_MAX_LEN),
+                        careAdviceText: String(next).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
                       })),
                     )}
+                    aria-label="Совет от сервиса для владельца"
                   />
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
-                    {draft.careImportant.length} / {VISIT_CARE_TIP_MAX_LEN}
+                    {String(draft.careAdviceText || '').length} / {VISIT_CARE_ADVICE_MAX_LEN}
                   </div>
                 </div>
-                <div className="field field--full serviceHint__fieldWrap historyCareTips__sectionHead">
-                  <div className="field__top serviceHint__fieldTop">
-                    <span className="field__label">Советы по уходу</span>
-                    <ServiceHint
-                      scopeId={FORM_CARE_TIPS_SECTION_HINT.scopeId}
-                      variant="compact"
-                      label={FORM_CARE_TIPS_SECTION_HINT.label}
-                    >
-                      <p className="serviceHint__panelText">{formCareTipsSectionHintText()}</p>
-                    </ServiceHint>
-                  </div>
-                </div>
-                {[
-                  { key: 'careTip1', n: 1 },
-                  { key: 'careTip2', n: 2 },
-                  { key: 'careTip3', n: 3 },
-                ].map(({ key, n }) => (
-                  <div key={key} className="field field--full">
-                    <div className="field__top field__top--solo">
-                      <span className="field__label">
-                        Совет {n} <span className="pill" data-tone="neutral">Совет</span>
-                      </span>
-                    </div>
-                    <Input
-                      className="input"
-                      value={draft[key]}
-                      maxLength={VISIT_CARE_TIP_MAX_LEN}
-                      placeholder="Необязательно"
-                      disabled={formLocked}
-                      onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-                      onBlur={createBlurFixRuFreeText((next) =>
-                        setDraft((d) => ({
-                          ...d,
-                          [key]: String(next).slice(0, VISIT_CARE_TIP_MAX_LEN),
-                        })),
-                      )}
-                    />
-                    <div className="muted small historyCareTips__charCount" aria-live="polite">
-                      {String(draft[key] ?? '').length} / {VISIT_CARE_TIP_MAX_LEN}
-                    </div>
-                  </div>
-                ))}
               </div>
             ) : null}
           </div>

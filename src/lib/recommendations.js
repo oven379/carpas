@@ -1,17 +1,22 @@
-/** Если детейлинг не заполнил «Важно» — показываем на карточке этот текст (последний визит от сервиса). */
-export const DEFAULT_DETAILING_CARE_IMPORTANT =
-  'Первые сутки не мойте под высоким давлением и не натирайте ЛКП сухой тряпкой. Вопросы — сервису.'
-
-/** Если все три поля «Совет» пусты — объединяем в одну плашку «Совет» на карточке авто. */
-export const DEFAULT_DETAILING_CARE_TIPS = [
-  'После мойки промакивайте стёкла мягкой тканью — меньше разводов.',
-  'Пыль с кузова сдуйте или сметайте щёткой; сухая тряпка без воды даёт микроцарапины.',
-]
+/** Текст по умолчанию, если детейлинг не оставил свой совет в последнем визите. */
+export const DEFAULT_DETAILING_CARE_ADVICE =
+  'Любите свою машину, и она будет любить вас. Остальное сделает КарПас.'
 
 /**
- * Ровно две плашки на странице авто: «Важно» и «Совет» из последнего визита детейлинга (source === 'service').
- * Пустое «Важно» → дефолт; пустые три строки «Совет» → один текст из двух дефолтных фраз.
- * Если детейлинг заполнил строки советов — показываем их все в одной плашке «Совет» (через пустую строку).
+ * Собирает сохранённые careTips (важно + строки советов) в один текст для формы редактирования.
+ */
+export function mergeStoredCareTipsToPlainText(ct) {
+  if (!ct || typeof ct !== 'object') return ''
+  const imp = String(ct.important || '').trim()
+  const tipsRaw = Array.isArray(ct.tips) ? ct.tips : []
+  const tipsParts = tipsRaw.map((t) => String(t || '').trim()).filter(Boolean)
+  return [imp, ...tipsParts].filter(Boolean).join('\n\n')
+}
+
+/**
+ * Один совет владельцу из последнего визита детейлинга (source === 'service').
+ * Пустые поля в записи → DEFAULT_DETAILING_CARE_ADVICE.
+ * Возвращает массив из одного элемента для совместимости с карточкой авто (выпадающий блок).
  */
 export function getCareRecommendations({ car: _car, events }) {
   void _car
@@ -19,26 +24,12 @@ export function getCareRecommendations({ car: _car, events }) {
   evts.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
   const lastService = evts.find((e) => e.source === 'service')
 
-  const importantDefault = DEFAULT_DETAILING_CARE_IMPORTANT
-  const tipsDefaultText = DEFAULT_DETAILING_CARE_TIPS.join('\n\n')
-
   if (!lastService) {
-    return [
-      { tone: 'accent', title: importantDefault, why: '' },
-      { tone: 'neutral', title: tipsDefaultText, why: '' },
-    ]
+    return [{ tone: 'neutral', title: DEFAULT_DETAILING_CARE_ADVICE, why: '' }]
   }
 
-  const ct = lastService.careTips && typeof lastService.careTips === 'object' ? lastService.careTips : null
-  const importantCustom = ct ? String(ct.important || '').trim() : ''
-  const tipsRaw = ct && Array.isArray(ct.tips) ? ct.tips : []
-  const tipsCustom = [0, 1, 2].map((i) => String(tipsRaw[i] || '').trim()).filter(Boolean)
+  const merged = mergeStoredCareTipsToPlainText(lastService.careTips).trim()
+  const title = merged || DEFAULT_DETAILING_CARE_ADVICE
 
-  const important = importantCustom || importantDefault
-  const advice = tipsCustom.length > 0 ? tipsCustom.join('\n\n') : tipsDefaultText
-
-  return [
-    { tone: 'accent', title: important, why: '' },
-    { tone: 'neutral', title: advice, why: '' },
-  ]
+  return [{ tone: 'neutral', title, why: '' }]
 }

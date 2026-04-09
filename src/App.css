@@ -428,11 +428,6 @@ button.nav__action {
     row-gap: 10px;
   }
 
-  .footerLegal {
-    justify-content: flex-start;
-    text-align: left;
-  }
-
   .footerSupportSlot {
     justify-self: end;
     align-self: center;
@@ -460,9 +455,10 @@ button.nav__action {
   font-size: 13px;
   line-height: 1.45;
   min-width: 0;
-  justify-content: center;
-  text-align: center;
-  padding: 0 4px;
+  justify-content: flex-start;
+  text-align: left;
+  padding: 0;
+  justify-self: start;
 }
 
 .footerSupportSlot {
@@ -2598,6 +2594,33 @@ summary.carPage__recsSelect::-webkit-details-marker {
   margin: 0;
 }
 
+/* История (веб): стрелка в правом верхнем углу карточки (как .pad); на мобилке без изменений */
+@media (min-width: 769px) {
+  .eventRow.row.spread > .eventMain {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Иначе absolute у стрелки цепляется к .eventRow, а не к карточке */
+  .eventCard--collapsible.card.pad > .eventRow.row.spread {
+    position: static;
+  }
+
+  .eventCard--collapsible.card.pad .eventCard__head {
+    position: static;
+  }
+
+  .eventCard--collapsible.card.pad .eventCard__expandBtn {
+    top: 22px;
+    right: 24px;
+    z-index: 3;
+  }
+
+  .eventCard--collapsible.card.pad .eventRow--withServiceAvatar .eventCard__expandBtn {
+    right: calc(24px + 48px + 4px);
+  }
+}
+
 /* Стрелка раскрытия: как «Назад» / «Открыть» — без рамки и заливки, серый stroke */
 .dropdownCaretBtn {
   appearance: none;
@@ -3332,6 +3355,47 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 
 .historyPage__formCol {
   min-width: 0;
+}
+
+.historyOwnerAdviceCallout {
+  grid-column: 1 / -1;
+  margin: 4px 0 2px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  box-sizing: border-box;
+}
+
+.historyOwnerAdviceCallout__head {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--text-h);
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.historyOwnerAdviceCallout__body {
+  margin: 0;
+  min-width: 0;
+}
+
+/* Текст совета от сервиса / себе: спокойный акцентный серый */
+.historyOwnerAdviceCallout__serviceText,
+.historyOwnerAdviceCallout__self {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 520;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: color-mix(in oklab, var(--accent) 38%, var(--muted));
+}
+
+.historyOwnerAdviceCallout__foot {
+  margin: 10px 0 0;
+  line-height: 1.45;
 }
 
 .marketSearch {
@@ -4425,6 +4489,36 @@ a.garageProfileCard__linkChip:focus-visible {
 .garageProfileCard__lastVisitBlock {
   margin-top: 2px;
   margin-bottom: 12px;
+}
+
+.garageProfileCard__homeAdvice {
+  margin: 0 0 14px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, var(--accent));
+  min-width: 0;
+}
+
+.garageProfileCard__homeAdviceHead {
+  margin: 0 0 6px;
+}
+
+.garageProfileCard__homeAdviceText {
+  margin: 0 0 8px;
+  font-size: 0.9375rem;
+  font-weight: 520;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: color-mix(in oklab, var(--accent) 38%, var(--muted));
+}
+
+.garageProfileCard__homeAdviceFoot {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.garageProfileCard__homeAdviceSettingsLink {
+  margin: 8px 0 0;
 }
 
 .garageProfileCard__lastVisitSummary {
@@ -7047,6 +7141,21 @@ a.thumbCard__fileDoc {
   font-weight: 650;
   white-space: pre-line;
   line-height: 1.5;
+}
+
+.recList--singleAdvice {
+  margin-top: 8px;
+}
+
+/* Карточка авто / публичная карточка: один совет без плашек */
+.carPage__recsAdviceText {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 520;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: color-mix(in oklab, var(--accent) 38%, var(--muted));
 }
 
 /* Плашка «Важно» / «Совет»; несколько строк советов детейлинга — в тексте справа (pre-line) */

@@ -49,6 +49,28 @@ class OwnerAuthTest extends FeatureTestCase
         $this->assertNotEmpty($response->json('token'));
     }
 
+    public function test_owner_patch_me_saves_garage_visit_self_advice(): void
+    {
+        $o = Owner::query()->create([
+            'email' => 'advice-owner@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Василий',
+            'phone' => '+7',
+        ]);
+        $token = $o->createToken('owner')->plainTextToken;
+        $text = 'Проверить масло перед поездкой';
+
+        $this->patchJson(
+            '/api/owners/me',
+            ['garageVisitSelfAdvice' => $text],
+            ['Authorization' => 'Bearer '.$token],
+        )
+            ->assertOk()
+            ->assertJsonPath('owner.garageVisitSelfAdvice', $text);
+
+        $this->assertSame($text, Owner::query()->find($o->id)->garage_visit_self_advice);
+    }
+
     public function test_register_rejects_duplicate_email_with_422(): void
     {
         Owner::query()->create([

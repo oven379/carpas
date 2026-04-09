@@ -156,19 +156,9 @@ export default function PublicCarPage() {
         </Card>
 
         <Card className="card pad">
-          <h2 className="h2">Советы по уходу:</h2>
-          <div className="recList">
-            {recs.map((x, idx) => (
-              <div key={idx} className="recItem">
-                <div className="recItem__row">
-                  <span className="pill" data-tone={x.tone || 'neutral'}>
-                    {x.tone === 'accent' ? 'Важно' : 'Совет'}
-                  </span>
-                  <span className="recTitle">{x.title}</span>
-                </div>
-                {x.why ? <div className="muted small recWhy">{x.why}</div> : null}
-              </div>
-            ))}
+          <h2 className="h2">Совет:</h2>
+          <div className="recList recList--singleAdvice">
+            {recs[0]?.title ? <p className="carPage__recsAdviceText">{recs[0].title}</p> : null}
           </div>
         </Card>
 

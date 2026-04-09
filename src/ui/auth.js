@@ -121,6 +121,8 @@ export function mergeSessionOwnerScalars(patch) {
         ? ownerPublicFlagTrue(patch.showWebsitePublic)
         : ownerPublicFlagTrue(cur.showWebsitePublic),
     garageSocial: patch.garageSocial != null ? String(patch.garageSocial) : cur.garageSocial,
+    garageVisitSelfAdvice:
+      patch.garageVisitSelfAdvice != null ? String(patch.garageVisitSelfAdvice) : cur.garageVisitSelfAdvice,
     showSocialPublic:
       patch.showSocialPublic !== undefined
         ? ownerPublicFlagTrue(patch.showSocialPublic)
@@ -155,6 +157,7 @@ export function ownerToSessionSnapshot(o) {
     garageWebsite: o.garageWebsite != null ? String(o.garageWebsite) : '',
     showWebsitePublic: ownerPublicFlagTrue(o.showWebsitePublic),
     garageSocial: o.garageSocial != null ? String(o.garageSocial) : '',
+    garageVisitSelfAdvice: o.garageVisitSelfAdvice != null ? String(o.garageVisitSelfAdvice) : '',
     showSocialPublic: ownerPublicFlagTrue(o.showSocialPublic),
     showCityPublic: ownerCityPublicFlag(o.showCityPublic),
     isPremium: Boolean(o.isPremium),

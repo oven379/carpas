@@ -23,6 +23,7 @@ class Owner extends Authenticatable
         'garage_website',
         'show_website_public',
         'garage_social',
+        'garage_visit_self_advice',
         'show_social_public',
         'garage_slug',
         'garage_banner',

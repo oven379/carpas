@@ -4,8 +4,16 @@ export const VISIT_TITLE_MAX_LEN = 40
 /** Свободный комментарий к визиту (что обслуживали). */
 export const VISIT_NOTE_MAX_LEN = 2000
 
-/** Советы по уходу из визита детейлинга (поля «Важно» / «Совет 1–3»). Короткие строки — удобнее на карточке авто. */
+/** Текст «совета себе» в настройках гаража (подсказка при самостоятельной записи визита). */
+export const GARAGE_VISIT_SELF_ADVICE_MAX_LEN = 2000
+
+/**
+ * @deprecated Старый лимит одной строки «Важно»/«Совет N». Используйте VISIT_CARE_ADVICE_MAX_LEN.
+ */
 export const VISIT_CARE_TIP_MAX_LEN = 120
+
+/** Единый текст совета детейлинга для владельца (форма визита и карточка авто). */
+export const VISIT_CARE_ADVICE_MAX_LEN = 2000
 
 /** Режим работы детейлинга/СТО (публичная страница на улице и кабинет). */
 export const DETAILING_WORKING_HOURS_MAX_LEN = 200

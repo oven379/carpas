@@ -219,6 +219,14 @@ class OwnerAuthController extends Controller
             $v = $patch['garageSocial'];
             $o->garage_social = $v === null || $v === '' ? null : (string) $v;
         }
+        if (array_key_exists('garageVisitSelfAdvice', $patch)) {
+            $raw = $patch['garageVisitSelfAdvice'];
+            $t = $raw === null || $raw === '' ? '' : trim((string) $raw);
+            if (mb_strlen($t) > 2000) {
+                $t = mb_substr($t, 0, 2000);
+            }
+            $o->garage_visit_self_advice = $t === '' ? null : $t;
+        }
         if (array_key_exists('showSocialPublic', $patch)) {
             $o->show_social_public = (bool) $patch['showSocialPublic'];
         }

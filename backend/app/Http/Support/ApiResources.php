@@ -50,6 +50,7 @@ class ApiResources
             'garageWebsite' => $o->garage_website ?? '',
             'showWebsitePublic' => (bool) ($o->show_website_public ?? false),
             'garageSocial' => $o->garage_social ?? '',
+            'garageVisitSelfAdvice' => (string) ($o->garage_visit_self_advice ?? ''),
             'showSocialPublic' => (bool) ($o->show_social_public ?? false),
             'garageSlug' => $o->garage_slug,
             'garageBanner' => MediaStorage::publicUrl($o->garage_banner ?? null),

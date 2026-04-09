@@ -806,9 +806,9 @@ export default function CarPage() {
                 aria-expanded={recsOpen ? 'true' : 'false'}
                 aria-haspopup="true"
                 onClick={() => setRecsOpen((v) => !v)}
-                title={recsOpen ? 'Свернуть советы' : 'Открыть советы'}
+                title={recsOpen ? 'Свернуть совет' : 'Открыть совет'}
               >
-                <span className="carPage__recsSelectLabel">Советы</span>
+                <span className="carPage__recsSelectLabel">Совет</span>
                 <span className="carPage__recsSelectChev" aria-hidden="true" />
               </button>
               <Link
@@ -822,18 +822,8 @@ export default function CarPage() {
               </Link>
             </div>
             {recsOpen ? (
-              <div className="recList">
-                {recs.map((x, idx) => (
-                  <div key={idx} className="recItem">
-                    <div className="recItem__row">
-                      <span className="pill" data-tone={x.tone || 'neutral'}>
-                        {x.tone === 'accent' ? 'Важно' : 'Совет'}
-                      </span>
-                      <span className="recTitle">{x.title}</span>
-                    </div>
-                    {x.why ? <div className="muted small recWhy">{x.why}</div> : null}
-                  </div>
-                ))}
+              <div className="recList recList--singleAdvice">
+                {recs[0]?.title ? <p className="carPage__recsAdviceText">{recs[0].title}</p> : null}
               </div>
             ) : null}
           </Card>

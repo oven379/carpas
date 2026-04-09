@@ -2,7 +2,7 @@ import {
   fmtInt,
   PHOTO_UPLOAD_LANDSCAPE_LINE,
   PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
-  VISIT_CARE_TIP_MAX_LEN,
+  VISIT_CARE_ADVICE_MAX_LEN,
 } from './format.js'
 import { VISIT_MAX_PHOTOS } from './uploadLimits.js'
 
@@ -108,24 +108,14 @@ export const FORM_ADD_PHOTOS_HINT = {
   text: `Не более ${VISIT_MAX_PHOTOS} фото на один визит — можно выбрать несколько файлов за раз; после выбора они сразу прикрепляются к визиту (для нового визита запись создаётся автоматически). ${PHOTO_LANDSCAPE_HINT_SENTENCE} ${PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE}`,
 }
 
-/** Поле «Важно» в форме визита (детейлинг) */
-export const FORM_CARE_IMPORTANT_HINT = {
-  scopeId: 'history-visit-care-important-hint',
-  label: 'Справка: поле «Важно»',
+/** Единое поле совета детейлинга для владельца (форма визита). */
+export const FORM_CARE_ADVICE_HINT = {
+  scopeId: 'history-visit-care-advice-hint',
+  label: 'Справка: совет от сервиса',
 }
 
-export function formCareImportantHintText() {
-  return `Необязательно, до ${VISIT_CARE_TIP_MAX_LEN} символов. В блоке «Советы» на карточке — метка «Важно» (последний визит детейлинга). Пустое поле — короткий стандартный текст.`
-}
-
-/** Блок из трёх строк «Совет 1–3» в форме визита */
-export const FORM_CARE_TIPS_SECTION_HINT = {
-  scopeId: 'history-visit-care-tips-section-hint',
-  label: 'Справка: советы по уходу',
-}
-
-export function formCareTipsSectionHintText() {
-  return `Три строки, до ${VISIT_CARE_TIP_MAX_LEN} символов каждая. На карточке — одна плашка «Совет»; непустые строки через абзац. Все пусты — два коротких стандарта одним текстом.`
+export function formCareAdviceHintText() {
+  return `Необязательно, до ${VISIT_CARE_ADVICE_MAX_LEN} символов. На карточке авто владелец видит один текст в выпадающем блоке «Совет» (из последнего визита сервиса). Пустое поле — стандартная фраза КарПас.`
 }
 
 /** Карточка владельца «Последний визит» на странице авто */
@@ -151,9 +141,9 @@ export const CAR_WASH_PHOTOS_HINT = {
     PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
 }
 
-/** Блок «Советы» на карточке авто */
+/** Блок «Совет» на карточке авто */
 export const CAR_CARE_RECS_HINT = {
-  label: 'Справка: советы по уходу',
-  intro: `Две плашки из последнего визита детейлинга: «Важно» и «Совет». В форме визита — до ${VISIT_CARE_TIP_MAX_LEN} символов на поле; пустые подменяются короткими стандартами.`,
-  emptyRecs: 'Нет визита от сервиса — показываются стандартные короткие «Важно» и «Совет».',
+  label: 'Справка: совет по уходу',
+  intro: `Один текст из последнего визита детейлинга. В форме визита — до ${VISIT_CARE_ADVICE_MAX_LEN} символов; пустое поле — стандартная фраза.`,
+  emptyRecs: 'Нет визита от сервиса — показывается стандартный совет.',
 }
