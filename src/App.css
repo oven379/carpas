@@ -3330,11 +3330,15 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   scroll-margin-top: calc(56px + 12px + env(safe-area-inset-top, 0px));
 }
 
-/* Список всегда выше формы; при открытой форме прокрутка к заголовку формы — см. HistoryPage useLayoutEffect */
+/* При открытой форме: форма нового визита сверху, список истории ниже; прокрутка к заголовку — HistoryPage useLayoutEffect */
 .historyPage__mainStack--formOpen {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.historyPage__mainStack--formOpen .historyPage__formCol {
+  order: -1;
 }
 
 .historyPage__listCol {
