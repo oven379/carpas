@@ -18,13 +18,8 @@ import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
-function CarPageOwnerLastVisitPreview({ lastEvt, photoUrl, histPath }) {
-  const [thumbBroken, setThumbBroken] = useState(false)
-  const resolvedThumb = useMemo(() => (String(photoUrl || '').trim() ? resolvePublicMediaUrl(photoUrl) : ''), [photoUrl])
-  useEffect(() => {
-    setThumbBroken(false)
-  }, [resolvedThumb])
-
+import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
+function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
   const headline =
@@ -36,59 +31,52 @@ function CarPageOwnerLastVisitPreview({ lastEvt, photoUrl, histPath }) {
   const washF = wash.filter(Boolean)
   const detF = det.filter(Boolean)
   const note = String(lastEvt.note || '').trim()
+  const showAt = Boolean(lastEvt.at)
+  const showKm = lastEvt.mileageKm != null && lastEvt.mileageKm !== ''
   return (
     <Link className="carPage__ownerLastVisitHit" to={histPath} aria-label={`Открыть визит: ${headline}`}>
-      <div className="rowItem__meta carPage__meta carPage__ownerLastVisitMeta">
+      <div className="carPage__ownerLastVisitHead">
         <span className="metaStrong">Последний визит</span>
-        {lastEvt.at ? (
+        {showAt || showKm ? (
           <>
-            <span aria-hidden="true"> · </span>
-            <span className="eventMeta__when">{fmtDateTime(lastEvt.at)}</span>
-          </>
-        ) : null}
-        {lastEvt.mileageKm != null && lastEvt.mileageKm !== '' ? (
-          <>
-            <span aria-hidden="true"> · </span>
-            <span className="eventMeta__km">{fmtKm(lastEvt.mileageKm)}</span>
+            <span className="eventMeta__sep" aria-hidden="true">
+              {' '}
+              ·{' '}
+            </span>
+            {showAt ? <span className="eventMeta__when">{fmtDate(lastEvt.at)}</span> : null}
+            {showAt && showKm ? (
+              <span className="eventMeta__sep" aria-hidden="true">
+                {' '}
+                ·{' '}
+              </span>
+            ) : null}
+            {showKm ? <span className="eventMeta__km">{fmtKm(lastEvt.mileageKm)}</span> : null}
           </>
         ) : null}
       </div>
-      <div className="rowItem__lastEvt">
-        <div className="rowItem__lastEvtTop">
-          {resolvedThumb && !thumbBroken ? (
-            <img
-              className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
-              alt=""
-              src={resolvedThumb}
-              decoding="async"
-              onError={() => setThumbBroken(true)}
-            />
-          ) : null}
-          <div className="rowItem__lastEvtText">
-            <div className="rowItem__lastEvtName">{headline}</div>
+      <div className="carPage__ownerLastVisitAbout">
+        <span className="eventLabel">О визите:</span>{' '}
+        <span className="carPage__ownerLastVisitTitleText">{headline}</span>
+      </div>
+      <div className="rowItem__lastEvtMeta carPage__ownerLastVisitServices">
+        {ms.length ? (
+          <div className="rowItem__lastEvtLine">
+            <span className="eventLabel">ТО:</span> {ms.join(', ')}
           </div>
-        </div>
-        <div className="rowItem__lastEvtMeta">
-          {ms.length ? (
-            <div className="rowItem__lastEvtLine">
-              <span className="eventLabel">ТО:</span> {ms.join(', ')}
-            </div>
-          ) : null}
-          {washF.length ? (
-            <div className="rowItem__lastEvtLine">
-              <span className="eventLabel">Уход:</span> {washF.join(', ')}
-            </div>
-          ) : null}
-          {detF.length ? (
-            <div className="rowItem__lastEvtLine">
-              <span className="eventLabel">Детейлинг:</span> {detF.join(', ')}
-            </div>
-          ) : null}
-          {note ? (
-            <div className="rowItem__lastEvtLine">
-              <span className="eventLabel">Комментарий:</span> {note}
-            </div>
-          ) : null}
+        ) : null}
+        {washF.length ? (
+          <div className="rowItem__lastEvtLine">
+            <span className="eventLabel">Уход:</span> {washF.join(', ')}
+          </div>
+        ) : null}
+        {detF.length ? (
+          <div className="rowItem__lastEvtLine">
+            <span className="eventLabel">Детейлинг:</span> {detF.join(', ')}
+          </div>
+        ) : null}
+        <div className="rowItem__lastEvtLine">
+          <span className="eventLabel">Комментарий:</span>{' '}
+          {note ? note : <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>}
         </div>
       </div>
     </Link>
@@ -275,19 +263,6 @@ export default function CarPage() {
     setCarDataExpanded(false)
   }, [id])
 
-  /** Превью как в гараже: документ визита, иначе обложка / фото после мойки на карточке авто */
-  const lastVisitPreviewPhotoUrl = useMemo(() => {
-    const docUrl = String(lastVisitDocs[0]?.url || '').trim()
-    if (docUrl) return docUrl
-    if (!car) return ''
-    const hero = String(car.hero || '').trim()
-    if (hero) return hero
-    const wash = Array.isArray(car.washPhotos) ? car.washPhotos : []
-    const w0 = wash.map((x) => String(x || '').trim()).find(Boolean)
-    if (w0) return w0
-    return String(car.washPhoto || '').trim()
-  }, [lastVisitDocs, car])
-
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
     if (mode !== 'owner') return Number(car.mileageKm) || 0
@@ -361,82 +336,97 @@ export default function CarPage() {
     ? buildCarSubRoutePath(id, 'history', fromParam, { visit: String(lastHistoryEvent.id) })
     : ''
 
+  const lastVisitPhotosMetaDetailing =
+    lastHistoryEvent ? (
+      <>
+        {lastHistoryEvent.at ? (
+          <>
+            <span className="metaStrong">{fmtDateTime(lastHistoryEvent.at)}</span>
+            <span aria-hidden="true"> · </span>
+          </>
+        ) : null}
+        <span>{lastVisitPlaceLabel}</span>
+      </>
+    ) : (
+      <>Пока нет записей в истории — после первого визита здесь появятся дата и место обслуживания.</>
+    )
+
+  const lastVisitPhotosMetaOwnerEmbed = lastHistoryEvent ? (
+    <span>{lastVisitPlaceLabel}</span>
+  ) : (
+    <>Пока нет записей в истории — после первого визита здесь появятся дата и место обслуживания.</>
+  )
+
+  const lastVisitPhotosGalleryBlock = lastVisitGalleryRawUrls.length ? (
+    <div className="washGallery carPage__lastVisitPhotosGallery">
+      <div className="washViewer">
+        <a
+          className="washGallery__viewer"
+          href={visitGalleryDisplay[washIdx]}
+          target="_blank"
+          rel="noreferrer"
+          title="Открыть фото"
+        >
+          <img alt="Фото последнего визита" src={visitGalleryDisplay[washIdx]} />
+        </a>
+      </div>
+      <div className="washGallery__controls">
+        <div className="row gap">
+          <button
+            type="button"
+            className="btn"
+            data-variant="ghost"
+            onClick={() =>
+              setWashIdx((i) =>
+                lastVisitGalleryRawUrls.length
+                  ? (i - 1 + lastVisitGalleryRawUrls.length) % lastVisitGalleryRawUrls.length
+                  : 0,
+              )
+            }
+            disabled={lastVisitGalleryRawUrls.length <= 1}
+          >
+            ←
+          </button>
+          <button
+            type="button"
+            className="btn"
+            data-variant="ghost"
+            onClick={() =>
+              setWashIdx((i) =>
+                lastVisitGalleryRawUrls.length ? (i + 1) % lastVisitGalleryRawUrls.length : 0,
+              )
+            }
+            disabled={lastVisitGalleryRawUrls.length <= 1}
+          >
+            →
+          </button>
+        </div>
+        <div className="washGallery__dots" aria-label="Фото">
+          {lastVisitGalleryRawUrls.slice(0, 12).map((_, idx) => (
+            <span key={idx} className={`washGallery__dot ${idx === washIdx ? 'is-active' : ''}`} />
+          ))}
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div className="muted small carPage__lastVisitPhotosEmpty">
+      Пока нет фото. Добавьте снимки к записи в «Истории авто» или загрузите фото в «Редактировать» карточку.
+    </div>
+  )
+
+  const lastVisitPhotosEmbedOwner = (
+    <div className="carPage__lastVisitPhotosEmbed topBorder">
+      <div className="cardTitle carPage__lastVisitPhotosTitle">Фото последнего визита</div>
+      <div className="carPage__lastVisitPhotosMeta muted small">{lastVisitPhotosMetaOwnerEmbed}</div>
+      {lastVisitPhotosGalleryBlock}
+    </div>
+  )
+
   const lastVisitPhotosCard = (
     <Card className="card pad carPage__lastVisitPhotosCard">
-      <div className="cardTitle" style={{ marginBottom: 0 }}>
-        Фото последнего визита
-      </div>
-      <div className="carPage__lastVisitPhotosMeta muted small">
-        {lastHistoryEvent ? (
-          <>
-            {lastHistoryEvent.at ? (
-              <>
-                <span className="metaStrong">{fmtDateTime(lastHistoryEvent.at)}</span>
-                <span aria-hidden="true"> · </span>
-              </>
-            ) : null}
-            <span>{lastVisitPlaceLabel}</span>
-          </>
-        ) : (
-          <>Пока нет записей в истории — после первого визита здесь появятся дата и место обслуживания.</>
-        )}
-      </div>
-      {lastVisitGalleryRawUrls.length ? (
-        <div className="washGallery carPage__lastVisitPhotosGallery">
-          <div className="washViewer">
-            <a
-              className="washGallery__viewer"
-              href={visitGalleryDisplay[washIdx]}
-              target="_blank"
-              rel="noreferrer"
-              title="Открыть фото"
-            >
-              <img alt="Фото последнего визита" src={visitGalleryDisplay[washIdx]} />
-            </a>
-          </div>
-          <div className="washGallery__controls">
-            <div className="row gap">
-              <button
-                type="button"
-                className="btn"
-                data-variant="ghost"
-                onClick={() =>
-                  setWashIdx((i) =>
-                    lastVisitGalleryRawUrls.length
-                      ? (i - 1 + lastVisitGalleryRawUrls.length) % lastVisitGalleryRawUrls.length
-                      : 0,
-                  )
-                }
-                disabled={lastVisitGalleryRawUrls.length <= 1}
-              >
-                ←
-              </button>
-              <button
-                type="button"
-                className="btn"
-                data-variant="ghost"
-                onClick={() =>
-                  setWashIdx((i) =>
-                    lastVisitGalleryRawUrls.length ? (i + 1) % lastVisitGalleryRawUrls.length : 0,
-                  )
-                }
-                disabled={lastVisitGalleryRawUrls.length <= 1}
-              >
-                →
-              </button>
-            </div>
-            <div className="washGallery__dots" aria-label="Фото">
-              {lastVisitGalleryRawUrls.slice(0, 12).map((_, idx) => (
-                <span key={idx} className={`washGallery__dot ${idx === washIdx ? 'is-active' : ''}`} />
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="muted small carPage__lastVisitPhotosEmpty">
-          Пока нет фото. Добавьте снимки к записи в «Истории авто» или загрузите фото в «Редактировать» карточку.
-        </div>
-      )}
+      <div className="cardTitle carPage__lastVisitPhotosTitle">Фото последнего визита</div>
+      <div className="carPage__lastVisitPhotosMeta muted small">{lastVisitPhotosMetaDetailing}</div>
+      {lastVisitPhotosGalleryBlock}
     </Card>
   )
 
@@ -571,13 +561,13 @@ export default function CarPage() {
               </div>
 
               {ownerDataExpanded ? (
-                <div className="carPage__ownerServiceExpand">
+                <>
+                  <div className="carPage__ownerServiceExpand">
                   {ownerServiceSummary.kind === 'no_service' ? (
                     <div className="carPage__ownerServiceSection carPage__ownerServiceSection--stack">
                       {lastHistoryEvent && ownerLastVisitPath ? (
                         <CarPageOwnerLastVisitPreview
                           lastEvt={lastHistoryEvent}
-                          photoUrl={lastVisitPreviewPhotoUrl}
                           histPath={ownerLastVisitPath}
                         />
                       ) : (
@@ -618,7 +608,6 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : (
@@ -644,7 +633,6 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : null}
@@ -666,7 +654,6 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : null}
@@ -678,7 +665,9 @@ export default function CarPage() {
                       </div>
                     </div>
                   )}
-                </div>
+                  </div>
+                  {lastVisitPhotosEmbedOwner}
+                </>
               ) : null}
 
               <div className="topBorder carPage__carDataSection">
@@ -779,7 +768,7 @@ export default function CarPage() {
             </>
           )}
         </Card>
-        {lastVisitPhotosCard}
+        {mode === 'owner' && ownerServiceSummary ? null : lastVisitPhotosCard}
         </div>
 
         <div className="col gap">

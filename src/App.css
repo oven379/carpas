@@ -687,19 +687,31 @@ button.nav__action {
   outline-offset: 2px;
 }
 
-.carPage__ownerLastVisitMeta {
-  flex-wrap: wrap;
+.carPage__ownerLastVisitHead {
+  margin-bottom: 10px;
+  line-height: 1.45;
+}
+
+.carPage__ownerLastVisitAbout {
   margin-bottom: 12px;
   line-height: 1.45;
 }
 
-.carPage__ownerLastVisitHit .rowItem__lastEvt {
-  gap: 12px;
+.carPage__ownerLastVisitTitleText {
+  font-weight: 650;
 }
 
-.carPage__ownerLastVisitHit .rowItem__lastEvtTop {
-  align-items: flex-start;
-  gap: 14px;
+.carPage__lastVisitPhotosTitle {
+  margin: 0 0 6px;
+}
+
+.carPage__lastVisitPhotosMeta {
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+
+.carPage__lastVisitPhotosCard .carPage__lastVisitPhotosTitle {
+  margin-bottom: 4px;
 }
 
 .carPage__dataTitle {
@@ -4421,6 +4433,11 @@ a.garageProfileCard__linkChip:focus-visible {
   color: var(--text-h);
 }
 
+.garageProfileCard__lastVisitBlock {
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
 .garageProfileCard__lastVisit {
   margin-top: 0;
 }
@@ -4476,15 +4493,15 @@ a.garageProfileCard__linkChip:focus-visible {
 
 .garageProfileCard__lastVisitMeta {
   font-weight: 400;
-  font-size: 0.9375rem;
+  font-size: 0.875rem;
   line-height: 1.45;
-  color: color-mix(in oklab, var(--text) 78%, var(--text-h));
+  color: var(--muted);
 }
 
-.garageProfileCard__lastVisitMeta .eventMeta__when,
-.garageProfileCard__lastVisitMeta .eventMeta__km {
-  font-weight: inherit;
-  color: inherit;
+.garageProfileCard__lastVisitMetaDate,
+.garageProfileCard__lastVisitMetaKm {
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .garageProfileCard__actions {

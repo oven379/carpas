@@ -27,6 +27,7 @@ import {
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import { dedupeOfferedStrings, normalizeCarEventServices, OFFERED_SERVICE_MAX_LEN, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
+import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
@@ -186,11 +187,10 @@ function DetailingLastVisitPreview({ event, docsForEvent, setPhotoLb }) {
           })}
         </div>
       ) : null}
-      {e.note ? (
-        <div className="note">
-          <span className="eventLabel">Комментарий:</span> {e.note}
-        </div>
-      ) : null}
+      <div className="note">
+        <span className="eventLabel">Комментарий:</span>{' '}
+        {String(e.note || '').trim() ? e.note : <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>}
+      </div>
     </div>
   )
 }
@@ -1146,9 +1146,14 @@ export default function HistoryPage() {
                     </div>
                   )
                 })()}
-                {visitExpanded && e.note ? (
+                {visitExpanded ? (
                   <div className="note">
-                    <span className="eventLabel">Комментарий:</span> {e.note}
+                    <span className="eventLabel">Комментарий:</span>{' '}
+                    {String(e.note || '').trim() ? (
+                      e.note
+                    ) : (
+                      <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
+                    )}
                   </div>
                 ) : null}
               </div>
@@ -1328,7 +1333,7 @@ export default function HistoryPage() {
                 onBlur={createBlurFixRuFreeText((next) =>
                   setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
                 )}
-                placeholder="Впишите, что и как обслуживалось — это нужно для истории вашего авто"
+                placeholder="Напишите здесь, что делали в этом визите, или выберите услуги из предложенных ниже. Так формируется история Вашего авто."
                 disabled={formLocked}
               />
             </div>

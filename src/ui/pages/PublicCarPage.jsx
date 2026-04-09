@@ -5,6 +5,7 @@ import { BackNav, Card, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
+import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { absoluteUrl } from '../../lib/siteOrigin.js'
@@ -205,7 +206,10 @@ export default function PublicCarPage() {
                       </>
                     )
                   })()}
-                  {e.note ? <div className="note">{e.note}</div> : null}
+                  <div className="note">
+                    <span className="eventLabel">Комментарий:</span>{' '}
+                    {String(e.note || '').trim() ? e.note : <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>}
+                  </div>
                 </div>
               ))}
             </div>

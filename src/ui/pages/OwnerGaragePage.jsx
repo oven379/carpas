@@ -9,6 +9,7 @@ import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
 import {
   displayRuPhone,
+  fmtDate,
   fmtDateTime,
   fmtKm,
   normalizeHttpUrl,
@@ -16,6 +17,7 @@ import {
   shortExternalLinkLabel,
 } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import {
@@ -83,9 +85,9 @@ function GarageLastVisitMetaRow({ visit }) {
   const showKm = visit.mileageKm != null && visit.mileageKm !== ''
   return (
     <>
-      {showAt ? <span className="eventMeta__when">{fmtDateTime(visit.at)}</span> : null}
+      {showAt ? <span className="garageProfileCard__lastVisitMetaDate">{fmtDate(visit.at)}</span> : null}
       {showAt && showKm ? <span aria-hidden="true"> · </span> : null}
-      {showKm ? <span className="eventMeta__km">{fmtKm(visit.mileageKm)}</span> : null}
+      {showKm ? <span className="garageProfileCard__lastVisitMetaKm">{fmtKm(visit.mileageKm)}</span> : null}
     </>
   )
 }
@@ -535,51 +537,7 @@ export default function OwnerGaragePage() {
                 {copyHint}
               </p>
             ) : null}
-            <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
-              <span className="garageProfileCard__metaKey">Город:</span>{' '}
-              {cityLine ? cityLine : <span className="muted">нет данных</span>}
-            </p>
-            <div className="garageProfileCard__iconRow" aria-label="Контакты">
-              {phoneTelHref ? (
-                <a
-                  className="garageProfileCard__iconTap"
-                  href={phoneTelHref}
-                  title={phoneDisplay}
-                  aria-label={`Позвонить: ${phoneDisplay}`}
-                >
-                  <GaragePhoneGlyph />
-                </a>
-              ) : phoneDisplay ? (
-                <span
-                  className="garageProfileCard__iconTap garageProfileCard__iconTap--disabled"
-                  title={`${phoneDisplay} — полный номер для звонка в настройках`}
-                  aria-hidden="true"
-                >
-                  <GaragePhoneGlyph />
-                </span>
-              ) : null}
-              {websiteHref ? (
-                <a
-                  className="garageProfileCard__iconTap garageProfileCard__iconTap--web"
-                  href={websiteHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={websiteRaw}
-                  aria-label={`Открыть сайт: ${websiteRaw}`}
-                >
-                  <GarageGlobeGlyph />
-                </a>
-              ) : null}
-            </div>
-            {!phoneDisplay && !websiteHref ? (
-              <p className="muted small garageProfileCard__metaLine garageProfileCard__metaLine--spaced">
-                <Link className="link" to="/garage/settings">
-                  Телефон и сайт
-                </Link>
-                {' — в настройках.'}
-              </p>
-            ) : null}
-            <div className="garageProfileCard__meta">
+            <div className="garageProfileCard__lastVisitBlock">
               {garageLastVisitLoading ? (
                 <p className="muted small garageProfileCard__metaLine">
                   <span className="garageProfileCard__metaKey">Последний визит:</span>{' '}
@@ -645,11 +603,14 @@ export default function OwnerGaragePage() {
                             <span className="eventLabel">Детейлинг:</span> {garageLastVisit.det.join(', ')}
                           </div>
                         ) : null}
-                        {garageLastVisit.note ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Комментарий:</span> {garageLastVisit.note}
-                          </div>
-                        ) : null}
+                        <div className="rowItem__lastEvtLine">
+                          <span className="eventLabel">Комментарий:</span>{' '}
+                          {String(garageLastVisit.note || '').trim() ? (
+                            garageLastVisit.note
+                          ) : (
+                            <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </Link>
@@ -660,6 +621,52 @@ export default function OwnerGaragePage() {
                   <span className="garageProfileCard__metaKey">Последний визит:</span> Пока нет истории визитов
                 </p>
               ) : null}
+            </div>
+            <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
+              <span className="garageProfileCard__metaKey">Город:</span>{' '}
+              {cityLine ? cityLine : <span className="muted">нет данных</span>}
+            </p>
+            <div className="garageProfileCard__iconRow" aria-label="Контакты">
+              {phoneTelHref ? (
+                <a
+                  className="garageProfileCard__iconTap"
+                  href={phoneTelHref}
+                  title={phoneDisplay}
+                  aria-label={`Позвонить: ${phoneDisplay}`}
+                >
+                  <GaragePhoneGlyph />
+                </a>
+              ) : phoneDisplay ? (
+                <span
+                  className="garageProfileCard__iconTap garageProfileCard__iconTap--disabled"
+                  title={`${phoneDisplay} — полный номер для звонка в настройках`}
+                  aria-hidden="true"
+                >
+                  <GaragePhoneGlyph />
+                </span>
+              ) : null}
+              {websiteHref ? (
+                <a
+                  className="garageProfileCard__iconTap garageProfileCard__iconTap--web"
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={websiteRaw}
+                  aria-label={`Открыть сайт: ${websiteRaw}`}
+                >
+                  <GarageGlobeGlyph />
+                </a>
+              ) : null}
+            </div>
+            {!phoneDisplay && !websiteHref ? (
+              <p className="muted small garageProfileCard__metaLine garageProfileCard__metaLine--spaced">
+                <Link className="link" to="/garage/settings">
+                  Телефон и сайт
+                </Link>
+                {' — в настройках.'}
+              </p>
+            ) : null}
+            <div className="garageProfileCard__meta">
               {activityLabel === 'Профиль обновлён' ? (
                 <p className="muted small garageProfileCard__metaLine">
                   <span className="garageProfileCard__metaKey">{activityLabel}:</span>{' '}
