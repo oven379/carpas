@@ -4427,46 +4427,19 @@ a.garageProfileCard__linkChip:focus-visible {
   margin-bottom: 12px;
 }
 
-.garageProfileCard__lastVisitPicker {
-  margin-bottom: 8px;
+.garageProfileCard__lastVisitSummary {
+  margin: 0 0 10px;
+  line-height: 1.45;
 }
 
-.garageProfileCard__lastVisitPickerLabel {
-  display: block;
-  font-weight: 700;
+.garageProfileCard__lastVisitSummaryValues {
+  font-weight: 500;
+  color: color-mix(in oklab, var(--text) 88%, var(--muted));
+}
+
+.garageProfileCard__lastVisitSummaryCar {
+  font-weight: 650;
   color: var(--text-h);
-  font-size: 0.9375rem;
-  line-height: 1.35;
-  margin: 0 0 6px;
-  letter-spacing: -0.01em;
-}
-
-/* Обёртка: на мобилке селект не вылезает за карточку */
-.garageProfileCard__lastVisitSelectWrap {
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.garageProfileCard__lastVisitSelect {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-  min-height: 44px;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  padding-inline-end: 36px;
-  cursor: pointer;
-  /* iOS: не увеличивать страницу при фокусе */
-  font-size: max(16px, 1rem);
-  line-height: 1.25;
-  text-overflow: ellipsis;
-}
-
-.garageProfileCard__lastVisitSelect:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
-  outline-offset: 2px;
 }
 
 .garageProfileCard__lastVisitToolbar {
@@ -4480,6 +4453,10 @@ a.garageProfileCard__linkChip:focus-visible {
   min-width: 0;
 }
 
+.garageProfileCard__lastVisitToolbar--single {
+  justify-content: flex-start;
+}
+
 .garageProfileCard__lastVisitToggle {
   min-height: 44px;
   padding-left: 14px;
@@ -4487,36 +4464,67 @@ a.garageProfileCard__linkChip:focus-visible {
   flex: 0 1 auto;
 }
 
-.garageProfileCard__lastVisitOpenHistory {
-  font-size: 0.9375rem;
-  font-weight: 600;
-  text-align: right;
-  line-height: 1.35;
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex: 1 1 auto;
-}
-
 .garageProfileCard__lastVisitPanel {
   margin-top: 6px;
   min-width: 0;
 }
 
-@media (max-width: 480px) {
-  .garageProfileCard__lastVisitToolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.garageProfileCard__lastVisitDetail {
+  border-radius: 12px;
+  padding: 12px 10px 12px 8px;
+  margin-left: -8px;
+  margin-right: -8px;
+  background: color-mix(in oklab, var(--accent) 5%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--border) 92%, var(--accent));
+  box-sizing: border-box;
+}
 
-  .garageProfileCard__lastVisitToggle {
+.garageProfileCard__lastVisitDetailTitle {
+  margin-top: 4px;
+}
+
+.garageProfileCard__lastVisitPhotos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+  gap: 10px;
+  margin: 12px 0 10px;
+  min-width: 0;
+}
+
+.garageProfileCard__lastVisitDetailPhoto {
+  display: block;
+  width: 100%;
+  max-height: 220px;
+  object-fit: cover;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--border) 35%, var(--bg));
+}
+
+.garageProfileCard__lastVisitDetailMeta {
+  margin-top: 4px;
+}
+
+.garageProfileCard__lastVisitHistoryLink {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+}
+
+@media (max-width: 480px) {
+  .garageProfileCard__lastVisitToolbar--single .garageProfileCard__lastVisitToggle {
     width: 100%;
     justify-content: center;
   }
 
-  .garageProfileCard__lastVisitOpenHistory {
-    justify-content: center;
+  .garageProfileCard__lastVisitPhotos {
+    grid-template-columns: 1fr;
+  }
+
+  .garageProfileCard__lastVisitDetailPhoto {
+    max-height: min(52vh, 280px);
+  }
+
+  .garageProfileCard__lastVisitHistoryLink {
     text-align: center;
   }
 }
@@ -4527,26 +4535,6 @@ a.garageProfileCard__linkChip:focus-visible {
 
 .garageProfileCard__socialOnly {
   margin-top: 2px;
-}
-
-.garageProfileCard__lastVisitHit {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  border-radius: 12px;
-  padding: 10px 10px 10px 8px;
-  margin-left: -8px;
-  margin-right: -8px;
-  transition: background 120ms ease;
-}
-
-.garageProfileCard__lastVisitHit:hover {
-  background: color-mix(in oklab, var(--accent) 9%, var(--bg));
-}
-
-.garageProfileCard__lastVisitHit:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 65%, var(--border));
-  outline-offset: 2px;
 }
 
 .garageProfileCard__lastVisitHead {

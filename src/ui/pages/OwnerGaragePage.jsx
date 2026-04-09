@@ -132,13 +132,6 @@ function buildGarageVisitRow(carRow, evtRaw) {
   }
 }
 
-function formatGarageVisitSelectLabel(v) {
-  const datePart = v.at ? fmtDate(v.at) : 'без даты'
-  const carPart = v.carDisplayName || 'Авто'
-  const titlePart = v.headlineName || 'Визит'
-  return `${datePart} · ${carPart} · ${titlePart}`
-}
-
 function GaragePhoneGlyph() {
   return (
     <svg className="garageProfileCard__iconSvg" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
@@ -183,9 +176,9 @@ export default function OwnerGaragePage() {
   /** События по авто — одна загрузка на страницу (и список, и «Последний визит»), без второго раунда listEvents */
   const [enrichedRows, setEnrichedRows] = useState(null)
   const [copyHint, setCopyHint] = useState('')
-  const [selectedVisitKey, setSelectedVisitKey] = useState('')
-  const [visitPhotoOverride, setVisitPhotoOverride] = useState({ key: '', url: '' })
-  const [lastVisitThumbBroken, setLastVisitThumbBroken] = useState(false)
+  /** Все фото визита из документов (и запасной кадр из карточки авто), для раскрытой панели */
+  const [visitGalleryUrls, setVisitGalleryUrls] = useState({ key: '', urls: [] })
+  const [brokenGalleryUrls, setBrokenGalleryUrls] = useState([])
   /** Карточка подробностей визита: по умолчанию свёрнута, чтобы на мобилке не занимала весь экран */
   const [visitDetailsExpanded, setVisitDetailsExpanded] = useState(false)
 
@@ -345,26 +338,22 @@ export default function OwnerGaragePage() {
     return out
   }, [enrichedRows])
 
-  const effectiveVisitKey = useMemo(() => {
-    if (!garageVisitsList.length) return ''
-    if (selectedVisitKey && garageVisitsList.some((v) => v.key === selectedVisitKey)) return selectedVisitKey
-    return garageVisitsList[0].key
-  }, [garageVisitsList, selectedVisitKey])
-
+  /** Самый поздний визит по дате среди всех авто в гараже (= последнее обслуживание любой машины). */
   const selectedVisit = useMemo(
-    () => garageVisitsList.find((v) => v.key === effectiveVisitKey) || null,
-    [garageVisitsList, effectiveVisitKey],
+    () => (garageVisitsList.length ? garageVisitsList[0] : null),
+    [garageVisitsList],
   )
 
   useEffect(() => {
     if (!selectedVisit) {
-      setVisitPhotoOverride({ key: '', url: '' })
+      setVisitGalleryUrls({ key: '', urls: [] })
       return
     }
-    let cancelled = false
     const v = selectedVisit
-    setVisitPhotoOverride({ key: v.key, url: v.photoUrl })
+    const seed = String(v.photoUrl || '').trim() ? [String(v.photoUrl).trim()] : []
+    setVisitGalleryUrls({ key: v.key, urls: seed })
 
+    let cancelled = false
     void (async () => {
       try {
         const allDocs = await r.listDocs(v.carId)
@@ -374,13 +363,21 @@ export default function OwnerGaragePage() {
           (d) => String(d.eventId || '') === String(v.eventId) && String(d.url || '').trim(),
         )
         const photoDocs = forEvt.filter((d) => String(d.kind || 'photo') === 'photo')
-        const pick = photoDocs[0] || forEvt[0]
-        const docPhoto = String(pick?.url || '').trim()
-        if (docPhoto) {
-          setVisitPhotoOverride((prev) => (prev.key === v.key ? { key: v.key, url: docPhoto } : prev))
+        const fromPhotos = photoDocs.map((d) => String(d.url || '').trim()).filter(Boolean)
+        let urls = [...fromPhotos]
+        if (urls.length === 0) {
+          urls = forEvt.map((d) => String(d.url || '').trim()).filter(Boolean)
         }
+        if (urls.length === 0 && seed.length) urls = [...seed]
+        const seen = new Set()
+        const uniq = urls.filter((u) => {
+          if (seen.has(u)) return false
+          seen.add(u)
+          return true
+        })
+        setVisitGalleryUrls((prev) => (prev.key === v.key ? { key: v.key, urls: uniq } : prev))
       } catch {
-        /* ignore */
+        if (!cancelled) setVisitGalleryUrls((prev) => (prev.key === v.key ? { key: v.key, urls: seed } : prev))
       }
     })()
 
@@ -391,19 +388,22 @@ export default function OwnerGaragePage() {
 
   const visitForDisplay = useMemo(() => {
     if (!selectedVisit) return null
-    if (visitPhotoOverride.key === selectedVisit.key && visitPhotoOverride.url) {
-      return { ...selectedVisit, photoUrl: visitPhotoOverride.url }
-    }
-    return selectedVisit
-  }, [selectedVisit, visitPhotoOverride])
+    const urls =
+      visitGalleryUrls.key === selectedVisit.key && visitGalleryUrls.urls.length
+        ? visitGalleryUrls.urls
+        : String(selectedVisit.photoUrl || '').trim()
+          ? [String(selectedVisit.photoUrl).trim()]
+          : []
+    return { ...selectedVisit, galleryPhotoUrls: urls }
+  }, [selectedVisit, visitGalleryUrls])
 
   useEffect(() => {
-    setLastVisitThumbBroken(false)
-  }, [visitForDisplay?.eventId, visitForDisplay?.photoUrl])
+    setBrokenGalleryUrls([])
+  }, [selectedVisit?.key])
 
   useEffect(() => {
     setVisitDetailsExpanded(false)
-  }, [effectiveVisitKey])
+  }, [selectedVisit?.key])
 
   const garageSelectedVisitHistoryHref = useMemo(
     () =>
@@ -484,6 +484,14 @@ export default function OwnerGaragePage() {
       : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто — остальное через «Найти авто по VIN» в сервисе`
   const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
+
+  const garageVisitSummaryMulti = cars.length > 1
+  const garageVisitSummaryCarName = visitForDisplay ? String(visitForDisplay.carDisplayName || '').trim() : ''
+  const garageVisitSummaryHasDateOrKm = Boolean(
+    visitForDisplay &&
+      (visitForDisplay.at ||
+        (visitForDisplay.mileageKm != null && visitForDisplay.mileageKm !== '')),
+  )
 
   return (
     <div className="container garagePage" data-carpas-garage-ui="1.0.3">
@@ -580,28 +588,25 @@ export default function OwnerGaragePage() {
               ) : null}
               {!garageLastVisitLoading && visitForDisplay ? (
                 <div className="garageProfileCard__lastVisit">
-                  <div className="garageProfileCard__lastVisitPicker">
-                    <label className="garageProfileCard__lastVisitPickerLabel" htmlFor="garage-last-visit-select">
-                      Визит из истории
-                    </label>
-                    <div className="garageProfileCard__lastVisitSelectWrap">
-                      <select
-                        id="garage-last-visit-select"
-                        className="input garageProfileCard__lastVisitSelect"
-                        value={effectiveVisitKey}
-                        onChange={(e) => setSelectedVisitKey(e.target.value)}
-                        aria-label="Выбор визита из истории гаража"
-                        title={formatGarageVisitSelectLabel(visitForDisplay)}
-                      >
-                        {garageVisitsList.map((v) => (
-                          <option key={v.key} value={v.key}>
-                            {formatGarageVisitSelectLabel(v)}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="garageProfileCard__lastVisitToolbar">
+                  <p className="muted small garageProfileCard__metaLine garageProfileCard__lastVisitSummary">
+                    <span className="garageProfileCard__metaKey">
+                      {garageVisitSummaryMulti ? 'Последний визит в гараже' : 'Визит из истории'}:
+                    </span>{' '}
+                    {garageVisitSummaryMulti && garageVisitSummaryCarName ? (
+                      <span className="garageProfileCard__lastVisitSummaryCar">
+                        {garageVisitSummaryCarName}
+                        {garageVisitSummaryHasDateOrKm ? ' — ' : ' · '}
+                      </span>
+                    ) : null}
+                    {garageVisitSummaryHasDateOrKm ? (
+                      <span className="garageProfileCard__lastVisitSummaryValues">
+                        <GarageLastVisitMetaRow visit={visitForDisplay} />
+                      </span>
+                    ) : (
+                      <span className="muted">нет даты и пробега</span>
+                    )}
+                  </p>
+                  <div className="garageProfileCard__lastVisitToolbar garageProfileCard__lastVisitToolbar--single">
                     <button
                       type="button"
                       className="btn garageProfileCard__lastVisitToggle"
@@ -613,25 +618,15 @@ export default function OwnerGaragePage() {
                     >
                       {visitDetailsExpanded ? 'Свернуть' : 'Подробнее'}
                     </button>
-                    <Link
-                      className="link garageProfileCard__lastVisitOpenHistory"
-                      to={garageSelectedVisitHistoryHref}
-                    >
-                      Открыть в истории
-                    </Link>
                   </div>
                   {visitDetailsExpanded ? (
                     <div
                       id="garage-last-visit-panel"
                       className="garageProfileCard__lastVisitPanel"
                       role="region"
-                      aria-label="Подробности выбранного визита"
+                      aria-label="Подробности последнего визита"
                     >
-                      <Link
-                        className="garageProfileCard__lastVisitHit"
-                        to={garageSelectedVisitHistoryHref}
-                        aria-label={`Открыть визит: ${visitForDisplay.headlineName}`}
-                      >
+                      <div className="garageProfileCard__lastVisitDetail">
                         <div className="garageProfileCard__lastVisitHead">
                           <div className="garageProfileCard__lastVisitLead">
                             {visitForDisplay.carDisplayName ? (
@@ -642,56 +637,65 @@ export default function OwnerGaragePage() {
                               <span className="muted">Авто</span>
                             )}
                           </div>
-                          {visitForDisplay.at ||
-                          (visitForDisplay.mileageKm != null && visitForDisplay.mileageKm !== '') ? (
-                            <div className="garageProfileCard__lastVisitMeta">
-                              <GarageLastVisitMetaRow visit={visitForDisplay} />
+                          <div className="rowItem__lastEvtText garageProfileCard__lastVisitDetailTitle">
+                            <div className="rowItem__lastEvtName">{visitForDisplay.headlineName}</div>
+                          </div>
+                        </div>
+                        {visitForDisplay.galleryPhotoUrls.length ? (
+                          <div className="garageProfileCard__lastVisitPhotos" aria-label="Фото визита">
+                            {visitForDisplay.galleryPhotoUrls.map((rawUrl) => {
+                              const u = String(rawUrl || '').trim()
+                              if (!u || brokenGalleryUrls.includes(u)) return null
+                              return (
+                                <img
+                                  key={u}
+                                  className="garageProfileCard__lastVisitDetailPhoto"
+                                  alt=""
+                                  src={resolvePublicMediaUrl(u)}
+                                  decoding="async"
+                                  loading="lazy"
+                                  onError={() =>
+                                    setBrokenGalleryUrls((prev) => (prev.includes(u) ? prev : [...prev, u]))
+                                  }
+                                />
+                              )
+                            })}
+                          </div>
+                        ) : null}
+                        <div className="rowItem__lastEvtMeta garageProfileCard__lastVisitDetailMeta">
+                          {visitForDisplay.maintenanceServices.length ? (
+                            <div className="rowItem__lastEvtLine">
+                              <span className="eventLabel">ТО:</span>{' '}
+                              {visitForDisplay.maintenanceServices.join(', ')}
                             </div>
                           ) : null}
-                        </div>
-                        <div className="rowItem__lastEvt">
-                          <div className="rowItem__lastEvtTop">
-                            {visitForDisplay.photoUrl && !lastVisitThumbBroken ? (
-                              <img
-                                className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
-                                alt=""
-                                src={resolvePublicMediaUrl(visitForDisplay.photoUrl)}
-                                decoding="async"
-                                onError={() => setLastVisitThumbBroken(true)}
-                              />
-                            ) : null}
-                            <div className="rowItem__lastEvtText">
-                              <div className="rowItem__lastEvtName">{visitForDisplay.headlineName}</div>
-                            </div>
-                          </div>
-                          <div className="rowItem__lastEvtMeta">
-                            {visitForDisplay.maintenanceServices.length ? (
-                              <div className="rowItem__lastEvtLine">
-                                <span className="eventLabel">ТО:</span>{' '}
-                                {visitForDisplay.maintenanceServices.join(', ')}
-                              </div>
-                            ) : null}
-                            {visitForDisplay.wash.length ? (
-                              <div className="rowItem__lastEvtLine">
-                                <span className="eventLabel">Уход:</span> {visitForDisplay.wash.join(', ')}
-                              </div>
-                            ) : null}
-                            {visitForDisplay.det.length ? (
-                              <div className="rowItem__lastEvtLine">
-                                <span className="eventLabel">Детейлинг:</span> {visitForDisplay.det.join(', ')}
-                              </div>
-                            ) : null}
+                          {visitForDisplay.wash.length ? (
                             <div className="rowItem__lastEvtLine">
-                              <span className="eventLabel">Комментарий:</span>{' '}
-                              {String(visitForDisplay.note || '').trim() ? (
-                                visitForDisplay.note
-                              ) : (
-                                <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
-                              )}
+                              <span className="eventLabel">Уход:</span> {visitForDisplay.wash.join(', ')}
                             </div>
+                          ) : null}
+                          {visitForDisplay.det.length ? (
+                            <div className="rowItem__lastEvtLine">
+                              <span className="eventLabel">Детейлинг:</span> {visitForDisplay.det.join(', ')}
+                            </div>
+                          ) : null}
+                          <div className="rowItem__lastEvtLine">
+                            <span className="eventLabel">Комментарий:</span>{' '}
+                            {String(visitForDisplay.note || '').trim() ? (
+                              visitForDisplay.note
+                            ) : (
+                              <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
+                            )}
                           </div>
                         </div>
-                      </Link>
+                        {garageSelectedVisitHistoryHref ? (
+                          <div className="garageProfileCard__lastVisitHistoryLink">
+                            <Link className="link" to={garageSelectedVisitHistoryHref}>
+                              Открыть в истории
+                            </Link>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   ) : null}
                 </div>

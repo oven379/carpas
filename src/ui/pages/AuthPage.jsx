@@ -18,7 +18,7 @@ export default function AuthPage() {
   return (
     <div className="container authPage">
       <div className="authPage__brandLockup">
-        <Logo size={38} />
+        <Logo size={40} />
       </div>
       <div className="authSplit authSplit--hub">
         <div className="authHub__info authSplit__lede">
