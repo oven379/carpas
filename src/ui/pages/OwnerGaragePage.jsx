@@ -429,16 +429,23 @@ export default function OwnerGaragePage() {
         sub: `Из последнего визита (сервис) · ${carPart}`,
       }
     }
+    const visitAdvice = mergeStoredCareTipsToPlainText(visitForDisplay.careTips).trim()
+    if (visitAdvice) {
+      return {
+        body: visitAdvice,
+        sub: `Из вашего последнего визита · ${carPart}`,
+      }
+    }
     const self = String(owner?.garageVisitSelfAdvice || '').trim()
     if (self) {
       return {
         body: self,
-        sub: `Ваш совет из настроек — последний по дате визит вы записали сами · ${carPart}`,
+        sub: `Общий совет из настроек — в последнем визите совет к записи не указан · ${carPart}`,
       }
     }
     return {
       body: null,
-      sub: `Последний визит — ваша запись (${carPart}). Текст для блока «Совет» задаётся в настройках гаража.`,
+      sub: `Последний визит — ваша запись (${carPart}). Добавьте совет в форме визита в истории или в настройках гаража.`,
       linkSettings: true,
     }
   }, [visitForDisplay, owner?.garageVisitSelfAdvice])

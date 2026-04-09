@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\CareTips;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Owner;
@@ -46,6 +47,7 @@ class OwnerCarEventController extends Controller
             'services' => ['nullable', 'array'],
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
+            'careTips' => ['nullable', 'array'],
         ]);
 
         $evt = CarEvent::query()->create([
@@ -60,6 +62,7 @@ class OwnerCarEventController extends Controller
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
+            'care_tips' => CareTips::normalize($data['careTips'] ?? null),
         ]);
 
         return response()->json(ApiResources::event($evt));
@@ -96,6 +99,9 @@ class OwnerCarEventController extends Controller
         }
         if (array_key_exists('note', $data)) {
             $evt->note = $data['note'];
+        }
+        if (array_key_exists('careTips', $data)) {
+            $evt->care_tips = CareTips::normalize($data['careTips']);
         }
         $evt->save();
 

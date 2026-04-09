@@ -37,6 +37,7 @@ import {
   FORM_CARE_ADVICE_HINT,
   FORM_COMMENT_HINT,
   FORM_MILEAGE_HINT,
+  FORM_OWNER_VISIT_ADVICE_HINT,
   FORM_PHOTOS_EDIT_HINT,
   FORM_SERVICES_VISIT_BLOCK_HINT,
   FORM_TITLE_HINT,
@@ -44,6 +45,7 @@ import {
   HISTORY_PAGE_HINT,
   formCareAdviceHintText,
   formMileageHintText,
+  formOwnerVisitAdviceHintText,
   formPhotosEditHintText,
   formTitleHintText,
   historyPageHintText,
@@ -698,7 +700,8 @@ export default function HistoryPage() {
         serviceText: String(recs[0]?.title || '').trim(),
       }
     }
-    return { variant: 'afterOwner', selfText }
+    const prevVisitAdvice = mergeStoredCareTipsToPlainText(normalizeCarEventServices(last).careTips).trim()
+    return { variant: 'afterOwner', selfText, prevVisitAdvice: prevVisitAdvice || null }
   }, [mode, events, editingId, owner?.garageVisitSelfAdvice])
 
   if ((mode === 'owner' || mode === 'detailing') && loading) {
@@ -743,7 +746,16 @@ export default function HistoryPage() {
             },
             allowPublicPhotos: Boolean(draft.allowPublicPhotos),
           }
-        : {}),
+        : mode === 'owner'
+          ? {
+              careTips: {
+                important: String(draft.careAdviceText || '')
+                  .trim()
+                  .slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                tips: [],
+              },
+            }
+          : {}),
     }
   }
 
@@ -1406,7 +1418,7 @@ export default function HistoryPage() {
                   {ownerVisitAdviceContext.variant === 'afterService'
                     ? 'Совет с последнего визита сервиса'
                     : ownerVisitAdviceContext.variant === 'afterOwner'
-                      ? 'Ваш совет себе (последний визит — ваш)'
+                      ? 'Контекст: последний визит — ваш'
                       : 'Совет себе на этот визит'}
                 </div>
                 {ownerVisitAdviceContext.variant === 'afterService' ? (
@@ -1423,28 +1435,68 @@ export default function HistoryPage() {
                   </div>
                 ) : (
                   <div className="historyOwnerAdviceCallout__body">
-                    {ownerVisitAdviceContext.selfText ? (
+                    {ownerVisitAdviceContext.variant === 'afterOwner' && ownerVisitAdviceContext.prevVisitAdvice ? (
+                      <p className="historyOwnerAdviceCallout__self">{ownerVisitAdviceContext.prevVisitAdvice}</p>
+                    ) : ownerVisitAdviceContext.selfText ? (
                       <p className="historyOwnerAdviceCallout__self">{ownerVisitAdviceContext.selfText}</p>
                     ) : (
                       <p className="muted small">
-                        Текст пока не задан — добавьте напоминание в{' '}
+                        В{' '}
                         <Link className="link" to="/garage/settings">
                           настройках гаража
-                        </Link>
-                        ; он будет показываться здесь, пока последним по дате остаётся ваш визит.
+                        </Link>{' '}
+                        можно задать общий совет себе — он подставится, если в последнем вашем визите поле совета пустое.
                       </p>
                     )}
-                    {ownerVisitAdviceContext.variant === 'afterOwner' ? (
-                      <p className="muted small historyOwnerAdviceCallout__foot">
-                        Редактировать совет можно в{' '}
-                        <Link className="link" to="/garage/settings">
-                          настройках гаража
-                        </Link>
-                        .
-                      </p>
-                    ) : null}
+                    <p className="muted small historyOwnerAdviceCallout__foot">
+                      Поле «Совет к этому визиту» ниже сохраняется в этой записи (один текст). На гараже и в карточке авто показывается совет
+                      из последнего по дате визита.
+                    </p>
                   </div>
                 )}
+              </div>
+            ) : null}
+            {mode === 'owner' &&
+            showNew &&
+            !detailingAwaitDraft &&
+            (!editingId || editingEvent?.source === 'owner') ? (
+              <div className="historyCareTips historyCareTipsForCarCard topBorder">
+                <p className="muted small historyCareTipsForCarCard__intro">
+                  Один совет к этому визиту — как у сервиса в своей форме: сохраняется в записи и участвует в блоке «Совет» на гараже и карточке
+                  авто, пока визит последний по дате.
+                </p>
+                <div className="field field--full serviceHint__fieldWrap" id={FORM_OWNER_VISIT_ADVICE_HINT.scopeId}>
+                  <div className="field__top serviceHint__fieldTop">
+                    <span className="field__label">Совет к этому визиту</span>
+                    <ServiceHint scopeId={FORM_OWNER_VISIT_ADVICE_HINT.scopeId} variant="compact" label={FORM_OWNER_VISIT_ADVICE_HINT.label}>
+                      <p className="serviceHint__panelText">{formOwnerVisitAdviceHintText()}</p>
+                    </ServiceHint>
+                  </div>
+                  <Textarea
+                    className="textarea"
+                    rows={4}
+                    maxLength={VISIT_CARE_ADVICE_MAX_LEN}
+                    value={draft.careAdviceText}
+                    placeholder="Короткое напоминание к этой записи…"
+                    disabled={formLocked}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        careAdviceText: String(e.target.value || '').slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                      }))
+                    }
+                    onBlur={createBlurFixRuFreeText((next) =>
+                      setDraft((d) => ({
+                        ...d,
+                        careAdviceText: String(next).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                      })),
+                    )}
+                    aria-label="Совет к этому визиту"
+                  />
+                  <div className="muted small historyCareTips__charCount" aria-live="polite">
+                    {String(draft.careAdviceText || '').length} / {VISIT_CARE_ADVICE_MAX_LEN}
+                  </div>
+                </div>
               </div>
             ) : null}
             {editingId ? (

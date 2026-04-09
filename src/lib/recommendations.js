@@ -14,21 +14,19 @@ export function mergeStoredCareTipsToPlainText(ct) {
 }
 
 /**
- * Один совет владельцу из последнего визита детейлинга (source === 'service').
- * Пустые поля в записи → DEFAULT_DETAILING_CARE_ADVICE.
- * Возвращает массив из одного элемента для совместимости с карточкой авто (выпадающий блок).
+ * Один совет для блока «Совет» на карточке авто: из самого свежего финального визита
+ * (сервис или ваш), по полю careTips. Пусто → DEFAULT_DETAILING_CARE_ADVICE.
  */
 export function getCareRecommendations({ car: _car, events }) {
   void _car
   const evts = Array.isArray(events) ? events.filter((e) => !e?.isDraft).slice() : []
   evts.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
-  const lastService = evts.find((e) => e.source === 'service')
-
-  if (!lastService) {
+  const latest = evts[0]
+  if (!latest) {
     return [{ tone: 'neutral', title: DEFAULT_DETAILING_CARE_ADVICE, why: '' }]
   }
 
-  const merged = mergeStoredCareTipsToPlainText(lastService.careTips).trim()
+  const merged = mergeStoredCareTipsToPlainText(latest.careTips).trim()
   const title = merged || DEFAULT_DETAILING_CARE_ADVICE
 
   return [{ tone: 'neutral', title, why: '' }]
