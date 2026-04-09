@@ -186,6 +186,8 @@ export default function OwnerGaragePage() {
   const [selectedVisitKey, setSelectedVisitKey] = useState('')
   const [visitPhotoOverride, setVisitPhotoOverride] = useState({ key: '', url: '' })
   const [lastVisitThumbBroken, setLastVisitThumbBroken] = useState(false)
+  /** Карточка подробностей визита: по умолчанию свёрнута, чтобы на мобилке не занимала весь экран */
+  const [visitDetailsExpanded, setVisitDetailsExpanded] = useState(false)
 
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -399,6 +401,20 @@ export default function OwnerGaragePage() {
     setLastVisitThumbBroken(false)
   }, [visitForDisplay?.eventId, visitForDisplay?.photoUrl])
 
+  useEffect(() => {
+    setVisitDetailsExpanded(false)
+  }, [effectiveVisitKey])
+
+  const garageSelectedVisitHistoryHref = useMemo(
+    () =>
+      visitForDisplay
+        ? buildCarSubRoutePath(visitForDisplay.carId, 'history', '/garage', {
+            visit: String(visitForDisplay.eventId),
+          })
+        : '',
+    [visitForDisplay],
+  )
+
   const websiteRaw = String(owner?.garageWebsite || '').trim()
   const websiteHref = websiteRaw ? normalizeHttpUrl(owner?.garageWebsite) : ''
   const ownerSocialLinks = useMemo(() => {
@@ -558,7 +574,7 @@ export default function OwnerGaragePage() {
             <div className="garageProfileCard__lastVisitBlock">
               {garageLastVisitLoading ? (
                 <p className="muted small garageProfileCard__metaLine">
-                  <span className="garageProfileCard__metaKey">Последний визит:</span>{' '}
+                  <span className="garageProfileCard__metaKey">История визитов:</span>{' '}
                   <PageLoadSpinner size="inline" />
                 </p>
               ) : null}
@@ -566,94 +582,123 @@ export default function OwnerGaragePage() {
                 <div className="garageProfileCard__lastVisit">
                   <div className="garageProfileCard__lastVisitPicker">
                     <label className="garageProfileCard__lastVisitPickerLabel" htmlFor="garage-last-visit-select">
-                      Последний визит
+                      Визит из истории
                     </label>
-                    <select
-                      id="garage-last-visit-select"
-                      className="input garageProfileCard__lastVisitSelect"
-                      value={effectiveVisitKey}
-                      onChange={(e) => setSelectedVisitKey(e.target.value)}
-                      aria-label="Выбор визита из истории гаража"
-                    >
-                      {garageVisitsList.map((v) => (
-                        <option key={v.key} value={v.key}>
-                          {formatGarageVisitSelectLabel(v)}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="garageProfileCard__lastVisitSelectWrap">
+                      <select
+                        id="garage-last-visit-select"
+                        className="input garageProfileCard__lastVisitSelect"
+                        value={effectiveVisitKey}
+                        onChange={(e) => setSelectedVisitKey(e.target.value)}
+                        aria-label="Выбор визита из истории гаража"
+                        title={formatGarageVisitSelectLabel(visitForDisplay)}
+                      >
+                        {garageVisitsList.map((v) => (
+                          <option key={v.key} value={v.key}>
+                            {formatGarageVisitSelectLabel(v)}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <Link
-                    className="garageProfileCard__lastVisitHit"
-                    to={buildCarSubRoutePath(visitForDisplay.carId, 'history', '/garage', {
-                      visit: String(visitForDisplay.eventId),
-                    })}
-                    aria-label={`Открыть визит: ${visitForDisplay.headlineName}`}
-                  >
-                    <div className="garageProfileCard__lastVisitHead">
-                      <div className="garageProfileCard__lastVisitLead">
-                        {visitForDisplay.carDisplayName ? (
-                          <span className="garageProfileCard__lastVisitLeadCar">
-                            {visitForDisplay.carDisplayName}
-                          </span>
-                        ) : (
-                          <span className="muted">Авто</span>
-                        )}
-                      </div>
-                      {visitForDisplay.at ||
-                      (visitForDisplay.mileageKm != null && visitForDisplay.mileageKm !== '') ? (
-                        <div className="garageProfileCard__lastVisitMeta">
-                          <GarageLastVisitMetaRow visit={visitForDisplay} />
+                  <div className="garageProfileCard__lastVisitToolbar">
+                    <button
+                      type="button"
+                      className="btn garageProfileCard__lastVisitToggle"
+                      data-variant="outline"
+                      aria-expanded={visitDetailsExpanded}
+                      aria-controls="garage-last-visit-panel"
+                      id="garage-last-visit-toggle"
+                      onClick={() => setVisitDetailsExpanded((v) => !v)}
+                    >
+                      {visitDetailsExpanded ? 'Свернуть' : 'Подробнее'}
+                    </button>
+                    <Link
+                      className="link garageProfileCard__lastVisitOpenHistory"
+                      to={garageSelectedVisitHistoryHref}
+                    >
+                      Открыть в истории
+                    </Link>
+                  </div>
+                  {visitDetailsExpanded ? (
+                    <div
+                      id="garage-last-visit-panel"
+                      className="garageProfileCard__lastVisitPanel"
+                      role="region"
+                      aria-label="Подробности выбранного визита"
+                    >
+                      <Link
+                        className="garageProfileCard__lastVisitHit"
+                        to={garageSelectedVisitHistoryHref}
+                        aria-label={`Открыть визит: ${visitForDisplay.headlineName}`}
+                      >
+                        <div className="garageProfileCard__lastVisitHead">
+                          <div className="garageProfileCard__lastVisitLead">
+                            {visitForDisplay.carDisplayName ? (
+                              <span className="garageProfileCard__lastVisitLeadCar">
+                                {visitForDisplay.carDisplayName}
+                              </span>
+                            ) : (
+                              <span className="muted">Авто</span>
+                            )}
+                          </div>
+                          {visitForDisplay.at ||
+                          (visitForDisplay.mileageKm != null && visitForDisplay.mileageKm !== '') ? (
+                            <div className="garageProfileCard__lastVisitMeta">
+                              <GarageLastVisitMetaRow visit={visitForDisplay} />
+                            </div>
+                          ) : null}
                         </div>
-                      ) : null}
+                        <div className="rowItem__lastEvt">
+                          <div className="rowItem__lastEvtTop">
+                            {visitForDisplay.photoUrl && !lastVisitThumbBroken ? (
+                              <img
+                                className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
+                                alt=""
+                                src={resolvePublicMediaUrl(visitForDisplay.photoUrl)}
+                                decoding="async"
+                                onError={() => setLastVisitThumbBroken(true)}
+                              />
+                            ) : null}
+                            <div className="rowItem__lastEvtText">
+                              <div className="rowItem__lastEvtName">{visitForDisplay.headlineName}</div>
+                            </div>
+                          </div>
+                          <div className="rowItem__lastEvtMeta">
+                            {visitForDisplay.maintenanceServices.length ? (
+                              <div className="rowItem__lastEvtLine">
+                                <span className="eventLabel">ТО:</span>{' '}
+                                {visitForDisplay.maintenanceServices.join(', ')}
+                              </div>
+                            ) : null}
+                            {visitForDisplay.wash.length ? (
+                              <div className="rowItem__lastEvtLine">
+                                <span className="eventLabel">Уход:</span> {visitForDisplay.wash.join(', ')}
+                              </div>
+                            ) : null}
+                            {visitForDisplay.det.length ? (
+                              <div className="rowItem__lastEvtLine">
+                                <span className="eventLabel">Детейлинг:</span> {visitForDisplay.det.join(', ')}
+                              </div>
+                            ) : null}
+                            <div className="rowItem__lastEvtLine">
+                              <span className="eventLabel">Комментарий:</span>{' '}
+                              {String(visitForDisplay.note || '').trim() ? (
+                                visitForDisplay.note
+                              ) : (
+                                <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
-                    <div className="rowItem__lastEvt">
-                      <div className="rowItem__lastEvtTop">
-                        {visitForDisplay.photoUrl && !lastVisitThumbBroken ? (
-                          <img
-                            className="rowItem__lastEvtPhoto rowItem__lastEvtPhoto--img"
-                            alt=""
-                            src={resolvePublicMediaUrl(visitForDisplay.photoUrl)}
-                            decoding="async"
-                            onError={() => setLastVisitThumbBroken(true)}
-                          />
-                        ) : null}
-                        <div className="rowItem__lastEvtText">
-                          <div className="rowItem__lastEvtName">{visitForDisplay.headlineName}</div>
-                        </div>
-                      </div>
-                      <div className="rowItem__lastEvtMeta">
-                        {visitForDisplay.maintenanceServices.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">ТО:</span>{' '}
-                            {visitForDisplay.maintenanceServices.join(', ')}
-                          </div>
-                        ) : null}
-                        {visitForDisplay.wash.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Уход:</span> {visitForDisplay.wash.join(', ')}
-                          </div>
-                        ) : null}
-                        {visitForDisplay.det.length ? (
-                          <div className="rowItem__lastEvtLine">
-                            <span className="eventLabel">Детейлинг:</span> {visitForDisplay.det.join(', ')}
-                          </div>
-                        ) : null}
-                        <div className="rowItem__lastEvtLine">
-                          <span className="eventLabel">Комментарий:</span>{' '}
-                          {String(visitForDisplay.note || '').trim() ? (
-                            visitForDisplay.note
-                          ) : (
-                            <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
+                  ) : null}
                 </div>
               ) : null}
               {!garageLastVisitLoading && !visitForDisplay ? (
                 <p className="muted small garageProfileCard__metaLine">
-                  <span className="garageProfileCard__metaKey">Последний визит:</span> Пока нет истории визитов
+                  <span className="garageProfileCard__metaKey">История визитов:</span> Пока нет записей
                 </p>
               ) : null}
             </div>

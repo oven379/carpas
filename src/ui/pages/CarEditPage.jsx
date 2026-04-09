@@ -369,15 +369,15 @@ export default function CarEditPage({ mode }) {
   const carCardHref = mode === 'edit' && id ? `/car/${id}${buildCarFromQuery(fromParam)}` : listReturn
 
   const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
-  /** Владелец: из редактирования сразу в гараж/список (?from=). Партнёр: из редактирования — к карточке авто. */
-  const backNavTo = who === 'owner' ? listReturn : mode === 'edit' ? carCardHref : listReturn
+  /** Редактирование: «Отмена» и назад — на страницу автомобиля (с ?from=). Создание — в гараж/список или кабинет. */
+  const backNavTo = mode === 'edit' && id ? carCardHref : listReturn
   const backNavTitle =
-    who === 'owner'
-      ? listReturn === '/garage' || listReturn.startsWith('/garage?')
-        ? 'В гараж'
-        : 'К автомобилям'
-      : mode === 'edit'
-        ? 'К карточке авто'
+    mode === 'edit' && id
+      ? 'К карточке авто'
+      : who === 'owner'
+        ? listReturn === '/garage' || listReturn.startsWith('/garage?')
+          ? 'В гараж'
+          : 'К автомобилям'
         : 'К кабинету'
 
   return (

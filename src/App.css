@@ -4428,7 +4428,7 @@ a.garageProfileCard__linkChip:focus-visible {
 }
 
 .garageProfileCard__lastVisitPicker {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .garageProfileCard__lastVisitPickerLabel {
@@ -4441,22 +4441,84 @@ a.garageProfileCard__linkChip:focus-visible {
   letter-spacing: -0.01em;
 }
 
+/* Обёртка: на мобилке селект не вылезает за карточку */
+.garageProfileCard__lastVisitSelectWrap {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .garageProfileCard__lastVisitSelect {
   display: block;
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   box-sizing: border-box;
   min-height: 44px;
   padding-top: 10px;
   padding-bottom: 10px;
+  padding-inline-end: 36px;
   cursor: pointer;
   /* iOS: не увеличивать страницу при фокусе */
-  font-size: max(15px, 1rem);
+  font-size: max(16px, 1rem);
+  line-height: 1.25;
+  text-overflow: ellipsis;
 }
 
 .garageProfileCard__lastVisitSelect:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
   outline-offset: 2px;
+}
+
+.garageProfileCard__lastVisitToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.garageProfileCard__lastVisitToggle {
+  min-height: 44px;
+  padding-left: 14px;
+  padding-right: 14px;
+  flex: 0 1 auto;
+}
+
+.garageProfileCard__lastVisitOpenHistory {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-align: right;
+  line-height: 1.35;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1 1 auto;
+}
+
+.garageProfileCard__lastVisitPanel {
+  margin-top: 6px;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .garageProfileCard__lastVisitToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .garageProfileCard__lastVisitToggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .garageProfileCard__lastVisitOpenHistory {
+    justify-content: center;
+    text-align: center;
+  }
 }
 
 .garageProfileCard__lastVisit {
@@ -7643,12 +7705,9 @@ a.btn.carPage__recsAddVisitFull,
     line-height: 0;
   }
 
-  /* Как на мобильном вебе: компактный вордмарк (Logo size=16 + слоган) */
+  /* Высота/ширина задаются inline в Logo.jsx; не переопределять — иначе мобилка ломает размер */
   .navLogoFrame .brandLogoLockup__img {
     display: block;
-    height: 16px !important;
-    width: auto !important;
-    max-height: 16px;
     max-width: 100%;
     object-fit: contain;
     object-position: left center;
