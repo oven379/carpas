@@ -5,6 +5,7 @@ import {
   BackNav,
   Button,
   Card,
+  CityComboBox,
   ComboBox,
   Field,
   Input,
@@ -12,12 +13,15 @@ import {
   PhoneRuInput,
   ServiceHint,
 } from '../components.jsx'
+import { SupportButton } from '../support/SupportHub.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
+  CITY_FIELD_DD_HINT,
   describeRuPlateValidationError,
   describeVinValidationError,
   formatPhoneRuInput,
+  fmtInt,
   fmtPlateFull,
   normDigits,
   normPlateBase,
@@ -31,7 +35,6 @@ import {
   RU_PLATE_LAYOUT_DIAGRAM,
 } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import {
   addCustomMake,
@@ -40,7 +43,8 @@ import {
   getCustomModelsByMake,
 } from '../../lib/customDicts.js'
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
-import { ownerGarageLimits } from '../../lib/garageLimits.js'
+import { OWNER_MAX_MANUAL_CARS, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
@@ -311,7 +315,52 @@ export default function CarEditPage({ mode }) {
       )
     }
     if (!ownerCreateLimits.canAddManual) {
-      return <Navigate to={resolveCarListReturnPath('owner', sp.get('from') || '')} replace />
+      const fromParamEarly = sp.get('from') || ''
+      const listReturnEarly = resolveCarListReturnPath('owner', fromParamEarly)
+      const limitDetail =
+        ownerCreateLimits.totalCount >= OWNER_MAX_TOTAL_CARS
+          ? `Сейчас в гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей.`
+          : `Вручную можно добавить не более ${OWNER_MAX_MANUAL_CARS} авто; остальные — через привязку к сервису по VIN.`
+      return (
+        <div className="container">
+          <div className="row spread gap" style={{ marginBottom: 12 }}>
+            <div>
+              <div className="breadcrumbs">
+                <Link to={listReturnEarly}>{ownerGarageListCrumbLabel(listReturnEarly)}</Link>
+                <span> / </span>
+                <span>Новая карточка</span>
+              </div>
+              <div className="row gap wrap" style={{ alignItems: 'center', marginTop: 8 }}>
+                <BackNav to={listReturnEarly} title={listReturnEarly.startsWith('/garage') ? 'В гараж' : 'К автомобилям'} />
+                <h1 className="h1" style={{ margin: 0 }}>
+                  Лимит гаража
+                </h1>
+              </div>
+            </div>
+          </div>
+          <Card className="card pad">
+            <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '62ch' }}>
+              {limitDetail} Чтобы подключить ещё одно авто, обратитесь в поддержку — откроется форма обращения; сообщение попадёт в
+              админ-панель сервиса. Текст можно отредактировать перед отправкой.
+            </p>
+            <div className="row gap wrap" style={{ alignItems: 'center' }}>
+              <SupportButton
+                className="btn"
+                data-variant="primary"
+                openOptions={{
+                  bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
+                  contextExtra: { request_type: 'garage_limit' },
+                }}
+              >
+                Написать в поддержку
+              </SupportButton>
+              <Link className="btn" data-variant="ghost" to={listReturnEarly}>
+                Назад к списку
+              </Link>
+            </div>
+          </Card>
+        </div>
+      )
     }
   }
 
@@ -348,6 +397,12 @@ export default function CarEditPage({ mode }) {
                 <p className="serviceHint__panelText">
                   Здесь основные данные автомобиля. История визитов, фото и документы — в карточке после сохранения.
                 </p>
+                {who === 'detailing' ? (
+                  <p className="serviceHint__panelText">
+                    Город и госномер — в том же формате, что в гараже владельца: подсказки городов через DaData, номер двумя
+                    полями (основная часть и код региона).
+                  </p>
+                ) : null}
               </ServiceHint>
             </div>
           </div>
@@ -392,7 +447,7 @@ export default function CarEditPage({ mode }) {
               <span className="field__label">Пробег (км)</span>
               <ServiceHint scopeId="car-edit-mileage-hint" variant="compact" label="Справка: пробег">
                 {mode === 'edit' && baseMileageKm ? (
-                  <p className="serviceHint__panelText">Минимум {baseMileageKm} км — по данным последнего визита в истории.</p>
+                  <p className="serviceHint__panelText">Минимум {fmtInt(baseMileageKm)} км — по данным последнего визита в истории.</p>
                 ) : (
                   <p className="serviceHint__panelText">Укажите актуальный или ближайший к реальности пробег в километрах.</p>
                 )}
@@ -411,7 +466,7 @@ export default function CarEditPage({ mode }) {
                   return { ...d, mileageKm: nextRaw }
                 })
               }
-              placeholder={mode === 'edit' && baseMileageKm ? String(baseMileageKm) : '12000'}
+              placeholder={mode === 'edit' && baseMileageKm ? fmtInt(baseMileageKm) : '12 000'}
             />
           </div>
           <Field label="Цвет">
@@ -482,15 +537,15 @@ export default function CarEditPage({ mode }) {
               />
             </div>
           </div>
-          <Field label="Город">
-            <ComboBox
-              value={draft.city}
-              options={RUSSIAN_MILLION_PLUS_CITIES}
-              placeholder="Города-миллионники в списке; можно ввести любой город"
-              maxItems={20}
-              onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
-            />
-          </Field>
+          <div className="field serviceHint__fieldWrap" id="car-edit-city-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">Город</span>
+              <ServiceHint scopeId="car-edit-city-hint" variant="compact" label="Справка: город">
+                <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
+              </ServiceHint>
+            </div>
+            <CityComboBox value={draft.city} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, city: v }))} />
+          </div>
           {who !== 'owner' ? (
             <>
               <div className="field serviceHint__fieldWrap" id="car-edit-client-name-hint">
@@ -611,7 +666,7 @@ export default function CarEditPage({ mode }) {
                 if (mode === 'edit') {
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
                   if (nextMileage < baseMileageKm) {
-                    alert(`Пробег не может быть меньше исходного (${baseMileageKm} км).`)
+                    alert(`Пробег не может быть меньше исходного (${fmtInt(baseMileageKm)} км).`)
                     return
                   }
                 }

@@ -70,6 +70,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::delete('/owners/me/device-push-token', [DevicePushTokenController::class, 'destroyOwner']);
 
     Route::get('/owners/cars/search-by-vin', [CarSearchController::class, 'byVin']);
+    Route::get('/owners/cars/search-for-claim', [CarSearchController::class, 'forOwnerClaim']);
     Route::get('/owners/cars/search-by-plate', [CarSearchController::class, 'byPlate']);
 
     Route::delete('/owners/docs/{id}', [OwnerCarDocController::class, 'destroyByDocId']);

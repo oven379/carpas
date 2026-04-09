@@ -3598,8 +3598,21 @@ a.backNav {
   top: 12px;
   right: 12px;
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
+  max-width: min(100% - 24px, 22rem);
   z-index: 3;
+}
+
+/* Владелец: «Поделиться» / «Передать» на обложке — подпись видна и на узком экране */
+.carHero__ownerActionBtn {
+  font-size: 12px;
+  font-weight: 650;
+  padding: 6px 10px;
+  min-height: 36px;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 /* Шапка карточки авто: действия рядом с названием */
@@ -6888,7 +6901,7 @@ a.thumbCard__fileDoc {
   margin-top: 6px;
 }
 
-/* Карточка авто: «Советы» слева, «Добавить визит» справа; на мобилке — квадрат с «+» */
+/* Карточка авто: «Советы» слева, «Добавить визит» справа (текст на всех ширинах) */
 .carPage__recsBar {
   display: flex;
   flex-direction: row;
@@ -6925,46 +6938,9 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   box-shadow: 0 6px 18px color-mix(in oklab, var(--accent) 14%, transparent);
 }
 
+/* Резервный «+» в разметке не используем — подпись всегда видна */
 .carPage__recsPlusIcon {
-  display: none;
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 26px;
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: 0;
-}
-
-@media (max-width: 640px) {
-  a.btn.carPage__recsAddVisitBtn,
-  .btn.carPage__recsAddVisitBtn {
-    position: relative;
-    min-width: 44px;
-    width: 44px;
-    padding-left: 0;
-    padding-right: 0;
-    border-radius: 12px;
-  }
-
-  .carPage__recsAddVisitText {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .carPage__recsPlusIcon {
-    display: flex;
-  }
+  display: none !important;
 }
 
 /* Карточка авто: «Советы» — как выпадающий список (поле + стрелка справа) */
@@ -7466,7 +7442,8 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   /* Действия на обложке: мобильный прозрачный стиль */
-  .heroActions .carPage__iconBtn[data-variant='ghost'] {
+  .heroActions .carPage__iconBtn[data-variant='ghost'],
+  .heroActions .carHero__ownerActionBtn[data-variant='ghost'] {
     background: color-mix(in oklab, var(--accent) 10%, var(--bg));
     border-color: color-mix(in oklab, var(--accent) 65%, var(--border));
     color: var(--accent);
@@ -7778,6 +7755,26 @@ a.btn.carPage__recsAddVisitFull,
   .rowItem__aside .openAction {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Гараж: под превью — название и полноценная кнопка «Добавить визит» на всю ширину */
+  .rowItem__ownerGarageMid {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: 100%;
+  }
+
+  a.rowItem__ownerGarageMainTap {
+    flex: none;
+  }
+
+  a.btn.carPage__recsAddVisitBtn.rowItem__garageAddVisit {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+    padding: 10px 14px;
+    box-sizing: border-box;
   }
 
   /* Дашборд детейлинга: вместо отдельной колонки — полоса «аватар + контекст» над кнопкой */

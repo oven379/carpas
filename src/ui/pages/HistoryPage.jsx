@@ -15,6 +15,7 @@ import {
   clampVisitTitle,
   clampVisitTitleInput,
   fmtDateTime,
+  fmtInt,
   fmtKm,
   normDigits,
   PHOTO_UPLOAD_EMPTY_THUMB_HINT,
@@ -794,7 +795,7 @@ export default function HistoryPage() {
         const nextMileage = Number(String(draft.mileageKm || '0')) || 0
         if (baseMileageKm && nextMileage < baseMileageKm) {
           alert(
-            `Пробег не может быть меньше текущего (${baseMileageKm} км). Укажите корректный пробег и попробуйте снова.`,
+            `Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км). Укажите корректный пробег и попробуйте снова.`,
           )
           return
         }
@@ -1327,7 +1328,7 @@ export default function HistoryPage() {
                     return { ...d, mileageKm: nextRaw }
                   })
                 }
-                placeholder={baseMileageKm ? String(baseMileageKm) : '20000'}
+                placeholder={baseMileageKm ? fmtInt(baseMileageKm) : '20 000'}
                 disabled={formLocked}
               />
             </div>
@@ -1638,7 +1639,7 @@ export default function HistoryPage() {
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
                   if (baseMileageKm && nextMileage < baseMileageKm) {
-                    alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
+                    alert(`Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км).`)
                     return
                   }
                   if (mode === 'detailing' && editingEvent?.isDraft && isIncompleteDetailingDraft(draft, baseMileageKm)) {
@@ -1751,7 +1752,7 @@ export default function HistoryPage() {
                     }
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
                     if (baseMileageKm && nextMileage < baseMileageKm) {
-                      alert(`Пробег не может быть меньше текущего (${baseMileageKm} км).`)
+                      alert(`Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км).`)
                       return
                     }
                     const payload = buildVisitPayload()

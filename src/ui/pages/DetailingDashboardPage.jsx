@@ -1,9 +1,20 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Button, Card, ComboBox, Field, Input, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import {
+  Button,
+  Card,
+  CityComboBox,
+  ComboBox,
+  Field,
+  Input,
+  PageLoadSpinner,
+  Pill,
+  ServiceHint,
+} from '../components.jsx'
 import { DETAILING_ACCESS_SERVICE_ONLY_LABEL, detailingCarAccessBadge } from '../serviceLinkUi.js'
 import {
+  CITY_FIELD_DD_HINT,
   describeRuPlateValidationError,
   describeVinValidationError,
   displayRuPhone,
@@ -14,7 +25,6 @@ import {
   parsePlateFull,
 } from '../../lib/format.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import {
   detailingNavGeocodeQuery,
   detailingYandexMapsWebHref,
@@ -542,17 +552,25 @@ export default function DetailingDashboardPage() {
                                 }
                               />
                             </Field>
-                            <Field label="Город">
-                              <ComboBox
+                            <div className="field serviceHint__fieldWrap" id={`det-dash-link-city-${c.id}`}>
+                              <div className="field__top serviceHint__fieldTop">
+                                <span className="field__label">Город</span>
+                                <ServiceHint
+                                  scopeId={`det-dash-link-city-${c.id}`}
+                                  variant="compact"
+                                  label="Справка: город"
+                                >
+                                  <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
+                                </ServiceHint>
+                              </div>
+                              <CityComboBox
                                 value={ev.city}
-                                options={RUSSIAN_MILLION_PLUS_CITIES}
-                                placeholder="Как в карточке владельца"
                                 maxItems={24}
                                 onChange={(v) =>
                                   setLinkEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, city: v } }))
                                 }
                               />
-                            </Field>
+                            </div>
                           </div>
                           <div style={{ marginTop: 12 }}>
                             <Button

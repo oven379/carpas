@@ -1,4 +1,5 @@
 import {
+  fmtInt,
   PHOTO_UPLOAD_LANDSCAPE_LINE,
   PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE,
   VISIT_CARE_TIP_MAX_LEN,
@@ -53,7 +54,7 @@ export const FORM_MILEAGE_HINT = {
 
 export function formMileageHintText(baseMileageKm) {
   if (baseMileageKm) {
-    return `Минимум ${baseMileageKm} км — по данным карточки авто и прошлых визитов.`
+    return `Минимум ${fmtInt(baseMileageKm)} км — по данным карточки авто и прошлых визитов.`
   }
   return 'Укажите пробег на момент визита в километрах.'
 }

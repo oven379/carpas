@@ -131,13 +131,11 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
               </Link>
               <Link
                 className="btn carPage__recsAddVisitBtn rowItem__garageAddVisit"
+                data-variant="outline"
                 to={newVisitHref}
-                aria-label="Новый визит"
+                aria-label="Добавить визит"
               >
-                <span className="carPage__recsAddVisitText">Добавить визит</span>
-                <span className="carPage__recsPlusIcon" aria-hidden="true">
-                  +
-                </span>
+                Добавить визит
               </Link>
             </div>
             <div className="rowItem__aside rowItem__aside--hint">

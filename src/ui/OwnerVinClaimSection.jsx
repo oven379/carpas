@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
-import { Button, Card, ComboBox, Input, PhoneRuInput, ServiceHint } from './components.jsx'
-import {
-  describeVinValidationError,
-  formatPhoneRuInput,
-  normDigits,
-  normVin,
-} from '../lib/format.js'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../lib/russianMillionCities.js'
+import { Button, Card, CityComboBox, ComboBox, Input, PhoneRuInput, ServiceHint } from './components.jsx'
+import { CITY_FIELD_DD_HINT, formatPhoneRuInput, normDigits } from '../lib/format.js'
 import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
@@ -88,7 +82,7 @@ function buildClaimEvidence(car, ev, evidenceMode) {
 }
 
 /**
- * Поиск авто по VIN и заявка на привязку к гаражу владельца.
+ * Поиск авто по VIN, телефону или e-mail из карточки в сервисе и заявка на привязку к гаражу владельца.
  * Если переданы `cars` и `ownerClaims`, лишний запрос за списками не выполняется.
  *
  * Поиск на бэкенде: только карточки партнёрских сервисов (не «личный» кабинет детейлинга).
@@ -145,15 +139,17 @@ export default function OwnerVinClaimSection({
     [ownerClaims],
   )
 
-  const [vin, setVin] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [vinResults, setVinResults] = useState([])
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
   const [searching, setSearching] = useState(false)
   const [claimingId, setClaimingId] = useState(null)
   const [showNoVinHits, setShowNoVinHits] = useState(false)
+  const searchSeqRef = useRef(0)
 
   const title =
-    titleProp ?? (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN')
+    titleProp ??
+    (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN или контактам')
 
   const emptyEvidence = () =>
     evidenceMode === 'full'
@@ -162,7 +158,16 @@ export default function OwnerVinClaimSection({
 
   useEffect(() => {
     setShowNoVinHits(false)
-  }, [vin])
+  }, [searchQuery])
+
+  function resetOwnerClaimSearch() {
+    searchSeqRef.current += 1
+    setSearching(false)
+    setSearchQuery('')
+    setVinResults([])
+    setEvidenceByCarId({})
+    setShowNoVinHits(false)
+  }
 
   async function refreshLocalLists() {
     if (controlled) {
@@ -179,27 +184,28 @@ export default function OwnerVinClaimSection({
   }
 
   async function onSearch() {
-    const v = normVin(vin)
-    setVin(v)
-    const vinErr = describeVinValidationError(v)
-    if (vinErr) {
-      alert(vinErr)
+    const raw = String(searchQuery || '').trim()
+    if (!raw) {
+      alert('Введите VIN, номер телефона или e-mail, указанные в карточке авто в сервисе.')
       setShowNoVinHits(false)
       return
     }
+    const seq = ++searchSeqRef.current
     setSearching(true)
     setShowNoVinHits(false)
     try {
-      const res = await r.findCarsByVin(v)
+      const res = await r.findCarsForOwnerClaim(raw)
+      if (seq !== searchSeqRef.current) return
       const list = Array.isArray(res) ? res : []
       setVinResults(list)
       setShowNoVinHits(list.length === 0)
-      if (list.length > 0) setVin('')
+      if (list.length > 0) setSearchQuery('')
     } catch {
+      if (seq !== searchSeqRef.current) return
       alert('Не удалось выполнить поиск. Проверьте интернет и что вы вошли в аккаунт.')
       setShowNoVinHits(false)
     } finally {
-      setSearching(false)
+      if (seq === searchSeqRef.current) setSearching(false)
     }
   }
 
@@ -246,7 +252,7 @@ export default function OwnerVinClaimSection({
         <ServiceHint
           scopeId={`owner-vin-claim-hint-${sectionId}`}
           variant="compact"
-          label={evidenceMode === 'full' ? 'Справка: VIN' : 'Справка: найти авто по VIN'}
+          label={evidenceMode === 'full' ? 'Справка: VIN' : 'Справка: найти авто'}
         >
           <p className="serviceHint__panelText">
             {evidenceMode === 'full' ? (
@@ -257,10 +263,9 @@ export default function OwnerVinClaimSection({
               </>
             ) : (
               <>
-                Ищем только карточки, заведённые в кабинетах партнёрских сервисов (не «личные» кабинеты). Укажите VIN и
-                подтвердите год выпуска и/или город как в карточке — кнопка «Отправить заявку» активируется. Если ни год,
-                ни город не совпали, введите свой мобильный: префикс +7, затем 10 цифр (как в номере 9XXXXXXXXX) — номер
-                сохранится для сверки на стороне сервиса.
+                В строке поиска можно ввести VIN, номер телефона или e-mail, как в карточке авто у детейлинга. Ищем только
+                карточки партнёрских сервисов (не личный гараж). После нахождения авто подтвердите год и/или город как в
+                карточке — или укажите свой телефон (+7 и 10 цифр) для сверки у сервиса.
               </>
             )}
           </p>
@@ -268,26 +273,26 @@ export default function OwnerVinClaimSection({
       </div>
       {!limits.canVinClaim ? (
         <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-          В гараже уже {limits.totalCount} из {OWNER_MAX_TOTAL_CARS} автомобилей — поиск авто по VIN недоступен.
+          В гараже уже {limits.totalCount} из {OWNER_MAX_TOTAL_CARS} автомобилей — поиск авто в сервисе недоступен.
         </p>
       ) : evidenceMode === 'full' ? (
         <p className="muted small" style={{ marginTop: 8 }}>
           Если детейлинг уже создал карточку, вы можете запросить доступ. Заявка уйдёт на модерацию в детейлинг.
         </p>
       ) : null}
-      <div className="row gap marketVinRow" style={{ marginTop: 10 }}>
+      <div className="row gap wrap marketVinRow" style={{ marginTop: 10, alignItems: 'center' }}>
         <Input
-          className="input mono marketVinRow__input"
-          placeholder="VIN…"
-          value={vin}
-          maxLength={17}
+          className="input marketVinRow__input"
+          placeholder="VIN, телефон или e-mail из карточки в сервисе"
+          value={searchQuery}
+          maxLength={200}
           inputMode="text"
           autoComplete="off"
-          autoCapitalize="characters"
+          autoCapitalize="off"
           autoCorrect="off"
           spellCheck={false}
           disabled={!limits.canVinClaim || searching}
-          onChange={(e) => setVin(normVin(e.target.value))}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
         <Button
           className="btn marketVinRow__btn"
@@ -297,6 +302,15 @@ export default function OwnerVinClaimSection({
           onClick={() => onSearch()}
         >
           {searching ? 'Поиск…' : 'Найти'}
+        </Button>
+        <Button
+          className="btn marketVinRow__btn"
+          variant="ghost"
+          type="button"
+          disabled={!limits.canVinClaim}
+          onClick={() => resetOwnerClaimSearch()}
+        >
+          Отменить
         </Button>
       </div>
 
@@ -309,8 +323,8 @@ export default function OwnerVinClaimSection({
       {showNoVinHits && limits.canVinClaim ? (
         <div className="topBorder ownerVinClaim__noHits">
           <p className="muted small" style={{ margin: '0 0 10px', lineHeight: 1.5 }}>
-            Автомобиля с таким VIN в сервисе не найдено. Вы можете завести новую карточку в гараже — затем вести историю и
-            документы самостоятельно.
+            По этим данным карточка в сервисе не найдена. Проверьте VIN, телефон или почту из карточки у детейлинга. Можно
+            завести новую карточку в гараже и вести историю самостоятельно.
           </p>
           <Link className="btn" data-variant="primary" to={createCarHref}>
             Добавить автомобиль
@@ -429,14 +443,19 @@ export default function OwnerVinClaimSection({
                       )}
                     </div>
                     {evidenceMode === 'compact' ? (
-                      <div className="field">
-                        <div className="field__top">
+                      <div className="field serviceHint__fieldWrap" id={`owner-vin-claim-city-${c.id}`}>
+                        <div className="field__top serviceHint__fieldTop">
                           <span className="field__label">Город</span>
+                          <ServiceHint
+                            scopeId={`owner-vin-claim-city-${c.id}`}
+                            variant="compact"
+                            label="Справка: город"
+                          >
+                            <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
+                          </ServiceHint>
                         </div>
-                        <ComboBox
+                        <CityComboBox
                           value={ev.city}
-                          options={RUSSIAN_MILLION_PLUS_CITIES}
-                          placeholder="Как в карточке сервиса; можно ввести свой вариант"
                           maxItems={24}
                           onChange={(v) =>
                             setEvidenceByCarId((m) => ({ ...m, [c.id]: { ...ev, city: v } }))

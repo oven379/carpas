@@ -5,7 +5,6 @@ import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, hasOwnerSession } from './auth.js'
 import { ComboBox } from './ComboBox.jsx'
-import OwnerSupportDropdown from './OwnerSupportDropdown.jsx'
 import { SupportButton } from './support/SupportHub.jsx'
 import {
   formatPhoneRuInput,
@@ -99,6 +98,7 @@ export function Textarea(props) {
 }
 
 export { ComboBox }
+export { CityComboBox } from './CityComboBox.jsx'
 export { DropdownCaretIcon } from './DropdownCaretIcon.jsx'
 
 /** Единый блок согласия с политикой и правилами на формах входа и регистрации. */
@@ -414,7 +414,7 @@ export function TopNav() {
               <>
                 {hasOwnerSession() ? (
                   <>
-                    <OwnerSupportDropdown />
+                    <SupportButton className="nav__action">Поддержка</SupportButton>
                     <button type="button" className="nav__action" onClick={logout}>
                       Выйти
                     </button>

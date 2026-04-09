@@ -130,6 +130,7 @@ export function createApiClient() {
   let inflightDetailingClaims = null
   const inflightEventsByKey = new Map()
   const inflightVinSearchByKey = new Map()
+  const inflightOwnerClaimSearchByKey = new Map()
   const inflightDupesByKey = new Map()
   const inflightPlateSearchByKey = new Map()
 
@@ -142,6 +143,7 @@ export function createApiClient() {
     inflightDetailingClaims = null
     inflightEventsByKey.clear()
     inflightVinSearchByKey.clear()
+    inflightOwnerClaimSearchByKey.clear()
     inflightDupesByKey.clear()
     inflightPlateSearchByKey.clear()
   }
@@ -394,6 +396,21 @@ export function createApiClient() {
         if (inflightVinSearchByKey.get(v) === p) inflightVinSearchByKey.delete(v)
       })
       inflightVinSearchByKey.set(v, p)
+      return p
+    },
+
+    /** Поиск карточек в сервисах: VIN, телефон клиента в карточке или client_email. */
+    async findCarsForOwnerClaim(q) {
+      const key = String(q || '').trim().toLowerCase()
+      let p = inflightOwnerClaimSearchByKey.get(key)
+      if (p) return p
+      p = req('owners/cars/search-for-claim', {
+        query: { q: String(q || '').trim() },
+        token: oTok(),
+      }).finally(() => {
+        if (inflightOwnerClaimSearchByKey.get(key) === p) inflightOwnerClaimSearchByKey.delete(key)
+      })
+      inflightOwnerClaimSearchByKey.set(key, p)
       return p
     },
 

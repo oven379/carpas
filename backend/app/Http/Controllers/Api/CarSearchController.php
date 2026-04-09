@@ -56,8 +56,10 @@ class CarSearchController extends Controller
 
     /**
      * Карточки с совпадением нормализованного телефона (client_phone, owner_phone на авто, phone владельца в ЛК).
+     *
+     * @param  bool  $includePersonalGarageCars  Для поиска дублей в кабинете партнёра — true; для заявки владельца по авто в сервисе — только false (без личных гаражей).
      */
-    private static function carsMatchingPhoneDigits(string $phoneCmp): Collection
+    private static function carsMatchingPhoneDigits(string $phoneCmp, bool $includePersonalGarageCars = true): Collection
     {
         if (strlen($phoneCmp) < 10) {
             return collect();
@@ -100,11 +102,56 @@ class CarSearchController extends Controller
         };
 
         $pushMatches($narrowAndLoad(self::nonPersonalCarsQuery()));
-        $pushMatches($narrowAndLoad(
-            Car::query()->whereHas('detailing', fn ($q) => $q->where('is_personal', true)),
-        ));
+        if ($includePersonalGarageCars) {
+            $pushMatches($narrowAndLoad(
+                Car::query()->whereHas('detailing', fn ($q) => $q->where('is_personal', true)),
+            ));
+        }
 
         return $found;
+    }
+
+    /**
+     * Кабинет владельца: найти карточки партнёрских сервисов по VIN, телефону или e-mail клиента в карточке.
+     */
+    public function forOwnerClaim(Request $request)
+    {
+        $raw = trim((string) $request->query('q', ''));
+        if ($raw === '') {
+            return response()->json([]);
+        }
+
+        if (str_contains($raw, '@')) {
+            $email = mb_strtolower($raw);
+            $cars = self::nonPersonalCarsQuery()
+                ->whereRaw('lower(trim(client_email)) = ?', [$email])
+                ->orderByDesc('updated_at')
+                ->limit(50)
+                ->get();
+
+            return response()->json(self::mapCarRows($cars));
+        }
+
+        $vinNorm = VinPlateValidator::normalizeVin($raw);
+        if ($vinNorm !== '' && VinPlateValidator::vinError($vinNorm) === null) {
+            $vin = mb_strtolower($vinNorm, 'UTF-8');
+            $cars = Car::query()
+                ->whereRaw('lower(trim(vin)) = ?', [$vin])
+                ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+                ->with(['detailing', 'owner'])
+                ->orderByDesc('updated_at')
+                ->limit(50)
+                ->get();
+
+            return response()->json(self::mapCarRows($cars));
+        }
+
+        $phoneCmp = self::comparablePhoneDigits($raw);
+        if (strlen($phoneCmp) >= 10) {
+            return response()->json(self::mapCarRows(self::carsMatchingPhoneDigits($phoneCmp, false)));
+        }
+
+        return response()->json([]);
     }
 
     /**

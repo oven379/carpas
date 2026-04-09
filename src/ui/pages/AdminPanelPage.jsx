@@ -226,6 +226,7 @@ function supportContextLine(ctx) {
   if (!ctx || typeof ctx !== 'object') return '—'
   const parts = []
   if (ctx.page_title) parts.push(String(ctx.page_title))
+  if (ctx.request_type === 'garage_limit') parts.push('запрос: лимит гаража')
   if (ctx.role === 'owner') {
     if (ctx.cars_count != null) parts.push(`авто в гараже: ${ctx.cars_count}`)
     if (ctx.garage_slug) parts.push(`слаг: ${ctx.garage_slug}`)

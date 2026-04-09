@@ -1,11 +1,12 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
-import { BackNav, Card, ComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
-import { clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
-import { useRepo, refreshAllClientData } from '../useRepo.js'
+import { BackNav, Card, CityComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
+import { bumpSessionRefresh, clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
+import { useRepo, refreshAllClientData, invalidateRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import {
+  CITY_FIELD_DD_HINT,
   formatPhoneRuInput,
   normalizeGarageSlugInput,
   parseGarageSocialLines,
@@ -13,13 +14,13 @@ import {
 } from '../../lib/format.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 
 export default function GarageSettingsPage() {
   const navigate = useNavigate()
   const r = useRepo()
   const saveLock = useAsyncActionLock()
+  const premiumLock = useAsyncActionLock()
   const { owner, mode, loading } = useDetailing()
   const socialRowIdRef = useRef(1)
   const nextSocialRowId = () => ++socialRowIdRef.current
@@ -204,18 +205,11 @@ export default function GarageSettingsPage() {
               <span className="field__label">Город для улицы</span>
               <ServiceHint scopeId="garage-settings-city" variant="compact" label="Справка: город">
                 <p className="serviceHint__panelText">
-                  В списке — города России с населением свыше 1 млн; можно ввести любой другой город вручную. На улице
-                  город виден в режиме «Выйти на улицу», если поле заполнено.
+                  {CITY_FIELD_DD_HINT} На улице город виден в режиме «Выйти на улицу», если поле заполнено.
                 </p>
               </ServiceHint>
             </div>
-            <ComboBox
-              value={draft.garageCity}
-              options={RUSSIAN_MILLION_PLUS_CITIES}
-              placeholder="Города-миллионники в списке; можно ввести любой город"
-              maxItems={20}
-              onChange={(v) => setDraft((d) => ({ ...d, garageCity: v }))}
-            />
+            <CityComboBox value={draft.garageCity} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, garageCity: v }))} />
           </div>
 
           <div className="field field--full serviceHint__fieldWrap" id="garage-settings-website">
@@ -384,6 +378,44 @@ export default function GarageSettingsPage() {
             onBannerUrl={(url) => setDraft((d) => ({ ...d, garageBanner: url }))}
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, garageAvatar: url }))}
           />
+        </div>
+
+        <div
+          className="field field--full garageSettings__premiumBlock"
+          style={{ marginTop: 8, paddingTop: 18, borderTop: '1px solid color-mix(in oklab, var(--border) 88%, transparent)' }}
+        >
+          <div className="field__top">
+            <span className="field__label">Тариф (тест)</span>
+          </div>
+          <p className="muted small" style={{ margin: '0 0 10px', maxWidth: '62ch', lineHeight: 1.5 }}>
+            Флаг Premium для отладки и демо. Лимиты гаража в MVP по-прежнему задаются правилами сервиса.
+          </p>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={premiumLock.pending}
+            onClick={() =>
+              void premiumLock.run(async () => {
+                if (!owner?.email || !r.updateOwnerMe) {
+                  alert('Не удалось обновить тариф.')
+                  return
+                }
+                try {
+                  const next = await r.updateOwnerMe({ isPremium: !owner.isPremium })
+                  if (next?.owner) mergeSessionOwnerScalars(next.owner)
+                  invalidateRepo()
+                  bumpSessionRefresh()
+                  const prem = Boolean(next?.owner?.isPremium)
+                  alert(prem ? 'Premium включён.' : 'Premium выключен.')
+                } catch {
+                  alert('Не удалось обновить тариф.')
+                }
+              })
+            }
+          >
+            {owner?.isPremium ? 'Отключить Premium' : 'Подключить Premium'}
+          </button>
         </div>
 
         <AuthChangePasswordSection

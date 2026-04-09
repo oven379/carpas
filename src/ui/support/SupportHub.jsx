@@ -182,13 +182,17 @@ export function SupportProvider({ children }) {
     try {
       const api = getApi()
       const carId = modalOpts.carId || null
-      const context = await buildSupportContext(r, {
+      const baseContext = await buildSupportContext(r, {
         pathname: loc.pathname,
         mode,
         detailingId,
         detailing,
         carId,
       })
+      const context =
+        modalOpts.contextExtra && typeof modalOpts.contextExtra === 'object'
+          ? { ...baseContext, ...modalOpts.contextExtra }
+          : baseContext
       await api.createSupportTicket({
         body: text,
         page_path: loc.pathname || '/',
@@ -349,14 +353,17 @@ export function SupportProvider({ children }) {
 }
 
 /** Кнопка «Поддержка» с бейджем непрочитанного ответа (шапка / футер / публичные страницы). */
-export function SupportButton({ className = '', children, ...rest }) {
+export function SupportButton({ className = '', children, openOptions, onClick, ...rest }) {
   const { openModal, unreadCount } = useSupport()
   return (
     <button
       type="button"
       className={className.trim()}
       {...rest}
-      onClick={() => openModal()}
+      onClick={(e) => {
+        onClick?.(e)
+        if (!e.defaultPrevented) openModal(openOptions ?? {})
+      }}
     >
       <span className="supportBtn__inner">
         <span className="supportBtn__label">{children || 'Поддержка'}</span>

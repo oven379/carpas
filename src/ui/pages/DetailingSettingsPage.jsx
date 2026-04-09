@@ -5,6 +5,7 @@ import {
   BackNav,
   Button,
   Card,
+  CityComboBox,
   ComboBox,
   DropdownCaretIcon,
   Field,
@@ -29,9 +30,9 @@ import {
   dedupeOfferedStrings,
 } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import {
+  CITY_FIELD_DD_HINT,
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
   DETAILING_WORKING_HOURS_MAX_LEN,
   displayRuPhone,
@@ -366,15 +367,17 @@ export default function DetailingSettingsPage() {
               autoComplete="tel"
             />
           </Field>
-          <Field label="Город">
-            <ComboBox
-              value={draft.city}
-              options={RUSSIAN_MILLION_PLUS_CITIES}
-              placeholder="Города-миллионники в списке; можно ввести любой город"
-              maxItems={20}
-              onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
-            />
-          </Field>
+          <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-city">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">Город</span>
+              <ServiceHint scopeId="detailing-settings-city" variant="compact" label="Справка: город">
+                <p className="serviceHint__panelText">
+                  {CITY_FIELD_DD_HINT} Указывается на лендинге /d/… вместе с адресом, если поля заполнены.
+                </p>
+              </ServiceHint>
+            </div>
+            <CityComboBox value={draft.city} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, city: v }))} />
+          </div>
           <Field
             label="Адрес"
             hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : 'необязательно'}

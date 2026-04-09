@@ -5,7 +5,7 @@ import {
   BackNav,
   Button,
   Card,
-  ComboBox,
+  CityComboBox,
   Field,
   Input,
   PhoneRuInput,
@@ -15,8 +15,7 @@ import { useRepo, invalidateRepo } from '../useRepo.js'
 import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import { formatPhoneRuInput } from '../../lib/format.js'
-import { RUSSIAN_MILLION_PLUS_CITIES } from '../../lib/russianMillionCities.js'
+import { CITY_FIELD_DD_HINT, formatPhoneRuInput } from '../../lib/format.js'
 
 export default function PartnerApplyPage() {
   const r = useRepo()
@@ -108,15 +107,15 @@ export default function PartnerApplyPage() {
                   placeholder="studio@example.com"
                 />
               </Field>
-              <Field className="field--full" label="Город">
-                <ComboBox
-                  value={regCity}
-                  options={RUSSIAN_MILLION_PLUS_CITIES}
-                  placeholder="Города-миллионники в списке; можно ввести любой город"
-                  maxItems={20}
-                  onChange={(v) => setRegCity(v)}
-                />
-              </Field>
+              <div className="field field--full serviceHint__fieldWrap" id="partner-apply-city">
+                <div className="field__top serviceHint__fieldTop">
+                  <span className="field__label">Город</span>
+                  <ServiceHint scopeId="partner-apply-city" variant="compact" label="Справка: город">
+                    <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
+                  </ServiceHint>
+                </div>
+                <CityComboBox value={regCity} maxItems={20} onChange={(v) => setRegCity(v)} />
+              </div>
               <Field className="field--full" label="Адрес" hint="улица, дом">
                 <Input
                   className="input"

@@ -2,6 +2,7 @@ import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { SupportButton } from '../support/SupportHub.jsx'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
@@ -23,6 +24,7 @@ import {
   OWNER_MAX_TOTAL_CARS,
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
+import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
@@ -156,15 +158,6 @@ export default function OwnerGaragePage() {
 
   const ownerEmail = String(owner?.email || '').trim()
 
-  const carsKey = useMemo(
-    () =>
-      cars
-        .map((c) => String(c?.id ?? ''))
-        .sort()
-        .join(','),
-    [cars],
-  )
-
   useEffect(() => {
     if (loc.hash !== '#garage-vin-claim') return
     const t = window.setTimeout(() => {
@@ -278,7 +271,7 @@ export default function OwnerGaragePage() {
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, carsKey, r, r._version])
+  }, [ownerEmail, cars, r, r._version])
 
   const bestDetailingId = useMemo(() => pickBestDetailingId(cars, ownerClaims), [cars, ownerClaims])
   const linkedDetailing = useMemo(
@@ -761,6 +754,23 @@ export default function OwnerGaragePage() {
                   Добавить авто
                 </span>
               )}
+              {!limits.canAddManual ? (
+                <p className="muted small garageProfileCard__limitHint" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '52ch' }}>
+                  Лимит на добавление нового авто исчерпан.{' '}
+                  <SupportButton
+                    type="button"
+                    className="btn garageProfileCard__limitSupportBtn"
+                    data-variant="outline"
+                    openOptions={{
+                      bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
+                      contextExtra: { request_type: 'garage_limit' },
+                    }}
+                  >
+                    Поддержка
+                  </SupportButton>
+                  {` — отправьте обращение, оно попадёт в админ-панель.`}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>

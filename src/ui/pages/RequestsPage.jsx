@@ -6,14 +6,7 @@ import { useDetailing } from '../useDetailing.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
-import { displayRuPhone } from '../../lib/format.js'
-
-function eqNorm(a, b) {
-  const x = String(a || '').trim().toLowerCase()
-  const y = String(b || '').trim().toLowerCase()
-  if (!x || !y) return null
-  return x === y
-}
+import { displayRuPhone, fmtInt, fmtPlateFull } from '../../lib/format.js'
 
 export default function RequestsPage() {
   const r = useRepo()
@@ -94,7 +87,7 @@ export default function RequestsPage() {
                 <p className="serviceHint__panelText">
                   Владельцы запрашивают привязку авто к вашему кабинету. Аватар справа вверху ведёт на страницу гаража по адресу{' '}
                   <span className="mono">/g/…</span> (витрина может быть закрыта настройками владельца — страница всё равно откроется).
-                  Если адрес <span className="mono">/g/…</span> не задан, аватар неактивен. Город гаража — из профиля владельца в КарПас.
+                  Если адрес <span className="mono">/g/…</span> не задан, аватар неактивен.
                 </p>
               </ServiceHint>
             </div>
@@ -109,21 +102,21 @@ export default function RequestsPage() {
         {claims.map((x) => {
           const car = carsById[String(x.carId)] || null
           const ev = x.evidence || {}
-          const mYear = eqNorm(ev.year, car?.year)
-          const mCity = eqNorm(ev.city, car?.city)
-          const mColor = eqNorm(ev.color, car?.color)
-          const mMake = eqNorm(ev.make, car?.make)
           const ownerGarageSlug = String(x.ownerGarageSlug || '').trim()
-          const ownerGarageCity = String(x.ownerGarageCity || '').trim()
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
           const ownerLabel = String(x.ownerName || '').trim() || String(x.ownerEmail || 'Владелец').trim()
           const ownerDisplayName = String(x.ownerName || '').trim() || String(x.ownerEmail || '').trim() || '—'
-          const phoneForCall = String(car?.ownerAccountPhone || x.ownerAccountPhone || '').trim()
-          const { display: ownerPhoneDisplay, telHref: ownerPhoneTelHref } = displayRuPhone(phoneForCall)
+          const ownerEmailLine = String(x.ownerEmail || '').trim()
+          const plateLine = car ? fmtPlateFull(car.plate, car.plateRegion) : ''
+          const mileageLine = car != null ? `${fmtInt(Number(car.mileageKm) || 0)} км` : null
+          const clientPhoneRaw = String(car?.clientPhone || '').trim()
+          const { display: clientPhoneDisplay, telHref: clientPhoneTelHref } = displayRuPhone(clientPhoneRaw)
+          const clientEmailLine = String(car?.clientEmail || '').trim()
+          const evidencePhoneRaw = String(ev.contactPhone || '').trim()
+          const { display: evidencePhoneDisplay, telHref: evidencePhoneTelHref } = displayRuPhone(evidencePhoneRaw)
           const garagePath = ownerGarageSlug ? `/g/${encodeURIComponent(ownerGarageSlug)}` : null
           const navState = { from: `${loc.pathname}${loc.search}` }
           const carHeroBg = car?.hero ? resolvedBackgroundImageUrl(car.hero) : undefined
-          const showMakePill = Boolean(String(ev.make || '').trim())
           const avatarInner = ownerAvatar ? (
             <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
           ) : (
@@ -164,34 +157,62 @@ export default function RequestsPage() {
                     </Pill>
                   </div>
 
-                  <div className="requestsCard__facts">
+                  <div className="requestsCard__evidenceRow" style={{ marginTop: 12 }}>
+                    <div
+                      className={`requestsCard__carPhoto${carHeroBg ? '' : ' requestsCard__carPhoto--empty'}`}
+                      style={carHeroBg ? { backgroundImage: carHeroBg } : undefined}
+                      role={car?.hero ? 'img' : undefined}
+                      aria-label={car?.hero ? 'Обложка автомобиля в карточке сервиса' : undefined}
+                    />
+                  </div>
+                  <p className="muted small requestsCard__evidenceHint" style={{ marginTop: 10, marginBottom: 0 }}>
+                    Сверьте заявителя с фото автомобиля и контактами в вашей карточке (телефон и почта клиента).
+                  </p>
+
+                  <div className="requestsCard__facts topBorder" style={{ marginTop: 14 }}>
+                    {mileageLine != null ? (
+                      <div className="requestsCard__factLine">
+                        <span className="clientBlockLabel">Пробег:</span> {mileageLine}
+                      </div>
+                    ) : null}
                     <div className="requestsCard__factLine">
-                      <span className="clientBlockLabel">Клиент:</span>{' '}
-                      <span className="requestsCard__clientName">{ownerDisplayName}</span>
+                      <span className="clientBlockLabel">Госномер:</span>{' '}
+                      {plateLine ? <span className="mono">{plateLine}</span> : <span className="muted">не указан</span>}
                     </div>
                     <div className="requestsCard__factLine">
-                      <span className="clientBlockLabel">Телефон:</span>{' '}
-                      {ownerPhoneTelHref ? (
-                        <a className="rowItem__ownerSummaryPhone" href={ownerPhoneTelHref}>
-                          {ownerPhoneDisplay}
+                      <span className="clientBlockLabel">Телефон в карточке:</span>{' '}
+                      {clientPhoneTelHref ? (
+                        <a className="rowItem__ownerSummaryPhone" href={clientPhoneTelHref}>
+                          {clientPhoneDisplay}
                         </a>
-                      ) : phoneForCall ? (
-                        <span>{ownerPhoneDisplay || phoneForCall}</span>
+                      ) : clientPhoneRaw ? (
+                        <span>{clientPhoneDisplay || clientPhoneRaw}</span>
                       ) : (
                         <span className="muted">не указан</span>
                       )}
                     </div>
                     <div className="requestsCard__factLine">
-                      <span className="clientBlockLabel">Город гаража:</span>{' '}
-                      {ownerGarageCity || <span className="muted">не указан</span>}
+                      <span className="clientBlockLabel">Почта в карточке:</span>{' '}
+                      {clientEmailLine ? <span className="mono">{clientEmailLine}</span> : <span className="muted">не указана</span>}
                     </div>
-                    {car?.vin ? (
-                      <div className="requestsCard__factLine mono">
-                        <span className="clientBlockLabel">VIN:</span> {car.vin}
+                    {evidencePhoneRaw ? (
+                      <div className="requestsCard__factLine">
+                        <span className="clientBlockLabel">Телефон для сверки (в заявке):</span>{' '}
+                        {evidencePhoneTelHref ? (
+                          <a className="rowItem__ownerSummaryPhone" href={evidencePhoneTelHref}>
+                            {evidencePhoneDisplay}
+                          </a>
+                        ) : (
+                          <span>{evidencePhoneDisplay || evidencePhoneRaw}</span>
+                        )}
                       </div>
                     ) : null}
+                    <div className="requestsCard__factLine">
+                      <span className="clientBlockLabel">Заявитель:</span>{' '}
+                      <span className="requestsCard__clientName">{ownerDisplayName}</span>
+                    </div>
                     <div className="muted small requestsCard__factLine requestsCard__ownerEmailLine">
-                      <span className="mono">{x.ownerEmail}</span>
+                      {ownerEmailLine ? <span className="mono">{ownerEmailLine}</span> : <span className="muted">—</span>}
                       {garagePath ? (
                         <>
                           <span className="requestsCard__ownerLineSep" aria-hidden="true">
@@ -204,46 +225,6 @@ export default function RequestsPage() {
                         </>
                       ) : null}
                     </div>
-                  </div>
-
-                  <div className="topBorder requestsCard__evidence">
-                    <div className="muted small" style={{ marginBottom: 6 }}>
-                      Данные для проверки (как указал владелец)
-                    </div>
-                    <p className="muted small requestsCard__evidenceHint">
-                      Сверьте <strong>город</strong>, <strong>год</strong> и <strong>цвет</strong> с обложкой автомобиля (цвет
-                      на фото) и с карточкой авто в вашем кабинете.
-                    </p>
-                    <div className="requestsCard__evidenceRow">
-                      <div
-                        className={`requestsCard__carPhoto${carHeroBg ? '' : ' requestsCard__carPhoto--empty'}`}
-                        style={carHeroBg ? { backgroundImage: carHeroBg } : undefined}
-                        role={car?.hero ? 'img' : undefined}
-                        aria-label={car?.hero ? 'Обложка автомобиля в карточке сервиса' : undefined}
-                      />
-                      <div className="requestsCard__evidencePills row gap wrap">
-                        {showMakePill ? (
-                          <Pill tone={mMake == null ? 'neutral' : mMake ? 'accent' : 'neutral'}>
-                            Марка: {ev.make || '—'} {mMake === true ? '✓' : mMake === false ? '✕' : ''}
-                          </Pill>
-                        ) : null}
-                        <Pill tone={mCity == null ? 'neutral' : mCity ? 'accent' : 'neutral'}>
-                          Город: {ev.city || '—'} {mCity === true ? '✓' : mCity === false ? '✕' : ''}
-                        </Pill>
-                        <Pill tone={mYear == null ? 'neutral' : mYear ? 'accent' : 'neutral'}>
-                          Год: {ev.year || '—'} {mYear === true ? '✓' : mYear === false ? '✕' : ''}
-                        </Pill>
-                        <Pill tone={mColor == null ? 'neutral' : mColor ? 'accent' : 'neutral'}>
-                          Цвет: {ev.color || '—'} {mColor === true ? '✓' : mColor === false ? '✕' : ''}
-                        </Pill>
-                      </div>
-                    </div>
-                    {car ? (
-                      <div className="muted small requestsCard__serviceRef">
-                        В карточке сервиса: {car.make || '—'} {car.model || ''} · год {car.year || '—'} · город{' '}
-                        {car.city || '—'} · цвет {car.color || '—'}
-                      </div>
-                    ) : null}
                   </div>
 
                   {x.status === 'pending' ? (

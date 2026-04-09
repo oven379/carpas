@@ -18,6 +18,7 @@ import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
+import { OwnerCarQuickActions } from '../OwnerCarQuickActions.jsx'
 
 function CarPageOwnerLastVisitPreview({ lastEvt, photoUrl, histPath }) {
   const [thumbBroken, setThumbBroken] = useState(false)
@@ -516,6 +517,7 @@ export default function CarPage() {
                 <span className="carPage__icon carPage__icon--edit" aria-hidden="true" />
                 <span className="carPage__btnText">Редактировать</span>
               </Link>
+              {mode === 'owner' ? <OwnerCarQuickActions carId={id} car={car} /> : null}
             </div>
           ) : null}
           <div className="row gap wrap carHero__pills">
@@ -888,10 +890,7 @@ export default function CarPage() {
                 aria-label="Добавить визит"
                 title="Добавить визит"
               >
-                <span className="carPage__recsAddVisitText">+ Добавить визит</span>
-                <span className="carPage__recsPlusIcon" aria-hidden="true">
-                  +
-                </span>
+                Добавить визит
               </Link>
             </div>
             {recsOpen ? (

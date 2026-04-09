@@ -51,7 +51,12 @@ export function clampVisitTitle(raw) {
 
 export function fmtInt(n) {
   const v = Number.isFinite(Number(n)) ? Number(n) : 0
-  return new Intl.NumberFormat('ru-RU').format(Math.round(v))
+  return new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 0,
+    useGrouping: true,
+  })
+    .format(Math.round(v))
+    .replace(/\u202f|\u00a0/g, ' ')
 }
 
 export function fmtKm(n) {
@@ -64,7 +69,7 @@ export function fmtUsd(n) {
 
 export function fmtRub(n) {
   const v = Number.isFinite(Number(n)) ? Number(n) : 0
-  return `${new Intl.NumberFormat('ru-RU').format(Math.round(v))} ₽`
+  return `${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0, useGrouping: true }).format(Math.round(v)).replace(/\u202f|\u00a0/g, ' ')} ₽`
 }
 
 export function fmtDate(iso) {
@@ -170,9 +175,14 @@ const RU_PLATE_LETTER_SET = new Set(RU_PLATE_LETTERS_LAT.split(''))
 /** Пример: основная часть слева, регион справа (как на белой табличке). */
 export const RU_PLATE_LAYOUT_DIAGRAM = '  А123ВС   +   77\n  основная часть   регион'
 
+/** Общий текст справки для поля города (CityComboBox, DaData). */
+export const CITY_FIELD_DD_HINT =
+  'Подсказки городов — через DaData (нужен ключ VITE_DADATA_TOKEN в окружении фронта). Можно ввести название вручную.'
+
 export const RU_PLATE_HINT_PARAGRAPHS = [
   'Легковой номер РФ: первое поле — шесть знаков подряд (буква, три цифры, две буквы), как слева на табличке; второе — код региона, 2–3 цифры.',
   'Буквы только из набора ГОСТ: А, В, Е, К, М, Н, О, Р, С, Т, У, Х (кириллица). Для удобства также принимаются те же буквы латиницей (A, B, E, K, M, H, O, P, C, T, Y, X). Остальные символы из ввода убираются. Номер можно не указывать.',
+  'Поля принимают символы по порядку: символ, неподходящий к текущей позиции, не попадает в поле.',
 ]
 
 function plateCharToLatinUpper(ch) {
@@ -184,9 +194,19 @@ function plateCharToLatinUpper(ch) {
   return ''
 }
 
+/** Одна буква ГОСТ для поля основной части: кириллица как на табличке (латиница → кириллица). */
+function plateBaseUiLetterFromChar(ch) {
+  const u = String(ch).toLocaleUpperCase('ru-RU')
+  if (PLATE_MAP_CYR_TO_LAT.has(u)) return u
+  if (u.length === 1 && u >= 'A' && u <= 'Z' && RU_PLATE_LETTER_SET.has(u)) {
+    return PLATE_MAP_LAT_TO_CYR.get(u) || ''
+  }
+  return ''
+}
+
 /**
- * Поле ввода: только цифры и буквы АВЕКМНОРСТУХ (кириллица в верхнем регистре).
- * Латинские «близнецы» превращаются в кириллицу, чтобы на экране был номер «как на табличке».
+ * Поле ввода основной части: строго буква → три цифры → две буквы (АВЕКМНОРСТУХ).
+ * Латинские «близнецы» превращаются в кириллицу. Неверный для позиции символ отбрасывается.
  */
 export function normPlateBaseUi(raw, { maxLen = 6 } = {}) {
   const s = String(raw || '')
@@ -194,17 +214,12 @@ export function normPlateBaseUi(raw, { maxLen = 6 } = {}) {
   let out = ''
   for (const ch of s) {
     if (out.length >= maxLen) break
-    if (ch >= '0' && ch <= '9') {
+    const pos = out.length
+    if (pos === 0 || pos === 4 || pos === 5) {
+      const cyr = plateBaseUiLetterFromChar(ch)
+      if (cyr) out += cyr
+    } else if (ch >= '0' && ch <= '9') {
       out += ch
-      continue
-    }
-    const u = String(ch).toLocaleUpperCase('ru-RU')
-    if (PLATE_MAP_CYR_TO_LAT.has(u)) {
-      out += u
-      continue
-    }
-    if (u.length === 1 && u >= 'A' && u <= 'Z' && RU_PLATE_LETTER_SET.has(u)) {
-      out += PLATE_MAP_LAT_TO_CYR.get(u) || u
     }
   }
   return out

@@ -8,6 +8,8 @@ import {
   ownerGarageLimits,
 } from '../../lib/garageLimits.js'
 import { HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { SupportButton } from '../support/SupportHub.jsx'
+import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
@@ -117,6 +119,24 @@ export default function MarketPage() {
                 </span>
               )}
             </div>
+            {!limits.canAddManual ? (
+              <p className="muted small" style={{ marginTop: 10, lineHeight: 1.55, maxWidth: '62ch' }}>
+                Лимит на добавление нового автомобиля исчерпан. Для подключения ещё одного авто обратитесь в{' '}
+                <SupportButton
+                  type="button"
+                  className="btn"
+                  data-variant="outline"
+                  style={{ display: 'inline-flex', verticalAlign: 'middle', margin: '0 2px' }}
+                  openOptions={{
+                    bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
+                    contextExtra: { request_type: 'garage_limit' },
+                  }}
+                >
+                  поддержку
+                </SupportButton>
+                — тикет увидят в админ-панели.
+              </p>
+            ) : null}
           </div>
           <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             <span>Карточки, история визитов, заявка по VIN</span>
