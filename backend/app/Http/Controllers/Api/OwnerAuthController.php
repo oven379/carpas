@@ -55,6 +55,7 @@ class OwnerAuthController extends Controller
                 'name' => TextFormat::mbUcfirst($data['name']),
                 'phone' => trim((string) $data['phone']),
                 'garage_banner_enabled' => false,
+                'garage_private' => true,
             ]);
         } catch (QueryException $e) {
             if ($this->isUniqueViolationOnOwnerEmail($e)) {

@@ -32,7 +32,7 @@ export default function GarageSettingsPage() {
     garageCity: '',
     garageWebsite: '',
     garageSlug: '',
-    garagePrivate: false,
+    garagePrivate: true,
     garageBannerEnabled: false,
     garageBanner: '',
     garageAvatar: '',
@@ -132,12 +132,12 @@ export default function GarageSettingsPage() {
       <Card className="card pad garageSettings__card">
         <div className="field field--full serviceHint__fieldWrap garageSettings__privacyBlock" id="garage-settings-privacy">
           <div className="field__top serviceHint__fieldTop">
-            <span className="field__label">Витрина по ссылке /g/…</span>
+            <span className="field__label">Видимость страницы гаража</span>
             <ServiceHint scopeId="garage-settings-privacy" variant="compact" label="Справка: гараж или улица">
               <p className="serviceHint__panelText">
-                <strong>Остаться в гараже</strong> — по вашей ссылке гости видят только сообщение, что вы в личном гараже;
-                контакты и автомобили не показываются. <strong>Выйти на улицу</strong> — страница открыта: отображаются
-                заполненные телефон, город, сайт и ссылки (отдельные галочки не нужны).
+                По умолчанию включено <strong>«Остаться в гараже»</strong>: по ссылке гости не видят контакты и автомобили.
+                <strong> Выйти на улицу</strong> — страница открыта для всех: телефон, город, сайт и ссылки (отдельные галочки не
+                нужны). Партнёрский детейлинг, у которого есть ваше авто в кабинете, всё равно видит нужные данные для работы.
               </p>
             </ServiceHint>
           </div>
@@ -161,8 +161,8 @@ export default function GarageSettingsPage() {
           </div>
           <p className="muted small" style={{ margin: '10px 0 0', maxWidth: '62ch', lineHeight: 1.5 }}>
             {draft.garagePrivate
-              ? 'Сейчас: закрытая витрина. Переход по ссылке не раскрывает ваши данные посторонним.'
-              : 'Сейчас: открытая витрина. Все заполненные ниже контакты и блок ссылок попадут на публичную страницу.'}
+              ? 'Сейчас: страница закрыта. Переход по ссылке не раскрывает ваши данные посторонним.'
+              : 'Сейчас: страница открыта. Все заполненные ниже контакты и блок ссылок попадут на публичную страницу.'}
           </p>
         </div>
 
@@ -364,8 +364,8 @@ export default function GarageSettingsPage() {
               </div>
               <ServiceHint scopeId="garage-settings-banner" variant="compact" label="Справка: баннер гаража">
                 <p className="serviceHint__panelText">
-                  Широкое фото сверху страницы «Мой гараж». То же изображение используется как фон на публичной витрине по ссылке{' '}
-                  <span className="mono">/g/…</span>, если в настройках включён режим «Выйти на улицу».
+                  Широкое фото сверху страницы «Мой гараж». То же изображение используется как фон на вашей публичной странице
+                  гаража, если в настройках включён режим «Выйти на улицу».
                 </p>
                 <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
                   Если выключить показ баннера, обложка не отображается, но файл в профиле сохраняется — позже показ можно снова

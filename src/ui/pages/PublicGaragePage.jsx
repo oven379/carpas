@@ -33,11 +33,11 @@ export default function PublicGaragePage() {
   const slugNorm = useMemo(() => String(slug || '').trim(), [slug])
   const ownerPreview = data?.owner
   const socialLinks = useMemo(() => {
-    if (!ownerPreview || ownerPreview.garagePrivate) return []
+    if (!ownerPreview || data?.garagePrivate) return []
     return parseGarageSocialLines(ownerPreview.garageSocial || '')
       .map((line) => ({ line, href: normalizeHttpUrl(line) }))
       .filter((x) => x.href)
-  }, [ownerPreview])
+  }, [ownerPreview, data?.garagePrivate])
 
   useEffect(() => {
     let cancelled = false

@@ -11,6 +11,7 @@ use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class PublicShowcaseController extends Controller
 {
@@ -238,6 +239,32 @@ class PublicShowcaseController extends Controller
         ]);
     }
 
+    /**
+     * Партнёрский детейлинг (не личный «тень»-кабинет владельца) с авто этого владельца видит полный ответ,
+     * даже если garage_private — для анонимов страница закрыта.
+     */
+    private function partnerDetailingLinkedToOwnerFromBearer(Request $request, Owner $owner): ?Detailing
+    {
+        $raw = $request->bearerToken();
+        if (! is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+        $pat = PersonalAccessToken::findToken($raw);
+        if (! $pat || ! $pat->tokenable instanceof Detailing) {
+            return null;
+        }
+        $d = $pat->tokenable;
+        if ($d->is_personal) {
+            return null;
+        }
+        $linked = Car::query()
+            ->where('detailing_id', $d->id)
+            ->where('owner_id', $owner->id)
+            ->exists();
+
+        return $linked ? $d : null;
+    }
+
     public function ownerGarage(Request $request, $slug)
     {
         $s = mb_strtolower(trim((string) $slug));
@@ -247,7 +274,10 @@ class PublicShowcaseController extends Controller
         $ownerPayload = ApiResources::owner($owner);
         unset($ownerPayload['email']);
 
-        if ($owner->garage_private) {
+        $linkedPartner = $this->partnerDetailingLinkedToOwnerFromBearer($request, $owner);
+        $hideFromPublic = (bool) $owner->garage_private && $linkedPartner === null;
+
+        if ($hideFromPublic) {
             return response()->json([
                 'owner' => $ownerPayload,
                 'garagePrivate' => true,

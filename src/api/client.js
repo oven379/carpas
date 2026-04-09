@@ -167,7 +167,8 @@ export function createApiClient() {
     },
 
     async publicGarage(slug) {
-      return await req(`public/garages/${encodeURIComponent(slug)}`, { token: null })
+      const t = dTok() || null
+      return await req(`public/garages/${encodeURIComponent(slug)}`, { token: t })
     },
 
     async registerDetailing(body) {

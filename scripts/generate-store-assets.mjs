@@ -13,6 +13,8 @@ const svgPath = path.join(root, 'store-assets', 'source', 'logo-marketing.svg')
 const faviconSvgPath = path.join(root, 'public', 'favicon.svg')
 const rasterSourcePng = path.join(root, 'store-assets', 'source', 'logo-master.png')
 const BG = { r: 10, g: 10, b: 11, alpha: 1 }
+/** Прозрачный фон для веб-фавиконов и apple-touch (из SVG в public/) */
+const BG_TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
 
 function sourceInput() {
   if (fs.existsSync(rasterSourcePng)) {
@@ -155,10 +157,10 @@ async function main() {
   let webFaviconMaster = master1024
   if (fs.existsSync(faviconSvgPath)) {
     webFaviconMaster = await sharp(faviconSvgPath, { density: 360 })
-      .resize(512, 512, { fit: 'contain', position: 'centre', background: BG })
+      .resize(512, 512, { fit: 'contain', position: 'centre', background: BG_TRANSPARENT })
       .png()
       .toBuffer()
-    console.log('Favicons/apple-touch from', path.relative(root, faviconSvgPath))
+    console.log('Favicons/apple-touch from', path.relative(root, faviconSvgPath), '(прозрачный фон)')
   }
   const resizeWeb = (px) =>
     sharp(webFaviconMaster).resize(px, px, { kernel: sharp.kernel.lanczos3 }).png().toBuffer()

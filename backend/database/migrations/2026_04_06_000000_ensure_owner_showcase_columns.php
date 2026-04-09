@@ -48,7 +48,7 @@ return new class extends Migration
         }
         if (!Schema::hasColumn('owners', 'garage_private')) {
             Schema::table('owners', function (Blueprint $table) {
-                $table->boolean('garage_private')->default(false);
+                $table->boolean('garage_private')->default(true);
             });
         }
         if (!Schema::hasColumn('owners', 'garage_banner_enabled')) {

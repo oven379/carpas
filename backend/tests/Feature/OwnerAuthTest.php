@@ -45,6 +45,7 @@ class OwnerAuthTest extends FeatureTestCase
 
         $response->assertOk();
         $response->assertJsonPath('owner.email', 'owner-new@example.test');
+        $response->assertJsonPath('owner.garagePrivate', true);
         $this->assertNotEmpty($response->json('token'));
     }
 

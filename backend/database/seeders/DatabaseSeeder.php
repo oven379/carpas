@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
  * Учётки (пароль везде 1111):
  * - Партнёр (основной): studio@demo.car
  * - Партнёр (legacy из доков): test@test
- * - Владелец: owner@demo.car — публичная витрина гаража: /g/demo-garage
+ * - Владелец: owner@demo.car — для демо страница /g/demo-garage открыта (garage_private = false); у новых владельцев по умолчанию закрыта.
  * - Публичная карта по ссылке: /share/cpdemosharepubliclinktoken32char
  */
 class DatabaseSeeder extends Seeder
@@ -85,6 +85,7 @@ class DatabaseSeeder extends Seeder
                 'show_social_public' => true,
                 'show_phone_public' => false,
                 'is_premium' => false,
+                'garage_private' => false,
             ],
         );
 
