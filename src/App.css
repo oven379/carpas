@@ -692,6 +692,17 @@ button.nav__action {
   line-height: 1.45;
 }
 
+/* Дата и пробег — серым, как прочая второстепенная информация (см. гараж) */
+.carPage__ownerLastVisitMetaVal {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.carPage__ownerLastVisitMetaSep {
+  color: var(--muted);
+  font-weight: 400;
+}
+
 .carPage__ownerLastVisitAbout {
   margin-bottom: 12px;
   line-height: 1.45;
@@ -3319,7 +3330,7 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   scroll-margin-top: calc(56px + 12px + env(safe-area-inset-top, 0px));
 }
 
-/* Список и форма визита: на десктопе список сверху; на мобилке при открытой форме — форма выше списка */
+/* Список всегда выше формы; при открытой форме прокрутка к заголовку формы — см. HistoryPage useLayoutEffect */
 .historyPage__mainStack--formOpen {
   display: flex;
   flex-direction: column;
@@ -3333,16 +3344,6 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 
 .historyPage__formCol {
   min-width: 0;
-}
-
-@media (max-width: 768px) {
-  .historyPage__mainStack--formOpen .historyPage__listCol {
-    order: 2;
-  }
-
-  .historyPage__mainStack--formOpen .historyPage__formCol {
-    order: 1;
-  }
 }
 
 .marketSearch {

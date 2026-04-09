@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
@@ -19,6 +19,12 @@ import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/med
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
 import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
+import {
+  initialCarDataExpanded,
+  initialLastVisitExpanded,
+  patchCarPageExpandPrefs,
+  readCarPageExpandPrefs,
+} from '../../lib/carPageExpandPrefs.js'
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -36,21 +42,21 @@ function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   return (
     <Link className="carPage__ownerLastVisitHit" to={histPath} aria-label={`Открыть визит: ${headline}`}>
       <div className="carPage__ownerLastVisitHead">
-        <span className="metaStrong">Последний визит</span>
+        <span className="metaStrong">Последний визит:</span>
         {showAt || showKm ? (
           <>
-            <span className="eventMeta__sep" aria-hidden="true">
+            <span className="carPage__ownerLastVisitMetaSep" aria-hidden="true">
               {' '}
               ·{' '}
             </span>
-            {showAt ? <span className="eventMeta__when">{fmtDate(lastEvt.at)}</span> : null}
+            {showAt ? <span className="carPage__ownerLastVisitMetaVal">{fmtDate(lastEvt.at)}</span> : null}
             {showAt && showKm ? (
-              <span className="eventMeta__sep" aria-hidden="true">
+              <span className="carPage__ownerLastVisitMetaSep" aria-hidden="true">
                 {' '}
                 ·{' '}
               </span>
             ) : null}
-            {showKm ? <span className="eventMeta__km">{fmtKm(lastEvt.mileageKm)}</span> : null}
+            {showKm ? <span className="carPage__ownerLastVisitMetaVal">{fmtKm(lastEvt.mileageKm)}</span> : null}
           </>
         ) : null}
       </div>
@@ -90,7 +96,7 @@ export default function CarPage() {
   const [washIdx, setWashIdx] = useState(0)
   const [recsOpen, setRecsOpen] = useState(false)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
-  const [carDataExpanded, setCarDataExpanded] = useState(false)
+  const [carDataExpanded, setCarDataExpanded] = useState(true)
   const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode, loading } = useDetailing()
   const ownerEmailResolved = String(owner?.email || '').trim()
@@ -258,10 +264,12 @@ export default function CarPage() {
     setWashIdx(0)
   }, [visitGalleryKey])
 
-  useEffect(() => {
-    setOwnerDataExpanded(true)
-    setCarDataExpanded(false)
-  }, [id])
+  useLayoutEffect(() => {
+    if (!id) return
+    const p = readCarPageExpandPrefs(mode, id)
+    setOwnerDataExpanded(initialLastVisitExpanded(p))
+    setCarDataExpanded(initialCarDataExpanded(p))
+  }, [id, mode])
 
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
@@ -550,7 +558,13 @@ export default function CarPage() {
                   type="button"
                   className="dropdownCaretBtn dropdownCaretBtn--suffix"
                   aria-expanded={ownerDataExpanded ? 'true' : 'false'}
-                  onClick={() => setOwnerDataExpanded((v) => !v)}
+                  onClick={() =>
+                    setOwnerDataExpanded((v) => {
+                      const next = !v
+                      patchCarPageExpandPrefs(mode, id, { lastVisit: next })
+                      return next
+                    })
+                  }
                   title={ownerDataExpanded ? 'Свернуть' : 'Развернуть'}
                   aria-label={
                     ownerDataExpanded ? 'Свернуть блок «Последний визит»' : 'Развернуть блок «Последний визит»'
@@ -677,7 +691,13 @@ export default function CarPage() {
                     type="button"
                     className="dropdownCaretBtn dropdownCaretBtn--suffix"
                     aria-expanded={carDataExpanded ? 'true' : 'false'}
-                    onClick={() => setCarDataExpanded((v) => !v)}
+                    onClick={() =>
+                      setCarDataExpanded((v) => {
+                        const next = !v
+                        patchCarPageExpandPrefs(mode, id, { carData: next })
+                        return next
+                      })
+                    }
                     title={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                     aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                   >
@@ -718,7 +738,13 @@ export default function CarPage() {
                   type="button"
                   className="dropdownCaretBtn dropdownCaretBtn--suffix"
                   aria-expanded={carDataExpanded ? 'true' : 'false'}
-                  onClick={() => setCarDataExpanded((v) => !v)}
+                  onClick={() =>
+                    setCarDataExpanded((v) => {
+                      const next = !v
+                      patchCarPageExpandPrefs(mode, id, { carData: next })
+                      return next
+                    })
+                  }
                   title={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                   aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                 >

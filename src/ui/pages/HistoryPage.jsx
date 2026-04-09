@@ -656,8 +656,11 @@ export default function HistoryPage() {
     const target =
       !detailingAwaitDraft && formTopRef.current ? formTopRef.current : formRef.current
     if (!target) return
-    target.scrollIntoView({ behavior: 'auto', block: 'start' })
-  }, [showNew, detailingAwaitDraft, editParam])
+    const run = () => target.scrollIntoView({ behavior: 'auto', block: 'start' })
+    run()
+    const idRaf = window.requestAnimationFrame(() => window.requestAnimationFrame(run))
+    return () => window.cancelAnimationFrame(idRaf)
+  }, [showNew, detailingAwaitDraft, editParam, wantNew, id])
 
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
