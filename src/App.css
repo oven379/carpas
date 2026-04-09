@@ -584,51 +584,18 @@ button.nav__action {
   margin-bottom: 0;
 }
 
-/* История на карточке авто: превью сверху, «Открыть» по центру блока */
-.carPage__sectionRow--history {
-  align-items: stretch;
-}
-
-.carPage__sectionRow--history .carPage__sectionHead {
-  flex: 0 1 auto;
-  width: 100%;
-  max-width: 100%;
-}
-
-.carPage__historyHeaderActions {
-  display: flex;
-  flex-direction: row;
+/* История на карточке авто: заголовок слева, стрелка справа, по вертикали по центру (веб и моб.) */
+.carPage__historyRow {
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  width: 100%;
-  margin-top: 4px;
+  flex-wrap: nowrap;
+  min-height: 44px;
 }
 
-.carPage__sectionMeta {
+.carPage__historyRow .carPage__sectionTitle--solo {
+  flex: 1;
+  min-width: 0;
   margin: 0;
-  line-height: 1.45;
-  max-width: min(100%, 52ch);
-}
-
-.carPage__historyLastLabel {
-  margin: 0 0 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-size: 11px;
-}
-
-.carPage__historyLastLine {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.5;
-  color: var(--text-h);
-}
-
-.carPage__historyOwnerNote {
-  font-weight: 600;
+  padding-right: 8px;
 }
 
 .carPage__historyServiceAvatar {
@@ -751,23 +718,16 @@ button.nav__action {
   margin-top: 0;
 }
 
-.carPage__carDataCollapsedSummary {
-  margin: 0 0 4px;
-  line-height: 1.45;
+.carPage__carDataToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.carPage__carDataCollapsedLine {
-  margin-bottom: 6px;
-  word-break: break-word;
-}
-
-.carPage__carDataCollapsedLine:last-child {
-  margin-bottom: 0;
-}
-
-.carPage__carDataCollapsedLine--meta {
-  font-size: 0.92em;
-  opacity: 0.92;
+.carPage__carDataToggleText {
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .carPage__meta--emph {
@@ -5936,51 +5896,6 @@ a.btn.authHub__btn--accent:visited {
   gap: 10px;
   border-bottom: 1px dashed color-mix(in oklab, var(--border) 75%, transparent);
   padding-bottom: 6px;
-}
-
-.kv__row--vinOnly {
-  justify-content: flex-end;
-}
-
-.kv__vinRowActions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  text-align: right;
-}
-
-.carPage__copyVinBtn {
-  flex-shrink: 0;
-  padding: 4px 10px !important;
-  font-size: 12px !important;
-  font-weight: 650 !important;
-  min-height: 0 !important;
-}
-
-.carPage__metaVinBtn {
-  margin: 0;
-  padding: 0;
-  border: none;
-  background: none;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  border-radius: 6px;
-  text-decoration: underline;
-  text-decoration-color: color-mix(in oklab, var(--text) 35%, transparent);
-  text-underline-offset: 0.15em;
-}
-
-.carPage__metaVinBtn:hover {
-  color: var(--text-h);
-  text-decoration-color: color-mix(in oklab, var(--accent) 55%, var(--text));
-}
-
-.carPage__metaVinBtn:focus-visible {
-  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
-  outline-offset: 2px;
 }
 
 .kv__k {

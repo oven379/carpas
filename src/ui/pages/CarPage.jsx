@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
@@ -104,7 +104,7 @@ export default function CarPage() {
   const [washIdx, setWashIdx] = useState(0)
   const [recsOpen, setRecsOpen] = useState(false)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
-  const [carDataExpanded, setCarDataExpanded] = useState(true)
+  const [carDataExpanded, setCarDataExpanded] = useState(false)
   const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode, loading } = useDetailing()
   const ownerEmailResolved = String(owner?.email || '').trim()
@@ -115,9 +115,7 @@ export default function CarPage() {
   const [ownerClaims, setOwnerClaims] = useState([])
   const [inboxClaims, setInboxClaims] = useState([])
   const [dataReady, setDataReady] = useState(false)
-  const [vinCopyFlash, setVinCopyFlash] = useState(false)
   const prevCarIdRef = useRef(null)
-  const vinCopyTimerRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
@@ -191,19 +189,6 @@ export default function CarPage() {
     return Array.isArray(car.washPhotos) ? car.washPhotos : car.washPhoto ? [car.washPhoto] : []
   }, [car])
 
-  const washPhotosDisplay = useMemo(() => washPhotos.map((u) => resolvePublicMediaUrl(u)), [washPhotos])
-
-  const washPhotosKey = useMemo(() => washPhotos.join('|'), [washPhotos])
-
-  useEffect(() => {
-    setWashIdx(0)
-  }, [washPhotosKey])
-
-  useEffect(() => {
-    setOwnerDataExpanded(true)
-    setCarDataExpanded(true)
-  }, [id])
-
   const finalizedEvents = useMemo(() => allEvents.filter((e) => !e?.isDraft), [allEvents])
   const lastHistoryEvent = useMemo(() => {
     let best = null
@@ -269,6 +254,29 @@ export default function CarPage() {
     return photos.length ? photos : list
   }, [allCarDocs, lastHistoryEvent?.id])
 
+  /** Галерея: сначала файлы, привязанные к последнему визиту в истории; иначе washPhotos с карточки (старый сценарий). */
+  const lastVisitGalleryRawUrls = useMemo(() => {
+    const fromEvent = lastVisitDocs.map((d) => String(d.url || '').trim()).filter(Boolean)
+    if (fromEvent.length > 0) return fromEvent
+    return washPhotos
+  }, [lastVisitDocs, washPhotos])
+
+  const visitGalleryDisplay = useMemo(
+    () => lastVisitGalleryRawUrls.map((u) => resolvePublicMediaUrl(u)),
+    [lastVisitGalleryRawUrls],
+  )
+
+  const visitGalleryKey = useMemo(() => lastVisitGalleryRawUrls.join('|'), [lastVisitGalleryRawUrls])
+
+  useEffect(() => {
+    setWashIdx(0)
+  }, [visitGalleryKey])
+
+  useEffect(() => {
+    setOwnerDataExpanded(true)
+    setCarDataExpanded(false)
+  }, [id])
+
   /** Превью как в гараже: документ визита, иначе обложка / фото после мойки на карточке авто */
   const lastVisitPreviewPhotoUrl = useMemo(() => {
     const docUrl = String(lastVisitDocs[0]?.url || '').trim()
@@ -294,38 +302,6 @@ export default function CarPage() {
     }
     return Number(car.mileageKm) || 0
   }, [car, mode, lastHistoryEvent])
-
-  const copyOwnerCarVin = useCallback(async () => {
-    const v = String(car?.vin || '').trim()
-    if (!v) return
-    const doneFlash = () => {
-      if (vinCopyTimerRef.current) window.clearTimeout(vinCopyTimerRef.current)
-      setVinCopyFlash(true)
-      vinCopyTimerRef.current = window.setTimeout(() => {
-        setVinCopyFlash(false)
-        vinCopyTimerRef.current = null
-      }, 2000)
-    }
-    try {
-      await navigator.clipboard.writeText(v)
-      doneFlash()
-    } catch {
-      try {
-        const ta = document.createElement('textarea')
-        ta.value = v
-        ta.setAttribute('readonly', '')
-        ta.style.position = 'fixed'
-        ta.style.left = '-9999px'
-        document.body.appendChild(ta)
-        ta.select()
-        document.execCommand('copy')
-        document.body.removeChild(ta)
-        doneFlash()
-      } catch {
-        alert('Не удалось скопировать в буфер обмена')
-      }
-    }
-  }, [car?.vin])
 
   if ((mode === 'owner' || mode === 'detailing') && loading) {
     return (
@@ -379,52 +355,62 @@ export default function CarPage() {
       <div className="row spread gap">
         <div>
           <div className="cardTitle" style={{ marginBottom: 0 }}>
-            Фото после ухода
+            Фото последнего визита
           </div>
           <div className="muted small" style={{ marginTop: 4 }}>
             {carDataExpanded
-              ? 'Обновляется автоматически после визита с услугами ухода за кузовом. Удалить фото можно в разделе «Редактировать» карточки.'
-              : 'Фото после визита с услугами ухода.'}
+              ? 'Берутся из файлов последней записи в «Истории авто». Если к визиту фото не прикреплены — показываются фото с карточки (раздел «Редактировать»).'
+              : 'Снимки последнего визита или фото с карточки.'}
           </div>
         </div>
       </div>
 
-      {washPhotos.length ? (
+      {lastVisitGalleryRawUrls.length ? (
         <div className="washGallery">
           <div className="washViewer">
             <a
               className="washGallery__viewer"
-              href={washPhotosDisplay[washIdx]}
+              href={visitGalleryDisplay[washIdx]}
               target="_blank"
               rel="noreferrer"
               title="Открыть фото"
             >
-              <img alt="Фото после ухода" src={washPhotosDisplay[washIdx]} />
+              <img alt="Фото последнего визита" src={visitGalleryDisplay[washIdx]} />
             </a>
           </div>
           <div className="washGallery__controls">
             <div className="row gap">
               <button
+                type="button"
                 className="btn"
                 data-variant="ghost"
                 onClick={() =>
-                  setWashIdx((i) => (washPhotos.length ? (i - 1 + washPhotos.length) % washPhotos.length : 0))
+                  setWashIdx((i) =>
+                    lastVisitGalleryRawUrls.length
+                      ? (i - 1 + lastVisitGalleryRawUrls.length) % lastVisitGalleryRawUrls.length
+                      : 0,
+                  )
                 }
-                disabled={washPhotos.length <= 1}
+                disabled={lastVisitGalleryRawUrls.length <= 1}
               >
                 ←
               </button>
               <button
+                type="button"
                 className="btn"
                 data-variant="ghost"
-                onClick={() => setWashIdx((i) => (washPhotos.length ? (i + 1) % washPhotos.length : 0))}
-                disabled={washPhotos.length <= 1}
+                onClick={() =>
+                  setWashIdx((i) =>
+                    lastVisitGalleryRawUrls.length ? (i + 1) % lastVisitGalleryRawUrls.length : 0,
+                  )
+                }
+                disabled={lastVisitGalleryRawUrls.length <= 1}
               >
                 →
               </button>
             </div>
             <div className="washGallery__dots" aria-label="Фото">
-              {washPhotos.slice(0, 12).map((_, idx) => (
+              {lastVisitGalleryRawUrls.slice(0, 12).map((_, idx) => (
                 <span key={idx} className={`washGallery__dot ${idx === washIdx ? 'is-active' : ''}`} />
               ))}
             </div>
@@ -432,7 +418,7 @@ export default function CarPage() {
         </div>
       ) : (
         <div className="muted small" style={{ marginTop: 10 }}>
-          Пока нет фото. Они появятся после визита с услугами ухода.
+          Пока нет фото. Добавьте снимки к записи визита в «Истории авто» или загрузите фото в «Редактировать» карточку.
         </div>
       )}
     </div>
@@ -475,21 +461,9 @@ export default function CarPage() {
               {fmtPlateFull(car.plate, car.plateRegion) || '—'}
             </span>
             <span aria-hidden="true"> · </span>
-            {mode === 'owner' && car.vin ? (
-              <button
-                type="button"
-                className="carPage__metaVinBtn"
-                onClick={() => void copyOwnerCarVin()}
-                title={vinCopyFlash ? 'Скопировано' : 'Скопировать идентификатор'}
-                aria-label={vinCopyFlash ? 'Скопировано в буфер обмена' : `Скопировать идентификатор: ${car.vin}`}
-              >
-                <span className="mono">{car.vin}</span>
-              </button>
-            ) : (
-              <span className="mono" title="Идентификатор авто">
-                {car.vin || '—'}
-              </span>
-            )}
+            <span className="mono" title="VIN">
+              {car.vin || '—'}
+            </span>
             {lastServiceVisitAt ? (
               <>
                 <span aria-hidden="true"> · </span>
@@ -693,35 +667,25 @@ export default function CarPage() {
 
               <div className="topBorder carPage__carDataSection">
                 <div className="row spread gap carPage__ownerDataBar carPage__carDataBar" style={{ alignItems: 'center' }}>
-                  <h2 className="h2 carPage__dataTitle">Данные авто:</h2>
+                  <h2 className="h2 carPage__dataTitle">Данные автомобиля</h2>
                   <button
                     type="button"
-                    className="dropdownCaretBtn dropdownCaretBtn--suffix"
+                    className="dropdownCaretBtn dropdownCaretBtn--suffix carPage__carDataToggle"
                     aria-expanded={carDataExpanded ? 'true' : 'false'}
                     onClick={() => setCarDataExpanded((v) => !v)}
-                    title={carDataExpanded ? 'Свернуть данные авто' : 'Развернуть данные авто'}
+                    title={carDataExpanded ? 'Свернуть' : 'Развернуть'}
                     aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                   >
+                    <span className="carPage__carDataToggleText">{carDataExpanded ? 'Свернуть' : 'Развернуть'}</span>
                     <DropdownCaretIcon open={carDataExpanded} />
                   </button>
                 </div>
                 {carDataExpanded ? (
                   <>
                     <div className="kv">
-                      <div className="kv__row kv__row--vinOnly" role="group" aria-label="Идентификатор авто (VIN)">
-                        <div className="kv__vinRowActions">
-                          <span className="kv__v mono">{car.vin || '—'}</span>
-                          {mode === 'owner' && car.vin ? (
-                            <button
-                              type="button"
-                              className="btn carPage__copyVinBtn"
-                              data-variant="ghost"
-                              onClick={() => void copyOwnerCarVin()}
-                            >
-                              {vinCopyFlash ? 'Скопировано' : 'Копировать'}
-                            </button>
-                          ) : null}
-                        </div>
+                      <div className="kv__row">
+                        <span className="kv__k">VIN</span>
+                        <span className="kv__v mono">{car.vin || '—'}</span>
                       </div>
                       <div className="kv__row">
                         <span className="kv__k">Госномер</span>
@@ -742,70 +706,31 @@ export default function CarPage() {
                     </div>
                     {washAfterCareEl}
                   </>
-                ) : (
-                  <>
-                    <div className="carPage__carDataCollapsedSummary muted small">
-                      <div className="carPage__carDataCollapsedLine mono">{car.vin || '—'}</div>
-                      {car.vin ? (
-                        <div style={{ marginTop: 6, marginBottom: 8 }}>
-                          <button
-                            type="button"
-                            className="btn carPage__copyVinBtn"
-                            data-variant="ghost"
-                            onClick={() => void copyOwnerCarVin()}
-                          >
-                            {vinCopyFlash ? 'Скопировано' : 'Копировать'}
-                          </button>
-                        </div>
-                      ) : null}
-                      <div className="carPage__carDataCollapsedLine">
-                        <span className="mono">{fmtPlateFull(car.plate, car.plateRegion) || '—'}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>год {car.year || '—'}</span>
-                        <span aria-hidden="true"> · </span>
-                        <span>пробег {fmtKm(displayMileageKm)}</span>
-                      </div>
-                      <div className="carPage__carDataCollapsedLine carPage__carDataCollapsedLine--meta">
-                        Обновлено: {fmtDateTime(car.updatedAt)}
-                      </div>
-                    </div>
-                    {washAfterCareEl}
-                  </>
-                )}
+                ) : null}
               </div>
             </>
           ) : (
             <>
               <div className="row spread gap carPage__ownerDataBar carPage__carDataBar" style={{ alignItems: 'center' }}>
-                <h2 className="h2 carPage__dataTitle">Данные авто:</h2>
+                <h2 className="h2 carPage__dataTitle">Данные автомобиля</h2>
                 <button
                   type="button"
-                  className="dropdownCaretBtn dropdownCaretBtn--suffix"
+                  className="dropdownCaretBtn dropdownCaretBtn--suffix carPage__carDataToggle"
                   aria-expanded={carDataExpanded ? 'true' : 'false'}
                   onClick={() => setCarDataExpanded((v) => !v)}
-                  title={carDataExpanded ? 'Свернуть данные авто' : 'Развернуть данные авто'}
+                  title={carDataExpanded ? 'Свернуть' : 'Развернуть'}
                   aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
                 >
+                  <span className="carPage__carDataToggleText">{carDataExpanded ? 'Свернуть' : 'Развернуть'}</span>
                   <DropdownCaretIcon open={carDataExpanded} />
                 </button>
               </div>
               {carDataExpanded ? (
                 <>
                   <div className="kv">
-                    <div className="kv__row kv__row--vinOnly" role="group" aria-label="Идентификатор авто (VIN)">
-                      <div className="kv__vinRowActions">
-                        <span className="kv__v mono">{car.vin || '—'}</span>
-                        {mode === 'owner' && car.vin ? (
-                          <button
-                            type="button"
-                            className="btn carPage__copyVinBtn"
-                            data-variant="ghost"
-                            onClick={() => void copyOwnerCarVin()}
-                          >
-                            {vinCopyFlash ? 'Скопировано' : 'Копировать'}
-                          </button>
-                        ) : null}
-                      </div>
+                    <div className="kv__row">
+                      <span className="kv__k">VIN</span>
+                      <span className="kv__v mono">{car.vin || '—'}</span>
                     </div>
                     <div className="kv__row">
                       <span className="kv__k">Госномер</span>
@@ -842,29 +767,7 @@ export default function CarPage() {
                   </div>
                   {washAfterCareEl}
                 </>
-              ) : (
-                <>
-                  <div className="carPage__carDataCollapsedSummary muted small">
-                    <div className="carPage__carDataCollapsedLine mono">{car.vin || '—'}</div>
-                    {mode === 'detailing' && (car.clientName || car.clientPhone || car.clientEmail) ? (
-                      <div className="carPage__carDataCollapsedLine">
-                        {[car.clientName, car.clientPhone, car.clientEmail].filter(Boolean).join(' · ')}
-                      </div>
-                    ) : null}
-                    <div className="carPage__carDataCollapsedLine">
-                      <span className="mono">{fmtPlateFull(car.plate, car.plateRegion) || '—'}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>год {car.year || '—'}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span>пробег {fmtKm(displayMileageKm)}</span>
-                    </div>
-                    <div className="carPage__carDataCollapsedLine carPage__carDataCollapsedLine--meta">
-                      Обновлено: {fmtDateTime(car.updatedAt)}
-                    </div>
-                  </div>
-                  {washAfterCareEl}
-                </>
-              )}
+              ) : null}
             </>
           )}
         </Card>
@@ -911,95 +814,13 @@ export default function CarPage() {
           </Card>
 
           <Card className="card pad">
-            <div className="col gap carPage__sectionRow carPage__sectionRow--history">
-              <div className="carPage__sectionHead">
-                <h2 className="h2 carPage__sectionTitle">История авто:</h2>
-                {lastHistoryEvent?.at ? (
-                  <>
-                    <p className="carPage__historyLastLabel muted small">Последний визит</p>
-                    <p className="carPage__historyLastLine">
-                      <span className="metaStrong">{lastHistoryEvent.title?.trim() || 'Визит'}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span className="metaStrong">{fmtDateTime(lastHistoryEvent.at)}</span>
-                      <span aria-hidden="true"> · </span>
-                      <span className="metaStrong">{fmtKm(lastHistoryEvent.mileageKm)}</span>
-                    </p>
-                    <div className="carPage__historySource row gap" style={{ alignItems: 'center', marginTop: 10 }}>
-                      {lastHistoryEvent.source === 'owner' ? (
-                        <span className="muted small carPage__historyOwnerNote">
-                          {mode === 'owner' ? 'Моя запись' : 'Запись владельца'}
-                        </span>
-                      ) : (
-                        (() => {
-                          const serviceLabel =
-                            String(lastHistoryEvent.detailingName || '').trim() || 'Сервис'
-                          const historySvcLogo = String(
-                            lastHistoryEvent.detailingLogo || car?.detailingLogo || '',
-                          ).trim()
-                          return (
-                            <div
-                              className="carPage__historyServiceAvatar"
-                              title={serviceLabel}
-                              aria-label={`Запись сервиса: ${serviceLabel}`}
-                            >
-                              {historySvcLogo ? (
-                                <img alt="" src={resolvePublicMediaUrl(historySvcLogo)} />
-                              ) : (
-                                <DefaultAvatar alt="" />
-                              )}
-                            </div>
-                          )
-                        })()
-                      )}
-                    </div>
-                    {(() => {
-                      const e = lastHistoryEvent
-                      const note = String(e.note || '').trim()
-                      const ms = (Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []).filter(Boolean)
-                      const { wash, other } = splitWashDetailingServices(e.services)
-                      const washF = wash.filter(Boolean)
-                      const otherF = other.filter(Boolean)
-                      const hasExtra = ms.length > 0 || washF.length > 0 || otherF.length > 0 || Boolean(note)
-                      if (!hasExtra) return null
-                      return (
-                        <div className="carPage__historyLastDetails miniList" style={{ marginTop: 12 }}>
-                          <div className="miniList__item" style={{ border: 'none', padding: 0, background: 'transparent' }}>
-                            {ms.length ? (
-                              <div className="rowItem__sub">
-                                <span className="eventLabel">ТО:</span> {ms.join(', ')}
-                              </div>
-                            ) : null}
-                            {washF.length ? (
-                              <div className="rowItem__sub">
-                                <span className="eventLabel">Уход:</span> {washF.join(', ')}
-                              </div>
-                            ) : null}
-                            {otherF.length ? (
-                              <div className="rowItem__sub">
-                                <span className="eventLabel">Детейлинг:</span> {otherF.join(', ')}
-                              </div>
-                            ) : null}
-                            {note ? (
-                              <div className="rowItem__sub">
-                                <span className="eventLabel">Комментарий:</span> {note}
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      )
-                    })()}
-                  </>
-                ) : (
-                  <p className="muted small carPage__sectionMeta">Пока нет истории визитов</p>
-                )}
-              </div>
-              <div className="carPage__historyHeaderActions">
-                <OpenAction
-                  to={buildCarSubRoutePath(id, 'history', fromParam)}
-                  title="История авто"
-                  aria-label="Открыть историю авто"
-                />
-              </div>
+            <div className="row spread gap carPage__sectionRow carPage__sectionRow--center carPage__historyRow">
+              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">История авто</h2>
+              <OpenAction
+                to={buildCarSubRoutePath(id, 'history', fromParam)}
+                title="Открыть историю обслуживания"
+                aria-label="Открыть историю обслуживания авто"
+              />
             </div>
           </Card>
 
