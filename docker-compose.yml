@@ -71,6 +71,8 @@ services:
       - "${VITE_PUBLISH_PORT:-5173}:5173"
     environment:
       VITE_DEV_PROXY_TARGET: http://nginx
+      # Иначе Vite в контейнере часто не видит правки файлов с Windows-хоста и отдаёт старый JS даже после Ctrl+Shift+R
+      CHOKIDAR_USEPOLLING: "true"
     volumes:
       - .:/app
       - vite_node_modules:/app/node_modules

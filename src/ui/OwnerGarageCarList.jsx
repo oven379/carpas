@@ -18,10 +18,12 @@ function lastFinalizedEvent(evts) {
 }
 
 /** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
-export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsProp }) {
+export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsProp, enrichedRows: enrichedFromParent }) {
   const r = useRepo()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
+
+  const parentSuppliesEnrichment = enrichedFromParent !== undefined
 
   const carsKey = useMemo(() => {
     if (carsProp === undefined) return '\0fetch'
@@ -33,6 +35,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
   }, [carsProp])
 
   useEffect(() => {
+    if (parentSuppliesEnrichment) return
     let cancelled = false
     ;(async () => {
       if (!ownerEmail) {
@@ -66,11 +69,21 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, r, r._version, carsKey, carsProp])
+  }, [ownerEmail, r, r._version, carsKey, carsProp, parentSuppliesEnrichment])
 
   const fromQ = buildCarFromQuery(fromPath)
 
-  if (loading) {
+  if (parentSuppliesEnrichment && enrichedFromParent === null) {
+    return (
+      <div className="muted pageLoadSpinner--centerBlock" style={{ padding: '12px 0', minHeight: 56 }}>
+        <PageLoadSpinner size="compact" />
+      </div>
+    )
+  }
+
+  const listRows = parentSuppliesEnrichment ? enrichedFromParent || [] : rows
+
+  if (!parentSuppliesEnrichment && loading) {
     return (
       <div className="muted pageLoadSpinner--centerBlock" style={{ padding: '12px 0', minHeight: 56 }}>
         <PageLoadSpinner size="compact" />
@@ -80,7 +93,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
 
   return (
     <div className="list">
-      {rows.map(({ car: c, evts }) => {
+      {listRows.map(({ car: c, evts }) => {
         const lastEvt = lastFinalizedEvent(evts)
         const mileageKm = lastEvt != null && lastEvt.mileageKm != null && lastEvt.mileageKm !== '' ? lastEvt.mileageKm : c.mileageKm
         const yearStr = c.year != null && c.year !== '' ? String(c.year) : '—'

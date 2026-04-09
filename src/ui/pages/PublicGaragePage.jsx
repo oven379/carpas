@@ -1,7 +1,7 @@
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, HeroCoverStat, PageLoadSpinner } from '../components.jsx'
+import { BackNav, Card, PageLoadSpinner } from '../components.jsx'
 import {
   displayRuPhone,
   fmtKm,
@@ -192,7 +192,7 @@ export default function PublicGaragePage() {
               ))}
             </p>
           ) : (
-            <p className="muted small carPage__meta">Публичные контакты не указаны — см. число авто на обложке.</p>
+            <p className="muted small carPage__meta">Публичные контакты не указаны — список автомобилей ниже.</p>
           )}
         </div>
       </div>
@@ -210,17 +210,6 @@ export default function PublicGaragePage() {
             ) : (
               <DefaultAvatar alt="" />
             )}
-          </div>
-          <div className="detHero__bottomRow garageHero__bottomRow">
-            <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-              <HeroCoverStat
-                kind="car"
-                variant="overlay"
-                value={cars.length}
-                label="на витрине"
-                title={`${cars.length} ${cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'} в гараже`}
-              />
-            </div>
           </div>
         </div>
       </div>

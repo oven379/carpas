@@ -410,7 +410,7 @@ button.nav__action {
   font-size: 14px;
   box-sizing: border-box;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: stretch;
   gap: 0;
   flex-wrap: nowrap;
@@ -420,8 +420,8 @@ button.nav__action {
 .footer__bar {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: flex-start;
-  gap: 10px 14px;
+  align-items: center;
+  gap: 12px 18px;
   width: 100%;
   min-width: 0;
 }
@@ -430,6 +430,7 @@ button.nav__action {
   flex-shrink: 0;
   min-width: 0;
   max-width: min(200px, 38vw);
+  align-self: center;
 }
 
 .footerBrandSlot__link {
@@ -439,15 +440,7 @@ button.nav__action {
 }
 
 .footerBrandSlot .brandLogoLockup {
-  align-items: flex-start;
-}
-
-.footerBrandSlot .brandLogoLockup__tagline {
-  text-align: left;
-}
-
-.footerBrandSlot__link:hover .brandLogoLockup__tagline {
-  color: color-mix(in oklab, var(--text-h) 88%, var(--muted));
+  align-items: center;
 }
 
 @media (max-width: 560px) {
@@ -456,6 +449,8 @@ button.nav__action {
     grid-template-areas:
       'brand brand'
       'legal support';
+    align-items: start;
+    row-gap: 14px;
   }
 
   .footerBrandSlot {
@@ -465,11 +460,14 @@ button.nav__action {
 
   .footerLegal {
     grid-area: legal;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .footerSupportSlot {
     grid-area: support;
     justify-self: end;
+    align-self: center;
   }
 }
 
@@ -492,9 +490,11 @@ button.nav__action {
   align-items: center;
   gap: 6px 10px;
   font-size: 13px;
-  line-height: 1.4;
+  line-height: 1.45;
   min-width: 0;
-  justify-content: flex-start;
+  justify-content: center;
+  text-align: center;
+  padding: 0 4px;
 }
 
 .footerSupportSlot {
@@ -502,6 +502,7 @@ button.nav__action {
   align-items: center;
   justify-content: flex-end;
   justify-self: end;
+  align-self: center;
   flex-shrink: 0;
 }
 
@@ -3704,17 +3705,6 @@ a.backNav {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
 }
 
-/* Гараж владельца: на узких экранах — короткая подпись «VIN» */
-.garageVinClaimBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.garageVinClaimBtn__short {
-  display: none;
-}
-
 /* «Сервис и история»: ссылка на детейлинг без плашки, как обычный текст */
 .carPage__serviceDetNameLink {
   display: inline;
@@ -3938,17 +3928,17 @@ a.backNav {
   height: 300px;
 }
 
-/* Карточка-профиль гаража: «Гараж», мета, счётчик авто (ссылка на создание) справа */
+/* Карточка-профиль гаража: «Гараж», мета; аватар и подсказка справа */
 .garageProfileCard.card {
   display: flex;
   flex-direction: column;
 }
 
 .garageProfileCard__top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
+  align-items: start;
 }
 
 .garageProfileCard__footer {
@@ -3973,16 +3963,18 @@ a.backNav {
   min-width: 0;
 }
 
-.garageProfileCard__footerActions {
+.garageProfileCard__addCarBlock {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 14px;
+  flex-shrink: 0;
+  min-width: min(200px, 100%);
 }
 
-.garageProfileCard__carStat {
-  flex-shrink: 0;
+.garageProfileCard__addCarBtn {
+  min-width: 168px;
+  justify-content: center;
 }
 
 /* Неактивные «кнопки»-заглушки (лимиты гаража) */
@@ -4046,6 +4038,17 @@ a.btn.btn--asDisabled {
 
 .garageProfileCard__avatarCol {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-self: end;
+}
+
+.garageProfileCard__avatarHint {
+  margin: 8px 0 0;
+  max-width: min(200px, 46vw);
+  text-align: right;
+  line-height: 1.4;
 }
 
 a.garageProfileCard__avatarLink {
@@ -4057,6 +4060,8 @@ a.garageProfileCard__avatarLink {
   color: inherit;
   outline: none;
   transition: filter 120ms ease;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 a.garageProfileCard__avatarLink:hover .garageProfileCard__avatar {
@@ -4153,10 +4158,6 @@ a.garageProfileCard__avatarLink:focus-visible {
 .garageProfileCard__cityLine .garageProfileCard__metaKey {
   font-weight: 650;
   color: color-mix(in oklab, var(--text) 76%, var(--text-h));
-}
-
-.garageProfileCard__cityLine .link {
-  font-size: inherit;
 }
 
 .garageProfileCard__iconRow {
@@ -4457,11 +4458,6 @@ a.garageProfileCard__linkChip:focus-visible {
   color: inherit;
 }
 
-.garageProfileCard__lead {
-  margin: 10px 0 0;
-  line-height: 1.45;
-}
-
 .garageProfileCard__actions {
   margin-top: 12px;
 }
@@ -4469,6 +4465,18 @@ a.garageProfileCard__linkChip:focus-visible {
 @media (max-width: 640px) {
   .garageProfileCard__top {
     gap: 12px;
+    /* Две колонки: текст слева, аватар + подсказка прижаты вправо (веб и WebView приложения) */
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .garageProfileCard__avatarHint {
+    max-width: min(168px, 54vw);
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  .garageProfileCard__cityLine {
+    font-size: 1rem;
   }
 
   a.garageProfileCard__avatarLink {
@@ -4503,6 +4511,23 @@ a.garageProfileCard__linkChip:focus-visible {
   a.garageProfileCard__linkChip {
     width: 100%;
     box-sizing: border-box;
+  }
+}
+
+/* Очень узкие экраны и малые WebView: не сжимать имя до нуля, подсказка под аватаром короче */
+@media (max-width: 360px) {
+  .garageProfileCard__top {
+    gap: 10px;
+    column-gap: 10px;
+  }
+
+  .garageProfileCard__avatarHint {
+    max-width: min(148px, 48vw);
+    font-size: 0.75rem;
+  }
+
+  .garageProfileCard__cityLine {
+    font-size: 0.9375rem;
   }
 }
 
@@ -7625,14 +7650,6 @@ a.btn.carPage__recsAddVisitFull,
 
   .garageProfileCard__detAvatarFallback {
     font-size: 15px;
-  }
-
-  .garageVinClaimBtn__full {
-    display: none;
-  }
-
-  .garageVinClaimBtn__short {
-    display: inline;
   }
 
   .garageHero__bannerRow .detHero__pills {

@@ -33,7 +33,7 @@ export default function GarageSettingsPage() {
     garageWebsite: '',
     garageSlug: '',
     garagePrivate: false,
-    garageBannerEnabled: true,
+    garageBannerEnabled: false,
     garageBanner: '',
     garageAvatar: '',
   })
@@ -51,7 +51,7 @@ export default function GarageSettingsPage() {
       garageWebsite: owner.garageWebsite || '',
       garageSlug: owner.garageSlug || '',
       garagePrivate: Boolean(owner.garagePrivate),
-      garageBannerEnabled: owner.garageBannerEnabled !== false,
+      garageBannerEnabled: owner.garageBannerEnabled === true,
       garageBanner: owner.garageBanner || '',
       garageAvatar: owner.garageAvatar || '',
     })
@@ -413,7 +413,7 @@ export default function GarageSettingsPage() {
                 .join('\n')
               const prevBanner = owner?.garageBanner ?? ''
               const prevAvatar = owner?.garageAvatar ?? ''
-              const prevBannerEnabled = owner?.garageBannerEnabled !== false
+              const prevBannerEnabled = owner?.garageBannerEnabled === true
               const onStreet = !draft.garagePrivate
               const patch = {
                 name: draft.name.trim(),

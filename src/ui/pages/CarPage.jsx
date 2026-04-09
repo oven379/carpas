@@ -268,6 +268,19 @@ export default function CarPage() {
     return photos.length ? photos : list
   }, [allCarDocs, lastHistoryEvent?.id])
 
+  /** Превью как в гараже: документ визита, иначе обложка / фото после мойки на карточке авто */
+  const lastVisitPreviewPhotoUrl = useMemo(() => {
+    const docUrl = String(lastVisitDocs[0]?.url || '').trim()
+    if (docUrl) return docUrl
+    if (!car) return ''
+    const hero = String(car.hero || '').trim()
+    if (hero) return hero
+    const wash = Array.isArray(car.washPhotos) ? car.washPhotos : []
+    const w0 = wash.map((x) => String(x || '').trim()).find(Boolean)
+    if (w0) return w0
+    return String(car.washPhoto || '').trim()
+  }, [lastVisitDocs, car])
+
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
     if (mode !== 'owner') return Number(car.mileageKm) || 0
@@ -572,7 +585,7 @@ export default function CarPage() {
                       {lastHistoryEvent && ownerLastVisitPath ? (
                         <CarPageOwnerLastVisitPreview
                           lastEvt={lastHistoryEvent}
-                          photoUrl={lastVisitDocs[0]?.url || ''}
+                          photoUrl={lastVisitPreviewPhotoUrl}
                           histPath={ownerLastVisitPath}
                         />
                       ) : (
@@ -613,7 +626,7 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitDocs[0]?.url || ''}
+                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : (
@@ -639,7 +652,7 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitDocs[0]?.url || ''}
+                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : null}
@@ -661,7 +674,7 @@ export default function CarPage() {
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
-                            photoUrl={lastVisitDocs[0]?.url || ''}
+                            photoUrl={lastVisitPreviewPhotoUrl}
                             histPath={ownerLastVisitPath}
                           />
                         ) : null}
@@ -978,7 +991,7 @@ export default function CarPage() {
                     })()}
                   </>
                 ) : (
-                  <p className="muted small carPage__sectionMeta">Нет истории</p>
+                  <p className="muted small carPage__sectionMeta">Пока нет истории визитов</p>
                 )}
               </div>
               <div className="carPage__historyHeaderActions">

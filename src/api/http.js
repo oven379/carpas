@@ -4,6 +4,14 @@ function joinUrl(base, path) {
   return `${b}/${p}`
 }
 
+/** Чтобы зависший бэкенд не держал вкладку вечным ожиданием (типично 300+ с без таймаута у fetch). */
+function fetchTimeoutSignal(ms = 45000) {
+  if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+    return AbortSignal.timeout(ms)
+  }
+  return undefined
+}
+
 export class HttpError extends Error {
   constructor(message, { status, body } = {}) {
     super(message)
@@ -116,9 +124,11 @@ export async function httpJson({ baseUrl, path, method = 'GET', body, token }) {
   let res
   let text
   try {
+    const signal = fetchTimeoutSignal(45000)
     res = await fetch(url, {
       method,
       cache: 'no-store',
+      ...(signal ? { signal } : {}),
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -147,9 +157,11 @@ export async function httpFormData({ baseUrl, path, method = 'POST', formData, t
   let res
   let text
   try {
+    const signal = fetchTimeoutSignal(120000)
     res = await fetch(url, {
       method,
       cache: 'no-store',
+      ...(signal ? { signal } : {}),
       headers: {
         Accept: 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

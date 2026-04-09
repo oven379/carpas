@@ -23,7 +23,7 @@ export default function FooterSupport() {
     <div className="footer__bar">
       <div className="footerBrandSlot">
         <Link to="/" className="footerBrandSlot__link" aria-label="КарПас — главная страница сервиса">
-          <Logo size={14} markWrapperClassName="brandLogoMarkAlign brandLogoMarkAlign--footer" />
+          <Logo size={14} tagline={false} markWrapperClassName="brandLogoMarkAlign brandLogoMarkAlign--footer" />
         </Link>
       </div>
       <nav className="footerLegal" aria-label="Правовая информация">

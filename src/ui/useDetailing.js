@@ -87,18 +87,31 @@ export function DetailingSessionProvider({ children }) {
           return
         }
         if (oEmail && oTokNow) {
-          const me = await api.getMeOwner()
+          const sessionSnap = getSessionOwner()
           if (applyIfCurrent()) {
-            const fresh = me?.owner ?? null
-            if (fresh && typeof fresh === 'object') {
-              try {
-                mergeSessionOwnerScalars(fresh)
-              } catch {
-                /* ignore */
-              }
-            }
-            setOwner(fresh ?? getSessionOwner())
             setDetailing(null)
+            setOwner(sessionSnap?.email ? sessionSnap : { email: oEmail })
+            setLoading(false)
+          }
+          try {
+            const me = await api.getMeOwner()
+            if (applyIfCurrent()) {
+              const fresh = me?.owner ?? null
+              if (fresh && typeof fresh === 'object') {
+                try {
+                  mergeSessionOwnerScalars(fresh)
+                } catch {
+                  /* ignore */
+                }
+              }
+              setOwner(fresh ?? getSessionOwner())
+            }
+          } catch {
+            if (applyIfCurrent()) {
+              setDetailing(null)
+              const os = getSessionOwner()
+              setOwner(oEmail && os?.email ? os : { email: oEmail })
+            }
           }
           return
         }

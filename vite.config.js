@@ -20,12 +20,25 @@ export default defineConfig(({ mode }) => {
     process.env.VITE_DEV_PROXY_TARGET || env.VITE_DEV_PROXY_TARGET || 'http://127.0.0.1:8088',
   ).replace(/\/+$/, '')
 
+  /*
+   * В режиме dev всегда polling: Docker + bind-mount с Windows часто не даёт fs events —
+   * без этого Vite отдаёт старый трансформ из памяти даже после жёсткого обновления браузера.
+   * Отключить: VITE_DISABLE_POLL_WATCH=1
+   */
+  const devPollWatch =
+    mode === 'development' && process.env.VITE_DISABLE_POLL_WATCH !== '1'
+
   return {
-    /* Capacitor WebView: относительные пути к chunk'ам (иначе /assets/… не грузится после cap sync без --base ./). */
-    base: './',
+    /*
+     * В dev — «/»: стабильные URL чанков на localhost:5173 и предсказуемый HMR.
+     * В production — «./»: Capacitor/WebView и открытие index.html с диска без корневого пути.
+     */
+    base: mode === 'production' ? './' : '/',
     /* Не подменять import.meta.env.VITE_* — в части сборок это ломает весь import.meta.env */
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version || ''),
+      /* Момент запуска Vite / момент vite build — чтобы на гараже было видно, какой бандл открыт */
+      __BUILD_STAMP__: JSON.stringify(new Date().toISOString()),
     },
     plugins: [
       react(),
@@ -55,6 +68,18 @@ export default defineConfig(({ mode }) => {
       /* если 5173 занят — явная ошибка, а не тихий переход на 5174 (и «не открывается» старый URL) */
       strictPort: true,
       proxy: devProxy(proxyTarget),
+      ...(devPollWatch
+        ? {
+            watch: {
+              usePolling: true,
+              interval: 1000,
+            },
+          }
+        : {}),
+      /* Реже залипает старый index.html / чанки в браузере при разработке */
+      headers: {
+        'Cache-Control': 'no-store',
+      },
     },
     preview: {
       host: true,

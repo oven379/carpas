@@ -53,7 +53,7 @@ class ApiResources
             'showSocialPublic' => (bool) ($o->show_social_public ?? false),
             'garageSlug' => $o->garage_slug,
             'garageBanner' => MediaStorage::publicUrl($o->garage_banner ?? null),
-            'garageBannerEnabled' => (bool) ($o->garage_banner_enabled ?? true),
+            'garageBannerEnabled' => $o->garage_banner_enabled === true,
             'garageAvatar' => MediaStorage::publicUrl($o->garage_avatar ?? null),
             'showPhonePublic' => (bool) $o->show_phone_public,
             'isPremium' => (bool) $o->is_premium,

@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { Card, HeroCoverStat, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
@@ -66,6 +66,16 @@ function linkedDetailingFromCars(bestId, cars) {
   return { id, name: '', logo: '' }
 }
 
+function heroWashPhotoUrl(carRow) {
+  if (!carRow) return ''
+  const hero = String(carRow.hero || '').trim()
+  if (hero) return hero
+  const wash = Array.isArray(carRow.washPhotos) ? carRow.washPhotos : []
+  const w0 = wash.map((u) => String(u || '').trim()).find(Boolean)
+  if (w0) return w0
+  return String(carRow.washPhoto || '').trim()
+}
+
 function GarageLastVisitMetaRow({ visit }) {
   const showAt = Boolean(visit.at)
   const showKm = visit.mileageKm != null && visit.mileageKm !== ''
@@ -118,11 +128,12 @@ export default function OwnerGaragePage() {
 
   const [cars, setCars] = useState([])
   const [ownerClaims, setOwnerClaims] = useState([])
-  const [listBusy, setListBusy] = useState(true)
+  const [carsClaimsLoading, setCarsClaimsLoading] = useState(true)
+  /** События по авто — одна загрузка на страницу (и список, и «Последний визит»), без второго раунда listEvents */
+  const [enrichedRows, setEnrichedRows] = useState(null)
   const [copyHint, setCopyHint] = useState('')
   /** Последний сохранённый визит по любому авто гаража (не черновик), для строки «Последний визит» в профиле */
   const [garageLastVisit, setGarageLastVisit] = useState(null)
-  const [garageLastVisitLoading, setGarageLastVisitLoading] = useState(false)
   const [lastVisitThumbBroken, setLastVisitThumbBroken] = useState(false)
 
   const slug = String(owner?.garageSlug || '').trim()
@@ -144,6 +155,15 @@ export default function OwnerGaragePage() {
   }, [publicUrl])
 
   const ownerEmail = String(owner?.email || '').trim()
+
+  const carsKey = useMemo(
+    () =>
+      cars
+        .map((c) => String(c?.id ?? ''))
+        .sort()
+        .join(','),
+    [cars],
+  )
 
   useEffect(() => {
     if (loc.hash !== '#garage-vin-claim') return
@@ -198,10 +218,11 @@ export default function OwnerGaragePage() {
       if (!hasOwnerSession() || !ownerEmail) {
         setCars([])
         setOwnerClaims([])
-        setListBusy(false)
+        setEnrichedRows([])
+        setCarsClaimsLoading(false)
         return
       }
-      setListBusy(true)
+      setCarsClaimsLoading(true)
       try {
         const [cl, claims] = await Promise.all([r.listCars(), r.listClaimsForOwner()])
         if (cancelled) return
@@ -213,7 +234,7 @@ export default function OwnerGaragePage() {
           setOwnerClaims([])
         }
       } finally {
-        if (!cancelled) setListBusy(false)
+        if (!cancelled) setCarsClaimsLoading(false)
       }
     })()
     return () => {
@@ -221,91 +242,145 @@ export default function OwnerGaragePage() {
     }
   }, [ownerEmail, r, r._version])
 
+  useEffect(() => {
+    let cancelled = false
+    if (!ownerEmail) {
+      setEnrichedRows(null)
+      return () => {
+        cancelled = true
+      }
+    }
+    if (!cars.length) {
+      setEnrichedRows([])
+      return () => {
+        cancelled = true
+      }
+    }
+    setEnrichedRows(null)
+    ;(async () => {
+      try {
+        const enriched = await Promise.all(
+          cars.map(async (car) => {
+            try {
+              const evtsRaw = await r.listEvents(car.id)
+              const evts = Array.isArray(evtsRaw) ? evtsRaw : []
+              return { car, evts }
+            } catch {
+              return { car, evts: [] }
+            }
+          }),
+        )
+        if (!cancelled) setEnrichedRows(enriched)
+      } catch {
+        if (!cancelled) setEnrichedRows([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [ownerEmail, carsKey, r, r._version])
+
   const bestDetailingId = useMemo(() => pickBestDetailingId(cars, ownerClaims), [cars, ownerClaims])
   const linkedDetailing = useMemo(
     () => (bestDetailingId ? linkedDetailingFromCars(bestDetailingId, cars) : null),
     [bestDetailingId, cars],
   )
 
+  const garageLastVisitLoading = !carsClaimsLoading && cars.length > 0 && enrichedRows === null
+
   useEffect(() => {
     let cancelled = false
-    if (!ownerEmail || !cars.length) {
+    if (!Array.isArray(enrichedRows) || !enrichedRows.length) {
       setGarageLastVisit(null)
-      setGarageLastVisitLoading(false)
       return () => {
         cancelled = true
       }
     }
-    setGarageLastVisitLoading(true)
-    ;(async () => {
+
+    let best = null
+    for (const { car, evts } of enrichedRows) {
+      const evtsArr = Array.isArray(evts) ? evts : []
+      let bestEvt = null
+      let ts = 0
+      for (const e of evtsArr) {
+        if (e?.isDraft) continue
+        const t = Date.parse(e?.at || '') || 0
+        if (!bestEvt || t >= ts) {
+          bestEvt = e
+          ts = t
+        }
+      }
+      if (!bestEvt) continue
+      if (!best || ts >= best.ts) best = { car, evtRaw: bestEvt, ts }
+    }
+
+    if (!best || cancelled) {
+      setGarageLastVisit(null)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    const carRow = best.car
+    const carId = best.car.id
+    const e = normalizeCarEventServices(best.evtRaw)
+    const carDisplayName = [String(carRow.make || '').trim(), String(carRow.model || '').trim()]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+    const titleTrim = String(e.title || '').trim()
+    const linkLabel =
+      e.source === 'owner'
+        ? titleTrim || 'Визит'
+        : titleTrim || String(e.detailingName || '').trim() || 'Сервис'
+    const headlineName = linkLabel
+    const lastEvtMs = (Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []).filter(Boolean)
+    const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(e.services)
+    const lastEvtWashF = lastEvtWash.filter(Boolean)
+    const lastEvtDetF = lastEvtDet.filter(Boolean)
+    const lastEvtNote = String(e.note || '').trim()
+    let photoUrl = heroWashPhotoUrl(carRow)
+
+    setGarageLastVisit({
+      carId,
+      carDisplayName,
+      eventId: e.id,
+      linkLabel,
+      headlineName,
+      at: e.at || '',
+      mileageKm: e.mileageKm,
+      photoUrl,
+      maintenanceServices: lastEvtMs,
+      wash: lastEvtWashF,
+      det: lastEvtDetF,
+      note: lastEvtNote,
+    })
+
+    void (async () => {
       try {
-        let best = null
-        for (const c of cars) {
-          const evtsRaw = await r.listEvents(c.id)
-          const evts = Array.isArray(evtsRaw) ? evtsRaw : []
-          for (const e of evts) {
-            if (e?.isDraft) continue
-            const t = Date.parse(e?.at || '') || 0
-            if (!best || t >= best.ts) best = { carId: c.id, evt: e, ts: t, carEvents: evts }
-          }
-        }
+        const allDocs = await r.listDocs(carId)
         if (cancelled) return
-        if (!best) {
-          setGarageLastVisit(null)
-          return
+        const docs = Array.isArray(allDocs) ? allDocs : []
+        const forEvt = docs.filter((d) => String(d.eventId || '') === String(e.id) && String(d.url || '').trim())
+        const photoDocs = forEvt.filter((d) => String(d.kind || 'photo') === 'photo')
+        const pick = photoDocs[0] || forEvt[0]
+        const docPhoto = String(pick?.url || '').trim()
+        if (docPhoto) {
+          setGarageLastVisit((prev) =>
+            prev && String(prev.eventId) === String(e.id) && String(prev.carId) === String(carId)
+              ? { ...prev, photoUrl: docPhoto }
+              : prev,
+          )
         }
-        const carRow = cars.find((c) => String(c?.id ?? '') === String(best.carId))
-        const carDisplayName = carRow
-          ? [String(carRow.make || '').trim(), String(carRow.model || '').trim()].filter(Boolean).join(' ').trim()
-          : ''
-        const e = normalizeCarEventServices(best.evt)
-        const titleTrim = String(e.title || '').trim()
-        const linkLabel =
-          e.source === 'owner'
-            ? titleTrim || 'Визит'
-            : titleTrim || String(e.detailingName || '').trim() || 'Сервис'
-        const headlineName = linkLabel
-        const lastEvtMs = (Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []).filter(Boolean)
-        const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(e.services)
-        const lastEvtWashF = lastEvtWash.filter(Boolean)
-        const lastEvtDetF = lastEvtDet.filter(Boolean)
-        const lastEvtNote = String(e.note || '').trim()
-        let photoUrl = ''
-        try {
-          const allDocs = await r.listDocs(best.carId)
-          const docs = Array.isArray(allDocs) ? allDocs : []
-          const forEvt = docs.filter((d) => String(d.eventId || '') === String(e.id) && String(d.url || '').trim())
-          const photoDocs = forEvt.filter((d) => String(d.kind || 'photo') === 'photo')
-          const pick = photoDocs[0] || forEvt[0]
-          photoUrl = String(pick?.url || '').trim()
-        } catch {
-          photoUrl = ''
-        }
-        if (cancelled) return
-        setGarageLastVisit({
-          carId: best.carId,
-          carDisplayName,
-          eventId: e.id,
-          linkLabel,
-          headlineName,
-          at: e.at || '',
-          mileageKm: e.mileageKm,
-          photoUrl,
-          maintenanceServices: lastEvtMs,
-          wash: lastEvtWashF,
-          det: lastEvtDetF,
-          note: lastEvtNote,
-        })
       } catch {
-        if (!cancelled) setGarageLastVisit(null)
-      } finally {
-        if (!cancelled) setGarageLastVisitLoading(false)
+        /* ignore */
       }
     })()
+
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, cars, r, r._version])
+  }, [enrichedRows, r])
 
   useEffect(() => {
     setLastVisitThumbBroken(false)
@@ -370,20 +445,10 @@ export default function OwnerGaragePage() {
     )
   }
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
-  if (listBusy) {
-    return (
-      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
-        <PageLoadSpinner />
-      </div>
-    )
-  }
 
   const limits = ownerGarageLimits(cars)
   const displayName = String(owner?.name || '').trim() || ownerEmail
   const cityLine = String(owner?.garageCity || '').trim()
-  const garageCarStatTitle = `${cars.length} ${
-    cars.length === 1 ? 'автомобиль' : cars.length < 5 ? 'автомобиля' : 'автомобилей'
-  } в гараже`
   const addCarLimitTitle =
     limits.totalCount >= OWNER_MAX_TOTAL_CARS
       ? `В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`
@@ -392,7 +457,7 @@ export default function OwnerGaragePage() {
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
   return (
-    <div className="container garagePage">
+    <div className="container garagePage" data-carpas-garage-ui="1.0.3">
       {showSetupBanner ? (
         <Card className="card pad detPublicSetupBanner" style={{ marginBottom: 12 }}>
           <div className="row spread gap wrap" style={{ alignItems: 'center' }}>
@@ -479,14 +544,7 @@ export default function OwnerGaragePage() {
             ) : null}
             <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
               <span className="garageProfileCard__metaKey">Город:</span>{' '}
-              {cityLine || (
-                <>
-                  не указан —{' '}
-                  <Link className="link" to="/garage/settings">
-                    настройки
-                  </Link>
-                </>
-              )}
+              {cityLine ? cityLine : <span className="muted">нет данных</span>}
             </p>
             <div className="garageProfileCard__iconRow" aria-label="Контакты">
               {phoneTelHref ? (
@@ -606,7 +664,7 @@ export default function OwnerGaragePage() {
               ) : null}
               {!garageLastVisitLoading && !garageLastVisit ? (
                 <p className="muted small garageProfileCard__metaLine">
-                  <span className="garageProfileCard__metaKey">Последний визит:</span> Нет истории
+                  <span className="garageProfileCard__metaKey">Последний визит:</span> Пока нет истории визитов
                 </p>
               ) : null}
               {activityLabel === 'Профиль обновлён' ? (
@@ -647,12 +705,6 @@ export default function OwnerGaragePage() {
                 </p>
               ) : null}
             </div>
-            {!publicUrl ? (
-              <p className="muted small garageProfileCard__lead">
-                Задайте короткий адрес улицы в настройках — появится ссылка для гостей (латиница, цифры, дефис). Открыть
-                настройки: нажмите на аватар справа{bannerSurfaceVisible ? ' или на значок карандаша на баннере' : ''}.
-              </p>
-            ) : null}
           </div>
           <div className="garageProfileCard__avatarCol">
             <Link
@@ -669,6 +721,9 @@ export default function OwnerGaragePage() {
                 )}
               </div>
             </Link>
+            <p className="muted small garageProfileCard__avatarHint">
+              Нажмите на аватар для настройки страницы.
+            </p>
           </div>
         </div>
         <div className="garageProfileCard__footer">
@@ -691,43 +746,22 @@ export default function OwnerGaragePage() {
             </Link>
           ) : null}
           <div className="garageProfileCard__footerCallRow">
-            <div className="garageProfileCard__footerActions">
-              {limits.canVinClaim ? (
-                <Link
-                  className="btn garageVinClaimBtn"
-                  data-variant="outline"
-                  to="/garage#garage-vin-claim"
-                  aria-label="Найти авто по VIN"
-                >
-                  <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
-                  <span className="garageVinClaimBtn__short" aria-hidden="true">
-                    VIN
-                  </span>
+            <div className="garageProfileCard__addCarBlock">
+              {limits.canAddManual ? (
+                <Link className="btn garageProfileCard__addCarBtn" data-variant="primary" to="/create">
+                  Добавить авто
                 </Link>
               ) : (
                 <span
-                  className="btn btn--asDisabled garageVinClaimBtn"
+                  className="btn btn--asDisabled garageProfileCard__addCarBtn"
                   data-variant="outline"
-                  title={`В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`}
-                  aria-label="Найти авто по VIN"
+                  title={addCarLimitTitle}
+                  aria-label={addCarLimitTitle}
                 >
-                  <span className="garageVinClaimBtn__full">Найти авто по VIN</span>
-                  <span className="garageVinClaimBtn__short" aria-hidden="true">
-                    VIN
-                  </span>
+                  Добавить авто
                 </span>
               )}
             </div>
-            <HeroCoverStat
-              kind="car"
-              variant="card"
-              className="garageProfileCard__carStat"
-              value={cars.length}
-              title={limits.canAddManual ? garageCarStatTitle : addCarLimitTitle}
-              to="/create"
-              linkDisabled={!limits.canAddManual}
-              aria-label={!limits.canAddManual ? garageCarStatTitle : undefined}
-            />
           </div>
         </div>
       </Card>
@@ -738,7 +772,7 @@ export default function OwnerGaragePage() {
             <h2 className="h2" style={{ marginBottom: 10 }}>
               Автомобили в гараже:
             </h2>
-            <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} />
+            <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} enrichedRows={enrichedRows} />
             <OwnerVinClaimSection
               ownerEmail={ownerEmail}
               cars={cars}

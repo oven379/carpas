@@ -54,6 +54,7 @@ class OwnerAuthController extends Controller
                 'password' => Hash::make($data['password']),
                 'name' => TextFormat::mbUcfirst($data['name']),
                 'phone' => trim((string) $data['phone']),
+                'garage_banner_enabled' => false,
             ]);
         } catch (QueryException $e) {
             if ($this->isUniqueViolationOnOwnerEmail($e)) {

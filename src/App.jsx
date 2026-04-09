@@ -6,6 +6,7 @@ import { PageLoadSpinner, TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
+import DevHud from './ui/DevHud.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 
@@ -91,6 +92,7 @@ export default function App() {
 
   return (
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
+      <DevHud />
       <SyncClientDataOnTabReturn />
       {soloChrome ? null : <TopNav />}
       <main
