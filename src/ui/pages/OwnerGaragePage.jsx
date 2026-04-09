@@ -734,24 +734,6 @@ export default function OwnerGaragePage() {
                 </p>
               ) : null}
             </div>
-            {!garageLastVisitLoading && garageHomeAdvice ? (
-              <div className="garageProfileCard__homeAdvice">
-                <p className="muted small garageProfileCard__metaLine garageProfileCard__homeAdviceHead">
-                  <span className="garageProfileCard__metaKey">Совет</span>
-                </p>
-                {garageHomeAdvice.body ? (
-                  <p className="garageProfileCard__homeAdviceText">{garageHomeAdvice.body}</p>
-                ) : null}
-                <p className="muted small garageProfileCard__homeAdviceFoot">{garageHomeAdvice.sub}</p>
-                {garageHomeAdvice.linkSettings ? (
-                  <p className="garageProfileCard__homeAdviceSettingsLink">
-                    <Link className="link" to="/garage/settings">
-                      Настройки гаража
-                    </Link>
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
             <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
               <span className="garageProfileCard__metaKey">Город:</span>{' '}
               {cityLine ? cityLine : <span className="muted">нет данных</span>}
@@ -826,6 +808,24 @@ export default function OwnerGaragePage() {
                 </div>
               ) : null}
             </div>
+            {!garageLastVisitLoading && garageHomeAdvice ? (
+              <div className="garageProfileCard__homeAdvice">
+                <p className="muted small garageProfileCard__metaLine garageProfileCard__homeAdviceHead">
+                  <span className="garageProfileCard__metaKey">Совет</span>
+                </p>
+                {garageHomeAdvice.body ? (
+                  <p className="garageProfileCard__homeAdviceText">{garageHomeAdvice.body}</p>
+                ) : null}
+                <p className="muted small garageProfileCard__homeAdviceFoot">{garageHomeAdvice.sub}</p>
+                {garageHomeAdvice.linkSettings ? (
+                  <p className="garageProfileCard__homeAdviceSettingsLink">
+                    <Link className="link" to="/garage/settings">
+                      Настройки гаража
+                    </Link>
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div className="garageProfileCard__avatarCol">
             <Link
