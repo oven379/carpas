@@ -68,14 +68,19 @@ export default defineConfig(({ mode }) => {
       /* если 5173 занят — явная ошибка, а не тихий переход на 5174 (и «не открывается» старый URL) */
       strictPort: true,
       proxy: devProxy(proxyTarget),
-      ...(devPollWatch
-        ? {
-            watch: {
-              usePolling: true,
-              interval: 1000,
-            },
-          }
-        : {}),
+      /*
+       * Не смотреть backend/android в Docker на Windows: Laravel пишет в backend/storage,
+       * chokidar ловит EIO и Vite перестаёт отвечать на HTTP (таймаут в браузере).
+       */
+      watch: {
+        ignored: [
+          '**/backend/**',
+          '**/android/**',
+          '**/dist/**',
+          '**/.git/**',
+        ],
+        ...(devPollWatch ? { usePolling: true, interval: 1000 } : {}),
+      },
       /* Реже залипает старый index.html / чанки в браузере при разработке */
       headers: {
         'Cache-Control': 'no-store',
