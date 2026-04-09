@@ -39,10 +39,6 @@
   box-sizing: border-box;
 }
 
-.brandLogoMarkAlign--footer {
-  min-height: 44px;
-}
-
 .brandLogoMarkAlign--aboutHero {
   min-height: 2.75rem;
 }
@@ -416,56 +412,28 @@ button.nav__action {
   flex-wrap: nowrap;
 }
 
-/* Бренд | правовые ссылки | Поддержка; на узком экране лого на всю ширину, снизу — ссылки и кнопка */
+/* Правовые ссылки | Поддержка */
 .footer__bar {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px 18px;
   width: 100%;
   min-width: 0;
 }
 
-.footerBrandSlot {
-  flex-shrink: 0;
-  min-width: 0;
-  max-width: min(200px, 38vw);
-  align-self: center;
-}
-
-.footerBrandSlot__link {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-}
-
-.footerBrandSlot .brandLogoLockup {
-  align-items: center;
-}
-
 @media (max-width: 560px) {
   .footer__bar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'brand brand'
-      'legal support';
     align-items: start;
-    row-gap: 14px;
-  }
-
-  .footerBrandSlot {
-    grid-area: brand;
-    max-width: 100%;
+    row-gap: 10px;
   }
 
   .footerLegal {
-    grid-area: legal;
     justify-content: flex-start;
     text-align: left;
   }
 
   .footerSupportSlot {
-    grid-area: support;
     justify-self: end;
     align-self: center;
   }
@@ -4441,6 +4409,38 @@ a.garageProfileCard__linkChip:focus-visible {
 .garageProfileCard__lastVisitBlock {
   margin-top: 2px;
   margin-bottom: 12px;
+}
+
+.garageProfileCard__lastVisitPicker {
+  margin-bottom: 10px;
+}
+
+.garageProfileCard__lastVisitPickerLabel {
+  display: block;
+  font-weight: 700;
+  color: var(--text-h);
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.garageProfileCard__lastVisitSelect {
+  display: block;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  cursor: pointer;
+  /* iOS: не увеличивать страницу при фокусе */
+  font-size: max(15px, 1rem);
+}
+
+.garageProfileCard__lastVisitSelect:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 2px;
 }
 
 .garageProfileCard__lastVisit {

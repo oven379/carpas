@@ -450,7 +450,7 @@ export function TopNav() {
         <NavLink end className="nav__brand" to="/" aria-label="КарПас — главная страница сервиса">
           <span className="navBrandLockup">
             <span className="navLogoFrame">
-              <Logo size={16} tagline={false} markWrapperClassName="brandLogoMarkAlign" />
+              <Logo size={26} tagline={false} markWrapperClassName="brandLogoMarkAlign" />
             </span>
           </span>
         </NavLink>

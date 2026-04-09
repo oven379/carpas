@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { SupportButton } from './support/SupportHub.jsx'
-import Logo from './Logo.jsx'
 
 /**
  * Футер: слева политика и правила, справа кнопка «Поддержка» (открывает тикет в админ-панель).
@@ -8,11 +7,6 @@ import Logo from './Logo.jsx'
 export default function FooterSupport() {
   return (
     <div className="footer__bar">
-      <div className="footerBrandSlot">
-        <Link to="/" className="footerBrandSlot__link" aria-label="КарПас — главная страница сервиса">
-          <Logo size={14} tagline={false} markWrapperClassName="brandLogoMarkAlign brandLogoMarkAlign--footer" />
-        </Link>
-      </div>
       <nav className="footerLegal" aria-label="Правовая информация">
         <Link className="authConsent__legalLink" to="/">
           Политика конфиденциальности

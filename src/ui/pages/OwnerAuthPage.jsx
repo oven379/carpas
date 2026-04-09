@@ -13,13 +13,7 @@ import {
   ServiceHint,
 } from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
-import {
-  debugAuth,
-  hasDetailingSession,
-  hasOwnerSession,
-  ownerToSessionSnapshot,
-  setSessionOwner,
-} from '../auth.js'
+import { hasDetailingSession, hasOwnerSession, ownerToSessionSnapshot, setSessionOwner } from '../auth.js'
 import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
@@ -53,7 +47,6 @@ export default function OwnerAuthPage() {
   }
 
   if (hasOwnerSession()) {
-    debugAuth('OwnerAuthPage: уже есть сессия владельца → редирект', { to: nextAfterAuth })
     return <Navigate to={nextAfterAuth} replace />
   }
   if (hasDetailingSession()) {
@@ -128,7 +121,6 @@ export default function OwnerAuthPage() {
     const { em, pwd } = creds
     try {
       const loginRes = await r.loginOwner({ email: em, password: pwd })
-      debugAuth('OwnerAuth: ответ loginOwner', { ok: loginRes?.ok, reason: loginRes?.reason })
       if (loginRes?.ok) {
         const snap = ownerToSessionSnapshot(loginRes.owner)
         if (!snap) {
@@ -181,7 +173,6 @@ export default function OwnerAuthPage() {
       setSessionOwner(snap, reg.token)
       refreshAllClientData()
       const dest = resolveAfterRegister()
-      debugAuth('OwnerAuth: регистрация ok, перед navigate', { dest })
       nav(dest, { replace: true })
     } catch (e) {
       const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
