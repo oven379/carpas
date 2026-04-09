@@ -1,7 +1,17 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
-import { AuthLegalConsent, BackNav, Button, Card, Field, Input, Pill, ServiceHint } from '../components.jsx'
+import {
+  AuthLegalConsent,
+  BackNav,
+  Button,
+  Card,
+  Field,
+  Input,
+  PasswordInput,
+  Pill,
+  ServiceHint,
+} from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
@@ -81,10 +91,8 @@ export default function PartnerLoginPage() {
                 />
               </Field>
               <Field className="field--full" label="Пароль">
-                <Input
+                <PasswordInput
                   ref={detPasswordRef}
-                  className="input mono"
-                  type="password"
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

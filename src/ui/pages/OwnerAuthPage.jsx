@@ -1,7 +1,17 @@
 import { useRef, useState } from 'react'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
-import { AuthLegalConsent, BackNav, Button, Card, Field, Input, PhoneRuInput, ServiceHint } from '../components.jsx'
+import {
+  AuthLegalConsent,
+  BackNav,
+  Button,
+  Card,
+  Field,
+  Input,
+  PasswordInput,
+  PhoneRuInput,
+  ServiceHint,
+} from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import {
   debugAuth,
@@ -237,10 +247,8 @@ export default function OwnerAuthPage() {
                 label="Пароль"
                 hint={`Не короче ${OWNER_PASSWORD_MIN_LEN} символов — для входа и для нового аккаунта`}
               >
-                <Input
+                <PasswordInput
                   ref={ownPasswordRef}
-                  className="input mono"
-                  type="password"
                   autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
                   value={ownPassword}
                   onChange={(e) => setOwnPassword(e.target.value)}

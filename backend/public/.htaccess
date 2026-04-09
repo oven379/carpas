@@ -14,6 +14,10 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Старый Vite base «./»: с URL /car/{id}/history чанки идут на /car/{id}/assets/* → иначе падает в index.php (HTML).
+    RewriteCond %{REQUEST_URI} ^/car/[0-9]+/assets/(.+)$
+    RewriteRule ^ /assets/%1 [L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f

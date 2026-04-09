@@ -80,7 +80,7 @@ class CarController extends Controller
             'plate_region' => $region,
             'make' => trim((string) ($data['make'] ?? '')),
             'model' => trim((string) ($data['model'] ?? '')),
-            'year' => isset($data['year']) ? (int) $data['year'] : null,
+            'year' => VinPlateValidator::normalizeOptionalYear($data['year'] ?? null),
             'mileage_km' => isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0,
             'price_rub' => isset($data['priceRub']) ? (int) $data['priceRub'] : 0,
             'color' => trim((string) ($data['color'] ?? '')),
@@ -159,7 +159,7 @@ class CarController extends Controller
             }
         }
         if (array_key_exists('year', $data)) {
-            $car->year = $data['year'] === null ? null : (int) $data['year'];
+            $car->year = VinPlateValidator::normalizeOptionalYear($data['year']);
         }
         if (array_key_exists('mileageKm', $data)) {
             $car->mileage_km = (int) ($data['mileageKm'] ?? 0);

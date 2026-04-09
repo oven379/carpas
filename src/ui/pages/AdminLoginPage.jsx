@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import Logo from '../Logo.jsx'
-import { Button, Input } from '../components.jsx'
+import { Button, Input, PasswordInput } from '../components.jsx'
 import { adminGateCredentialsOk } from '../../lib/adminGateCredentials.js'
 import { hasAdminMockSession, setAdminMockSession } from '../../lib/adminMockSession.js'
 import { getApi } from '../../api/index.js'
@@ -83,9 +83,8 @@ export default function AdminLoginPage() {
           </label>
           <label className="field">
             <span className="field__label">Пароль</span>
-            <Input
+            <PasswordInput
               className="input"
-              type="password"
               name="admin-password"
               value={password}
               onChange={(e) => {

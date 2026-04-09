@@ -57,6 +57,74 @@ export const Input = forwardRef(function Input(props, ref) {
   return <input ref={ref} {...props} />
 })
 
+function PasswordVisibilityEyeIcon() {
+  return (
+    <svg className="passwordInputWrap__toggleIcon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"
+      />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="2" />
+    </svg>
+  )
+}
+
+function PasswordVisibilityEyeOffIcon() {
+  return (
+    <svg className="passwordInputWrap__toggleIcon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"
+      />
+      <path fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M1 1l22 22" />
+    </svg>
+  )
+}
+
+/** Поле пароля с кнопкой «глаз»: по умолчанию скрыто (`type=password`), по клику — показ (`text`). Реф — на input. */
+export const PasswordInput = forwardRef(function PasswordInput(
+  { className = 'input mono', disabled, onChange, onInput, onBlur, onAnimationStart, ...rest },
+  ref,
+) {
+  /** false = пароль скрыт (дефолт для пользователя). */
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <div className="passwordInputWrap">
+      <Input
+        ref={ref}
+        className={`passwordInputWrap__input${className ? ` ${className}` : ''}`.trim()}
+        disabled={disabled}
+        onChange={onChange}
+        onInput={onInput}
+        onBlur={onBlur}
+        onAnimationStart={onAnimationStart}
+        {...rest}
+        type={visible ? 'text' : 'password'}
+      />
+      <button
+        type="button"
+        className="passwordInputWrap__toggle"
+        disabled={disabled}
+        aria-label={visible ? 'Скрыть пароль' : 'Показать пароль'}
+        aria-pressed={visible}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setVisible((v) => !v)}
+      >
+        {visible ? <PasswordVisibilityEyeOffIcon /> : <PasswordVisibilityEyeIcon />}
+      </button>
+    </div>
+  )
+})
+
 /** Телефон РФ: «+7» отдельно (обычная яркость), маска цифр — плейсхолдер тусклее. */
 export const PhoneRuInput = forwardRef(function PhoneRuInput(
   { value, onChange, onBlur, className = '', id, disabled, autoComplete = 'tel', ...rest },

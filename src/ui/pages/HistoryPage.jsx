@@ -26,17 +26,7 @@ import {
 } from '../../lib/format.js'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
-import {
-  buildProfileGroupedForPicker,
-  dedupeOfferedStrings,
-  DETAILING_SERVICES,
-  MAINTENANCE_SERVICES,
-  normalizeCarEventServices,
-  OFFERED_SERVICE_MAX_LEN,
-  splitWashDetailingServices,
-  visitProfileDetailingList,
-  visitProfileMaintenanceList,
-} from '../../lib/serviceCatalogs.js'
+import { dedupeOfferedStrings, normalizeCarEventServices, OFFERED_SERVICE_MAX_LEN, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
@@ -47,8 +37,7 @@ import {
   FORM_COMMENT_HINT,
   FORM_MILEAGE_HINT,
   FORM_PHOTOS_EDIT_HINT,
-  FORM_SERVICES_DET_HINT,
-  FORM_SERVICES_TO_HINT,
+  FORM_SERVICES_VISIT_BLOCK_HINT,
   FORM_TITLE_HINT,
   HISTORY_DRAFT_DET_HINT,
   HISTORY_PAGE_HINT,
@@ -64,7 +53,7 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/visitEditCalendar.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
-import { ServicePicker } from '../ServicePicker.jsx'
+import { VisitFormServicesBlock } from '../VisitFormServicesBlock.jsx'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
@@ -562,9 +551,9 @@ export default function HistoryPage() {
             ? clampVisitNoteInput(String(ne.note || ''))
             : visitFormNoteFromEvent(ne),
         services:
-          mode === 'detailing' && Array.isArray(ne.services) ? [...ne.services] : [],
+          (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.services) ? [...ne.services] : [],
         maintenanceServices:
-          mode === 'detailing' && Array.isArray(ne.maintenanceServices)
+          (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.maintenanceServices)
             ? [...ne.maintenanceServices]
             : [],
         type: ne.type || 'visit',
@@ -606,9 +595,9 @@ export default function HistoryPage() {
                 ? clampVisitNoteInput(String(ne.note || ''))
                 : visitFormNoteFromEvent(ne),
             services:
-              mode === 'detailing' && Array.isArray(ne.services) ? [...ne.services] : [],
+              (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.services) ? [...ne.services] : [],
             maintenanceServices:
-              mode === 'detailing' && Array.isArray(ne.maintenanceServices)
+              (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.maintenanceServices)
                 ? [...ne.maintenanceServices]
                 : [],
             type: ne.type || 'visit',
@@ -654,15 +643,6 @@ export default function HistoryPage() {
     }
   }, [car, detailingId, detailing])
   const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
-
-  const visitPickerDetGroups = useMemo(
-    () => buildProfileGroupedForPicker(DETAILING_SERVICES, visitProfileDetailingList(detailing)),
-    [detailing],
-  )
-  const visitPickerMaintGroups = useMemo(
-    () => buildProfileGroupedForPicker(MAINTENANCE_SERVICES, visitProfileMaintenanceList(detailing)),
-    [detailing],
-  )
 
   const editingEvent = editingId ? events.find((x) => x.id === editingId) || null : null
   const editAllowed = Boolean(editingEvent && canEditAny(editingEvent))
@@ -721,7 +701,7 @@ export default function HistoryPage() {
 
   const buildVisitPayload = () => {
     const visitServicesPayload =
-      mode === 'detailing'
+      mode === 'detailing' || mode === 'owner'
         ? {
             services: dedupeOfferedStrings(draft.services, OFFERED_SERVICE_MAX_LEN),
             maintenanceServices: dedupeOfferedStrings(draft.maintenanceServices, OFFERED_SERVICE_MAX_LEN),
@@ -1332,46 +1312,6 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
-            {mode === 'detailing' ? (
-              <>
-                <ServicePicker
-                  scopeId={FORM_SERVICES_DET_HINT.scopeId}
-                  fieldLabel="Услуги детейлинга"
-                  hintSlot={
-                    <ServiceHint
-                      scopeId={FORM_SERVICES_DET_HINT.scopeId}
-                      variant="compact"
-                      label={FORM_SERVICES_DET_HINT.label}
-                    >
-                      <p className="serviceHint__panelText">{FORM_SERVICES_DET_HINT.textDetailing}</p>
-                    </ServiceHint>
-                  }
-                  groups={visitPickerDetGroups}
-                  value={draft.services}
-                  onChange={(next) => setDraft((d) => ({ ...d, services: next }))}
-                  disabled={formLocked}
-                  emptyMenuText="В настройках лендинга нет услуг детейлинга (ни из справочника, ни своих названий)."
-                />
-                <ServicePicker
-                  scopeId={FORM_SERVICES_TO_HINT.scopeId}
-                  fieldLabel="Услуги ТО"
-                  hintSlot={
-                    <ServiceHint
-                      scopeId={FORM_SERVICES_TO_HINT.scopeId}
-                      variant="compact"
-                      label={FORM_SERVICES_TO_HINT.label}
-                    >
-                      <p className="serviceHint__panelText">{FORM_SERVICES_TO_HINT.textDetailing}</p>
-                    </ServiceHint>
-                  }
-                  groups={visitPickerMaintGroups}
-                  value={draft.maintenanceServices}
-                  onChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
-                  disabled={formLocked}
-                  emptyMenuText="В настройках лендинга не отмечены услуги ТО."
-                />
-              </>
-            ) : null}
             <div className="field field--full serviceHint__fieldWrap" id={FORM_COMMENT_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Комментарий</span>
@@ -1392,6 +1332,31 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
+            {mode === 'detailing' || mode === 'owner' ? (
+              <VisitFormServicesBlock
+                scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
+                detailing={detailing}
+                useFullCatalogFallback={mode === 'owner'}
+                services={draft.services}
+                maintenanceServices={draft.maintenanceServices}
+                onServicesChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+                onMaintenanceChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+                disabled={formLocked}
+                hintSlot={
+                  <ServiceHint
+                    scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
+                    variant="compact"
+                    label={FORM_SERVICES_VISIT_BLOCK_HINT.label}
+                  >
+                    <p className="serviceHint__panelText">
+                      {mode === 'owner'
+                        ? FORM_SERVICES_VISIT_BLOCK_HINT.textOwner
+                        : FORM_SERVICES_VISIT_BLOCK_HINT.textDetailing}
+                    </p>
+                  </ServiceHint>
+                }
+              />
+            ) : null}
             {editingId ? (
               <div className="field field--full serviceHint__fieldWrap" id={FORM_PHOTOS_EDIT_HINT.scopeId}>
                 <div className="field__top serviceHint__fieldTop">

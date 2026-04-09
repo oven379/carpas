@@ -2,8 +2,8 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
 import { BackNav, Card, CityComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
-import { bumpSessionRefresh, clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
-import { useRepo, refreshAllClientData, invalidateRepo } from '../useRepo.js'
+import { clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
+import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import {
   CITY_FIELD_DD_HINT,
@@ -20,7 +20,6 @@ export default function GarageSettingsPage() {
   const navigate = useNavigate()
   const r = useRepo()
   const saveLock = useAsyncActionLock()
-  const premiumLock = useAsyncActionLock()
   const { owner, mode, loading } = useDetailing()
   const socialRowIdRef = useRef(1)
   const nextSocialRowId = () => ++socialRowIdRef.current
@@ -380,44 +379,6 @@ export default function GarageSettingsPage() {
           />
         </div>
 
-        <div
-          className="field field--full garageSettings__premiumBlock"
-          style={{ marginTop: 8, paddingTop: 18, borderTop: '1px solid color-mix(in oklab, var(--border) 88%, transparent)' }}
-        >
-          <div className="field__top">
-            <span className="field__label">Тариф (тест)</span>
-          </div>
-          <p className="muted small" style={{ margin: '0 0 10px', maxWidth: '62ch', lineHeight: 1.5 }}>
-            Флаг Premium для отладки и демо. Лимиты гаража в MVP по-прежнему задаются правилами сервиса.
-          </p>
-          <button
-            type="button"
-            className="btn"
-            data-variant="outline"
-            disabled={premiumLock.pending}
-            onClick={() =>
-              void premiumLock.run(async () => {
-                if (!owner?.email || !r.updateOwnerMe) {
-                  alert('Не удалось обновить тариф.')
-                  return
-                }
-                try {
-                  const next = await r.updateOwnerMe({ isPremium: !owner.isPremium })
-                  if (next?.owner) mergeSessionOwnerScalars(next.owner)
-                  invalidateRepo()
-                  bumpSessionRefresh()
-                  const prem = Boolean(next?.owner?.isPremium)
-                  alert(prem ? 'Premium включён.' : 'Premium выключен.')
-                } catch {
-                  alert('Не удалось обновить тариф.')
-                }
-              })
-            }
-          >
-            {owner?.isPremium ? 'Отключить Premium' : 'Подключить Premium'}
-          </button>
-        </div>
-
         <AuthChangePasswordSection
           variant="owner"
           r={r}
@@ -428,6 +389,11 @@ export default function GarageSettingsPage() {
             navigate('/auth/owner', { replace: true })
           }}
         />
+
+        <p className="muted small garageSettings__profileSaveHint" style={{ marginTop: 18, lineHeight: 1.5, maxWidth: '62ch' }}>
+          Ниже кнопки «Сохранить» и «Отменить» относятся только к профилю гаража (контакты, ссылка, видимость, фото). Пароль входа
+          меняется в блоке выше.
+        </p>
 
         <div className="row gap wrap historyFormActions garageSettings__actionsRow">
           <button

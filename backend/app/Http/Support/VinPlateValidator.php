@@ -113,6 +113,9 @@ final class VinPlateValidator
             'У' => 'Y', 'Х' => 'X',
         ];
         $u = mb_strtoupper($ch, 'UTF-8');
+        if ($u === 'Ё') {
+            $u = 'Е';
+        }
         if (isset($map[$u])) {
             return $map[$u];
         }
@@ -124,5 +127,18 @@ final class VinPlateValidator
         }
 
         return '';
+    }
+
+    /**
+     * Год модели в формах: пустая строка, null или 0 → null в БД (иначе (int)'' давало 0).
+     */
+    public static function normalizeOptionalYear(mixed $y): ?int
+    {
+        if ($y === null || $y === '') {
+            return null;
+        }
+        $n = (int) $y;
+
+        return $n > 0 ? $n : null;
     }
 }

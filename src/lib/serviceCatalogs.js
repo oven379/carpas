@@ -180,6 +180,133 @@ export function visitProfileMaintenanceList(det) {
   return splitOfferedByCatalog(det.servicesOffered || []).maintenanceServicesOffered
 }
 
+/** Группы ТО для блока «ДВС» в форме визита (детейлинг). */
+export const VISIT_FORM_ENGINE_MAINT_GROUPS = ['Плановое ТО', 'Электрика', 'Кондиционер']
+
+/** Группы ТО для блока «Ходовая» в форме визита. */
+export const VISIT_FORM_CHASSIS_MAINT_GROUPS = ['Тормозная система', 'Подвеска и рулевое', 'Ремни и привод']
+
+/** Элементы кузова: отдельная строка с чекбоксом в визите (услуга «Покраска: …»). */
+export const VISIT_FORM_BODY_PAINT_PARTS = [
+  'Капот',
+  'Крыло переднее',
+  'Крыло заднее',
+  'Дверь передняя',
+  'Дверь задняя',
+  'Крыша',
+  'Багажник / задняя дверь',
+  'Порог',
+  'Бампер передний',
+  'Бампер задний',
+]
+
+/** Общая услуга «Покраска»; в кабинете детейлинга показывается только если есть в профиле лендинга. */
+export const VISIT_FORM_BODY_PAINT_GENERIC = 'Покраска'
+
+export function visitFormPaintPartLabels() {
+  return VISIT_FORM_BODY_PAINT_PARTS.map((p) => `${VISIT_FORM_BODY_PAINT_GENERIC}: ${p}`)
+}
+
+/**
+ * Группы для выпадающего выбора: только указанные группы каталога и только позиции из профиля.
+ */
+export function buildProfileGroupedForPickerByGroupTitles(catalogGroups, profileFlat, allowedGroupTitles) {
+  const allow = new Set(allowedGroupTitles || [])
+  const all = buildProfileGroupedForPicker(catalogGroups, profileFlat)
+  return all.filter((g) => allow.has(g.title))
+}
+
+function flattenCatalogItemList(groups) {
+  const raw = []
+  for (const g of groups || []) {
+    for (const it of g.items || []) {
+      const s = String(it || '').trim()
+      if (s) raw.push(s)
+    }
+  }
+  return dedupeOfferedStrings(raw)
+}
+
+/** Плоский список для формы визита: профиль лендинга или весь справочник (режим владельца). */
+export function visitFormDetailingFlatForPicker(detailing, useFullCatalog) {
+  if (useFullCatalog) return flattenCatalogItemList(DETAILING_SERVICES)
+  return visitProfileDetailingList(detailing)
+}
+
+export function visitFormMaintenanceFlatForPicker(detailing, useFullCatalog) {
+  if (useFullCatalog) return flattenCatalogItemList(MAINTENANCE_SERVICES)
+  return visitProfileMaintenanceList(detailing)
+}
+
+/**
+ * Все строки блока «Кузов» в форме визита.
+ * Для детейлинга — только профиль лендинга; «Покраска» и «Покраска: …» только если явно указаны в профиле.
+ * Для владельца (полный справочник) — все позиции каталога плюс стандартные варианты покраски.
+ */
+export function visitFormBodySelectableStrings(detailing, options) {
+  const useFull = Boolean(options?.useFullCatalog)
+  const profileDet = visitFormDetailingFlatForPicker(detailing, useFull)
+  const groups = buildProfileGroupedForPicker(DETAILING_SERVICES, profileDet)
+  const out = []
+  const seen = new Set()
+  const push = (s) => {
+    const t = String(s || '').trim()
+    if (!t || seen.has(t)) return
+    seen.add(t)
+    out.push(t)
+  }
+  for (const g of groups) for (const it of g.items || []) push(it)
+  if (useFull) {
+    push(VISIT_FORM_BODY_PAINT_GENERIC)
+    for (const x of visitFormPaintPartLabels()) push(x)
+  } else {
+    const profileSet = new Set(profileDet)
+    if (profileSet.has(VISIT_FORM_BODY_PAINT_GENERIC)) push(VISIT_FORM_BODY_PAINT_GENERIC)
+    for (const x of visitFormPaintPartLabels()) {
+      if (profileSet.has(x)) push(x)
+    }
+  }
+  return out
+}
+
+/** Плоские списки для подсказок поиска и маршрутизации в services / maintenanceServices. */
+export function visitFormSearchableOptionStrings(detailing, options) {
+  const body = visitFormBodySelectableStrings(detailing, options)
+  const useFull = Boolean(options?.useFullCatalog)
+  const maintFlat = visitFormMaintenanceFlatForPicker(detailing, useFull)
+  const eng = buildProfileGroupedForPickerByGroupTitles(
+    MAINTENANCE_SERVICES,
+    maintFlat,
+    VISIT_FORM_ENGINE_MAINT_GROUPS,
+  )
+  const ch = buildProfileGroupedForPickerByGroupTitles(
+    MAINTENANCE_SERVICES,
+    maintFlat,
+    VISIT_FORM_CHASSIS_MAINT_GROUPS,
+  )
+  const maint = []
+  const seen = new Set(body)
+  const pushM = (s) => {
+    const t = String(s || '').trim()
+    if (!t || seen.has(t)) return
+    seen.add(t)
+    maint.push(t)
+  }
+  for (const g of eng) for (const it of g.items || []) pushM(it)
+  for (const g of ch) for (const it of g.items || []) pushM(it)
+  return { body, maintenance: maint, all: [...body, ...maint] }
+}
+
+/**
+ * Куда положить выбранную строку в форме визита: ТО только в maintenanceServices, остальное в services.
+ */
+export function visitFormRouteServiceToPayloadField(label) {
+  const s = String(label || '').trim()
+  if (!s) return null
+  if (MAINTENANCE_ITEM_SET.has(s) && !DETAILING_ITEM_SET.has(s)) return 'maintenanceServices'
+  return 'services'
+}
+
 export const WASH_SERVICE_MARKERS = new Set(
   DETAILING_SERVICES.find((g) => g.group === CARE_GROUP)?.items || [],
 )

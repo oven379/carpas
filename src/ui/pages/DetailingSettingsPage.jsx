@@ -604,6 +604,10 @@ export default function DetailingSettingsPage() {
           }}
         />
 
+        <p className="muted small" style={{ marginTop: 18, lineHeight: 1.5, maxWidth: '62ch' }}>
+          Кнопка «Сохранить» ниже сохраняет только профиль кабинета. Пароль партнёра меняется отдельно — в блоке выше.
+        </p>
+
         <div className="row gap topBorder">
           <Button
             className="btn"

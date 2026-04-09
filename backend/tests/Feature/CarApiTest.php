@@ -48,6 +48,28 @@ class CarApiTest extends FeatureTestCase
         $this->assertDatabaseMissing('cars', ['id' => $id]);
     }
 
+    public function test_store_car_empty_year_string_becomes_null(): void
+    {
+        $d = $this->detailing();
+        Sanctum::actingAs($d);
+
+        $create = $this->postJson('/api/cars', [
+            'make' => 'Lada',
+            'model' => 'Vesta',
+            'year' => '',
+            'vin' => '',
+            'plate' => '',
+            'plateRegion' => '',
+        ]);
+        $create->assertOk();
+        $create->assertJsonPath('year', null);
+        $id = $create->json('id');
+        $this->assertDatabaseHas('cars', [
+            'id' => $id,
+            'year' => null,
+        ]);
+    }
+
     public function test_cannot_access_other_detailing_car(): void
     {
         $owner = $this->detailing();

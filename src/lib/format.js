@@ -185,8 +185,13 @@ export const RU_PLATE_HINT_PARAGRAPHS = [
   'Поля принимают символы по порядку: символ, неподходящий к текущей позиции, не попадает в поле.',
 ]
 
+function normalizePlateCyrillicForGost(u) {
+  return u === 'Ё' ? 'Е' : u
+}
+
 function plateCharToLatinUpper(ch) {
-  const u = String(ch || '').toLocaleUpperCase('ru-RU')
+  let u = String(ch || '').toLocaleUpperCase('ru-RU')
+  u = normalizePlateCyrillicForGost(u)
   if (!u) return ''
   if (PLATE_MAP_CYR_TO_LAT.has(u)) return PLATE_MAP_CYR_TO_LAT.get(u)
   if (u.length === 1 && u >= '0' && u <= '9') return u
@@ -196,7 +201,8 @@ function plateCharToLatinUpper(ch) {
 
 /** Одна буква ГОСТ для поля основной части: кириллица как на табличке (латиница → кириллица). */
 function plateBaseUiLetterFromChar(ch) {
-  const u = String(ch).toLocaleUpperCase('ru-RU')
+  let u = String(ch).toLocaleUpperCase('ru-RU')
+  u = normalizePlateCyrillicForGost(u)
   if (PLATE_MAP_CYR_TO_LAT.has(u)) return u
   if (u.length === 1 && u >= 'A' && u <= 'Z' && RU_PLATE_LETTER_SET.has(u)) {
     return PLATE_MAP_LAT_TO_CYR.get(u) || ''

@@ -518,9 +518,14 @@ export default function CarEditPage({ mode }) {
             <div className="row gap" style={{ alignItems: 'center' }}>
               <Input
                 className="input mono"
+                lang="ru"
+                inputMode="text"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
                 value={draft.plate}
                 maxLength={6}
-                title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы"
+                title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы (можно вводить кириллицей)"
                 onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBaseUi(e.target.value) }))}
                 placeholder="А777АА"
               />

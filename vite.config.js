@@ -28,12 +28,23 @@ export default defineConfig(({ mode }) => {
   const devPollWatch =
     mode === 'development' && process.env.VITE_DISABLE_POLL_WATCH !== '1'
 
+  /*
+   * Base URL для ссылок на чанки в собранном index.html.
+   * «/» — чанки всегда /assets/*.js с корня сайта; иначе на вложенных маршрутах (/admin и т.д.)
+   * относительные «./assets/» иногда превращаются в неверный URL → 404 → отдаётся HTML →
+   * «Failed to load module script… MIME type text/html».
+   * Подкаталог: VITE_APP_BASE=/myapp/ (со слэшем в конце). Редкий случай file:// — VITE_APP_BASE=./
+   */
+  const appBaseRaw = String(env.VITE_APP_BASE || process.env.VITE_APP_BASE || '').trim()
+  const base =
+    appBaseRaw !== ''
+      ? appBaseRaw.endsWith('/')
+        ? appBaseRaw
+        : `${appBaseRaw}/`
+      : '/'
+
   return {
-    /*
-     * В dev — «/»: стабильные URL чанков на localhost:5173 и предсказуемый HMR.
-     * В production — «./»: Capacitor/WebView и открытие index.html с диска без корневого пути.
-     */
-    base: mode === 'production' ? './' : '/',
+    base,
     /* Не подменять import.meta.env.VITE_* — в части сборок это ломает весь import.meta.env */
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version || ''),

@@ -947,6 +947,60 @@ a.btn[data-variant='outline']:visited {
   opacity: 1;
 }
 
+.passwordInputWrap {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.passwordInputWrap__input {
+  padding-right: 44px;
+}
+
+.passwordInputWrap__toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+}
+
+.passwordInputWrap__toggle:hover:not(:disabled) {
+  color: color-mix(in oklab, var(--muted) 55%, var(--text-h));
+  background: color-mix(in oklab, var(--muted) 10%, transparent);
+}
+
+.passwordInputWrap__toggle:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  outline-offset: 2px;
+}
+
+.passwordInputWrap__toggle:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.passwordInputWrap__toggleIcon {
+  display: block;
+  flex-shrink: 0;
+}
+
 /* Телефон РФ: +7 слева нормальной яркости, маска в поле — тусклый placeholder */
 .phoneRuField {
   display: flex;
@@ -2508,23 +2562,29 @@ summary.carPage__recsSelect::-webkit-details-marker {
   isolation: isolate;
 }
 
-/* Шапка карточки визита: заголовок + стрелка в одной строке, стрелка по центру по вертикали */
+/* Шапка карточки визита: стрелка раскрытия — всегда вверху справа (веб и узкая вёрстка) */
 .eventCard__head {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 
 .eventCard__headText {
   flex: 1;
   min-width: 0;
+  padding-right: 48px;
 }
 
 .eventCard__expandBtn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
   flex-shrink: 0;
   width: 44px;
   height: 44px;
@@ -3678,7 +3738,7 @@ a.backNav {
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='black' d='M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z'/%3E%3C/svg%3E");
 }
 
-/* «Сервис и история»: ссылка на детейлинг без плашки, как обычный текст */
+/* «Последний визит»: ссылка на детейлинг без плашки, как обычный текст */
 .carPage__serviceDetNameLink {
   display: inline;
   color: color-mix(in oklab, var(--accent) 72%, var(--text-h));
@@ -4356,14 +4416,9 @@ a.garageProfileCard__linkChip:focus-visible {
   line-height: 1;
 }
 
-.garageProfileCard__linkBlockNote {
-  margin: 10px 0 0;
-  line-height: 1.45;
-}
-
 .garageProfileCard__metaKey {
   font-weight: 650;
-  color: color-mix(in oklab, var(--text) 72%, var(--text-h));
+  color: var(--text-h);
 }
 
 .garageProfileCard__lastVisit {
@@ -4411,6 +4466,7 @@ a.garageProfileCard__linkChip:focus-visible {
 
 .garageProfileCard__lastVisitLeadLabel {
   font-weight: 700;
+  color: var(--text-h);
 }
 
 .garageProfileCard__lastVisitLeadCar {
@@ -6543,6 +6599,116 @@ a.thumbCard__fileDoc {
   filter: brightness(1.06);
 }
 
+/* Форма визита: блок услуг (поиск + секции кузов / ДВС / ходовая) */
+.visitFormSvc__searchRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 4px;
+}
+
+.visitFormSvc__searchWrap {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.visitFormSvc__search {
+  width: 100%;
+}
+
+.visitFormSvc__suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 220px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: 0 10px 28px color-mix(in oklab, black 18%, transparent);
+}
+
+.visitFormSvc__suggest li {
+  margin: 0;
+}
+
+.visitFormSvc__suggestBtn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: 13px/1.35 var(--sans);
+  cursor: pointer;
+}
+
+.visitFormSvc__suggestBtn:hover {
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+}
+
+.visitFormSvc--disabled .visitFormSvc__suggestBtn {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.visitFormSvc__chips {
+  margin-top: 10px;
+}
+
+.visitFormSvc__meta {
+  margin: 8px 0 0;
+}
+
+.visitFormSvc__details {
+  margin-top: 10px;
+}
+
+.visitFormSvc__summary {
+  cursor: pointer;
+}
+
+.visitFormSvc__detailsBody {
+  padding: 8px 0 4px 4px;
+}
+
+.visitFormSvc__subBlock {
+  margin-bottom: 14px;
+}
+
+.visitFormSvc__subBlock:last-child {
+  margin-bottom: 4px;
+}
+
+.visitFormSvc__subLabel {
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--muted);
+  margin: 0 0 6px;
+  letter-spacing: 0.02em;
+}
+
+.visitFormSvc__subLabel--tight {
+  margin-top: 10px;
+}
+
+.visitFormSvc__grid {
+  margin-top: 2px;
+}
+
+.visitFormSvc__empty {
+  margin: 0;
+  line-height: 1.45;
+}
+
 /* Выбранные услуги в настройках лендинга / заявке партнёра */
 .offeredSvcTagsBlock {
   margin-top: 10px;
@@ -7784,10 +7950,15 @@ a.btn.carPage__recsAddVisitFull,
     width: 100%;
   }
 
-  .topBorder .row.spread.gap {
+  /* Не трогаем шапки карточки авто: там шеврон справа, колонка ломает выравнивание заголовка */
+  .topBorder .row.spread.gap:not(.carPage__ownerDataBar) {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+  }
+
+  .row.carPage__ownerDataBar {
+    align-items: flex-start;
   }
 
   .row.spread.gap.topBorder {

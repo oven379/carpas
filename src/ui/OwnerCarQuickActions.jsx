@@ -7,7 +7,8 @@ import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 import { useAsyncActionLock } from './useAsyncActionLock.js'
 
 /**
- * Действия владельца на карточке авто (раньше были в выпадающем меню «Поддержка»).
+ * Действия владельца на карточке авто: «Поделиться историей», «Передать авто».
+ * Сейчас UI на баннере отключён (CarPage) до масштабирования — компонент оставлен для возврата.
  */
 export function OwnerCarQuickActions({ carId, car }) {
   const r = useRepo()

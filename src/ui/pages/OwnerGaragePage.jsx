@@ -686,16 +686,7 @@ export default function OwnerGaragePage() {
                       )
                     })}
                   </div>
-                  {owner?.garagePrivate && publicUrl ? (
-                    <p className="muted small garageProfileCard__linkBlockNote">
-                      Для гостей витрина по ссылке сейчас закрыта — откройте настройки и включите «Выйти на улицу».
-                    </p>
-                  ) : null}
                 </div>
-              ) : owner?.garagePrivate && publicUrl ? (
-                <p className="muted small garageProfileCard__linkBlockNote garageProfileCard__metaLine--spaced">
-                  Для гостей витрина по ссылке сейчас закрыта — откройте настройки и включите «Выйти на улицу».
-                </p>
               ) : null}
             </div>
           </div>
