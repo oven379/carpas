@@ -13,7 +13,13 @@ import {
   ServiceHint,
 } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { getSessionDetailingId, hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
+import {
+  getSessionDetailingId,
+  hasDetailingSession,
+  hasOwnerSession,
+  safeAuthReturnPath,
+  setSessionDetailingId,
+} from '../auth.js'
 import { partnerLoginErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -30,7 +36,8 @@ export default function PartnerLoginPage() {
   const detPasswordRef = useRef(null)
   const nav = useNavigate()
   const loc = useLocation()
-  const from = loc.state?.from || '/'
+  const from = safeAuthReturnPath(loc.state?.from) || ''
+  const authHubLinkState = from ? { from } : undefined
 
   if (hasOwnerSession()) return <Navigate to="/cars" replace />
   if (hasDetailingSession()) {
@@ -44,7 +51,7 @@ export default function PartnerLoginPage() {
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to="/auth" title="К выбору входа" />
+              <BackNav to="/auth" title="К выбору входа" linkState={authHubLinkState} />
               <h1 className="h1" style={{ margin: 0 }}>
                 Вход партнёра
               </h1>
@@ -143,7 +150,7 @@ export default function PartnerLoginPage() {
               >
                 Войти
               </Button>
-              <Link className="btn" data-variant="outline" to="/auth/partner/apply" state={{ from }}>
+              <Link className="btn" data-variant="outline" to="/auth/partner/apply" state={from ? { from } : undefined}>
                 Регистрация
               </Link>
             </div>

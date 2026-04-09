@@ -42,7 +42,10 @@ function RouteFallback() {
 
 function RequireAuth({ children }) {
   const loc = useLocation()
-  if (!isAuthed()) return <Navigate to="/auth" replace state={{ from: loc.pathname }} />
+  if (!isAuthed()) {
+    const from = `${loc.pathname}${loc.search}`
+    return <Navigate to="/auth" replace state={{ from }} />
+  }
   return <DetailingOnboardingGate>{children}</DetailingOnboardingGate>
 }
 

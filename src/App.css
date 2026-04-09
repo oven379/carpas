@@ -1843,10 +1843,26 @@ a.heroCoverStat--link:focus-visible {
   text-align: left;
 }
 
-/* Кнопка всегда справа: на одной строке с текстом или на новой строке под ним */
+/* Ряд кнопок справа от подсказки (или на всю ширину ниже на узком экране) */
+.homeLandingAboutPanel__ctaActions.homeLandingHub {
+  flex: 1 1 100%;
+  justify-content: flex-end;
+  margin-left: 0;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .homeLandingAboutPanel__ctaActions.homeLandingHub {
+    flex: 1 1 min(420px, 100%);
+    margin-left: auto;
+    max-width: min(520px, 100%);
+  }
+}
+
+/* Основная CTA в блоке «О сервисе» — акцентная обводка (см. ниже) */
 .homeLandingAboutPanel__ctaBtn {
-  flex: 0 0 auto;
-  margin-left: auto;
+  flex: 1 1 min(200px, 100%);
+  min-width: 0;
 }
 
 /* «О сервисе»: CTA — прозрачный фон, постоянная фиолетовая обводка */

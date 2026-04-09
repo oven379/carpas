@@ -13,7 +13,13 @@ import {
   ServiceHint,
 } from '../components.jsx'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
-import { hasDetailingSession, hasOwnerSession, ownerToSessionSnapshot, setSessionOwner } from '../auth.js'
+import {
+  hasDetailingSession,
+  hasOwnerSession,
+  ownerToSessionSnapshot,
+  safeAuthReturnPath,
+  setSessionOwner,
+} from '../auth.js'
 import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
@@ -35,9 +41,14 @@ export default function OwnerAuthPage() {
   const ownPasswordRef = useRef(null)
   const nav = useNavigate()
   const loc = useLocation()
-  const f = loc.state?.from
+  const returnPath = safeAuthReturnPath(loc.state?.from)
   const nextAfterAuth =
-    typeof f === 'string' && f.startsWith('/') && !f.startsWith('/auth') ? (f === '/' ? '/garage' : f) : '/garage'
+    returnPath && !returnPath.startsWith('/auth')
+      ? returnPath === '/'
+        ? '/garage'
+        : returnPath
+      : '/garage'
+  const authHubLinkState = returnPath ? { from: returnPath } : undefined
 
   /** После первой регистрации ведём в настройки гаража, если не было явного deep-link. */
   function resolveAfterRegister() {
@@ -188,7 +199,7 @@ export default function OwnerAuthPage() {
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to="/auth" title="К выбору входа" />
+              <BackNav to="/auth" title="К выбору входа" linkState={authHubLinkState} />
               <h1 className="h1" style={{ margin: 0 }}>
                 Мой гараж
               </h1>
@@ -207,7 +218,7 @@ export default function OwnerAuthPage() {
                 <ServiceHint scopeId="owner-auth-intro-hint" variant="compact" label="Справка: мой гараж">
                   <p className="serviceHint__panelText">
                     <strong>Вход</strong> — почта, пароль и «В гараж». <strong>Регистрация</strong> — те же поля плюс имя и телефон;
-                    на форме одна кнопка <strong>«Зарегистрироваться»</strong> — после создания аккаунта открываются настройки гаража.
+                    на форме одна кнопка <strong>«Зарегистрироваться»</strong> — после создания аккаунта откроются настройки: сначала настройте публичную страницу гаража.
                     Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
                   </p>
                 </ServiceHint>
@@ -285,6 +296,11 @@ export default function OwnerAuthPage() {
                 </>
               ) : null}
               <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
+              {authMode === 'register' ? (
+                <p className="muted small" style={{ margin: '8px 0 0', lineHeight: 1.45, maxWidth: '52ch' }}>
+                  После регистрации откроются настройки гаража: сначала настройте публичную страницу (контакты и ссылка для гостей).
+                </p>
+              ) : null}
             </div>
             {authMode === 'login' ? (
               <AuthForgotPasswordBlock

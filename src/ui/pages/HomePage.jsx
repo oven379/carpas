@@ -245,14 +245,19 @@ export default function HomePage() {
                   </ul>
                   <div className="homeLandingAboutPanel__cta">
                     <span className="homeLandingAboutPanel__ctaHint muted small">
-                      Вход, регистрация и выбор роли — в одном месте.
+                      Владелец может сразу перейти к входу в гараж; общий экран — если нужно выбрать роль или войти как сервис.
                     </span>
-                    <Link
-                      className="btn authHub__btn authHub__btn--cta homeLandingAboutPanel__ctaBtn"
-                      to="/auth"
-                    >
-                      Вход и регистрация
-                    </Link>
+                    <div className="homeLandingAboutPanel__ctaActions homeLandingHub">
+                      <Link
+                        className="btn authHub__btn authHub__btn--cta homeLandingAboutPanel__ctaBtn"
+                        to="/auth"
+                      >
+                        Вход и регистрация
+                      </Link>
+                      <Link className="btn authHub__btn authHub__btn--neutral" to="/auth/owner">
+                        Войти как владелец
+                      </Link>
+                    </div>
                   </div>
                 </div>
               ) : null}
@@ -284,6 +289,9 @@ export default function HomePage() {
             <div className="homeLandingHub homeLandingStartCard__actions">
               <Link className="btn authHub__btn authHub__btn--cta" to="/auth">
                 Вход и регистрация
+              </Link>
+              <Link className="btn authHub__btn authHub__btn--neutral" to="/auth/owner">
+                Войти как владелец
               </Link>
             </div>
           </Card>

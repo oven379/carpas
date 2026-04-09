@@ -352,7 +352,7 @@ export function OpenAction({ to, asSpan, className = '', title = 'Открыть
 }
 
 /** Назад: шеврон влево. С `to` — `<Link>`; без `to` — шаг по истории. При `idx <= 0` сначала `location.state[stateFromKey]` (безопасный путь), иначе `fallbackTo`. */
-export function BackNav({ className = '', title = 'Назад', to, fallbackTo, stateFromKey }) {
+export function BackNav({ className = '', title = 'Назад', to, fallbackTo, stateFromKey, linkState }) {
   const navigate = useNavigate()
   const location = useLocation()
   const cn = `backNav ${className}`.trim()
@@ -370,7 +370,7 @@ export function BackNav({ className = '', title = 'Назад', to, fallbackTo, 
   )
   if (to) {
     return (
-      <Link to={to} className={cn} aria-label={title} title={title}>
+      <Link to={to} state={linkState} className={cn} aria-label={title} title={title}>
         {svg}
       </Link>
     )

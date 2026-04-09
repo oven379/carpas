@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import {
   AuthLegalConsent,
   BackNav,
@@ -12,7 +12,7 @@ import {
   ServiceHint,
 } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { hasDetailingSession, hasOwnerSession, setSessionDetailingId } from '../auth.js'
+import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath, setSessionDetailingId } from '../auth.js'
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { CITY_FIELD_DD_HINT, formatPhoneRuInput } from '../../lib/format.js'
@@ -28,6 +28,9 @@ export default function PartnerApplyPage() {
   const [regAddress, setRegAddress] = useState('')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const nav = useNavigate()
+  const loc = useLocation()
+  const returnPath = safeAuthReturnPath(loc.state?.from)
+  const partnerLoginLinkState = returnPath ? { from: returnPath } : undefined
 
   if (hasOwnerSession()) return <Navigate to="/cars" replace />
   if (hasDetailingSession()) {
@@ -41,7 +44,7 @@ export default function PartnerApplyPage() {
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to="/auth/partner" title="К форме входа" />
+              <BackNav to="/auth/partner" title="К форме входа" linkState={partnerLoginLinkState} />
               <h1 className="h1" style={{ margin: 0 }}>
                 Стать партнёром
               </h1>

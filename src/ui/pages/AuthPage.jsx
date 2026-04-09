@@ -1,12 +1,12 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
 import Logo from '../Logo.jsx'
-import { hasDetailingSession, hasOwnerSession } from '../auth.js'
+import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
 export default function AuthPage() {
   const loc = useLocation()
-  const from = loc.state?.from || '/'
+  const from = safeAuthReturnPath(loc.state?.from) || '/'
   const { detailing } = useDetailing()
 
   if (hasOwnerSession()) return <Navigate to="/garage" replace />

@@ -56,6 +56,17 @@ export function isAuthed() {
   return hasOwnerSession() || hasDetailingSession()
 }
 
+/**
+ * Безопасный внутренний путь из location.state при редиректе на вход (без open redirect).
+ * Возвращает пустую строку, если значение использовать нельзя.
+ */
+export function safeAuthReturnPath(raw) {
+  if (typeof raw !== 'string') return ''
+  const t = raw.trim()
+  if (!t.startsWith('/') || t.startsWith('//') || t.includes('..')) return ''
+  return t
+}
+
 export function setSessionDetailingId(id, token = null) {
   writeSS(SESSION_DETAILING_KEY, id)
   if (token) writeSS(SESSION_DETAILING_TOKEN_KEY, String(token))
