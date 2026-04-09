@@ -71,16 +71,6 @@ function linkedDetailingFromCars(bestId, cars) {
   return { id, name: '', logo: '' }
 }
 
-function heroWashPhotoUrl(carRow) {
-  if (!carRow) return ''
-  const hero = String(carRow.hero || '').trim()
-  if (hero) return hero
-  const wash = Array.isArray(carRow.washPhotos) ? carRow.washPhotos : []
-  const w0 = wash.map((u) => String(u || '').trim()).find(Boolean)
-  if (w0) return w0
-  return String(carRow.washPhoto || '').trim()
-}
-
 function GarageLastVisitMetaRow({ visit }) {
   const showAt = Boolean(visit.at)
   const showKm = visit.mileageKm != null && visit.mileageKm !== ''
@@ -113,7 +103,6 @@ function buildGarageVisitRow(carRow, evtRaw) {
   const lastEvtWashF = lastEvtWash.filter(Boolean)
   const lastEvtDetF = lastEvtDet.filter(Boolean)
   const lastEvtNote = String(e.note || '').trim()
-  const photoUrl = heroWashPhotoUrl(carRow)
   const sortTs = Date.parse(e.at || '') || 0
   return {
     key: `${carId}:${e.id}`,
@@ -124,7 +113,6 @@ function buildGarageVisitRow(carRow, evtRaw) {
     headlineName,
     at: e.at || '',
     mileageKm: e.mileageKm,
-    photoUrl,
     maintenanceServices: lastEvtMs,
     wash: lastEvtWashF,
     det: lastEvtDetF,
@@ -353,8 +341,8 @@ export default function OwnerGaragePage() {
       return
     }
     const v = selectedVisit
-    const seed = String(v.photoUrl || '').trim() ? [String(v.photoUrl).trim()] : []
-    setVisitGalleryUrls({ key: v.key, urls: seed })
+    /** Только документы, привязанные к этому визиту — без подстановки обложки авто (иначе «визит без фото» показывал бы баннер карточки). */
+    setVisitGalleryUrls({ key: v.key, urls: [] })
 
     let cancelled = false
     void (async () => {
@@ -371,7 +359,6 @@ export default function OwnerGaragePage() {
         if (urls.length === 0) {
           urls = forEvt.map((d) => String(d.url || '').trim()).filter(Boolean)
         }
-        if (urls.length === 0 && seed.length) urls = [...seed]
         const seen = new Set()
         const uniq = urls.filter((u) => {
           if (seen.has(u)) return false
@@ -380,7 +367,7 @@ export default function OwnerGaragePage() {
         })
         setVisitGalleryUrls((prev) => (prev.key === v.key ? { key: v.key, urls: uniq } : prev))
       } catch {
-        if (!cancelled) setVisitGalleryUrls((prev) => (prev.key === v.key ? { key: v.key, urls: seed } : prev))
+        if (!cancelled) setVisitGalleryUrls((prev) => (prev.key === v.key ? { key: v.key, urls: [] } : prev))
       }
     })()
 
@@ -391,12 +378,7 @@ export default function OwnerGaragePage() {
 
   const visitForDisplay = useMemo(() => {
     if (!selectedVisit) return null
-    const urls =
-      visitGalleryUrls.key === selectedVisit.key && visitGalleryUrls.urls.length
-        ? visitGalleryUrls.urls
-        : String(selectedVisit.photoUrl || '').trim()
-          ? [String(selectedVisit.photoUrl).trim()]
-          : []
+    const urls = visitGalleryUrls.key === selectedVisit.key ? visitGalleryUrls.urls : []
     return { ...selectedVisit, galleryPhotoUrls: urls }
   }, [selectedVisit, visitGalleryUrls])
 
