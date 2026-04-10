@@ -86,6 +86,7 @@ class ApiResources
             'ownerAccountPhone' => trim((string) ($c->owner?->phone ?? '')),
             'ownerShowPhonePublic' => (bool) ($c->owner?->show_phone_public ?? false),
             'ownerGarageSlug' => trim((string) ($c->owner?->garage_slug ?? '')),
+            'ownerGarageCity' => trim((string) ($c->owner?->garage_city ?? '')),
             'ownerGarageAvatar' => MediaStorage::publicUrl($c->owner?->garage_avatar ?? null),
             'vin' => $c->vin ?? '',
             'plate' => $c->plate ?? '',

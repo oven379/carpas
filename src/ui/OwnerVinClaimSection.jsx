@@ -110,15 +110,6 @@ export default function OwnerVinClaimSection({
   const [internalCars, setInternalCars] = useState([])
   const [internalClaims, setInternalClaims] = useState([])
 
-  const createCarHref = useMemo(() => {
-    const from = String(location?.pathname || '/garage') || '/garage'
-    const p = new URLSearchParams()
-    p.set('from', from)
-    const v = normVin(searchQuery) || lastClaimSearchVin
-    if (v) p.set('vin', v)
-    return `/create?${p.toString()}`
-  }, [location?.pathname, searchQuery, lastClaimSearchVin])
-
   useEffect(() => {
     if (controlled) return undefined
     let cancelled = false
@@ -160,6 +151,15 @@ export default function OwnerVinClaimSection({
   /** После успешного поиска строка очищается — для «Добавить автомобиль» помним VIN запроса. */
   const [lastClaimSearchVin, setLastClaimSearchVin] = useState('')
   const searchSeqRef = useRef(0)
+
+  const createCarHref = useMemo(() => {
+    const from = String(location?.pathname || '/garage') || '/garage'
+    const p = new URLSearchParams()
+    p.set('from', from)
+    const v = normVin(searchQuery) || lastClaimSearchVin
+    if (v) p.set('vin', v)
+    return `/create?${p.toString()}`
+  }, [location?.pathname, searchQuery, lastClaimSearchVin])
 
   const title = titleProp ?? (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN')
 

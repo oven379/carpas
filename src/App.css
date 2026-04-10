@@ -3739,6 +3739,130 @@ a.backNav {
   }
 }
 
+/* Детейлинг: блок «Клиент и доступ» — владелец в приложении */
+.carPage__detailingClientCard {
+  overflow: hidden;
+}
+
+.carPage__detailingClientCardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.carPage__detailingClientCardTitle {
+  margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.carPage__detailingOwnerProfile {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 14px;
+  padding-top: 4px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
+}
+
+.carPage__detailingOwnerProfileAvatar {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--surface-2) 70%, var(--border));
+}
+
+@media (min-width: 480px) {
+  .carPage__detailingOwnerProfileAvatar {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+.carPage__detailingOwnerProfileAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.carPage__detailingOwnerProfileBody {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.carPage__detailingOwnerProfileName {
+  font-weight: 650;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.carPage__detailingOwnerProfileRow {
+  font-size: 0.9375rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.carPage__detailingOwnerProfileKey {
+  color: var(--muted);
+  font-weight: 520;
+}
+
+.carPage__detailingOwnerProfileVal {
+  color: var(--text);
+}
+
+.carPage__detailingOwnerProfilePhone {
+  font-weight: 550;
+  text-decoration: none;
+  color: color-mix(in oklab, var(--accent) 55%, var(--text));
+}
+
+.carPage__detailingOwnerProfilePhone:hover {
+  text-decoration: underline;
+}
+
+.carPage__detailingOwnerProfileEmail {
+  padding-top: 2px;
+  line-height: 1.45;
+  word-break: break-all;
+}
+
+.carPage__detailingClientHint {
+  margin: 0 0 10px;
+  line-height: 1.5;
+}
+
+.carPage__detailingClientActions {
+  margin-top: 4px;
+}
+
+@media (max-width: 380px) {
+  .carPage__detailingOwnerProfile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .carPage__detailingOwnerProfileBody {
+    align-items: center;
+    width: 100%;
+  }
+
+  .carPage__detailingOwnerProfileEmail {
+    text-align: center;
+  }
+}
+
 .carPage__titleActions {
   display: flex;
   gap: 10px;

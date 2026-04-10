@@ -2,7 +2,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
-import { fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
+import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
@@ -338,6 +338,10 @@ export default function CarPage() {
     ? buildCarSubRoutePath(id, 'history', fromParam, { visit: String(lastHistoryEvent.id) })
     : ''
 
+  const detailingOwnerGarageCityLine = String(car.ownerGarageCity || '').trim() || 'Нет данных'
+  const detailingOwnerAccountPhoneRaw = String(car.ownerAccountPhone || '').trim()
+  const detailingOwnerAccountPhoneUi = displayRuPhone(detailingOwnerAccountPhoneRaw)
+
   const lastVisitPhotosMetaDetailing =
     lastHistoryEvent ? (
       <>
@@ -472,7 +476,7 @@ export default function CarPage() {
             <span className="mono" title="VIN">
               {car.vin || '—'}
             </span>
-            {lastServiceVisitAt ? (
+            {mode !== 'detailing' && lastServiceVisitAt ? (
               <>
                 <span aria-hidden="true"> · </span>
                 <span>{fmtDate(lastServiceVisitAt)}</span>
@@ -512,25 +516,61 @@ export default function CarPage() {
       {mode === 'detailing' &&
       detailingAccess?.label &&
       detailingAccess.label !== DETAILING_ACCESS_SERVICE_ONLY_LABEL ? (
-        <Card className="card pad" style={{ marginBottom: 16 }}>
-          <div className="cardTitle" style={{ marginBottom: 8 }}>
-            Клиент и доступ
-          </div>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+        <Card className="card pad carPage__detailingClientCard" style={{ marginBottom: 16 }}>
+          <div className="carPage__detailingClientCardHead">
+            <div className="cardTitle carPage__detailingClientCardTitle">Клиент и доступ</div>
             <Pill tone={detailingAccess.tone}>{detailingAccess.label}</Pill>
           </div>
+          {detailingAccess.label === 'Владелец в приложении' && String(car.ownerEmail || '').trim() ? (
+            <div className="carPage__detailingOwnerProfile">
+              <div
+                className="carPage__detailingOwnerProfileAvatar"
+                aria-hidden={car.ownerGarageAvatar ? undefined : true}
+              >
+                {car.ownerGarageAvatar ? (
+                  <img alt="" src={resolvePublicMediaUrl(String(car.ownerGarageAvatar))} />
+                ) : (
+                  <DefaultAvatar alt="" />
+                )}
+              </div>
+              <div className="carPage__detailingOwnerProfileBody">
+                <div className="carPage__detailingOwnerProfileName">
+                  {String(car.ownerName || '').trim() ||
+                    String(car.ownerEmail || '').trim() ||
+                    'Владелец'}
+                </div>
+                <div className="carPage__detailingOwnerProfileRow">
+                  <span className="carPage__detailingOwnerProfileKey">Город:</span>{' '}
+                  <span className="carPage__detailingOwnerProfileVal">{detailingOwnerGarageCityLine}</span>
+                </div>
+                <div className="carPage__detailingOwnerProfileRow">
+                  <span className="carPage__detailingOwnerProfileKey">Телефон:</span>{' '}
+                  {detailingOwnerAccountPhoneUi.telHref ? (
+                    <a className="carPage__detailingOwnerProfilePhone" href={detailingOwnerAccountPhoneUi.telHref}>
+                      {detailingOwnerAccountPhoneUi.display}
+                    </a>
+                  ) : detailingOwnerAccountPhoneRaw ? (
+                    <span className="carPage__detailingOwnerProfileVal">
+                      {detailingOwnerAccountPhoneUi.display || detailingOwnerAccountPhoneRaw}
+                    </span>
+                  ) : (
+                    <span className="carPage__detailingOwnerProfileVal muted">Нет данных</span>
+                  )}
+                </div>
+                <p className="muted small carPage__detailingOwnerProfileEmail" style={{ margin: 0 }}>
+                  <span className="carPage__detailingOwnerProfileKey">Почта:</span>{' '}
+                  <span className="mono">{String(car.ownerEmail || '').trim()}</span>
+                </p>
+              </div>
+            </div>
+          ) : null}
           {detailingAccess.label === 'Заявка владельца' ? (
-            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
+            <p className="muted small carPage__detailingClientHint">
               Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
             </p>
           ) : null}
-          {detailingAccess.label === 'Владелец в приложении' ? (
-            <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-              В гараже клиента: <span className="mono">{car.ownerEmail}</span>
-            </p>
-          ) : null}
           {detailingAccess.label === 'Заявка владельца' ? (
-            <div className="row gap wrap" style={{ marginTop: 10 }}>
+            <div className="row gap wrap carPage__detailingClientActions">
               <Link className="btn" data-variant="primary" to="/requests">
                 Перейти к заявкам
               </Link>
