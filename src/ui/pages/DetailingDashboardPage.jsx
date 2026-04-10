@@ -29,6 +29,7 @@ import {
   parsePlateFull,
 } from '../../lib/format.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
+import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { useDetailing } from '../useDetailing.js'
 
 function rowHeroBackgroundStyle(hero) {

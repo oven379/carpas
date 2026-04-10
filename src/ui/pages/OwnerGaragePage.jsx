@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
@@ -166,56 +166,6 @@ export default function OwnerGaragePage() {
   const [brokenGalleryUrls, setBrokenGalleryUrls] = useState([])
   /** Карточка подробностей визита: по умолчанию свёрнута, чтобы на мобилке не занимала весь экран */
   const [visitDetailsExpanded, setVisitDetailsExpanded] = useState(false)
-  const lastVisitPanelRef = useRef(null)
-
-  useLayoutEffect(() => {
-    const el = lastVisitPanelRef.current
-    if (!el) return undefined
-
-    const clearBleed = () => {
-      el.style.width = ''
-      el.style.marginLeft = ''
-      el.style.maxWidth = ''
-    }
-
-    if (!visitDetailsExpanded) {
-      clearBleed()
-      return undefined
-    }
-
-    const syncFullWidth = () => {
-      const rect = el.getBoundingClientRect()
-      const docW = document.documentElement.clientWidth
-      el.style.width = `${docW}px`
-      el.style.marginLeft = `${-Math.round(rect.left)}px`
-      el.style.maxWidth = 'none'
-    }
-
-    let scrollRaf = 0
-    const onScroll = () => {
-      if (scrollRaf) return
-      scrollRaf = requestAnimationFrame(() => {
-        scrollRaf = 0
-        syncFullWidth()
-      })
-    }
-
-    syncFullWidth()
-    const ro = new ResizeObserver(() => syncFullWidth())
-    ro.observe(document.documentElement)
-    window.addEventListener('resize', syncFullWidth)
-    window.addEventListener('orientationchange', syncFullWidth)
-    window.addEventListener('scroll', onScroll, true)
-
-    return () => {
-      clearBleed()
-      ro.disconnect()
-      window.removeEventListener('resize', syncFullWidth)
-      window.removeEventListener('orientationchange', syncFullWidth)
-      window.removeEventListener('scroll', onScroll, true)
-      if (scrollRaf) cancelAnimationFrame(scrollRaf)
-    }
-  }, [visitDetailsExpanded])
 
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -507,7 +457,8 @@ export default function OwnerGaragePage() {
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const cityLine = String(owner?.garageCity || '').trim()
-  const addCarLimitTitle = `Бесплатно в гараже — до ${OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium (откроется заявка в поддержку).`
+  const addCarPremiumBtnLabel =
+    `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
   const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
@@ -653,7 +604,6 @@ export default function OwnerGaragePage() {
                   </div>
                   {visitDetailsExpanded ? (
                     <div
-                      ref={lastVisitPanelRef}
                       id="garage-last-visit-panel"
                       className="garageProfileCard__lastVisitPanel garageProfileCard__lastVisitPanel--expanded"
                       role="region"
@@ -860,23 +810,25 @@ export default function OwnerGaragePage() {
                   Добавить авто
                 </Link>
               ) : (
-                <SupportButton
-                  type="button"
-                  className="btn garageProfileCard__addCarBtn"
-                  data-variant="primary"
-                  title={addCarLimitTitle}
-                  aria-label={addCarLimitTitle}
-                  openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
-                >
-                  Добавить авто
-                </SupportButton>
+                <>
+                  <SupportButton
+                    type="button"
+                    className="btn garageProfileCard__addCarBtn"
+                    data-variant="primary"
+                    title={addCarPremiumBtnLabel}
+                    aria-label={addCarPremiumBtnLabel}
+                    openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
+                  >
+                    Добавить авто
+                  </SupportButton>
+                  <ServiceHint scopeId="owner-garage-free-limit" variant="compact" label="Справка: лимит гаража">
+                    <p className="serviceHint__panelText">
+                      Бесплатно в гараже — до {OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium — при
+                      нажатии «Добавить авто» откроется заявка в поддержку.
+                    </p>
+                  </ServiceHint>
+                </>
               )}
-              {!limits.canAddManual ? (
-                <p className="muted small garageProfileCard__limitHint" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '56ch' }}>
-                  {addCarLimitTitle} Лимит только у личного гаража владельца: в кабинете детейлинга партнёр по-прежнему может заводить
-                  сколько угодно карточек клиентов.
-                </p>
-              ) : null}
             </div>
           </div>
         </div>

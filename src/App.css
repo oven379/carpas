@@ -4210,8 +4210,10 @@ a.backNav {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px 10px;
   flex-shrink: 0;
-  min-width: min(200px, 100%);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .garageProfileCard__addCarBtn {
@@ -4675,42 +4677,48 @@ a.garageProfileCard__linkChip:focus-visible {
 .garageProfileCard__lastVisitPanel {
   margin-top: 6px;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
-/* Развёрнутая панель: на всю ширину окна (см. useLayoutEffect в OwnerGaragePage) */
+/* Развёрнутая панель: остаётся в колонке карточки (без full-bleed по viewport — иначе overflow и скачки на скролле) */
 .garageProfileCard__lastVisitPanel--expanded {
   box-sizing: border-box;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
 
 .garageProfileCard__lastVisitDetail {
   border-radius: 12px;
-  padding: 12px 10px 12px 8px;
-  margin-left: -8px;
-  margin-right: -8px;
+  padding: 12px;
+  margin: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   background: color-mix(in oklab, var(--accent) 5%, var(--bg));
   border: 1px solid color-mix(in oklab, var(--border) 92%, var(--accent));
-  box-sizing: border-box;
-}
-
-.garageProfileCard__lastVisitPanel--expanded .garageProfileCard__lastVisitDetail {
-  margin-left: 0;
-  margin-right: 0;
-  padding-left: 12px;
-  padding-right: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .garageProfileCard__lastVisitDetailTitle {
   margin-top: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.garageProfileCard__lastVisitDetail .rowItem__lastEvtText {
+  max-width: 100%;
 }
 
 .garageProfileCard__lastVisitPhotos {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
   gap: 10px;
   margin: 12px 0 10px;
   min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .garageProfileCard__lastVisitDetailPhoto {
@@ -4724,6 +4732,17 @@ a.garageProfileCard__linkChip:focus-visible {
 
 .garageProfileCard__lastVisitDetailMeta {
   margin-top: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* В развёрнутой панели показываем полный текст строк (не обрезаем многоточием как в компактном списке) */
+.garageProfileCard__lastVisitDetailMeta .rowItem__lastEvtLine {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
 }
 
 .garageProfileCard__lastVisitHistoryLink {
@@ -4753,6 +4772,9 @@ a.garageProfileCard__linkChip:focus-visible {
 
 .garageProfileCard__lastVisit {
   margin-top: 0;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
 .garageProfileCard__socialOnly {
