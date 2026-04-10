@@ -94,6 +94,8 @@ export default function DetailingSettingsPage() {
     logo: '',
     cover: '',
   }))
+  /** Только смена аккаунта (id), не каждый новый объект с GET /me — иначе фоновый refetch затирает черновик (режим работы и др.). */
+  const detailingHydrateId = detailing ? String(detailing.id) : ''
   useEffect(() => {
     if (!detailing) return
     setDraft({
@@ -103,14 +105,14 @@ export default function DetailingSettingsPage() {
       city: detailing.city || '',
       address: detailing.address || '',
       description: detailing.description || '',
-      workingHours: detailing.workingHours || '',
+      workingHours: String(detailing.workingHours ?? detailing.working_hours ?? '').trim() || '',
       website: detailing.website || '',
       telegram: detailing.telegram || '',
       instagram: detailing.instagram || '',
       logo: detailing.logo || '',
       cover: detailing.cover || '',
     })
-  }, [detailing])
+  }, [detailingHydrateId]) // eslint-disable-line react-hooks/exhaustive-deps -- только id: иначе любой refetch /me затирает форму
 
   useEffect(() => {
     let cancelled = false

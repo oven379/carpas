@@ -1,6 +1,5 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { Card, ServiceHint } from '../components.jsx'
-import Logo from '../Logo.jsx'
 import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -17,9 +16,6 @@ export default function AuthPage() {
 
   return (
     <div className="container authPage">
-      <div className="authPage__brandLockup">
-        <Logo size={40} />
-      </div>
       <div className="authSplit authSplit--hub">
         <div className="authHub__info authSplit__lede">
           <div id="auth-hub-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
