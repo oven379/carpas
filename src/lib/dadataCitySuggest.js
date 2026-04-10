@@ -8,7 +8,7 @@ export function getDadataSuggestToken() {
 
 function suggestionToCityLabel(s) {
   const d = s?.data || {}
-  const city = String(d.city || '').trim()
+  const city = String(d.city || d.settlement || '').trim()
   if (city) return city
   const v = String(s?.value || '').trim()
   if (!v) return ''
@@ -39,7 +39,7 @@ export async function fetchDadataCitySuggestions(query, { signal } = {}) {
     },
     body: JSON.stringify({
       query: q,
-      count: 10,
+      count: 20,
       from_bound: { value: 'city' },
       to_bound: { value: 'city' },
       locations: [{ country_iso_code: 'RU' }],

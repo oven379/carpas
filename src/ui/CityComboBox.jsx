@@ -16,17 +16,21 @@ export function CityComboBox({
   maxItems = 24,
 }) {
   const [remote, setRemote] = useState([])
+  /** Строка запроса к DaData для последнего успешного ответа — чтобы ComboBox не отфильтровал синонимы (питер → Санкт-Петербург). */
+  const [remoteMatchQuery, setRemoteMatchQuery] = useState('')
   const reqId = useRef(0)
   const tokenOk = useMemo(() => Boolean(getDadataSuggestToken()), [])
 
   useEffect(() => {
     if (!tokenOk) {
       setRemote([])
+      setRemoteMatchQuery('')
       return
     }
     const q = String(value ?? '').trim()
     if (q.length < 2) {
       setRemote([])
+      setRemoteMatchQuery('')
       return
     }
 
@@ -37,10 +41,12 @@ export function CityComboBox({
         .then((list) => {
           if (reqId.current !== id) return
           setRemote(list)
+          setRemoteMatchQuery(q)
         })
         .catch(() => {
           if (reqId.current !== id) return
           setRemote([])
+          setRemoteMatchQuery('')
         })
     }, 300)
 
@@ -55,6 +61,7 @@ export function CityComboBox({
       value={value}
       onChange={onChange}
       options={remote}
+      optionsMatchQuery={remoteMatchQuery}
       placeholder={placeholder}
       disabled={disabled}
       onBlur={onBlur}

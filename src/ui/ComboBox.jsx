@@ -9,6 +9,8 @@ export function ComboBox({
   value,
   onChange,
   options,
+  /** Если задано и совпадает с полем (после trim/lower), `options` уже отфильтрованы сервером — не отсекать синонимы вроде «питер» → «Санкт-Петербург». */
+  optionsMatchQuery,
   placeholder,
   disabled,
   onBlur,
@@ -25,6 +27,10 @@ export function ComboBox({
     const q = norm(query)
     const arr = Array.isArray(options) ? options : []
     if (!q) return arr.slice(0, maxItems)
+    const matchQ = norm(String(optionsMatchQuery ?? ''))
+    const trustServer =
+      matchQ !== '' && matchQ === q
+    if (trustServer) return arr.slice(0, maxItems)
     const starts = []
     const contains = []
     for (const opt of arr) {
@@ -36,7 +42,7 @@ export function ComboBox({
       if (starts.length + contains.length >= maxItems) break
     }
     return starts.concat(contains)
-  }, [options, query, maxItems])
+  }, [options, optionsMatchQuery, query, maxItems])
 
   useEffect(() => {
     function onDocDown(e) {
