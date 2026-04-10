@@ -117,21 +117,6 @@ function buildGarageVisitRow(carRow, evtRaw) {
   }
 }
 
-function GaragePhoneGlyph() {
-  return (
-    <svg className="garageProfileCard__iconSvg" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M6.62 10.79a15.05 15.05 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.36 11.36 0 003.56.57 1 1 0 011 1V20a1 1 0 01-1 1 17 17 0 01-18.56-18.56 1 1 0 011-1h3.5a1 1 0 011 1 11.36 11.36 0 00.57 3.56 1 1 0 01-.24 1.01l-2.2 2.2z"
-      />
-    </svg>
-  )
-}
-
 function GarageGlobeGlyph() {
   return (
     <svg className="garageProfileCard__iconSvg" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true">
@@ -459,7 +444,7 @@ export default function OwnerGaragePage() {
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel =
     `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
-  const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner?.phone)
+  const { display: phoneDisplay } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
   const garageVisitSummaryMulti = cars.length > 1
@@ -557,6 +542,10 @@ export default function OwnerGaragePage() {
             ) : (
               <h2 className="garageProfileCard__displayName">{displayName}</h2>
             )}
+            <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
+              <span className="garageProfileCard__metaKey">Город:</span>{' '}
+              {cityLine ? cityLine : <span className="muted">нет данных</span>}
+            </p>
             {copyHint ? (
               <p className="muted small garageProfileCard__copyStatus" role="status">
                 {copyHint}
@@ -727,30 +716,8 @@ export default function OwnerGaragePage() {
             </div>
           </div>
           <div className="garageProfileCard__mainTail">
-            <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
-              <span className="garageProfileCard__metaKey">Город:</span>{' '}
-              {cityLine ? cityLine : <span className="muted">нет данных</span>}
-            </p>
-            <div className="garageProfileCard__iconRow" aria-label="Контакты">
-              {phoneTelHref ? (
-                <a
-                  className="garageProfileCard__iconTap"
-                  href={phoneTelHref}
-                  title={phoneDisplay}
-                  aria-label={`Позвонить: ${phoneDisplay}`}
-                >
-                  <GaragePhoneGlyph />
-                </a>
-              ) : phoneDisplay ? (
-                <span
-                  className="garageProfileCard__iconTap garageProfileCard__iconTap--disabled"
-                  title={`${phoneDisplay} — полный номер для звонка в настройках`}
-                  aria-hidden="true"
-                >
-                  <GaragePhoneGlyph />
-                </span>
-              ) : null}
-              {websiteHref ? (
+            {websiteHref ? (
+              <div className="garageProfileCard__iconRow" aria-label="Контакты">
                 <a
                   className="garageProfileCard__iconTap garageProfileCard__iconTap--web"
                   href={websiteHref}
@@ -761,8 +728,8 @@ export default function OwnerGaragePage() {
                 >
                   <GarageGlobeGlyph />
                 </a>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
             {!phoneDisplay && !websiteHref ? (
               <p className="muted small garageProfileCard__metaLine garageProfileCard__metaLine--spaced">
                 <Link className="link" to="/garage/settings">

@@ -4291,7 +4291,7 @@ a.btn.btn--asDisabled {
   gap: 16px;
 }
 
-/* Полная ширина карточки: история визитов и хвост (город, контакты) — не узкая колонка слева от аватара */
+/* Полная ширина карточки: история визитов и хвост (контакты) — не узкая колонка слева от аватара */
 .garageProfileCard__lastVisitFullRow,
 .garageProfileCard__mainTail {
   grid-column: 1 / -1;
@@ -4441,6 +4441,11 @@ a.garageProfileCard__avatarLink:focus-visible {
 .garageProfileCard__cityLine .garageProfileCard__metaKey {
   font-weight: 650;
   color: color-mix(in oklab, var(--text) 76%, var(--text-h));
+}
+
+/* Город сразу под именем: чуть плотнее, чем общий gap колонки «Гараж» */
+.garageProfileCard__mainLead .garageProfileCard__cityLine {
+  margin-top: -8px;
 }
 
 .garageProfileCard__iconRow {
