@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'

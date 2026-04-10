@@ -219,7 +219,7 @@ export default function PublicDetailingPage() {
       </div>
 
       <div
-        className="detHero detHero--card"
+        className="detHero detHero--card detHero--publicDetailing"
         style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">

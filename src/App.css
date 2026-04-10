@@ -3986,6 +3986,29 @@ a.backNav {
   margin-top: 14px;
 }
 
+/* Публичная витрина /d/: компактнее блок «на обслуживании», чтобы не вылезал за баннер на узком экране */
+.detHero--publicDetailing.detHero--card .heroCoverStat.heroCoverStat--overlay {
+  max-width: min(210px, 100%);
+  padding: 7px 10px 7px 8px;
+  gap: 8px;
+}
+
+.detHero--publicDetailing.detHero--card .heroCoverStat__valueBox {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  min-height: 40px;
+}
+
+.detHero--publicDetailing.detHero--card .heroCoverStat__value {
+  font-size: 19px;
+}
+
+.detHero--publicDetailing.detHero--card .heroCoverStat__label {
+  max-width: 7.5rem;
+  line-height: 1.2;
+}
+
 .detHero__overlay--card {
   height: 100%;
   display: flex;
