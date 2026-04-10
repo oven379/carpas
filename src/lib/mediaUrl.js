@@ -28,6 +28,27 @@ function apiOriginIfUsable() {
   }
 }
 
+function isLoopbackOrigin(originStr) {
+  try {
+    return isLoopbackHost(new URL(originStr).hostname)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Origin API для картинок/файлов: если страница открыта не с loopback, а в env всё ещё localhost:8088,
+ * не подставлять его — иначе браузер тянет медиа на машину пользователя (ERR_CONNECTION_REFUSED) и mixed content.
+ * Тогда остаётся относительный `/storage/…` (прокси Vite/nginx) или нужен публичный VITE_API_BASE_URL.
+ */
+function apiOriginForMedia() {
+  const origin = apiOriginIfUsable()
+  if (!origin) return ''
+  if (typeof window === 'undefined' || typeof window.location?.hostname !== 'string') return origin
+  if (!isLoopbackHost(window.location.hostname) && isLoopbackOrigin(origin)) return ''
+  return origin
+}
+
 /**
  * Абсолютный URL с путём /storage/… приводим к тому, что реально откроется в браузере.
  * Laravel кладёт в JSON http://localhost/storage/… если APP_URL без порта — запрос уходит на :80 и падает.
@@ -46,7 +67,7 @@ function normalizeAbsoluteHttpUrl(u) {
     return path
   }
 
-  const origin = apiOriginIfUsable()
+  const origin = apiOriginForMedia()
   if (origin) return `${origin}${path}`
 
   if (isLoopbackHost(parsed.hostname)) {
@@ -75,7 +96,7 @@ export function resolvePublicMediaUrl(url) {
     return normalizeAbsoluteHttpUrl(u)
   }
   if (!u.startsWith('/')) return u
-  const origin = apiOriginIfUsable()
+  const origin = apiOriginForMedia()
   if (origin) return `${origin}${u}`
   return u
 }

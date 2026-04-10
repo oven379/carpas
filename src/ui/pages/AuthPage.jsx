@@ -51,7 +51,7 @@ export default function AuthPage() {
             <div className="authHub authHub--roleRows">
               <div className="authHub__roleRow">
                 <Link className="btn authHub__btn authHub__btn--neutral authHub__btn--role" to="/auth/owner" state={{ from }}>
-                  Я владелец
+                  Я владелец авто
                 </Link>
                 <ServiceHint
                   scopeId="auth-role-owner-hint"

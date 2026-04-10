@@ -176,11 +176,6 @@ export default function CarPage() {
     return detailingCarAccessBadge(car, detailingId, inboxClaims)
   }, [mode, car, detailingId, inboxClaims])
 
-  const washPhotos = useMemo(() => {
-    if (!car) return []
-    return Array.isArray(car.washPhotos) ? car.washPhotos : car.washPhoto ? [car.washPhoto] : []
-  }, [car])
-
   const finalizedEvents = useMemo(() => allEvents.filter((e) => !e?.isDraft), [allEvents])
   const lastHistoryEvent = useMemo(() => {
     let best = null
@@ -246,12 +241,11 @@ export default function CarPage() {
     return photos.length ? photos : list
   }, [allCarDocs, lastHistoryEvent?.id])
 
-  /** Галерея: сначала файлы, привязанные к последнему визиту в истории; иначе washPhotos с карточки (старый сценарий). */
-  const lastVisitGalleryRawUrls = useMemo(() => {
-    const fromEvent = lastVisitDocs.map((d) => String(d.url || '').trim()).filter(Boolean)
-    if (fromEvent.length > 0) return fromEvent
-    return washPhotos
-  }, [lastVisitDocs, washPhotos])
+  /** Только файлы, привязанные к последнему визиту (без фото с карточки — иначе путаница для СТО и владельца). */
+  const lastVisitGalleryRawUrls = useMemo(
+    () => lastVisitDocs.map((d) => String(d.url || '').trim()).filter(Boolean),
+    [lastVisitDocs],
+  )
 
   const visitGalleryDisplay = useMemo(
     () => lastVisitGalleryRawUrls.map((u) => resolvePublicMediaUrl(u)),
@@ -418,7 +412,7 @@ export default function CarPage() {
     </div>
   ) : (
     <div className="muted small carPage__lastVisitPhotosEmpty">
-      Пока нет фото. Добавьте снимки к записи в «Истории авто» или загрузите фото в «Редактировать» карточку.
+      Пока нет фото этого визита. Добавьте снимки к записи в «Истории авто».
     </div>
   )
 
