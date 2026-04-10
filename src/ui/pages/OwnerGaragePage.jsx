@@ -631,41 +631,35 @@ export default function OwnerGaragePage() {
                       aria-label="Подробности последнего визита"
                     >
                       <div className="garageProfileCard__lastVisitDetail">
-                        <div className="garageProfileCard__lastVisitHead">
-                          <div className="garageProfileCard__lastVisitLead">
-                            {visitForDisplay.carDisplayName ? (
-                              <span className="garageProfileCard__lastVisitLeadCar">
-                                {visitForDisplay.carDisplayName}
+                        <div className="garageProfileCard__lastVisitDetailVisitHead">
+                          <span className="metaStrong">Последний визит:</span>
+                          {visitForDisplay.at ||
+                          (visitForDisplay.mileageKm != null && visitForDisplay.mileageKm !== '') ? (
+                            <>
+                              <span className="garageProfileCard__lastVisitDetailMetaSep" aria-hidden="true">
+                                {' '}
+                                ·{' '}
                               </span>
-                            ) : (
-                              <span className="muted">Авто</span>
-                            )}
-                          </div>
-                          <div className="rowItem__lastEvtText garageProfileCard__lastVisitDetailTitle">
-                            <div className="rowItem__lastEvtName">{visitForDisplay.headlineName}</div>
-                          </div>
+                              <GarageLastVisitMetaRow visit={visitForDisplay} />
+                            </>
+                          ) : (
+                            <span className="garageProfileCard__lastVisitDetailMetaSep muted">
+                              {' '}
+                              нет даты и пробега
+                            </span>
+                          )}
                         </div>
-                        {visitForDisplay.galleryPhotoUrls.length ? (
-                          <div className="garageProfileCard__lastVisitPhotos" aria-label="Фото визита">
-                            {visitForDisplay.galleryPhotoUrls.map((rawUrl) => {
-                              const u = String(rawUrl || '').trim()
-                              if (!u || brokenGalleryUrls.includes(u)) return null
-                              return (
-                                <img
-                                  key={u}
-                                  className="garageProfileCard__lastVisitDetailPhoto"
-                                  alt=""
-                                  src={resolvePublicMediaUrl(u)}
-                                  decoding="async"
-                                  loading="lazy"
-                                  onError={() =>
-                                    setBrokenGalleryUrls((prev) => (prev.includes(u) ? prev : [...prev, u]))
-                                  }
-                                />
-                              )
-                            })}
+                        {visitForDisplay.carDisplayName ? (
+                          <div className="garageProfileCard__lastVisitDetailCar muted small">
+                            <span className="eventLabel">Автомобиль:</span> {visitForDisplay.carDisplayName}
                           </div>
                         ) : null}
+                        <div className="garageProfileCard__lastVisitDetailAbout">
+                          <span className="eventLabel">О визите:</span>{' '}
+                          <span className="garageProfileCard__lastVisitDetailHeadline">
+                            {visitForDisplay.headlineName}
+                          </span>
+                        </div>
                         <div className="rowItem__lastEvtMeta garageProfileCard__lastVisitDetailMeta">
                           {visitForDisplay.maintenanceServices.length ? (
                             <div className="rowItem__lastEvtLine">
@@ -692,6 +686,27 @@ export default function OwnerGaragePage() {
                             )}
                           </div>
                         </div>
+                        {visitForDisplay.galleryPhotoUrls.length ? (
+                          <div className="garageProfileCard__lastVisitPhotos" aria-label="Фото визита">
+                            {visitForDisplay.galleryPhotoUrls.map((rawUrl) => {
+                              const u = String(rawUrl || '').trim()
+                              if (!u || brokenGalleryUrls.includes(u)) return null
+                              return (
+                                <img
+                                  key={u}
+                                  className="garageProfileCard__lastVisitDetailPhoto"
+                                  alt=""
+                                  src={resolvePublicMediaUrl(u)}
+                                  decoding="async"
+                                  loading="lazy"
+                                  onError={() =>
+                                    setBrokenGalleryUrls((prev) => (prev.includes(u) ? prev : [...prev, u]))
+                                  }
+                                />
+                              )
+                            })}
+                          </div>
+                        ) : null}
                         {garageSelectedVisitHistoryHref ? (
                           <div className="garageProfileCard__lastVisitHistoryLink">
                             <Link className="link" to={garageSelectedVisitHistoryHref}>

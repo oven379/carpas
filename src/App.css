@@ -606,10 +606,18 @@ button.nav__action {
   transform: none;
 }
 
+/* Без JS full-bleed по viewport — иначе скачки при скролле/resize (как в панели гаража). */
 .carPage__ownerLastVisitExpandBleed {
   box-sizing: border-box;
-  padding-left: max(16px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Галерея последнего визита на карточке авто: ограничиваем высоту превью. */
+.carPage__lastVisitPhotosGallery .washGallery__viewer {
+  max-height: min(42vw, 260px);
+  aspect-ratio: 16 / 9;
 }
 
 .carPage__ownerServiceExpand {
@@ -4739,6 +4747,33 @@ a.garageProfileCard__linkChip:focus-visible {
   border: 1px solid color-mix(in oklab, var(--border) 92%, var(--accent));
   overflow-wrap: anywhere;
   word-break: break-word;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.garageProfileCard__lastVisitDetailVisitHead {
+  line-height: 1.45;
+  margin: 0;
+}
+
+.garageProfileCard__lastVisitDetailMetaSep {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.garageProfileCard__lastVisitDetailCar {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.garageProfileCard__lastVisitDetailAbout {
+  margin: 0;
+  line-height: 1.45;
+}
+
+.garageProfileCard__lastVisitDetailHeadline {
+  font-weight: 650;
 }
 
 .garageProfileCard__lastVisitDetailTitle {
@@ -4755,7 +4790,7 @@ a.garageProfileCard__linkChip:focus-visible {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(120px, 100%), 1fr));
   gap: 12px;
-  margin: 18px 0 14px;
+  margin: 0;
   min-width: 0;
   width: 100%;
   max-width: 100%;
@@ -4771,7 +4806,7 @@ a.garageProfileCard__linkChip:focus-visible {
 }
 
 .garageProfileCard__lastVisitDetailMeta {
-  margin-top: 12px;
+  margin: 0;
   min-width: 0;
   max-width: 100%;
   display: flex;
@@ -4790,7 +4825,7 @@ a.garageProfileCard__linkChip:focus-visible {
 }
 
 .garageProfileCard__lastVisitHistoryLink {
-  margin-top: 20px;
+  margin: 0;
   padding-top: 14px;
   border-top: 1px solid color-mix(in oklab, var(--border) 88%, transparent);
 }

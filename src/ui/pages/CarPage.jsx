@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
@@ -171,53 +171,6 @@ export default function CarPage() {
     if (mode !== 'owner' || !ownerEmailResolved || !car) return null
     return ownerServiceLinkSummary(car, ownerEmailResolved, ownerClaims)
   }, [mode, ownerEmailResolved, car, ownerClaims])
-
-  const ownerLastVisitExpandRef = useRef(null)
-
-  useLayoutEffect(() => {
-    if (mode !== 'owner' || !ownerServiceSummary || !ownerDataExpanded) return undefined
-    const el = ownerLastVisitExpandRef.current
-    if (!el) return undefined
-
-    const clearBleed = () => {
-      el.style.width = ''
-      el.style.marginLeft = ''
-      el.style.maxWidth = ''
-    }
-
-    const syncFullWidth = () => {
-      const rect = el.getBoundingClientRect()
-      const docW = document.documentElement.clientWidth
-      el.style.width = `${docW}px`
-      el.style.marginLeft = `${-Math.round(rect.left)}px`
-      el.style.maxWidth = 'none'
-    }
-
-    let scrollRaf = 0
-    const onScroll = () => {
-      if (scrollRaf) return
-      scrollRaf = requestAnimationFrame(() => {
-        scrollRaf = 0
-        syncFullWidth()
-      })
-    }
-
-    syncFullWidth()
-    const ro = new ResizeObserver(() => syncFullWidth())
-    ro.observe(document.documentElement)
-    window.addEventListener('resize', syncFullWidth)
-    window.addEventListener('orientationchange', syncFullWidth)
-    window.addEventListener('scroll', onScroll, true)
-
-    return () => {
-      clearBleed()
-      ro.disconnect()
-      window.removeEventListener('resize', syncFullWidth)
-      window.removeEventListener('orientationchange', syncFullWidth)
-      window.removeEventListener('scroll', onScroll, true)
-      if (scrollRaf) cancelAnimationFrame(scrollRaf)
-    }
-  }, [ownerDataExpanded, mode, ownerServiceSummary, id])
 
   const detailingAccess = useMemo(() => {
     if (mode !== 'detailing' || !car) return null
@@ -671,7 +624,7 @@ export default function CarPage() {
               </div>
 
               {ownerDataExpanded ? (
-                <div ref={ownerLastVisitExpandRef} className="carPage__ownerLastVisitExpandBleed">
+                <div className="carPage__ownerLastVisitExpandBleed">
                   <div className="carPage__ownerServiceExpand">
                   {ownerServiceSummary.kind === 'no_service' ? (
                     <div className="carPage__ownerServiceSection carPage__ownerServiceSection--stack">
