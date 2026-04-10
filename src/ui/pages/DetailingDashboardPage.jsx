@@ -15,14 +15,12 @@ import {
 import { DETAILING_ACCESS_SERVICE_ONLY_LABEL, detailingCarAccessBadge } from '../serviceLinkUi.js'
 import {
   CITY_FIELD_DD_HINT,
-  describeRuPlateValidationError,
   describeVinValidationError,
   displayRuPhone,
   fmtDate,
   fmtPlateFull,
   normDigits,
   normVin,
-  parsePlateFull,
 } from '../../lib/format.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import {
@@ -36,14 +34,6 @@ import { useDetailing } from '../useDetailing.js'
 function rowHeroBackgroundStyle(hero) {
   const bg = resolvedBackgroundImageUrl(hero)
   return bg ? { backgroundImage: bg } : undefined
-}
-
-function normStr(s) {
-  return String(s || '').trim().toLowerCase()
-}
-
-function onlyDigits(s) {
-  return String(s || '').replace(/[^\d]/g, '')
 }
 
 /** VIN из строки поиска: normVin + запасной путь без пробелов (кириллица в буфере не ломает 17 латиниц). */
@@ -68,89 +58,20 @@ function buildYearOptions(carYear) {
   return [...set].sort((a, b) => b - a).map(String)
 }
 
-function inferPrefill(qRaw) {
-  const q = String(qRaw || '').trim()
-  const qLower = q.toLowerCase()
-  const digits = onlyDigits(q)
-
-  const looksLikeEmail = qLower.includes('@') && qLower.includes('.')
-
-  const resolvedVin = resolveVinFromDashboardQuery(q)
-  const isVin = Boolean(resolvedVin)
-
-  const plateCandidate = q.replace(/\s+/g, '')
-  const plateParsed = parsePlateFull(plateCandidate)
-  const plateOk =
-    !isVin &&
-    /[a-zа-я]/i.test(plateCandidate) &&
-    /\d/.test(plateCandidate) &&
-    plateCandidate.length <= 12 &&
-    !describeRuPlateValidationError(plateParsed.plate, plateParsed.plateRegion)
-
-  return {
-    vin: isVin && !looksLikeEmail ? resolvedVin : '',
-    plate: plateOk && !looksLikeEmail ? plateParsed.plate : '',
-    plateRegion: plateOk && !looksLikeEmail ? plateParsed.plateRegion : '',
-    // 17-символьный VIN даёт ≥10 цифр — не считаем это телефоном
-    clientPhone: !isVin && !looksLikeEmail && digits.length >= 10 ? q : '',
-    clientEmail: looksLikeEmail ? qLower : '',
-  }
-}
-
-/** 10 цифр после страны для API search-duplicate (без VIN в строке). */
-function duplicateSearchPhoneKey(qRaw) {
-  if (resolveVinFromDashboardQuery(qRaw)) return ''
-  const pre = inferPrefill(qRaw)
-  if (!pre.clientPhone) return ''
-  const d = onlyDigits(pre.clientPhone)
-  if (d.length < 10) return ''
-  let x = d
-  if (x.startsWith('8')) x = `7${x.slice(1)}`
-  if (x.startsWith('7') && x.length === 11) x = x.slice(1)
-  const last10 = x.slice(-10)
-  return /^\d{10}$/.test(last10) ? last10 : ''
-}
-
 function isStrictHit(car, qRaw) {
-  const q = String(qRaw || '').trim()
-  if (!q) return false
-  const qLower = normStr(q)
-  const qDigits = onlyDigits(q)
   const qResolved = resolveVinFromDashboardQuery(qRaw)
-  const vin = normStr(car?.vin)
-  const plate = normStr(car?.plate)
-  const clientPhoneDigits = onlyDigits(car?.clientPhone)
-  const ownerPhoneDigits = onlyDigits(car?.ownerPhone)
-
-  if (qResolved && qResolved === normVin(car?.vin)) return true
-  if (vin && qLower === vin) return true
-  if (plate && qLower === plate) return true
-  // Цифры из полного VIN (≥10) не сравниваем с телефоном
-  if (!qResolved && qDigits && qDigits.length >= 10) {
-    if (clientPhoneDigits && clientPhoneDigits.endsWith(qDigits)) return true
-    if (ownerPhoneDigits && ownerPhoneDigits.endsWith(qDigits)) return true
-  }
-  return false
+  if (!qResolved) return false
+  return qResolved === normVin(car?.vin)
 }
 
+/** Фильтр списка: только совпадение по VIN (подстрока нормализованного VIN). */
 function matches(car, q) {
-  if (!q) return true
-  const s = String(q || '').trim().toLowerCase()
+  const s = String(q || '').trim()
   if (!s) return true
-  const digits = s.replace(/[^\d+]/g, '')
-  return (
-    String(car.vin || '').toLowerCase().includes(s) ||
-    String(car.plate || '').toLowerCase().includes(s) ||
-    String(car.make || '').toLowerCase().includes(s) ||
-    String(car.model || '').toLowerCase().includes(s) ||
-    String(car.city || '').toLowerCase().includes(s) ||
-    String(car.ownerEmail || '').toLowerCase().includes(s) ||
-    String(car.ownerPhone || '').replace(/[^\d+]/g, '').includes(digits) ||
-    String(car.clientName || '').toLowerCase().includes(s) ||
-    String(car.clientEmail || '').toLowerCase().includes(s) ||
-    String(car.clientPhone || '').replace(/[^\d+]/g, '').includes(digits) ||
-    String(car.seller?.name || '').toLowerCase().includes(s)
-  )
+  const needle = normVin(s)
+  if (!needle) return false
+  const hay = normVin(car.vin)
+  return hay.includes(needle)
 }
 
 export default function DetailingDashboardPage() {
@@ -215,53 +136,37 @@ export default function DetailingDashboardPage() {
   const quickTargetCar = strictHits.length === 1 ? strictHits[0] : null
 
   const [externalLinkHits, setExternalLinkHits] = useState([])
-  const [externalLinkKind, setExternalLinkKind] = useState(null)
   const [linkEvidenceByCarId, setLinkEvidenceByCarId] = useState({})
   const [linkBusyId, setLinkBusyId] = useState(null)
 
   useEffect(() => {
     if (!detailingId || mode !== 'detailing') {
       setExternalLinkHits([])
-      setExternalLinkKind(null)
       return
     }
     if (strictHits.length > 0) {
       setExternalLinkHits([])
-      setExternalLinkKind(null)
       return
     }
     const v = resolveVinFromDashboardQuery(q)
-    const phoneKey = v ? '' : duplicateSearchPhoneKey(q)
-    if (!v && !phoneKey) {
+    if (!v) {
       setExternalLinkHits([])
-      setExternalLinkKind(null)
       return
     }
     let cancelled = false
     ;(async () => {
       try {
         if (!r.findDuplicateCarsForDetailing) {
-          if (!cancelled) {
-            setExternalLinkHits([])
-            setExternalLinkKind(null)
-          }
+          if (!cancelled) setExternalLinkHits([])
           return
         }
-        const res = await r.findDuplicateCarsForDetailing(
-          v ? { vin: v } : { clientPhone: `+7${phoneKey}` },
-        )
+        const res = await r.findDuplicateCarsForDetailing({ vin: v })
         const list = Array.isArray(res) ? res : []
         const mine = new Set(cars.map((c) => String(c.id)))
         const ext = list.filter((c) => !mine.has(String(c.id)))
-        if (!cancelled) {
-          setExternalLinkHits(ext)
-          setExternalLinkKind(v ? 'vin' : 'phone')
-        }
+        if (!cancelled) setExternalLinkHits(ext)
       } catch {
-        if (!cancelled) {
-          setExternalLinkHits([])
-          setExternalLinkKind(null)
-        }
+        if (!cancelled) setExternalLinkHits([])
       }
     })()
     return () => {
@@ -438,15 +343,19 @@ export default function DetailingDashboardPage() {
         <div className="row gap detSearchCard__row detSearchCard__row--main">
           <Input
             className="input detSearchCard__input"
-            placeholder="Поиск… (VIN / номер / телефон / почта / марка)"
+            placeholder="Введите VIN код вашего авто"
             value={q}
-            onChange={(e) => setSp({ q: e.target.value }, { replace: true })}
+            maxLength={17}
+            autoCapitalize="characters"
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(e) => setSp({ q: normVin(e.target.value) }, { replace: true })}
           />
           <div className="detSearchCard__actions">
               <ServiceHint scopeId="detailing-dash-empty-hint" variant="compact" label="Справка: список авто">
               <p className="serviceHint__panelText">
-                Список авто на обслуживании. В поиске можно указать VIN или номер телефона (10 цифр) — если машина в
-                личном гараже клиента уже есть в КарПас, появится блок «Добавить к нам», как при совпадении по VIN.
+                Список авто на обслуживании. Введите полный VIN (17 символов): список отфильтруется по совпадению. Если такой VIN
+                есть в системе, но не в вашем кабинете, появится блок «Добавить к нам» (в т.ч. для авто из личного гаража клиента).
               </p>
             </ServiceHint>
             <button
@@ -460,27 +369,22 @@ export default function DetailingDashboardPage() {
                   return
                 }
                 const vinResolved = resolveVinFromDashboardQuery(q)
-                const phoneScrollKey = duplicateSearchPhoneKey(q)
-                if ((vinResolved || phoneScrollKey) && externalLinkHits.length > 0) {
+                if (vinResolved && externalLinkHits.length > 0) {
                   document
                     .getElementById('det-external-link-card')
                     ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   return
                 }
-                const pre = inferPrefill(q)
                 const qp = new URLSearchParams()
-                if (pre.vin) qp.set('vin', pre.vin)
-                if (pre.plate) qp.set('plate', pre.plate)
-                if (pre.plateRegion) qp.set('plateRegion', pre.plateRegion)
-                if (pre.clientPhone) qp.set('clientPhone', pre.clientPhone)
-                if (pre.clientEmail) qp.set('clientEmail', pre.clientEmail)
+                const vinForCreate = normVin(q)
+                if (vinForCreate) qp.set('vin', vinForCreate)
                 const qs = qp.toString()
                 nav(`/create${qs ? `?${qs}` : ''}`)
               }}
               title={
                 quickTargetCar
                   ? 'Открыть создание визита для найденного авто'
-                  : 'Создать новое авто (VIN/номер/телефон подставятся автоматически)'
+                  : 'Создать новое авто (VIN из поля поиска подставится, если введён полностью)'
               }
             >
               {quickTargetCar ? '+ Визит' : '+ Добавить авто'}
@@ -491,11 +395,7 @@ export default function DetailingDashboardPage() {
 
       {externalLinkHits.length > 0 ? (
         <Card id="det-external-link-card" className="card pad detExternalVinCard" style={{ marginTop: 12 }}>
-          <div className="cardTitle" style={{ margin: 0 }}>
-            {externalLinkKind === 'phone'
-              ? 'По этому телефону есть авто в системе, но не в вашем списке'
-              : 'Этот VIN есть в системе, но не в вашем списке'}
-          </div>
+          <div className="cardTitle" style={{ margin: 0 }}>Этот VIN есть в системе, но не в вашем списке</div>
           <p className="muted small" style={{ margin: '8px 0 12px', maxWidth: '62ch', lineHeight: 1.5 }}>
             Для авто из <strong>личного гаража</strong> владельца: подтвердите год и/или город (как в заявке с улицы) и
             нажмите «Добавить к нам» — карточка появится у вас и останется у клиента (без дубля). Карточка{' '}

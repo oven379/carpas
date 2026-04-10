@@ -352,7 +352,7 @@ export function SupportProvider({ children }) {
   )
 }
 
-/** Кнопка «Поддержка» с бейджем непрочитанного ответа (шапка / футер / публичные страницы). */
+/** Кнопка «Поддержка» с бейджем непрочитанного ответа (футер, контекстные блоки на страницах). */
 export function SupportButton({ className = '', children, openOptions, onClick, ...rest }) {
   const { openModal, unreadCount } = useSupport()
   return (

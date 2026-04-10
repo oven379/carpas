@@ -1,9 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { Button, Card, CityComboBox, ComboBox, Input, PhoneRuInput, ServiceHint } from './components.jsx'
-import { CITY_FIELD_DD_HINT, formatPhoneRuInput, normDigits } from '../lib/format.js'
+import {
+  CITY_FIELD_DD_HINT,
+  describeVinValidationError,
+  formatPhoneRuInput,
+  normDigits,
+  normVin,
+} from '../lib/format.js'
 import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
@@ -82,10 +89,8 @@ function buildClaimEvidence(car, ev, evidenceMode) {
 }
 
 /**
- * Поиск авто по VIN, телефону или e-mail из карточки в сервисе и заявка на привязку к гаражу владельца.
+ * Поиск авто по VIN в карточках партнёрских сервисов и заявка на привязку к гаражу владельца.
  * Если переданы `cars` и `ownerClaims`, лишний запрос за списками не выполняется.
- *
- * Поиск на бэкенде: только карточки партнёрских сервисов (не «личный» кабинет детейлинга).
  */
 export default function OwnerVinClaimSection({
   ownerEmail,
@@ -99,6 +104,7 @@ export default function OwnerVinClaimSection({
 }) {
   const r = useRepo()
   const location = useLocation()
+  const navigate = useNavigate()
   const controlled = carsProp !== undefined && ownerClaimsProp !== undefined
 
   const [internalCars, setInternalCars] = useState([])
@@ -106,8 +112,12 @@ export default function OwnerVinClaimSection({
 
   const createCarHref = useMemo(() => {
     const from = String(location?.pathname || '/garage') || '/garage'
-    return `/create?from=${encodeURIComponent(from)}`
-  }, [location?.pathname])
+    const p = new URLSearchParams()
+    p.set('from', from)
+    const v = normVin(searchQuery) || lastClaimSearchVin
+    if (v) p.set('vin', v)
+    return `/create?${p.toString()}`
+  }, [location?.pathname, searchQuery, lastClaimSearchVin])
 
   useEffect(() => {
     if (controlled) return undefined
@@ -144,12 +154,14 @@ export default function OwnerVinClaimSection({
   const [evidenceByCarId, setEvidenceByCarId] = useState({})
   const [searching, setSearching] = useState(false)
   const [claimingId, setClaimingId] = useState(null)
+  /** После успешной отправки заявки или если заявка уже была — модалка + переход в гараж по «Хорошо». */
+  const [postClaimNotice, setPostClaimNotice] = useState(null)
   const [showNoVinHits, setShowNoVinHits] = useState(false)
+  /** После успешного поиска строка очищается — для «Добавить автомобиль» помним VIN запроса. */
+  const [lastClaimSearchVin, setLastClaimSearchVin] = useState('')
   const searchSeqRef = useRef(0)
 
-  const title =
-    titleProp ??
-    (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN или контактам')
+  const title = titleProp ?? (evidenceMode === 'full' ? 'Добавить авто по VIN' : 'Найти авто по VIN')
 
   const emptyEvidence = () =>
     evidenceMode === 'full'
@@ -164,6 +176,7 @@ export default function OwnerVinClaimSection({
     searchSeqRef.current += 1
     setSearching(false)
     setSearchQuery('')
+    setLastClaimSearchVin('')
     setVinResults([])
     setEvidenceByCarId({})
     setShowNoVinHits(false)
@@ -184,9 +197,15 @@ export default function OwnerVinClaimSection({
   }
 
   async function onSearch() {
-    const raw = String(searchQuery || '').trim()
-    if (!raw) {
-      alert('Введите VIN, номер телефона или e-mail, указанные в карточке авто в сервисе.')
+    const vin = normVin(searchQuery)
+    if (!vin) {
+      alert('Введите VIN код вашего авто (17 символов латиницы и цифр).')
+      setShowNoVinHits(false)
+      return
+    }
+    const vinErr = describeVinValidationError(vin)
+    if (vinErr) {
+      alert(vinErr)
       setShowNoVinHits(false)
       return
     }
@@ -194,9 +213,10 @@ export default function OwnerVinClaimSection({
     setSearching(true)
     setShowNoVinHits(false)
     try {
-      const res = await r.findCarsForOwnerClaim(raw)
+      const res = await r.findCarsByVin(vin)
       if (seq !== searchSeqRef.current) return
       const list = Array.isArray(res) ? res : []
+      setLastClaimSearchVin(vin)
       setVinResults(list)
       setShowNoVinHits(list.length === 0)
       if (list.length > 0) setSearchQuery('')
@@ -225,10 +245,12 @@ export default function OwnerVinClaimSection({
       await r.createClaim({ carId: car.id, evidence: payload })
       invalidateRepo()
       await refreshLocalLists()
-      alert('Заявка отправлена в детейлинг на подтверждение.')
+      setPostClaimNotice('sent')
     } catch (e) {
       if (claimAlreadyPending(e)) {
-        alert('Заявка уже отправлена и ждёт подтверждения.')
+        invalidateRepo()
+        await refreshLocalLists()
+        setPostClaimNotice('duplicate')
         return
       }
       alert('Не удалось отправить заявку.')
@@ -237,10 +259,53 @@ export default function OwnerVinClaimSection({
     }
   }
 
+  const closePostClaimAndGoGarage = () => {
+    setPostClaimNotice(null)
+    navigate('/garage')
+  }
+
   const em = String(ownerEmail || '').trim()
 
+  const postClaimModal =
+    postClaimNotice && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="supportModalOverlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="owner-vin-claim-post-title"
+          >
+            <div className="supportModal card pad">
+              <h2 id="owner-vin-claim-post-title" className="h2 supportModal__title">
+                {postClaimNotice === 'sent' ? 'Заявка отправлена' : 'Заявка уже отправлена'}
+              </h2>
+              <p className="supportModal__lead" style={{ marginTop: 12 }}>
+                {postClaimNotice === 'sent' ? (
+                  <>
+                    Когда вы получите одобрение от детейлинга или СТО, машина появится у вас в гараже.
+                  </>
+                ) : (
+                  <>
+                    По этому авто заявка уже была направлена в сервис и ждёт решения. После одобрения детейлинга или СТО машина
+                    появится у вас в гараже.
+                  </>
+                )}
+              </p>
+              <div className="supportModal__submitRow">
+                <Button className="btn" variant="primary" type="button" onClick={closePostClaimAndGoGarage}>
+                  Хорошо
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
-    <Card id={sectionId} className={`card pad ${className}`.trim()} style={style}>
+    <>
+      {postClaimModal}
+      <Card id={sectionId} className={`card pad ${className}`.trim()} style={style}>
       <div
         id={`owner-vin-claim-hint-${sectionId}`}
         className="row gap wrap"
@@ -252,20 +317,20 @@ export default function OwnerVinClaimSection({
         <ServiceHint
           scopeId={`owner-vin-claim-hint-${sectionId}`}
           variant="compact"
-          label={evidenceMode === 'full' ? 'Справка: VIN' : 'Справка: найти авто'}
+          label={evidenceMode === 'full' ? 'Справка: VIN' : 'Справка: поиск по VIN'}
         >
           <p className="serviceHint__panelText">
             {evidenceMode === 'full' ? (
               <>
-                Укажите полный VIN (17 символов, латиница и цифры) и подтвердите марку, год и цвет как в карточке сервиса — тогда
+                Введите полный VIN (17 символов) и нажмите «Найти». Затем подтвердите марку, год и цвет как в карточке сервиса — тогда
                 кнопка «Запросить доступ» станет активной. Если не удаётся совпасть по данным, введите номер телефона в
                 формате +7 и 10 цифр — заявка уйдёт с пометкой для проверки по телефону.
               </>
             ) : (
               <>
-                В строке поиска можно ввести VIN, номер телефона или e-mail, как в карточке авто у детейлинга. Ищем только
-                карточки партнёрских сервисов (не личный гараж). После нахождения авто подтвердите год и/или город как в
-                карточке — или укажите свой телефон (+7 и 10 цифр) для сверки у сервиса.
+                В строке поиска укажите только VIN (17 символов). Ищем карточки партнёрских сервисов (не личный гараж). После
+                нахождения авто подтвердите год и/или город как в карточке — или укажите свой телефон (+7 и 10 цифр) для сверки у
+                сервиса.
               </>
             )}
           </p>
@@ -283,16 +348,16 @@ export default function OwnerVinClaimSection({
       <div className="row gap wrap marketVinRow" style={{ marginTop: 10, alignItems: 'center' }}>
         <Input
           className="input marketVinRow__input"
-          placeholder="VIN, телефон или e-mail из карточки в сервисе"
+          placeholder="Введите VIN код вашего авто"
           value={searchQuery}
-          maxLength={200}
+          maxLength={17}
           inputMode="text"
           autoComplete="off"
-          autoCapitalize="off"
+          autoCapitalize="characters"
           autoCorrect="off"
           spellCheck={false}
           disabled={!limits.canVinClaim || searching}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(normVin(e.target.value))}
         />
         <Button
           className="btn marketVinRow__btn"
@@ -323,8 +388,8 @@ export default function OwnerVinClaimSection({
       {showNoVinHits && limits.canVinClaim ? (
         <div className="topBorder ownerVinClaim__noHits">
           <p className="muted small" style={{ margin: '0 0 10px', lineHeight: 1.5 }}>
-            По этим данным карточка в сервисе не найдена. Проверьте VIN, телефон или почту из карточки у детейлинга. Можно
-            завести новую карточку в гараже и вести историю самостоятельно.
+            По этому VIN карточка в сервисе не найдена. Проверьте номер и что детейлинг уже завёл авто у себя. Можно завести
+            новую карточку в гараже и вести историю самостоятельно.
           </p>
           <Link className="btn" data-variant="primary" to={createCarHref}>
             Добавить автомобиль
@@ -518,5 +583,6 @@ export default function OwnerVinClaimSection({
         </div>
       ) : null}
     </Card>
+    </>
   )
 }

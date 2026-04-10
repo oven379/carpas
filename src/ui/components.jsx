@@ -5,7 +5,6 @@ import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, hasOwnerSession } from './auth.js'
 import { ComboBox } from './ComboBox.jsx'
-import { SupportButton } from './support/SupportHub.jsx'
 import {
   formatPhoneRuInput,
   formatPhoneRuNationalDisplay,
@@ -463,7 +462,6 @@ export function TopNav() {
                     Заявки ({pendingClaims})
                   </NavLink>
                 ) : null}
-                <SupportButton className="nav__action">Поддержка</SupportButton>
                 <button type="button" className="nav__action" onClick={logout}>
                   Выйти
                 </button>
@@ -473,7 +471,6 @@ export function TopNav() {
           <div className="nav__linksPersist">
             {isPublicShowcasePage ? (
               <>
-                <SupportButton className="nav__action nav__action--showcaseLogin">Поддержка</SupportButton>
                 <Link className="nav__action nav__action--showcaseLogin" to="/auth">
                   Войти
                 </Link>
@@ -482,13 +479,11 @@ export function TopNav() {
               <>
                 {hasOwnerSession() ? (
                   <>
-                    <SupportButton className="nav__action">Поддержка</SupportButton>
                     <button type="button" className="nav__action" onClick={logout}>
                       Выйти
                     </button>
                   </>
                 ) : null}
-                {mode === 'guest' && !onAuthHub ? <SupportButton className="nav__action">Поддержка</SupportButton> : null}
               </>
             )}
           </div>

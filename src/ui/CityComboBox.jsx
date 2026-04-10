@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { fetchDadataCitySuggestions, getDadataSuggestToken } from '../lib/dadataCitySuggest.js'
 import { ComboBox } from './ComboBox.jsx'
 
@@ -19,7 +19,8 @@ export function CityComboBox({
   /** Строка запроса к DaData для последнего успешного ответа — чтобы ComboBox не отфильтровал синонимы (питер → Санкт-Петербург). */
   const [remoteMatchQuery, setRemoteMatchQuery] = useState('')
   const reqId = useRef(0)
-  const tokenOk = useMemo(() => Boolean(getDadataSuggestToken()), [])
+  /** Нельзя мемоизировать с [] — после добавления VITE_DADATA_TOKEN в .env без перезапуска dev подсказки молчали. */
+  const tokenOk = Boolean(getDadataSuggestToken())
 
   useEffect(() => {
     if (!tokenOk) {

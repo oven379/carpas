@@ -29,7 +29,6 @@ import {
 import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
-import { DEFAULT_DETAILING_CARE_ADVICE, mergeStoredCareTipsToPlainText } from '../../lib/recommendations.js'
 
 function pickBestDetailingId(cars, ownerClaims) {
   const score = new Map()
@@ -400,38 +399,6 @@ export default function OwnerGaragePage() {
     [visitForDisplay],
   )
 
-  /** Совет на главной гаража: из careTips последнего по дате визита (сервис) или общий текст из настроек (ваша запись). */
-  const garageHomeAdvice = useMemo(() => {
-    if (!visitForDisplay) return null
-    const carPart = String(visitForDisplay.carDisplayName || '').trim() || 'авто'
-    if (visitForDisplay.source === 'service') {
-      const merged = mergeStoredCareTipsToPlainText(visitForDisplay.careTips).trim()
-      return {
-        body: merged || DEFAULT_DETAILING_CARE_ADVICE,
-        sub: `Из последнего визита (сервис) · ${carPart}`,
-      }
-    }
-    const visitAdvice = mergeStoredCareTipsToPlainText(visitForDisplay.careTips).trim()
-    if (visitAdvice) {
-      return {
-        body: visitAdvice,
-        sub: `Из вашего последнего визита · ${carPart}`,
-      }
-    }
-    const self = String(owner?.garageVisitSelfAdvice || '').trim()
-    if (self) {
-      return {
-        body: self,
-        sub: `Общий совет из настроек — в последнем визите совет к записи не указан · ${carPart}`,
-      }
-    }
-    return {
-      body: null,
-      sub: `Последний визит — ваша запись (${carPart}). Добавьте совет в форме визита в истории или в настройках гаража.`,
-      linkSettings: true,
-    }
-  }, [visitForDisplay, owner?.garageVisitSelfAdvice])
-
   const websiteRaw = String(owner?.garageWebsite || '').trim()
   const websiteHref = websiteRaw ? normalizeHttpUrl(owner?.garageWebsite) : ''
   const ownerSocialLinks = useMemo(() => {
@@ -797,24 +764,6 @@ export default function OwnerGaragePage() {
                 </div>
               ) : null}
             </div>
-            {!garageLastVisitLoading && garageHomeAdvice ? (
-              <div className="garageProfileCard__homeAdvice">
-                <p className="muted small garageProfileCard__metaLine garageProfileCard__homeAdviceHead">
-                  <span className="garageProfileCard__metaKey">Совет</span>
-                </p>
-                {garageHomeAdvice.body ? (
-                  <p className="garageProfileCard__homeAdviceText">{garageHomeAdvice.body}</p>
-                ) : null}
-                <p className="muted small garageProfileCard__homeAdviceFoot">{garageHomeAdvice.sub}</p>
-                {garageHomeAdvice.linkSettings ? (
-                  <p className="garageProfileCard__homeAdviceSettingsLink">
-                    <Link className="link" to="/garage/settings">
-                      Настройки гаража
-                    </Link>
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
           </div>
           <div className="garageProfileCard__avatarCol">
             <Link

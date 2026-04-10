@@ -4491,36 +4491,6 @@ a.garageProfileCard__linkChip:focus-visible {
   margin-bottom: 12px;
 }
 
-.garageProfileCard__homeAdvice {
-  margin: 0 0 14px;
-  padding-top: 10px;
-  border-top: 1px solid color-mix(in oklab, var(--border) 88%, var(--accent));
-  min-width: 0;
-}
-
-.garageProfileCard__homeAdviceHead {
-  margin: 0 0 6px;
-}
-
-.garageProfileCard__homeAdviceText {
-  margin: 0 0 8px;
-  font-size: 0.9375rem;
-  font-weight: 520;
-  line-height: 1.55;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: color-mix(in oklab, var(--accent) 38%, var(--muted));
-}
-
-.garageProfileCard__homeAdviceFoot {
-  margin: 0;
-  line-height: 1.45;
-}
-
-.garageProfileCard__homeAdviceSettingsLink {
-  margin: 8px 0 0;
-}
-
 .garageProfileCard__lastVisitSummary {
   margin: 0 0 10px;
   line-height: 1.45;

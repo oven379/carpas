@@ -1,14 +1,13 @@
 import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
-import { BackNav, Card, CityComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint, Textarea } from '../components.jsx'
+import { BackNav, Card, CityComboBox, Input, PageLoadSpinner, PhoneRuInput, ServiceHint } from '../components.jsx'
 import { clearOwnerSession, hasOwnerSession, mergeSessionOwnerScalars } from '../auth.js'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
 import {
   CITY_FIELD_DD_HINT,
   formatPhoneRuInput,
-  GARAGE_VISIT_SELF_ADVICE_MAX_LEN,
   normalizeGarageSlugInput,
   parseGarageSocialLines,
   PHOTO_UPLOAD_HINTS_PARAGRAPH,
@@ -37,7 +36,6 @@ export default function GarageSettingsPage() {
     garageBannerEnabled: false,
     garageBanner: '',
     garageAvatar: '',
-    garageVisitSelfAdvice: '',
   })
 
   useEffect(() => {
@@ -56,7 +54,6 @@ export default function GarageSettingsPage() {
       garageBannerEnabled: owner.garageBannerEnabled === true,
       garageBanner: owner.garageBanner || '',
       garageAvatar: owner.garageAvatar || '',
-      garageVisitSelfAdvice: owner.garageVisitSelfAdvice || '',
     })
   }, [
     owner?.email,
@@ -70,7 +67,6 @@ export default function GarageSettingsPage() {
     owner?.garageBannerEnabled,
     owner?.garageBanner,
     owner?.garageAvatar,
-    owner?.garageVisitSelfAdvice,
   ])
 
   const previewUrl =
@@ -326,36 +322,6 @@ export default function GarageSettingsPage() {
           </div>
         </div>
 
-        <div className="field field--full serviceHint__fieldWrap garageSettings__selfAdvice topBorder">
-          <div className="field__top serviceHint__fieldTop">
-            <span className="field__label">Совет себе при записи визита</span>
-            <ServiceHint scopeId="garage-settings-self-advice" variant="compact" label="Справка: совет в форме истории">
-              <p className="serviceHint__panelText">
-                Текст показывается в форме визита перед блоком с фото, пока последней по дате записью в истории этого автомобиля
-                остаётся ваш визит. Если последним был визит сервиса, в форме показывается его совет (как в блоке «Совет» на карточке
-                авто).
-              </p>
-            </ServiceHint>
-          </div>
-          <Textarea
-            className="textarea"
-            rows={4}
-            maxLength={GARAGE_VISIT_SELF_ADVICE_MAX_LEN}
-            value={draft.garageVisitSelfAdvice}
-            onChange={(e) =>
-              setDraft((d) => ({
-                ...d,
-                garageVisitSelfAdvice: String(e.target.value || '').slice(0, GARAGE_VISIT_SELF_ADVICE_MAX_LEN),
-              }))
-            }
-            placeholder="Например: проверить уровень жидкости стеклоомывателя, не забыть коврики…"
-            aria-label="Совет себе для формы визита"
-          />
-          <p className="muted small" style={{ margin: '8px 0 0' }}>
-            До {GARAGE_VISIT_SELF_ADVICE_MAX_LEN} символов. Не виден гостям на публичной странице гаража.
-          </p>
-        </div>
-
         <div className="topBorder garageSettings__mediaWrap">
           <div className="garageSettings__mediaHeadRow" id="garage-settings-media">
             <div className="garageSettings__mediaHeading">
@@ -470,9 +436,6 @@ export default function GarageSettingsPage() {
               }
               if ((draft.garageAvatar || '') !== (prevAvatar || '')) {
                 patch.garageAvatar = draft.garageAvatar
-              }
-              if ((draft.garageVisitSelfAdvice || '') !== String(owner?.garageVisitSelfAdvice || '')) {
-                patch.garageVisitSelfAdvice = draft.garageVisitSelfAdvice.trim()
               }
               try {
                 const res = await r.updateOwnerMe(patch)

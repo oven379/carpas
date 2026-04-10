@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Секреты фронта (DaData, и т.д.)
+.env
+.env.local
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

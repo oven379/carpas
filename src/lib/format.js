@@ -4,7 +4,7 @@ export const VISIT_TITLE_MAX_LEN = 40
 /** Свободный комментарий к визиту (что обслуживали). */
 export const VISIT_NOTE_MAX_LEN = 2000
 
-/** Текст «совета себе» в настройках гаража (подсказка при самостоятельной записи визита). */
+/** Лимит поля `garage_visit_self_advice` в API (настройки гаража больше не редактируют его в UI). */
 export const GARAGE_VISIT_SELF_ADVICE_MAX_LEN = 2000
 
 /**

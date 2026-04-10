@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { createPortal } from 'react-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Card, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { BackNav, Button, Card, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
@@ -12,10 +13,12 @@ export default function RequestsPage() {
   const r = useRepo()
   const claimLock = useAsyncActionLock()
   const loc = useLocation()
+  const navigate = useNavigate()
   const { detailingId, detailing, mode, loading } = useDetailing()
   const [claims, setClaims] = useState([])
   const [carsById, setCarsById] = useState({})
   const [ready, setReady] = useState(false)
+  const [claimApprovedModalOpen, setClaimApprovedModalOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -70,8 +73,42 @@ export default function RequestsPage() {
     )
   }
 
+  const closeClaimApprovedModalAndGoCabinet = () => {
+    setClaimApprovedModalOpen(false)
+    navigate('/detailing')
+  }
+
+  const claimApprovedModal =
+    claimApprovedModalOpen && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="supportModalOverlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="requests-claim-approved-title"
+          >
+            <div className="supportModal card pad">
+              <h2 id="requests-claim-approved-title" className="h2 supportModal__title">
+                Заявка подтверждена
+              </h2>
+              <p className="supportModal__lead" style={{ marginTop: 12 }}>
+                Машина появится в гараже владельца.
+              </p>
+              <div className="supportModal__submitRow">
+                <Button className="btn" variant="primary" type="button" onClick={closeClaimApprovedModalAndGoCabinet}>
+                  Хорошо
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
-    <div className="container">
+    <>
+      {claimApprovedModal}
+      <div className="container">
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
@@ -247,6 +284,7 @@ export default function RequestsPage() {
                                 map[String(c.id)] = c
                               }
                               setCarsById(map)
+                              setClaimApprovedModalOpen(true)
                             } catch {
                               alert('Не удалось подтвердить заявку.')
                             }
@@ -295,5 +333,6 @@ export default function RequestsPage() {
         ) : null}
       </div>
     </div>
+    </>
   )
 }

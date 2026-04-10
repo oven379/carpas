@@ -182,7 +182,8 @@ export default function CarEditPage({ mode }) {
   }
 
   useEffect(() => {
-    const key = `${mode}:${id || ''}`
+    const key =
+      mode === 'create' ? `create:${who || ''}:${sp.toString()}` : `${mode}:${id || ''}`
     if (loadedKeyRef.current === key) return
 
     if (mode === 'edit') {
@@ -209,14 +210,14 @@ export default function CarEditPage({ mode }) {
     }
 
     const base = emptyDraft()
-    // Быстрое создание из кабинета детейлинга: подставляем VIN/номер/контакты из query-параметров
+    const vinFromQuery = normVin(String(sp.get('vin') || '').trim())
+    if (vinFromQuery) base.vin = vinFromQuery
+    // Кабинет партнёра: номер, контакты из query (VIN — общий путь выше, в т.ч. после поиска по VIN)
     if (who !== 'owner') {
-      const vin = normVin(String(sp.get('vin') || '').trim())
       const plate = String(sp.get('plate') || '').trim()
       const plateRegion = String(sp.get('plateRegion') || '').trim()
       const clientPhone = String(sp.get('clientPhone') || '').trim()
       const clientEmail = String(sp.get('clientEmail') || '').trim()
-      if (vin) base.vin = vin
       if (plate) {
         const parsed = parsePlateFull(plate)
         base.plate = normPlateBaseUi(parsed.plate)
@@ -229,6 +230,16 @@ export default function CarEditPage({ mode }) {
     setDraft(base)
     loadedKeyRef.current = key
   }, [mode, id, car, who, sp])
+
+  const createVinFromQuery = mode === 'create' ? normVin(String(sp.get('vin') || '').trim()) : ''
+
+  useEffect(() => {
+    if (mode !== 'create' || !createVinFromQuery) return
+    const idRaf = window.requestAnimationFrame(() => {
+      document.getElementById('car-edit-vin-hint')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+    return () => window.cancelAnimationFrame(idRaf)
+  }, [mode, createVinFromQuery])
 
   useEffect(() => {
     let cancelled = false
@@ -491,6 +502,7 @@ export default function CarEditPage({ mode }) {
               </ServiceHint>
             </div>
             <Input
+              id="car-edit-vin-input"
               className="input mono"
               value={draft.vin}
               maxLength={17}
@@ -499,6 +511,7 @@ export default function CarEditPage({ mode }) {
               autoCorrect="off"
               spellCheck={false}
               inputMode="text"
+              autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
               onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />

@@ -46,12 +46,21 @@ export async function fetchDadataCitySuggestions(query, { signal } = {}) {
     }),
   })
 
-  if (!res.ok) return []
+  const raw = await res.text()
+  if (!res.ok) {
+    if (import.meta.env.DEV) {
+      console.warn('[DaData] suggest/address', res.status, raw.slice(0, 280))
+    }
+    return []
+  }
 
   let json
   try {
-    json = await res.json()
+    json = JSON.parse(raw)
   } catch {
+    if (import.meta.env.DEV) {
+      console.warn('[DaData] suggest/address: невалидный JSON')
+    }
     return []
   }
 
