@@ -533,7 +533,7 @@ export default function OwnerGaragePage() {
         style={{ marginTop: bannerSurfaceVisible ? 12 : 0, marginBottom: 16 }}
       >
         <div className="garageProfileCard__top">
-          <div className="garageProfileCard__main">
+          <div className="garageProfileCard__main garageProfileCard__mainLead">
             <div id="owner-garage-public-hint" className="row gap wrap" style={{ alignItems: 'center' }}>
               <h1 className="garageProfileCard__h1" style={{ margin: 0 }}>
                 Гараж
@@ -562,6 +562,27 @@ export default function OwnerGaragePage() {
                 {copyHint}
               </p>
             ) : null}
+          </div>
+          <div className="garageProfileCard__avatarCol">
+            <Link
+              className="garageProfileCard__avatarLink"
+              to="/garage/settings"
+              aria-label="Настройки гаража: аватар, баннер и контакты"
+              title="Настройки гаража"
+            >
+              <div className="garageProfileCard__avatar">
+                {owner?.garageAvatar ? (
+                  <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
+                ) : (
+                  <DefaultAvatar alt="" />
+                )}
+              </div>
+            </Link>
+            <p className="muted small garageProfileCard__avatarHint">
+              Нажмите на аватар для настройки страницы.
+            </p>
+          </div>
+          <div className="garageProfileCard__lastVisitFullRow">
             <div className="garageProfileCard__lastVisitBlock">
               {garageLastVisitLoading ? (
                 <p className="muted small garageProfileCard__metaLine">
@@ -689,6 +710,8 @@ export default function OwnerGaragePage() {
                 </p>
               ) : null}
             </div>
+          </div>
+          <div className="garageProfileCard__mainTail">
             <p className="garageProfileCard__metaLine garageProfileCard__cityLine">
               <span className="garageProfileCard__metaKey">Город:</span>{' '}
               {cityLine ? cityLine : <span className="muted">нет данных</span>}
@@ -763,25 +786,6 @@ export default function OwnerGaragePage() {
                 </div>
               ) : null}
             </div>
-          </div>
-          <div className="garageProfileCard__avatarCol">
-            <Link
-              className="garageProfileCard__avatarLink"
-              to="/garage/settings"
-              aria-label="Настройки гаража: аватар, баннер и контакты"
-              title="Настройки гаража"
-            >
-              <div className="garageProfileCard__avatar">
-                {owner?.garageAvatar ? (
-                  <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
-                ) : (
-                  <DefaultAvatar alt="" />
-                )}
-              </div>
-            </Link>
-            <p className="muted small garageProfileCard__avatarHint">
-              Нажмите на аватар для настройки страницы.
-            </p>
           </div>
         </div>
         <div className="garageProfileCard__footer">
