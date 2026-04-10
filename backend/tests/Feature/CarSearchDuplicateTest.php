@@ -66,4 +66,51 @@ class CarSearchDuplicateTest extends FeatureTestCase
             ->assertOk()
             ->assertJsonCount(0);
     }
+
+    public function test_duplicate_search_finds_by_plate_in_personal_garage(): void
+    {
+        $owner = Owner::query()->create([
+            'email' => 'plate-search-owner@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Иван',
+            'phone' => '',
+        ]);
+
+        $personalDet = \App\Models\Detailing::query()->create([
+            'name' => 'Личный',
+            'email' => 'pd-plate-'.uniqid('', true).'@example.test',
+            'password' => Hash::make('secret'),
+            'is_personal' => true,
+            'owner_id' => $owner->id,
+        ]);
+
+        $partner = $this->detailing();
+        Sanctum::actingAs($partner);
+
+        Car::query()->create([
+            'detailing_id' => $personalDet->id,
+            'owner_id' => $owner->id,
+            'vin' => 'XW8ZZZ1JZ12345678',
+            'plate' => 'a777aa',
+            'plate_region' => '77',
+            'make' => 'Skoda',
+            'model' => 'Octavia',
+            'year' => 2020,
+            'mileage_km' => 5000,
+            'price_rub' => 0,
+            'color' => 'белый',
+            'city' => 'Москва',
+            'hero' => null,
+            'segment' => 'mass',
+            'seller' => null,
+            'client_phone' => '',
+            'owner_phone' => '',
+        ]);
+
+        $res = $this->getJson('/api/cars/search-duplicate?plate='.urlencode('A777AA').'&plateRegion=77');
+        $res->assertOk();
+        $res->assertJsonCount(1);
+        $res->assertJsonPath('0.make', 'Skoda');
+        $res->assertJsonPath('0.vinHitFromOwnerGarage', true);
+    }
 }

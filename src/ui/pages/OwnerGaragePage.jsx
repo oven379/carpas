@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
@@ -20,13 +20,8 @@ import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/med
 import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
-import {
-  dedupeCarsById,
-  OWNER_MAX_MANUAL_CARS,
-  OWNER_MAX_TOTAL_CARS,
-  ownerGarageLimits,
-} from '../../lib/garageLimits.js'
-import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
+import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
@@ -171,6 +166,56 @@ export default function OwnerGaragePage() {
   const [brokenGalleryUrls, setBrokenGalleryUrls] = useState([])
   /** Карточка подробностей визита: по умолчанию свёрнута, чтобы на мобилке не занимала весь экран */
   const [visitDetailsExpanded, setVisitDetailsExpanded] = useState(false)
+  const lastVisitPanelRef = useRef(null)
+
+  useLayoutEffect(() => {
+    const el = lastVisitPanelRef.current
+    if (!el) return undefined
+
+    const clearBleed = () => {
+      el.style.width = ''
+      el.style.marginLeft = ''
+      el.style.maxWidth = ''
+    }
+
+    if (!visitDetailsExpanded) {
+      clearBleed()
+      return undefined
+    }
+
+    const syncFullWidth = () => {
+      const rect = el.getBoundingClientRect()
+      const docW = document.documentElement.clientWidth
+      el.style.width = `${docW}px`
+      el.style.marginLeft = `${-Math.round(rect.left)}px`
+      el.style.maxWidth = 'none'
+    }
+
+    let scrollRaf = 0
+    const onScroll = () => {
+      if (scrollRaf) return
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0
+        syncFullWidth()
+      })
+    }
+
+    syncFullWidth()
+    const ro = new ResizeObserver(() => syncFullWidth())
+    ro.observe(document.documentElement)
+    window.addEventListener('resize', syncFullWidth)
+    window.addEventListener('orientationchange', syncFullWidth)
+    window.addEventListener('scroll', onScroll, true)
+
+    return () => {
+      clearBleed()
+      ro.disconnect()
+      window.removeEventListener('resize', syncFullWidth)
+      window.removeEventListener('orientationchange', syncFullWidth)
+      window.removeEventListener('scroll', onScroll, true)
+      if (scrollRaf) cancelAnimationFrame(scrollRaf)
+    }
+  }, [visitDetailsExpanded])
 
   const slug = String(owner?.garageSlug || '').trim()
   const publicUrl = useMemo(() => {
@@ -459,13 +504,10 @@ export default function OwnerGaragePage() {
   }
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
 
-  const limits = ownerGarageLimits(cars)
-  const displayName = String(owner?.name || '').trim() || ownerEmail
+  const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
+  const displayName = String(owner?.name || '').trim() || 'Владелец'
   const cityLine = String(owner?.garageCity || '').trim()
-  const addCarLimitTitle =
-    limits.totalCount >= OWNER_MAX_TOTAL_CARS
-      ? `В гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей`
-      : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто — остальное через «Найти авто по VIN» в сервисе`
+  const addCarLimitTitle = `Бесплатно в гараже — до ${OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium (откроется заявка в поддержку).`
   const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 
@@ -492,9 +534,15 @@ export default function OwnerGaragePage() {
               </p>
             </div>
             <div className="row gap wrap detPublicSetupBanner__actions">
-              <Link className="btn" data-variant="primary" to="/create">
-                Добавить автомобиль
-              </Link>
+              {limits.canAddManual ? (
+                <Link className="btn" data-variant="primary" to="/create">
+                  Добавить автомобиль
+                </Link>
+              ) : (
+                <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
+                  Добавить автомобиль
+                </SupportButton>
+              )}
               <Link className="btn" data-variant="outline" to="/garage/settings">
                 Изменить улицу
               </Link>
@@ -605,8 +653,9 @@ export default function OwnerGaragePage() {
                   </div>
                   {visitDetailsExpanded ? (
                     <div
+                      ref={lastVisitPanelRef}
                       id="garage-last-visit-panel"
-                      className="garageProfileCard__lastVisitPanel"
+                      className="garageProfileCard__lastVisitPanel garageProfileCard__lastVisitPanel--expanded"
                       role="region"
                       aria-label="Подробности последнего визита"
                     >
@@ -811,30 +860,21 @@ export default function OwnerGaragePage() {
                   Добавить авто
                 </Link>
               ) : (
-                <span
-                  className="btn btn--asDisabled garageProfileCard__addCarBtn"
-                  data-variant="outline"
+                <SupportButton
+                  type="button"
+                  className="btn garageProfileCard__addCarBtn"
+                  data-variant="primary"
                   title={addCarLimitTitle}
                   aria-label={addCarLimitTitle}
+                  openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
                 >
                   Добавить авто
-                </span>
+                </SupportButton>
               )}
               {!limits.canAddManual ? (
-                <p className="muted small garageProfileCard__limitHint" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '52ch' }}>
-                  Лимит на добавление нового авто исчерпан.{' '}
-                  <SupportButton
-                    type="button"
-                    className="btn garageProfileCard__limitSupportBtn"
-                    data-variant="outline"
-                    openOptions={{
-                      bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
-                      contextExtra: { request_type: 'garage_limit' },
-                    }}
-                  >
-                    Поддержка
-                  </SupportButton>
-                  {` — отправьте обращение, оно попадёт в админ-панель.`}
+                <p className="muted small garageProfileCard__limitHint" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '56ch' }}>
+                  {addCarLimitTitle} Лимит только у личного гаража владельца: в кабинете детейлинга партнёр по-прежнему может заводить
+                  сколько угодно карточек клиентов.
                 </p>
               ) : null}
             </div>

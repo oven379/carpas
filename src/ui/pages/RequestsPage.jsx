@@ -22,14 +22,18 @@ export default function RequestsPage() {
 
   useEffect(() => {
     let cancelled = false
-    ;(async () => {
+    let softReloadTimer = 0
+
+    async function loadClaims({ showSpinner = true } = {}) {
       if (mode !== 'detailing' || !detailingId) {
-        setClaims([])
-        setCarsById({})
-        setReady(true)
+        if (!cancelled) {
+          setClaims([])
+          setCarsById({})
+          setReady(true)
+        }
         return
       }
-      setReady(false)
+      if (showSpinner) setReady(false)
       try {
         const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
         if (cancelled) return
@@ -47,11 +51,31 @@ export default function RequestsPage() {
       } finally {
         if (!cancelled) setReady(true)
       }
-    })()
+    }
+
+    void loadClaims({ showSpinner: true })
+
+    /** Заявка создаётся у владельца в другой вкладке/устройстве — без повторной загрузки список остаётся пустым. */
+    const scheduleSoftReload = () => {
+      if (cancelled || document.visibilityState !== 'visible') return
+      if (softReloadTimer) window.clearTimeout(softReloadTimer)
+      softReloadTimer = window.setTimeout(() => {
+        softReloadTimer = 0
+        if (cancelled || document.visibilityState !== 'visible') return
+        void loadClaims({ showSpinner: false })
+      }, 250)
+    }
+
+    document.addEventListener('visibilitychange', scheduleSoftReload)
+    window.addEventListener('focus', scheduleSoftReload)
+
     return () => {
       cancelled = true
+      if (softReloadTimer) window.clearTimeout(softReloadTimer)
+      document.removeEventListener('visibilitychange', scheduleSoftReload)
+      window.removeEventListener('focus', scheduleSoftReload)
     }
-  }, [r, r._version, mode, detailingId])
+  }, [r, r._version, mode, detailingId, loc.pathname, loc.key])
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
 
@@ -141,14 +165,12 @@ export default function RequestsPage() {
           const ev = x.evidence || {}
           const ownerGarageSlug = String(x.ownerGarageSlug || '').trim()
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
-          const ownerLabel = String(x.ownerName || '').trim() || String(x.ownerEmail || 'Владелец').trim()
-          const ownerDisplayName = String(x.ownerName || '').trim() || String(x.ownerEmail || '').trim() || '—'
-          const ownerEmailLine = String(x.ownerEmail || '').trim()
+          const ownerLabel = String(x.ownerName || '').trim() || 'Владелец'
+          const ownerDisplayName = String(x.ownerName || '').trim() || '—'
           const plateLine = car ? fmtPlateFull(car.plate, car.plateRegion) : ''
           const mileageLine = car != null ? `${fmtInt(Number(car.mileageKm) || 0)} км` : null
           const clientPhoneRaw = String(car?.clientPhone || '').trim()
           const { display: clientPhoneDisplay, telHref: clientPhoneTelHref } = displayRuPhone(clientPhoneRaw)
-          const clientEmailLine = String(car?.clientEmail || '').trim()
           const evidencePhoneRaw = String(ev.contactPhone || '').trim()
           const { display: evidencePhoneDisplay, telHref: evidencePhoneTelHref } = displayRuPhone(evidencePhoneRaw)
           const garagePath = ownerGarageSlug ? `/g/${encodeURIComponent(ownerGarageSlug)}` : null
@@ -203,7 +225,7 @@ export default function RequestsPage() {
                     />
                   </div>
                   <p className="muted small requestsCard__evidenceHint" style={{ marginTop: 10, marginBottom: 0 }}>
-                    Сверьте заявителя с фото автомобиля и контактами в вашей карточке (телефон и почта клиента).
+                    Сверьте заявителя с фото автомобиля и телефоном в вашей карточке клиента.
                   </p>
 
                   <div className="requestsCard__facts topBorder" style={{ marginTop: 14 }}>
@@ -228,10 +250,6 @@ export default function RequestsPage() {
                         <span className="muted">не указан</span>
                       )}
                     </div>
-                    <div className="requestsCard__factLine">
-                      <span className="clientBlockLabel">Почта в карточке:</span>{' '}
-                      {clientEmailLine ? <span className="mono">{clientEmailLine}</span> : <span className="muted">не указана</span>}
-                    </div>
                     {evidencePhoneRaw ? (
                       <div className="requestsCard__factLine">
                         <span className="clientBlockLabel">Телефон для сверки (в заявке):</span>{' '}
@@ -248,20 +266,13 @@ export default function RequestsPage() {
                       <span className="clientBlockLabel">Заявитель:</span>{' '}
                       <span className="requestsCard__clientName">{ownerDisplayName}</span>
                     </div>
-                    <div className="muted small requestsCard__factLine requestsCard__ownerEmailLine">
-                      {ownerEmailLine ? <span className="mono">{ownerEmailLine}</span> : <span className="muted">—</span>}
-                      {garagePath ? (
-                        <>
-                          <span className="requestsCard__ownerLineSep" aria-hidden="true">
-                            {' '}
-                            ·{' '}
-                          </span>
-                          <Link className="requestsCard__ownerPublicLink" to={garagePath} state={navState}>
-                            открыть /g/…
-                          </Link>
-                        </>
-                      ) : null}
-                    </div>
+                    {garagePath ? (
+                      <div className="muted small requestsCard__factLine">
+                        <Link className="requestsCard__ownerPublicLink" to={garagePath} state={navState}>
+                          открыть /g/…
+                        </Link>
+                      </div>
+                    ) : null}
                   </div>
 
                   {x.status === 'pending' ? (

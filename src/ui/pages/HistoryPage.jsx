@@ -62,16 +62,17 @@ import { VisitFormServicesBlock } from '../VisitFormServicesBlock.jsx'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
+import { resolveMinMileageKmForVisitForm } from '../../lib/carMileage.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
 
 /** Не хватает данных для «завершённого» визита — при «Назад» спрашиваем про черновик. */
-function isIncompleteDetailingDraft(draft, baseMileageKm) {
+function isIncompleteDetailingDraft(draft, minAllowedKm) {
   const title = String(draft.title || '').trim()
   const km = Number(String(draft.mileageKm || '0')) || 0
   if (!title) return true
   if (!km) return true
-  if (baseMileageKm && km < baseMileageKm) return true
+  if (minAllowedKm && km < minAllowedKm) return true
   return false
 }
 
@@ -297,7 +298,10 @@ export default function HistoryPage() {
   const [events, setEvents] = useState([])
   const [allDocs, setAllDocs] = useState([])
   const [dataReady, setDataReady] = useState(false)
-  const baseMileageKm = car ? Number(car.mileageKm) || 0 : 0
+  const minMileageForNewVisit = useMemo(
+    () => (car ? resolveMinMileageKmForVisitForm(car, events, null) : 0),
+    [car, events],
+  )
   const [sp, setSp] = useSearchParams()
   const nav = useNavigate()
   const fromRaw = sp.get('from') || ''
@@ -440,7 +444,7 @@ export default function HistoryPage() {
     let cancelled = false
     ;(async () => {
       try {
-        const km = baseMileageKm || 0
+        const km = minMileageForNewVisit || 0
         const evt = await r.addEvent(scope, id, {
           type: 'visit',
           isDraft: true,
@@ -468,7 +472,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true
     }
-  }, [mode, wantNew, editParam, dataReady, id, baseMileageKm, r, scope, setSp, setEvents])
+  }, [mode, wantNew, editParam, dataReady, id, minMileageForNewVisit, r, scope, setSp, setEvents])
 
   const [draft, setDraft] = useState({
     title: '',
@@ -483,6 +487,10 @@ export default function HistoryPage() {
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const minMileageKmForVisitForm = useMemo(
+    () => (car ? resolveMinMileageKmForVisitForm(car, events, editingId) : 0),
+    [car, events, editingId],
+  )
   const [photoLb, setPhotoLb] = useState(null)
   const formRef = useRef(null)
   const formTopRef = useRef(null)
@@ -749,7 +757,7 @@ export default function HistoryPage() {
 
   const saveDetailingDraftAndGoBack = async () => {
     if (!editingId) return
-    if (isIncompleteDetailingDraft(draft, baseMileageKm)) {
+    if (isIncompleteDetailingDraft(draft, minMileageKmForVisitForm)) {
       const ok = confirm('Карточка заполнена не полностью. Сохранить как черновик?')
       if (!ok) return
     }
@@ -787,9 +795,9 @@ export default function HistoryPage() {
       let eventId = editingId
       if (!eventId) {
         const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-        if (baseMileageKm && nextMileage < baseMileageKm) {
+        if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
           alert(
-            `Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км). Укажите корректный пробег и попробуйте снова.`,
+            `Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км). Укажите корректный пробег и попробуйте снова.`,
           )
           return
         }
@@ -1326,7 +1334,7 @@ export default function HistoryPage() {
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Пробег (км)</span>
                 <ServiceHint scopeId={FORM_MILEAGE_HINT.scopeId} variant="compact" label={FORM_MILEAGE_HINT.label}>
-                  <p className="serviceHint__panelText">{formMileageHintText(baseMileageKm)}</p>
+                  <p className="serviceHint__panelText">{formMileageHintText(minMileageKmForVisitForm)}</p>
                 </ServiceHint>
               </div>
               <Input
@@ -1342,7 +1350,7 @@ export default function HistoryPage() {
                     return { ...d, mileageKm: nextRaw }
                   })
                 }
-                placeholder={baseMileageKm ? fmtInt(baseMileageKm) : '20 000'}
+                placeholder={minMileageKmForVisitForm ? fmtInt(minMileageKmForVisitForm) : '20 000'}
                 disabled={formLocked}
               />
             </div>
@@ -1651,11 +1659,11 @@ export default function HistoryPage() {
                     return
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                  if (baseMileageKm && nextMileage < baseMileageKm) {
-                    alert(`Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км).`)
+                  if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
+                    alert(`Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                     return
                   }
-                  if (mode === 'detailing' && editingEvent?.isDraft && isIncompleteDetailingDraft(draft, baseMileageKm)) {
+                  if (mode === 'detailing' && editingEvent?.isDraft && isIncompleteDetailingDraft(draft, minMileageKmForVisitForm)) {
                     alert(
                       'Чтобы сохранить визит в истории, укажите заголовок и пробег не ниже текущего по авто.',
                     )
@@ -1764,8 +1772,8 @@ export default function HistoryPage() {
                       return
                     }
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                    if (baseMileageKm && nextMileage < baseMileageKm) {
-                      alert(`Пробег не может быть меньше текущего (${fmtInt(baseMileageKm)} км).`)
+                    if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
+                      alert(`Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                       return
                     }
                     const payload = buildVisitPayload()

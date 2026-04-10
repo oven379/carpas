@@ -32,7 +32,7 @@ class AdminSupportController extends Controller
     public function index()
     {
         $rows = SupportTicket::query()
-            ->with(['owner:id,email,garage_slug', 'detailing:id,name,email'])
+            ->with(['owner:id,email,garage_slug,is_premium', 'detailing:id,name,email'])
             ->orderByDesc('created_at')
             ->limit(200)
             ->get();
@@ -52,7 +52,7 @@ class AdminSupportController extends Controller
             'admin_replied_at' => now(),
         ]);
 
-        return response()->json($this->serializeAdmin($ticket->fresh(['owner:id,email,garage_slug', 'detailing:id,name,email'])));
+        return response()->json($this->serializeAdmin($ticket->fresh(['owner:id,email,garage_slug,is_premium', 'detailing:id,name,email'])));
     }
 
     protected function serializeAdmin(SupportTicket $t): array
@@ -68,6 +68,7 @@ class AdminSupportController extends Controller
                 'role' => 'owner',
                 'email' => $t->owner->email,
                 'garage_slug' => $t->owner->garage_slug,
+                'is_premium' => (bool) $t->owner->is_premium,
             ];
         } elseif ($t->author_role === 'detailing' && $t->detailing) {
             $from = [

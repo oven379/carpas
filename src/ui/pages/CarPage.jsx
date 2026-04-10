@@ -9,8 +9,8 @@ import { useDetailing } from '../useDetailing.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 import { buildCarSubRoutePath, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
 import {
-  DETAILING_ACCESS_SERVICE_ONLY_LABEL,
   detailingCarAccessBadge,
+  detailingCarHasLinkedOwner,
   ownerServiceLinkSummary,
 } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
@@ -25,6 +25,7 @@ import {
   patchCarPageExpandPrefs,
   readCarPageExpandPrefs,
 } from '../../lib/carPageExpandPrefs.js'
+import { resolveEffectiveMileageKm } from '../../lib/carMileage.js'
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -171,6 +172,53 @@ export default function CarPage() {
     return ownerServiceLinkSummary(car, ownerEmailResolved, ownerClaims)
   }, [mode, ownerEmailResolved, car, ownerClaims])
 
+  const ownerLastVisitExpandRef = useRef(null)
+
+  useLayoutEffect(() => {
+    if (mode !== 'owner' || !ownerServiceSummary || !ownerDataExpanded) return undefined
+    const el = ownerLastVisitExpandRef.current
+    if (!el) return undefined
+
+    const clearBleed = () => {
+      el.style.width = ''
+      el.style.marginLeft = ''
+      el.style.maxWidth = ''
+    }
+
+    const syncFullWidth = () => {
+      const rect = el.getBoundingClientRect()
+      const docW = document.documentElement.clientWidth
+      el.style.width = `${docW}px`
+      el.style.marginLeft = `${-Math.round(rect.left)}px`
+      el.style.maxWidth = 'none'
+    }
+
+    let scrollRaf = 0
+    const onScroll = () => {
+      if (scrollRaf) return
+      scrollRaf = requestAnimationFrame(() => {
+        scrollRaf = 0
+        syncFullWidth()
+      })
+    }
+
+    syncFullWidth()
+    const ro = new ResizeObserver(() => syncFullWidth())
+    ro.observe(document.documentElement)
+    window.addEventListener('resize', syncFullWidth)
+    window.addEventListener('orientationchange', syncFullWidth)
+    window.addEventListener('scroll', onScroll, true)
+
+    return () => {
+      clearBleed()
+      ro.disconnect()
+      window.removeEventListener('resize', syncFullWidth)
+      window.removeEventListener('orientationchange', syncFullWidth)
+      window.removeEventListener('scroll', onScroll, true)
+      if (scrollRaf) cancelAnimationFrame(scrollRaf)
+    }
+  }, [ownerDataExpanded, mode, ownerServiceSummary, id])
+
   const detailingAccess = useMemo(() => {
     if (mode !== 'detailing' || !car) return null
     return detailingCarAccessBadge(car, detailingId, inboxClaims)
@@ -267,16 +315,8 @@ export default function CarPage() {
 
   const displayMileageKm = useMemo(() => {
     if (!car) return 0
-    if (mode !== 'owner') return Number(car.mileageKm) || 0
-    if (
-      lastHistoryEvent != null &&
-      lastHistoryEvent.mileageKm != null &&
-      lastHistoryEvent.mileageKm !== ''
-    ) {
-      return lastHistoryEvent.mileageKm
-    }
-    return Number(car.mileageKm) || 0
-  }, [car, mode, lastHistoryEvent])
+    return resolveEffectiveMileageKm(car, allEvents)
+  }, [car, allEvents])
 
   /** Подпись места для блока «Фото последнего визита»: сервис или в гараже. */
   const lastVisitPlaceLabel = useMemo(() => {
@@ -341,6 +381,10 @@ export default function CarPage() {
   const detailingOwnerGarageCityLine = String(car.ownerGarageCity || '').trim() || 'Нет данных'
   const detailingOwnerAccountPhoneRaw = String(car.ownerAccountPhone || '').trim()
   const detailingOwnerAccountPhoneUi = displayRuPhone(detailingOwnerAccountPhoneRaw)
+  const detailingClientCardName =
+    String(car.clientName || '').trim() || String(car.clientPhone || '').trim() || ''
+  const detailingClientPhoneRaw = String(car.clientPhone || '').trim()
+  const detailingClientPhoneUi = displayRuPhone(detailingClientPhoneRaw)
 
   const lastVisitPhotosMetaDetailing =
     lastHistoryEvent ? (
@@ -513,15 +557,15 @@ export default function CarPage() {
         </div>
       </div>
 
-      {mode === 'detailing' &&
-      detailingAccess?.label &&
-      detailingAccess.label !== DETAILING_ACCESS_SERVICE_ONLY_LABEL ? (
+      {mode === 'detailing' && car ? (
         <Card className="card pad carPage__detailingClientCard" style={{ marginBottom: 16 }}>
           <div className="carPage__detailingClientCardHead">
             <div className="cardTitle carPage__detailingClientCardTitle">Клиент и доступ</div>
-            <Pill tone={detailingAccess.tone}>{detailingAccess.label}</Pill>
+            {detailingAccess?.label === 'Заявка владельца' ? (
+              <Pill tone={detailingAccess.tone}>{detailingAccess.label}</Pill>
+            ) : null}
           </div>
-          {detailingAccess.label === 'Владелец в приложении' && String(car.ownerEmail || '').trim() ? (
+          {detailingCarHasLinkedOwner(car) ? (
             <div className="carPage__detailingOwnerProfile">
               <div
                 className="carPage__detailingOwnerProfileAvatar"
@@ -535,9 +579,7 @@ export default function CarPage() {
               </div>
               <div className="carPage__detailingOwnerProfileBody">
                 <div className="carPage__detailingOwnerProfileName">
-                  {String(car.ownerName || '').trim() ||
-                    String(car.ownerEmail || '').trim() ||
-                    'Владелец'}
+                  {String(car.ownerName || '').trim() || 'Владелец'}
                 </div>
                 <div className="carPage__detailingOwnerProfileRow">
                   <span className="carPage__detailingOwnerProfileKey">Город:</span>{' '}
@@ -557,25 +599,45 @@ export default function CarPage() {
                     <span className="carPage__detailingOwnerProfileVal muted">Нет данных</span>
                   )}
                 </div>
-                <p className="muted small carPage__detailingOwnerProfileEmail" style={{ margin: 0 }}>
-                  <span className="carPage__detailingOwnerProfileKey">Почта:</span>{' '}
-                  <span className="mono">{String(car.ownerEmail || '').trim()}</span>
-                </p>
               </div>
             </div>
-          ) : null}
-          {detailingAccess.label === 'Заявка владельца' ? (
-            <p className="muted small carPage__detailingClientHint">
-              Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
-            </p>
-          ) : null}
-          {detailingAccess.label === 'Заявка владельца' ? (
-            <div className="row gap wrap carPage__detailingClientActions">
-              <Link className="btn" data-variant="primary" to="/requests">
-                Перейти к заявкам
-              </Link>
+          ) : detailingAccess?.label === 'Заявка владельца' ? (
+            <>
+              <p className="muted small carPage__detailingClientHint">
+                Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
+              </p>
+              <div className="row gap wrap carPage__detailingClientActions">
+                <Link className="btn" data-variant="primary" to="/requests">
+                  Перейти к заявкам
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="carPage__detailingOwnerProfile">
+              <div className="carPage__detailingOwnerProfileAvatar" aria-hidden="true">
+                <DefaultAvatar alt="" />
+              </div>
+              <div className="carPage__detailingOwnerProfileBody">
+                <div className="carPage__detailingOwnerProfileName">
+                  {detailingClientCardName || 'Нет данных'}
+                </div>
+                <div className="carPage__detailingOwnerProfileRow">
+                  <span className="carPage__detailingOwnerProfileKey">Телефон:</span>{' '}
+                  {detailingClientPhoneUi.telHref ? (
+                    <a className="carPage__detailingOwnerProfilePhone" href={detailingClientPhoneUi.telHref}>
+                      {detailingClientPhoneUi.display}
+                    </a>
+                  ) : detailingClientPhoneRaw ? (
+                    <span className="carPage__detailingOwnerProfileVal">
+                      {detailingClientPhoneUi.display || detailingClientPhoneRaw}
+                    </span>
+                  ) : (
+                    <span className="carPage__detailingOwnerProfileVal muted">Нет данных</span>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : null}
+          )}
         </Card>
       ) : null}
 
@@ -609,7 +671,7 @@ export default function CarPage() {
               </div>
 
               {ownerDataExpanded ? (
-                <>
+                <div ref={ownerLastVisitExpandRef} className="carPage__ownerLastVisitExpandBleed">
                   <div className="carPage__ownerServiceExpand">
                   {ownerServiceSummary.kind === 'no_service' ? (
                     <div className="carPage__ownerServiceSection carPage__ownerServiceSection--stack">
@@ -652,7 +714,24 @@ export default function CarPage() {
                         )}
                       </div>
                       <div className="carPage__ownerServiceStack">
-                        <div className="metaStrong carPage__ownerServiceHeadline">{ownerApprovedServicingHeadline}</div>
+                        <div className="carPage__ownerServiceHeadline">
+                          <span className="metaStrong">Обслуживался:</span>{' '}
+                          <span className="carPage__ownerServiceHeadlineSub">
+                            {lastVisitFromDetailing ? (
+                              <>
+                                {servicingAtDetailingName || 'Сервис'}
+                                {lastHistoryEvent?.at ? (
+                                  <>
+                                    {', '}
+                                    {fmtDateTime(lastHistoryEvent.at)}
+                                  </>
+                                ) : null}
+                              </>
+                            ) : (
+                              'в гараже'
+                            )}
+                          </span>
+                        </div>
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
                             lastEvt={lastHistoryEvent}
@@ -715,7 +794,7 @@ export default function CarPage() {
                   )}
                   </div>
                   {lastVisitPhotosEmbedOwner}
-                </>
+                </div>
               ) : null}
 
               <div className="topBorder carPage__carDataSection">
@@ -795,7 +874,7 @@ export default function CarPage() {
                     <span className="kv__k">Госномер</span>
                     <span className="kv__v mono">{fmtPlateFull(car.plate, car.plateRegion) || '—'}</span>
                   </div>
-                  {mode === 'detailing' && (car.clientName || car.clientPhone || car.clientEmail) ? (
+                  {mode === 'detailing' && (car.clientName || car.clientPhone) ? (
                     <>
                       <div className="kv__row">
                         <span className="kv__k">Клиент</span>
@@ -804,10 +883,6 @@ export default function CarPage() {
                       <div className="kv__row">
                         <span className="kv__k">Телефон</span>
                         <span className="kv__v mono">{car.clientPhone || '—'}</span>
-                      </div>
-                      <div className="kv__row">
-                        <span className="kv__k">Почта</span>
-                        <span className="kv__v mono">{car.clientEmail || '—'}</span>
                       </div>
                     </>
                   ) : null}

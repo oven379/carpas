@@ -523,7 +523,7 @@ button.nav__action {
   max-width: 100%;
   overflow-wrap: anywhere;
   line-height: 1.45;
-  margin-top: 10px;
+  margin-top: 12px;
   margin-bottom: 0;
 }
 
@@ -606,6 +606,12 @@ button.nav__action {
   transform: none;
 }
 
+.carPage__ownerLastVisitExpandBleed {
+  box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
 .carPage__ownerServiceExpand {
   margin-bottom: 12px;
 }
@@ -630,6 +636,11 @@ button.nav__action {
 
 .carPage__ownerServiceHeadline {
   line-height: 1.45;
+}
+
+.carPage__ownerServiceHeadlineSub {
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .carPage__ownerLastVisitHit {
@@ -2135,6 +2146,17 @@ summary.carPage__recsSelect::-webkit-details-marker {
   font-weight: inherit;
 }
 
+/* Лендинг: город · адрес · телефон и режим работы сразу под заголовком */
+.detPublic__landingContactLine a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detPublic__landingContactLine a:hover {
+  color: var(--accent);
+}
+
 /* Публичный лендинг детейлинга: блок «Информация» + логотип справа (без ссылки — клик не перезагружает страницу) */
 .detPublicInfoCard__headRow {
   display: flex;
@@ -2802,6 +2824,14 @@ summary.carPage__recsSelect::-webkit-details-marker {
   filter: grayscale(0.12);
 }
 
+/* Дефолтный аватар клиента (нет аккаунта в приложении) — без «заглушки» disabled */
+.rowItem__ownerPeekLink--clientPlaceholder {
+  cursor: default;
+  pointer-events: none;
+  opacity: 1;
+  filter: none;
+}
+
 /* Мобильная карточка: блок владельца с аватаром и контекстом (десктоп — скрыт) */
 .rowItem__ownerSummary {
   display: none;
@@ -2864,7 +2894,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .rowItem__ownerSummaryOwnerLine {
@@ -3202,7 +3232,7 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 .rowItem__sub {
   color: var(--text);
   font-size: 12px;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .rowItem__lastEvt {
@@ -3750,7 +3780,7 @@ a.backNav {
   align-items: center;
   justify-content: space-between;
   gap: 10px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .carPage__detailingClientCardTitle {
@@ -3796,7 +3826,7 @@ a.backNav {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .carPage__detailingOwnerProfileName {
@@ -3831,19 +3861,13 @@ a.backNav {
   text-decoration: underline;
 }
 
-.carPage__detailingOwnerProfileEmail {
-  padding-top: 2px;
-  line-height: 1.45;
-  word-break: break-all;
-}
-
 .carPage__detailingClientHint {
-  margin: 0 0 10px;
+  margin: 0 0 12px;
   line-height: 1.5;
 }
 
 .carPage__detailingClientActions {
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 @media (max-width: 380px) {
@@ -3856,10 +3880,6 @@ a.backNav {
   .carPage__detailingOwnerProfileBody {
     align-items: center;
     width: 100%;
-  }
-
-  .carPage__detailingOwnerProfileEmail {
-    text-align: center;
   }
 }
 
@@ -4657,6 +4677,13 @@ a.garageProfileCard__linkChip:focus-visible {
   min-width: 0;
 }
 
+/* Развёрнутая панель: на всю ширину окна (см. useLayoutEffect в OwnerGaragePage) */
+.garageProfileCard__lastVisitPanel--expanded {
+  box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
 .garageProfileCard__lastVisitDetail {
   border-radius: 12px;
   padding: 12px 10px 12px 8px;
@@ -4665,6 +4692,13 @@ a.garageProfileCard__linkChip:focus-visible {
   background: color-mix(in oklab, var(--accent) 5%, var(--bg));
   border: 1px solid color-mix(in oklab, var(--border) 92%, var(--accent));
   box-sizing: border-box;
+}
+
+.garageProfileCard__lastVisitPanel--expanded .garageProfileCard__lastVisitDetail {
+  margin-left: 0;
+  margin-right: 0;
+  padding-left: 12px;
+  padding-right: 12px;
 }
 
 .garageProfileCard__lastVisitDetailTitle {
@@ -8142,9 +8176,9 @@ a.btn.carPage__recsAddVisitFull,
     display: flex;
     flex-direction: row;
     align-items: flex-start;
-    gap: 12px;
-    margin-top: 8px;
-    padding-top: 12px;
+    gap: 14px;
+    margin-top: 10px;
+    padding-top: 14px;
     border-top: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
     width: 100%;
     max-width: 100%;

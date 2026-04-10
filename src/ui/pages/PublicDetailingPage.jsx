@@ -228,6 +228,62 @@ export default function PublicDetailingPage() {
         </div>
       </div>
 
+      {citySeo || String(det.address || '').trim() || phoneDisplay || String(det.workingHours || '').trim() ? (
+        <div className="detPublic__landingContact" style={{ marginTop: 4, marginBottom: 12 }}>
+          <p className="detPublic__landingContactLine muted" style={{ margin: 0, lineHeight: 1.55, maxWidth: '72ch' }}>
+            {[
+              citySeo ? <span key="city">{citySeo}</span> : null,
+              String(det.address || '').trim() ? (
+                <a
+                  key="addr"
+                  href={navHref || mapsHref}
+                  target={navHref ? undefined : '_blank'}
+                  rel={navHref ? undefined : 'noreferrer'}
+                  title="Открыть в навигаторе"
+                  onClick={(e) => {
+                    if (!navHref) return
+                    e.preventDefault()
+                    try {
+                      window.location.href = navHref
+                    } catch {
+                      /* ignore */
+                    }
+                    setTimeout(() => {
+                      try {
+                        window.open(mapsHref, '_blank', 'noreferrer')
+                      } catch {
+                        /* ignore */
+                      }
+                    }, 450)
+                  }}
+                >
+                  {String(det.address).trim()}
+                </a>
+              ) : null,
+              phoneDisplay ? (
+                phoneTelHref ? (
+                  <a key="tel" href={phoneTelHref} title="Позвонить">
+                    {phoneDisplay}
+                  </a>
+                ) : (
+                  <span key="tel">{phoneDisplay}</span>
+                )
+              ) : null,
+            ]
+              .filter(Boolean)
+              .flatMap((el, i) => (i === 0 ? [el] : [<span key={`sep-${i}`} aria-hidden="true"> · </span>, el]))}
+          </p>
+          {String(det.workingHours || '').trim() ? (
+            <p
+              className="detPublic__landingHours muted small"
+              style={{ margin: '10px 0 0', maxWidth: '62ch', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}
+            >
+              {String(det.workingHours).trim()}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div
         className="detHero detHero--card"
         style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}

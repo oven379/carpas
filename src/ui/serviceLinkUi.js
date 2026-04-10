@@ -48,6 +48,11 @@ export function ownerServiceLinkSummary(car, ownerEmail, ownerClaimsList) {
 /** Карточка ведётся только у детейлинга (владелец в приложении не привязан). Плашку в UI кабинета не показываем — авто и так в списке сервиса. */
 export const DETAILING_ACCESS_SERVICE_ONLY_LABEL = 'Учёт в сервисе'
 
+/** Владелец привязал аккаунт к машине (email на карточке). */
+export function detailingCarHasLinkedOwner(car) {
+  return Boolean(normEmail(car?.ownerEmail))
+}
+
 /** Статус строки в списке детейлинга: учёт только у сервиса vs владелец в приложении vs заявка. */
 export function detailingCarAccessBadge(car, detailingId, inboxClaims) {
   if (!car) return { label: '', tone: 'neutral' }

@@ -155,7 +155,7 @@ class CarSearchController extends Controller
     }
 
     /**
-     * Кабинет партнёра: поиск карточек до создания дубля — по VIN, по телефону (как запасной фактор), и/или паре телефон + почта клиента.
+     * Кабинет партнёра: поиск карточек до создания дубля — по VIN, госномеру (plate + plateRegion), по телефону, и/или паре телефон + почта клиента.
      */
     public function duplicateCandidatesForDetailing(Request $request)
     {
@@ -167,9 +167,13 @@ class CarSearchController extends Controller
         $wantVin = $vin !== '';
         $phoneCmp = self::comparablePhoneDigits($phoneRaw);
         $wantContact = $email !== '' && $phoneCmp !== '';
-        $wantPhoneSolo = $phoneCmp !== '' && strlen($phoneCmp) >= 10 && $email === '' && ! $wantVin;
+        $plateBase = VinPlateValidator::normalizePlateBase(trim((string) $request->query('plate', '')));
+        $plateRegion = VinPlateValidator::normalizePlateRegion(trim((string) $request->query('plateRegion', '')));
+        $plateErr = VinPlateValidator::ruPlatePairError($plateBase, $plateRegion);
+        $wantPlate = $plateErr === null && $plateBase !== '' && $plateRegion !== '';
+        $wantPhoneSolo = $phoneCmp !== '' && strlen($phoneCmp) >= 10 && $email === '' && ! $wantVin && ! $wantPlate;
 
-        if (! $wantVin && ! $wantContact && ! $wantPhoneSolo) {
+        if (! $wantVin && ! $wantContact && ! $wantPhoneSolo && ! $wantPlate) {
             return response()->json([]);
         }
 
@@ -209,6 +213,29 @@ class CarSearchController extends Controller
                     $found->push($c);
                 }
             }
+        }
+
+        if ($wantPlate) {
+            $pb = mb_strtolower($plateBase, 'UTF-8');
+            $pr = mb_strtolower($plateRegion, 'UTF-8');
+            $found = $found->merge(
+                self::nonPersonalCarsQuery()
+                    ->whereRaw('lower(trim(plate)) = ?', [$pb])
+                    ->whereRaw('lower(trim(plate_region)) = ?', [$pr])
+                    ->orderByDesc('updated_at')
+                    ->limit(50)
+                    ->get(),
+            );
+            $found = $found->merge(
+                Car::query()
+                    ->whereHas('detailing', fn ($q) => $q->where('is_personal', true))
+                    ->whereRaw('lower(trim(plate)) = ?', [$pb])
+                    ->whereRaw('lower(trim(plate_region)) = ?', [$pr])
+                    ->with(['detailing', 'owner'])
+                    ->orderByDesc('updated_at')
+                    ->limit(50)
+                    ->get(),
+            );
         }
 
         return response()->json(self::mapCarRows($found));

@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CareTips;
+use App\Http\Support\CarMileageSync;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Owner;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class OwnerCarEventController extends Controller
 {
@@ -79,6 +81,14 @@ class OwnerCarEventController extends Controller
         $care = CareTips::normalize($data['careTips'] ?? null);
         self::assertOwnerVisitCareTipsNonSpaceLimit($care);
 
+        $incomingKm = isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0;
+        $min = CarMileageSync::minAllowedMileageForVisit($car, null);
+        if ($incomingKm < $min) {
+            throw ValidationException::withMessages([
+                'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
+            ]);
+        }
+
         $evt = CarEvent::query()->create([
             'detailing_id' => $car->detailing_id,
             'car_id' => $car->id,
@@ -87,12 +97,14 @@ class OwnerCarEventController extends Controller
             'at' => $data['at'] ?? now()->toISOString(),
             'type' => $data['type'] ?? 'visit',
             'title' => trim((string) ($data['title'] ?? '')),
-            'mileage_km' => isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0,
+            'mileage_km' => $incomingKm,
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
             'care_tips' => $care,
         ]);
+
+        CarMileageSync::bumpCarMileageFromEvents($car->fresh());
 
         return response()->json(ApiResources::event($evt));
     }
@@ -134,7 +146,17 @@ class OwnerCarEventController extends Controller
             self::assertOwnerVisitCareTipsNonSpaceLimit($care);
             $evt->care_tips = $care;
         }
+
+        $min = CarMileageSync::minAllowedMileageForVisit($car, (int) $evt->id);
+        if ((int) $evt->mileage_km < $min) {
+            throw ValidationException::withMessages([
+                'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
+            ]);
+        }
+
         $evt->save();
+
+        CarMileageSync::bumpCarMileageFromEvents($car->fresh());
 
         return response()->json(ApiResources::event($evt->fresh()));
     }
@@ -149,6 +171,7 @@ class OwnerCarEventController extends Controller
             abort(403);
         }
         $evt->delete();
+        CarMileageSync::refreshCarMileageAfterEventDeleted($car->fresh());
 
         return response()->json(['ok' => true]);
     }

@@ -414,9 +414,9 @@ export function createApiClient() {
       return p
     },
 
-    /** Кабинет партнёра: совпадения по VIN и/или телефон + почта клиента перед созданием карточки. */
-    async findDuplicateCarsForDetailing({ vin, clientPhone, clientEmail } = {}) {
-      const key = `${String(vin || '').trim().toLowerCase()}|${String(clientPhone || '').trim()}|${String(clientEmail || '').trim().toLowerCase()}`
+    /** Кабинет партнёра: совпадения по VIN, госномеру, телефону и/или почте клиента перед созданием карточки. */
+    async findDuplicateCarsForDetailing({ vin, clientPhone, clientEmail, plate, plateRegion } = {}) {
+      const key = `${String(vin || '').trim().toLowerCase()}|${String(clientPhone || '').trim()}|${String(clientEmail || '').trim().toLowerCase()}|${String(plate || '').trim().toLowerCase()}|${String(plateRegion || '').trim().toLowerCase()}`
       let p = inflightDupesByKey.get(key)
       if (p) return p
       p = req('cars/search-duplicate', {
@@ -424,6 +424,8 @@ export function createApiClient() {
           vin: String(vin || '').trim(),
           clientPhone: String(clientPhone || '').trim(),
           clientEmail: String(clientEmail || '').trim(),
+          plate: String(plate || '').trim(),
+          plateRegion: String(plateRegion || '').trim(),
         },
         token: dTok(),
       }).finally(() => {

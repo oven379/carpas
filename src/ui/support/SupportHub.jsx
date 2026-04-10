@@ -9,6 +9,7 @@ import { Button, Field, Input, Textarea } from '../components.jsx'
 import { SupportContext } from './supportContext.js'
 import { supportPageTitle } from './supportPageTitle.js'
 import { useSupport } from './useSupport.js'
+import { PREMIUM_GARAGE_REQUEST_PREFIX } from '../../lib/supportTicketPresets.js'
 
 async function buildSupportContext(r, { pathname, mode, detailingId, detailing, carId }) {
   const page_title = supportPageTitle(pathname)
@@ -162,20 +163,17 @@ export function SupportProvider({ children }) {
     if (e.target === overlayRef.current) closeModal()
   }
 
-  const onSubmit = async (e) => {
-    e.preventDefault()
-    setFormError('')
-    setFormOk(false)
-    const text = String(body || '').trim()
+  const runSubmitTicket = async (rawText) => {
+    const text = String(rawText || '').trim()
     if (text.length < 3) {
       setFormError('Опишите вопрос или предложение (не меньше 3 символов).')
-      return
+      return false
     }
     const authed = hasOwnerSession() || hasDetailingSession()
     const em = String(guestEmail || '').trim()
     if (!authed && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
       setFormError('Укажите корректный e-mail для ответа.')
-      return
+      return false
     }
 
     setSubmitting(true)
@@ -206,11 +204,28 @@ export function SupportProvider({ children }) {
       setGuestEmail('')
       setFile(null)
       await refreshUnread()
+      return true
     } catch (err) {
       setFormError(formatHttpErrorMessage(err, 'Не удалось отправить обращение.'))
+      return false
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const onSubmit = async (e) => {
+    e.preventDefault()
+    setFormError('')
+    setFormOk(false)
+    await runSubmitTicket(body)
+  }
+
+  const onPremiumConnectClick = async () => {
+    setFormError('')
+    setFormOk(false)
+    const trimmed = String(body || '').trim()
+    const text = trimmed.length >= 3 ? trimmed : String(PREMIUM_GARAGE_REQUEST_PREFIX).trim()
+    await runSubmitTicket(text)
   }
 
   const value = useMemo(
@@ -245,15 +260,25 @@ export function SupportProvider({ children }) {
           >
             <div className="supportModal__head row spread gap wrap">
               <h2 id="support-modal-title" className="h2 supportModal__title">
-                Поддержка КарПас
+                {modalOpts.premiumGarageFlow ? 'Расширение гаража (Premium)' : 'Поддержка КарПас'}
               </h2>
               <button type="button" className="btn" data-variant="ghost" onClick={closeModal} aria-label="Закрыть">
                 ×
               </button>
             </div>
             <p className="muted small supportModal__lead">
-              Опишите проблему, вопрос или идею. Мы ответим на указанный e-mail (для гостей) или покажем ответ здесь, если вы
-              вошли в аккаунт.
+              {modalOpts.premiumGarageFlow ? (
+                <>
+                  В бесплатном гараже — до двух автомобилей. Чтобы добавить третий и далее, отправьте заявку на Premium: мы
+                  свяжемся с вами. Ограничение касается только личного гаража владельца; в кабинете партнёра (детейлинга) сервис
+                  по-прежнему может вести любое число карточек клиентов.
+                </>
+              ) : (
+                <>
+                  Опишите проблему, вопрос или идею. Мы ответим на указанный e-mail (для гостей) или покажем ответ здесь, если вы
+                  вошли в аккаунт.
+                </>
+              )}
             </p>
 
             {showReplyCard ? (
@@ -275,8 +300,27 @@ export function SupportProvider({ children }) {
 
             {formOk ? (
               <p className="supportModal__ok muted small" role="status">
-                Сообщение отправлено. Спасибо! Мы свяжемся с вами при необходимости.
+                {modalOpts.successMessage ||
+                  'Сообщение отправлено. Спасибо! Мы свяжемся с вами при необходимости.'}
               </p>
+            ) : null}
+
+            {modalOpts.premiumGarageFlow && !formOk ? (
+              <div className="supportModal__premiumCta topBorder" style={{ paddingTop: 12, marginBottom: 12 }}>
+                <Button
+                  type="button"
+                  variant="primary"
+                  disabled={submitting}
+                  aria-busy={submitting || undefined}
+                  onClick={() => void onPremiumConnectClick()}
+                >
+                  {submitting ? 'Отправка…' : 'Подключить премиум'}
+                </Button>
+                <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '52ch' }}>
+                  Заявка уйдёт в админ-панель с пометкой «Premium» и данными вашего аккаунта. При необходимости допишите пожелания
+                  в поле ниже и нажмите «Отправить».
+                </p>
+              </div>
             ) : null}
 
             <form className="supportModal__form" onSubmit={(e) => void onSubmit(e)}>

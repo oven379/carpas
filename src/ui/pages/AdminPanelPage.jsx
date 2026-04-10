@@ -214,7 +214,7 @@ function PanelTable({ title, cols, rows }) {
 function formatSupportFrom(f) {
   if (!f || typeof f !== 'object') return '—'
   if (f.role === 'owner') {
-    return `Владелец · ${f.email || '—'}${f.garage_slug ? ` · гараж /g/${f.garage_slug}` : ''}`
+    return `Владелец · ${f.email || '—'}${f.garage_slug ? ` · гараж /g/${f.garage_slug}` : ''}${f.is_premium ? ' · в аккаунте: Premium' : ''}`
   }
   if (f.role === 'detailing') {
     return `Партнёр · ${f.name || '—'} · ${f.email || '—'}`
@@ -226,6 +226,9 @@ function supportContextLine(ctx) {
   if (!ctx || typeof ctx !== 'object') return '—'
   const parts = []
   if (ctx.page_title) parts.push(String(ctx.page_title))
+  if (ctx.premium_account_request || ctx.request_type === 'premium_garage') {
+    parts.push('тип: заявка на Premium-аккаунт (расширение гаража)')
+  }
   if (ctx.request_type === 'garage_limit') parts.push('запрос: лимит гаража')
   if (ctx.role === 'owner') {
     if (ctx.cars_count != null) parts.push(`авто в гараже: ${ctx.cars_count}`)
@@ -339,6 +342,9 @@ function PanelSupport() {
                   aria-expanded={open}
                 >
                   <span className="adminSupportCard__id">#{id}</span>
+                  {row.context?.premium_account_request || row.context?.request_type === 'premium_garage' ? (
+                    <Pill tone="accent">Premium</Pill>
+                  ) : null}
                   <span className="adminSupportCard__from">{formatSupportFrom(row.from)}</span>
                   <span className="adminSupportCard__chev" aria-hidden>
                     {open ? '▼' : '▶'}

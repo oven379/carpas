@@ -1,4 +1,4 @@
-/** Лимиты гаража владельца (без Premium): вручную до 2 авто, всего до 5 (остальное — через детейлинг по VIN). */
+/** Лимиты гаража владельца: бесплатно до 2 авто; при Premium — без ограничений на стороне клиента. */
 
 /** Убирает повторы по `id` в ответе API (защита от дублей в списке при сбоях клиента). */
 export function dedupeCarsById(cars) {
@@ -15,20 +15,31 @@ export function dedupeCarsById(cars) {
   return out
 }
 
-export const OWNER_MAX_MANUAL_CARS = 2
-export const OWNER_MAX_TOTAL_CARS = 5
+/** Сколько автомобилей можно держать в гараже на бесплатном тарифе. */
+export const OWNER_MAX_FREE_GARAGE_CARS = 2
+
+/** @deprecated то же число, что и OWNER_MAX_FREE_GARAGE_CARS (оставлено для старых импортов) */
+export const OWNER_MAX_MANUAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
+
+/** @deprecated раньше было 5; лимит объединён с бесплатным гаражом */
+export const OWNER_MAX_TOTAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
 
 /**
  * @param {Array<{ detailingId?: string|null }>} cars — список авто владельца из репозитория
+ * @param {{ isPremium?: boolean }} [options] — у владельца включён Premium (обход лимита)
  */
-export function ownerGarageLimits(cars) {
+export function ownerGarageLimits(cars, options = {}) {
+  const isPremium = Boolean(options.isPremium)
   const list = Array.isArray(cars) ? cars : []
   const manualCount = list.filter((c) => !c?.detailingId).length
   const totalCount = list.length
+  const canAddMore = isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS
   return {
     manualCount,
     totalCount,
-    canAddManual: manualCount < OWNER_MAX_MANUAL_CARS && totalCount < OWNER_MAX_TOTAL_CARS,
-    canVinClaim: totalCount < OWNER_MAX_TOTAL_CARS,
+    isPremium,
+    /** Можно добавить ещё одно авто в гараж (создание карточки или привязка по VIN). */
+    canAddManual: canAddMore,
+    canVinClaim: canAddMore,
   }
 }

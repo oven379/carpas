@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { HttpError } from '../api/http.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
+import { useDetailing } from './useDetailing.js'
 import { Button, Card, CityComboBox, ComboBox, Input, PhoneRuInput, ServiceHint } from './components.jsx'
+import { SupportButton } from './support/SupportHub.jsx'
 import {
   CITY_FIELD_DD_HINT,
   describeVinValidationError,
@@ -11,7 +13,8 @@ import {
   normDigits,
   normVin,
 } from '../lib/format.js'
-import { dedupeCarsById, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
+import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../lib/garageLimits.js'
+import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../lib/supportTicketPresets.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 
 function claimAlreadyPending(err) {
@@ -103,6 +106,7 @@ export default function OwnerVinClaimSection({
   title: titleProp,
 }) {
   const r = useRepo()
+  const { owner } = useDetailing()
   const location = useLocation()
   const navigate = useNavigate()
   const controlled = carsProp !== undefined && ownerClaimsProp !== undefined
@@ -134,7 +138,10 @@ export default function OwnerVinClaimSection({
   const cars = controlled ? carsProp : internalCars
   const ownerClaims = controlled ? ownerClaimsProp : internalClaims
 
-  const limits = useMemo(() => ownerGarageLimits(cars), [cars])
+  const limits = useMemo(
+    () => ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) }),
+    [cars, owner?.isPremium],
+  )
   const pendingClaims = useMemo(
     () => ownerClaims.filter((x) => x.status === 'pending'),
     [ownerClaims],
@@ -324,13 +331,15 @@ export default function OwnerVinClaimSection({
               <>
                 Введите полный VIN (17 символов) и нажмите «Найти». Затем подтвердите марку, год и цвет как в карточке сервиса — тогда
                 кнопка «Запросить доступ» станет активной. Если не удаётся совпасть по данным, введите номер телефона в
-                формате +7 и 10 цифр — заявка уйдёт с пометкой для проверки по телефону.
+                формате +7 и 10 цифр — заявка уйдёт с пометкой для проверки по телефону. Лимит «до {OWNER_MAX_FREE_GARAGE_CARS} авто»
+                в личном гараже не ограничивает кабинет партнёра: детейлинг может вести любое число карточек у себя.
               </>
             ) : (
               <>
                 В строке поиска укажите только VIN (17 символов). Ищем карточки партнёрских сервисов (не личный гараж). После
                 нахождения авто подтвердите год и/или город как в карточке — или укажите свой телефон (+7 и 10 цифр) для сверки у
-                сервиса.
+                сервиса. Лимит «до {OWNER_MAX_FREE_GARAGE_CARS} авто» относится только к вашему гаражу; у детейлинга в кабинете
+                партнёра ограничений на число карточек клиентов нет.
               </>
             )}
           </p>
@@ -338,7 +347,8 @@ export default function OwnerVinClaimSection({
       </div>
       {!limits.canVinClaim ? (
         <p className="muted small" style={{ marginTop: 8, marginBottom: 0 }}>
-          В гараже уже {limits.totalCount} из {OWNER_MAX_TOTAL_CARS} автомобилей — поиск авто в сервисе недоступен.
+          В гараже уже {limits.totalCount} из {OWNER_MAX_FREE_GARAGE_CARS} бесплатных мест — привязка ещё одного авто по VIN
+          недоступна. Оформите Premium через кнопку «Добавить автомобиль» ниже или в гараже.
         </p>
       ) : evidenceMode === 'full' ? (
         <p className="muted small" style={{ marginTop: 8 }}>
@@ -391,9 +401,15 @@ export default function OwnerVinClaimSection({
             По этому VIN карточка в сервисе не найдена. Проверьте номер и что детейлинг уже завёл авто у себя. Можно завести
             новую карточку в гараже и вести историю самостоятельно.
           </p>
-          <Link className="btn" data-variant="primary" to={createCarHref}>
-            Добавить автомобиль
-          </Link>
+          {limits.canAddManual ? (
+            <Link className="btn" data-variant="primary" to={createCarHref}>
+              Добавить автомобиль
+            </Link>
+          ) : (
+            <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
+              Добавить автомобиль
+            </SupportButton>
+          )}
         </div>
       ) : null}
 

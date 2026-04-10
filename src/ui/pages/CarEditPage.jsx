@@ -43,13 +43,14 @@ import {
   getCustomModelsByMake,
 } from '../../lib/customDicts.js'
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
-import { OWNER_MAX_MANUAL_CARS, OWNER_MAX_TOTAL_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
-import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
+import { OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { getPathAfterCarRemovedFromScope } from '../navAfterCarRemoved.js'
+import { resolveMinMileageKmForVisitForm } from '../../lib/carMileage.js'
 
 function emptyDraft() {
   return {
@@ -101,6 +102,7 @@ export default function CarEditPage({ mode }) {
   const { owner, mode: who, loading, detailingId } = useDetailing()
   const deleteCarLock = useAsyncActionLock()
   const [car, setCar] = useState(null)
+  const [carEditEvents, setCarEditEvents] = useState([])
   const [carReady, setCarReady] = useState(mode !== 'edit')
 
   useEffect(() => {
@@ -128,7 +130,27 @@ export default function CarEditPage({ mode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- см. выше
   }, [mode, id])
 
-  const baseMileageKm = mode === 'edit' && car ? Number(car.mileageKm) || 0 : 0
+  useEffect(() => {
+    let cancelled = false
+    if (mode !== 'edit' || !id) {
+      setCarEditEvents([])
+      return undefined
+    }
+    ;(async () => {
+      try {
+        const ev = await r.listEvents(id)
+        if (!cancelled) setCarEditEvents(Array.isArray(ev) ? ev : [])
+      } catch {
+        if (!cancelled) setCarEditEvents([])
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, id, r, r._version])
+
+  const minMileageKm =
+    mode === 'edit' && car ? resolveMinMileageKmForVisitForm(car, carEditEvents, null) : 0
   const makes = useMemo(() => {
     const labels = (Array.isArray(carBrands) ? carBrands : [])
       .map((x) => String(x?.label || '').trim())
@@ -287,15 +309,18 @@ export default function CarEditPage({ mode }) {
     ;(async () => {
       try {
         const cl = await r.listCars({ ownerEmail: owner.email })
-        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits(Array.isArray(cl) ? cl : []))
+        if (!cancelled)
+          setOwnerCreateLimits(
+            ownerGarageLimits(Array.isArray(cl) ? cl : [], { isPremium: Boolean(owner?.isPremium) }),
+          )
       } catch {
-        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits([]))
+        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits([], { isPremium: Boolean(owner?.isPremium) }))
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [mode, who, owner?.email, r, r._version])
+  }, [mode, who, owner?.email, owner?.isPremium, r, r._version])
 
   if ((who === 'owner' || who === 'detailing') && loading) {
     return (
@@ -328,10 +353,7 @@ export default function CarEditPage({ mode }) {
     if (!ownerCreateLimits.canAddManual) {
       const fromParamEarly = sp.get('from') || ''
       const listReturnEarly = resolveCarListReturnPath('owner', fromParamEarly)
-      const limitDetail =
-        ownerCreateLimits.totalCount >= OWNER_MAX_TOTAL_CARS
-          ? `Сейчас в гараже не больше ${OWNER_MAX_TOTAL_CARS} автомобилей.`
-          : `Вручную можно добавить не более ${OWNER_MAX_MANUAL_CARS} авто; остальные — через привязку к сервису по VIN.`
+      const limitDetail = `В бесплатном гараже — не больше ${OWNER_MAX_FREE_GARAGE_CARS} автомобилей.`
       return (
         <div className="container">
           <div className="row spread gap" style={{ marginBottom: 12 }}>
@@ -350,20 +372,14 @@ export default function CarEditPage({ mode }) {
             </div>
           </div>
           <Card className="card pad">
-            <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '62ch' }}>
-              {limitDetail} Чтобы подключить ещё одно авто, обратитесь в поддержку — откроется форма обращения; сообщение попадёт в
-              админ-панель сервиса. Текст можно отредактировать перед отправкой.
+            <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '64ch' }}>
+              {limitDetail} Чтобы добавить третье и следующие авто, оформите Premium — откроется заявка в поддержку; в админ-панели она
+              будет помечена как запрос на Premium-аккаунт. Это ограничение только для личного гаража владельца: в кабинете детейлинга
+              партнёр может заводить неограниченное число карточек клиентов.
             </p>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <SupportButton
-                className="btn"
-                data-variant="primary"
-                openOptions={{
-                  bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
-                  contextExtra: { request_type: 'garage_limit' },
-                }}
-              >
-                Написать в поддержку
+              <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
+                Заявка на Premium
               </SupportButton>
               <Link className="btn" data-variant="ghost" to={listReturnEarly}>
                 Назад к списку
@@ -457,8 +473,10 @@ export default function CarEditPage({ mode }) {
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Пробег (км)</span>
               <ServiceHint scopeId="car-edit-mileage-hint" variant="compact" label="Справка: пробег">
-                {mode === 'edit' && baseMileageKm ? (
-                  <p className="serviceHint__panelText">Минимум {fmtInt(baseMileageKm)} км — по данным последнего визита в истории.</p>
+                {mode === 'edit' && minMileageKm ? (
+                  <p className="serviceHint__panelText">
+                    Минимум {fmtInt(minMileageKm)} км — по карточке и сохранённым визитам в истории.
+                  </p>
                 ) : (
                   <p className="serviceHint__panelText">Укажите актуальный или ближайший к реальности пробег в километрах.</p>
                 )}
@@ -477,7 +495,7 @@ export default function CarEditPage({ mode }) {
                   return { ...d, mileageKm: nextRaw }
                 })
               }
-              placeholder={mode === 'edit' && baseMileageKm ? fmtInt(baseMileageKm) : '12 000'}
+              placeholder={mode === 'edit' && minMileageKm ? fmtInt(minMileageKm) : '12 000'}
             />
           </div>
           <Field label="Цвет">
@@ -683,8 +701,8 @@ export default function CarEditPage({ mode }) {
                 }
                 if (mode === 'edit') {
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                  if (nextMileage < baseMileageKm) {
-                    alert(`Пробег не может быть меньше исходного (${fmtInt(baseMileageKm)} км).`)
+                  if (nextMileage < minMileageKm) {
+                    alert(`Пробег не может быть меньше ${fmtInt(minMileageKm)} км — по карточке и истории визитов.`)
                     return
                   }
                 }

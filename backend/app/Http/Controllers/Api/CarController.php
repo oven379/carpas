@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
+use App\Http\Support\CarMileageSync;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
@@ -162,7 +163,14 @@ class CarController extends Controller
             $car->year = VinPlateValidator::normalizeOptionalYear($data['year']);
         }
         if (array_key_exists('mileageKm', $data)) {
-            $car->mileage_km = (int) ($data['mileageKm'] ?? 0);
+            $next = (int) ($data['mileageKm'] ?? 0);
+            $floor = CarMileageSync::maxMileageAmongFinalizedEvents((int) $car->id);
+            if ($next < $floor) {
+                throw ValidationException::withMessages([
+                    'mileageKm' => ['Не меньше '.$floor.' км — по сохранённым визитам в истории.'],
+                ]);
+            }
+            $car->mileage_km = $next;
         }
         if (array_key_exists('priceRub', $data)) {
             $car->price_rub = (int) ($data['priceRub'] ?? 0);

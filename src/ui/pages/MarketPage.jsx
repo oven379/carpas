@@ -1,15 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
-import {
-  dedupeCarsById,
-  OWNER_MAX_MANUAL_CARS,
-  OWNER_MAX_TOTAL_CARS,
-  ownerGarageLimits,
-} from '../../lib/garageLimits.js'
+import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
 import { HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
-import { GARAGE_LIMIT_SUPPORT_PREFIX } from '../../lib/supportTicketPresets.js'
+import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
@@ -79,7 +74,7 @@ export default function MarketPage() {
     )
   }
 
-  const limits = ownerGarageLimits(cars)
+  const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
 
   return (
     <div className="container">
@@ -93,7 +88,8 @@ export default function MarketPage() {
               <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
                 <p className="serviceHint__panelText">
                   Здесь карточки и история по каждой машине. Профиль, баннер и витрина по ссылке <span className="mono">/g/…</span> — в
-                  разделе «Гараж» (режим «в гараже» или «на улице»). Кнопка «Добавить авто» может быть недоступна при лимите гаража.
+                  разделе «Гараж». Бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} авто в гараже; лимит не распространяется на кабинет
+                  партнёра: детейлинг может вести любое число карточек у себя.
                 </p>
               </ServiceHint>
             </div>
@@ -106,35 +102,21 @@ export default function MarketPage() {
                   + Добавить авто
                 </Link>
               ) : (
-                <span
-                  className="btn btn--asDisabled"
-                  data-variant="primary"
-                  title={
-                    limits.totalCount >= OWNER_MAX_TOTAL_CARS
-                      ? `Не больше ${OWNER_MAX_TOTAL_CARS} авто в гараже`
-                      : `Вручную не больше ${OWNER_MAX_MANUAL_CARS} авто`
-                  }
-                >
-                  + Добавить авто
-                </span>
-              )}
-            </div>
-            {!limits.canAddManual ? (
-              <p className="muted small" style={{ marginTop: 10, lineHeight: 1.55, maxWidth: '62ch' }}>
-                Лимит на добавление нового автомобиля исчерпан. Для подключения ещё одного авто обратитесь в{' '}
                 <SupportButton
                   type="button"
                   className="btn"
-                  data-variant="outline"
-                  style={{ display: 'inline-flex', verticalAlign: 'middle', margin: '0 2px' }}
-                  openOptions={{
-                    bodyPrefix: GARAGE_LIMIT_SUPPORT_PREFIX,
-                    contextExtra: { request_type: 'garage_limit' },
-                  }}
+                  data-variant="primary"
+                  title={`Уже ${OWNER_MAX_FREE_GARAGE_CARS} авто на бесплатном тарифе — заявка на Premium`}
+                  openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
                 >
-                  поддержку
+                  + Добавить авто
                 </SupportButton>
-                — тикет увидят в админ-панели.
+              )}
+            </div>
+            {!limits.canAddManual ? (
+              <p className="muted small" style={{ marginTop: 10, lineHeight: 1.55, maxWidth: '64ch' }}>
+                В личном гараже бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} автомобилей. Нажмите «+ Добавить авто», чтобы отправить
+                заявку на Premium и расширить гараж. У детейлинга в его кабинете ограничений на число карточек клиентов нет.
               </p>
             ) : null}
           </div>

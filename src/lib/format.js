@@ -453,6 +453,19 @@ export function getPhoneRuNationalDigits(raw) {
   return d.slice(0, 10)
 }
 
+/**
+ * 10 цифр для сравнения с бэкендом (cars/search-duplicate, совпадение телефонов):
+ * 8→7, срез страны 7, хвост из 10 цифр при длинной строке.
+ */
+export function comparablePhoneDigitsRu(raw) {
+  let d = String(raw ?? '').replace(/\D/g, '')
+  if (!d) return ''
+  if (d.startsWith('8')) d = `7${d.slice(1)}`
+  if (d.startsWith('7') && d.length === 11) d = d.slice(1)
+  if (d.length > 10) d = d.slice(-10)
+  return d
+}
+
 /** Отображение национальной части: «999 999 00 00» (3‑3‑2‑2), привычный вид мобильного номера РФ. */
 export function formatPhoneRuNationalDisplay(digits) {
   const d = String(digits || '').replace(/\D/g, '').slice(0, 10)

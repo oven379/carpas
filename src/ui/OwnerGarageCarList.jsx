@@ -6,16 +6,7 @@ import { fmtKm } from '../lib/format.js'
 import { dedupeCarsById } from '../lib/garageLimits.js'
 import { buildCarFromQuery, buildCarSubRoutePath } from './carNav.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
-
-function lastFinalizedEvent(evts) {
-  const list = Array.isArray(evts) ? evts.filter((e) => e && !e.isDraft) : []
-  if (!list.length) return null
-  return list.reduce((a, b) => {
-    const ta = Date.parse(a?.at || '') || 0
-    const tb = Date.parse(b?.at || '') || 0
-    return tb >= ta ? b : a
-  })
-}
+import { resolveEffectiveMileageKm } from '../lib/carMileage.js'
 
 /** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
 export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsProp, enrichedRows: enrichedFromParent }) {
@@ -94,8 +85,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
   return (
     <div className="list">
       {listRows.map(({ car: c, evts }) => {
-        const lastEvt = lastFinalizedEvent(evts)
-        const mileageKm = lastEvt != null && lastEvt.mileageKm != null && lastEvt.mileageKm !== '' ? lastEvt.mileageKm : c.mileageKm
+        const mileageKm = resolveEffectiveMileageKm(c, evts)
         const yearStr = c.year != null && c.year !== '' ? String(c.year) : '—'
         const carHref = `/car/${c.id}${fromQ}`
         const newVisitHref = buildCarSubRoutePath(c.id, 'history', fromPath, { new: '1' })
