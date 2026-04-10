@@ -2,7 +2,7 @@ import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill } from '../components.jsx'
+import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 import { displayRuPhone } from '../../lib/format.js'
@@ -215,74 +215,8 @@ export default function PublicDetailingPage() {
               {det.name || 'Детейлинг / СТО'}
             </h1>
           </div>
-          <p className="muted carPage__meta carPage__meta--emph">
-            <span className="detPublic__kind">Детейлинг</span>
-            <span className="detPublic__kindSep" aria-hidden="true">
-              {' '}
-              /{' '}
-            </span>
-            <span className="detPublic__kind">СТО</span>
-            <span aria-hidden="true"> · </span>
-            <span className="detPublic__metaCity">{det.city || '—'}</span>
-          </p>
         </div>
       </div>
-
-      {citySeo || String(det.address || '').trim() || phoneDisplay || String(det.workingHours || '').trim() ? (
-        <div className="detPublic__landingContact" style={{ marginTop: 4, marginBottom: 12 }}>
-          <p className="detPublic__landingContactLine muted" style={{ margin: 0, lineHeight: 1.55, maxWidth: '72ch' }}>
-            {[
-              citySeo ? <span key="city">{citySeo}</span> : null,
-              String(det.address || '').trim() ? (
-                <a
-                  key="addr"
-                  href={navHref || mapsHref}
-                  target={navHref ? undefined : '_blank'}
-                  rel={navHref ? undefined : 'noreferrer'}
-                  title="Открыть в навигаторе"
-                  onClick={(e) => {
-                    if (!navHref) return
-                    e.preventDefault()
-                    try {
-                      window.location.href = navHref
-                    } catch {
-                      /* ignore */
-                    }
-                    setTimeout(() => {
-                      try {
-                        window.open(mapsHref, '_blank', 'noreferrer')
-                      } catch {
-                        /* ignore */
-                      }
-                    }, 450)
-                  }}
-                >
-                  {String(det.address).trim()}
-                </a>
-              ) : null,
-              phoneDisplay ? (
-                phoneTelHref ? (
-                  <a key="tel" href={phoneTelHref} title="Позвонить">
-                    {phoneDisplay}
-                  </a>
-                ) : (
-                  <span key="tel">{phoneDisplay}</span>
-                )
-              ) : null,
-            ]
-              .filter(Boolean)
-              .flatMap((el, i) => (i === 0 ? [el] : [<span key={`sep-${i}`} aria-hidden="true"> · </span>, el]))}
-          </p>
-          {String(det.workingHours || '').trim() ? (
-            <p
-              className="detPublic__landingHours muted small"
-              style={{ margin: '10px 0 0', maxWidth: '62ch', whiteSpace: 'pre-wrap', lineHeight: 1.55 }}
-            >
-              {String(det.workingHours).trim()}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
 
       <div
         className="detHero detHero--card"
@@ -407,16 +341,16 @@ export default function PublicDetailingPage() {
           </div>
 
           <div className="topBorder">
-            <div className="row spread gap" style={{ alignItems: 'flex-start' }}>
-              <div>
-                <div className="cardTitle" style={{ marginBottom: 0 }}>
-                  Фото работ
-                </div>
-                <div className="muted small" style={{ marginTop: 6 }}>
+            <div id="det-public-work-photos-hint" className="row gap wrap" style={{ alignItems: 'center' }}>
+              <div className="cardTitle" style={{ margin: 0 }}>
+                Фото работ
+              </div>
+              <ServiceHint scopeId="det-public-work-photos" variant="compact" label="Справка: фото работ">
+                <p className="serviceHint__panelText">
                   До 10 снимков: только визиты детейлинга, где при сохранении отмечено разрешение на публикацию, плюс фото
                   после мойки с карточки авто при том же условии (по дате работ).
-                </div>
-              </div>
+                </p>
+              </ServiceHint>
             </div>
             {workGalleryItems.length ? (
               <div className="thumbs" style={{ marginTop: 12 }}>

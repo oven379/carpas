@@ -2138,33 +2138,6 @@ summary.carPage__recsSelect::-webkit-details-marker {
   content: ':';
 }
 
-/* Публичный лендинг: акцент на тип сервиса в строке под заголовком */
-.detPublic__kind {
-  color: var(--accent);
-  font-weight: 650;
-}
-
-.detPublic__kindSep {
-  color: color-mix(in oklab, var(--text) 80%, var(--text-h));
-  font-weight: 500;
-}
-
-.detPublic__metaCity {
-  color: var(--text);
-  font-weight: inherit;
-}
-
-/* Лендинг: город · адрес · телефон и режим работы сразу под заголовком */
-.detPublic__landingContactLine a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.detPublic__landingContactLine a:hover {
-  color: var(--accent);
-}
-
 /* Публичный лендинг детейлинга: блок «Информация» + логотип справа (без ссылки — клик не перезагружает страницу) */
 .detPublicInfoCard__headRow {
   display: flex;
