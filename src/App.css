@@ -4217,6 +4217,29 @@ a.backNav {
 .garagePage__onboarding {
   margin-top: 0;
 }
+
+/* Пустой гараж: надпись и «+ Добавить авто» по центру области под блоком VIN */
+.garagePage.garagePage--emptyOnboarding .garagePage__onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.garagePage.garagePage--emptyOnboarding .garagePage__emptyCta {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-top: 0;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 44rem;
+  width: 100%;
+  min-height: min(58dvh, 560px);
+  padding: 16px 0 32px;
+  box-sizing: border-box;
+  text-align: center;
+}
 .garagePage__listSection {
   margin-top: 16px;
 }
@@ -4232,6 +4255,8 @@ a.backNav {
   font-size: clamp(1rem, 2.4vw, 1.12rem);
   line-height: 1.55;
   color: color-mix(in oklab, var(--text-m) 92%, var(--text-h));
+  text-align: center;
+  max-width: 36ch;
 }
 .garagePage__emptyCtaBtnWrap {
   display: flex;

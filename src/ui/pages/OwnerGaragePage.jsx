@@ -410,7 +410,10 @@ export default function OwnerGaragePage() {
   )
 
   return (
-    <div className="container garagePage" data-carpas-garage-ui="1.0.3">
+    <div
+      className={`container garagePage${cars.length ? '' : ' garagePage--emptyOnboarding'}`}
+      data-carpas-garage-ui="1.0.3"
+    >
       {showSetupBanner ? (
         <Card className="card pad detPublicSetupBanner" style={{ marginBottom: 12 }}>
           <div className="row spread gap wrap" style={{ alignItems: 'center' }}>
