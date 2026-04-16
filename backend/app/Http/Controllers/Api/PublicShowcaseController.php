@@ -136,11 +136,33 @@ class PublicShowcaseController extends Controller
         return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
     }
 
+    /** Владелец гаража (личный «тень»-детейлинг) может открыть /d/:id со своим токеном; для остальных — 404. */
+    private function ownerFromBearerForPublicShowcase(Request $request): ?Owner
+    {
+        $raw = $request->bearerToken();
+        if (! is_string($raw) || trim($raw) === '') {
+            return null;
+        }
+        $pat = PersonalAccessToken::findToken($raw);
+        if (! $pat || ! $pat->tokenable instanceof Owner) {
+            return null;
+        }
+
+        return $pat->tokenable;
+    }
+
     public function detailing(Request $request, $id)
     {
-        $d = Detailing::query()
-            ->where('is_personal', false)
-            ->findOrFail($id);
+        $d = Detailing::query()->find($id);
+        if (! $d) {
+            abort(404);
+        }
+        if ($d->is_personal) {
+            $owner = $this->ownerFromBearerForPublicShowcase($request);
+            if (! $owner || (int) $d->owner_id !== (int) $owner->id) {
+                abort(404);
+            }
+        }
 
         $cars = Car::query()->where('detailing_id', $d->id)->get();
         $best = [];

@@ -115,6 +115,7 @@ export default function OwnerAuthPage() {
 
   function setRegisterMode(next) {
     setAuthMode(next ? 'register' : 'login')
+    if (!next) setAgreedToTerms(false)
     const nextParams = new URLSearchParams(spQuery)
     if (next) {
       nextParams.set('register', '1')
@@ -126,7 +127,6 @@ export default function OwnerAuthPage() {
   }
 
   async function onEnterGarage() {
-    if (!requireConsent()) return
     const creds = requireEmailPassword()
     if (!creds) return
     const { em, pwd } = creds
@@ -293,9 +293,9 @@ export default function OwnerAuthPage() {
                       autoComplete="tel"
                     />
                   </div>
+                  <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
                 </>
               ) : null}
-              <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
               {authMode === 'register' ? (
                 <p className="muted small" style={{ margin: '8px 0 0', lineHeight: 1.45, maxWidth: '52ch' }}>
                   После регистрации откроются настройки гаража: сначала настройте публичную страницу (контакты и ссылка для гостей).

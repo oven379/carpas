@@ -125,7 +125,11 @@ export default function CarPage() {
               ? r.listClaimsForDetailing()
               : Promise.resolve([])
         const [[cr, d, ev], claimsRaw] = await Promise.all([
-          Promise.all([r.getCar(id), r.listDocs(id), r.listEvents(id)]),
+          Promise.all([
+            r.getCar(id),
+            r.listDocs(id),
+            r.listEvents(id, mode === 'owner' ? { scope: 'owner' } : {}),
+          ]),
           claimsP,
         ])
         if (cancelled) return

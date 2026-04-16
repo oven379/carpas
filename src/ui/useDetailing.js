@@ -152,7 +152,7 @@ export function DetailingSessionProvider({ children }) {
     const sid = getSessionDetailingId()
     const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
     return { detailingId: sid, detailing, owner, mode, loading, applyDetailingSnapshot }
-  }, [detailing, owner, loading, applyDetailingSnapshot])
+  }, [detailing, owner, loading, applyDetailingSnapshot, sessionEpoch])
 
   return createElement(DetailingSessionContext.Provider, { value }, children)
 }

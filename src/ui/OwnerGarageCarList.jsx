@@ -45,7 +45,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
         }
         const enriched = await Promise.all(
           list.map(async (car) => {
-            const evtsRaw = await r.listEvents(car.id)
+            const evtsRaw = await r.listEvents(car.id, { scope: 'owner' })
             const evts = Array.isArray(evtsRaw) ? evtsRaw : []
             return { car, evts }
           }),

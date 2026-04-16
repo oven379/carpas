@@ -138,7 +138,7 @@ export default function CarEditPage({ mode }) {
     }
     ;(async () => {
       try {
-        const ev = await r.listEvents(id)
+        const ev = await r.listEvents(id, who === 'owner' ? { scope: 'owner' } : {})
         if (!cancelled) setCarEditEvents(Array.isArray(ev) ? ev : [])
       } catch {
         if (!cancelled) setCarEditEvents([])
@@ -147,7 +147,7 @@ export default function CarEditPage({ mode }) {
     return () => {
       cancelled = true
     }
-  }, [mode, id, r, r._version])
+  }, [mode, id, r, r._version, who])
 
   const minMileageKm =
     mode === 'edit' && car ? resolveMinMileageKmForVisitForm(car, carEditEvents, null) : 0

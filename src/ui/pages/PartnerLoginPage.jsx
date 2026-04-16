@@ -1,17 +1,7 @@
 import { useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
-import {
-  AuthLegalConsent,
-  BackNav,
-  Button,
-  Card,
-  Field,
-  Input,
-  PasswordInput,
-  Pill,
-  ServiceHint,
-} from '../components.jsx'
+import { BackNav, Button, Card, Field, Input, PasswordInput, Pill, ServiceHint } from '../components.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import {
   getSessionDetailingId,
@@ -31,7 +21,6 @@ export default function PartnerLoginPage() {
     currentId && detailing && String(detailing.id) === String(currentId) ? detailing : null
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [agreedToTerms, setAgreedToTerms] = useState(false)
   const detEmailRef = useRef(null)
   const detPasswordRef = useRef(null)
   const nav = useNavigate()
@@ -106,7 +95,6 @@ export default function PartnerLoginPage() {
                   placeholder="••••••••"
                 />
               </Field>
-              <AuthLegalConsent inputId="partner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
             </div>
             <AuthForgotPasswordBlock
               sendForgot={async (email) => {
@@ -119,10 +107,6 @@ export default function PartnerLoginPage() {
                 variant="primary"
                 type="button"
                 onClick={async () => {
-                  if (!agreedToTerms) {
-                    alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
-                    return
-                  }
                   const em = (email || detEmailRef.current?.value || '').trim()
                   const pwd = (password || detPasswordRef.current?.value || '').trim()
                   try {

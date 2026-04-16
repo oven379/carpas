@@ -269,7 +269,7 @@ export default function OwnerGaragePage() {
         const enriched = await Promise.all(
           cars.map(async (car) => {
             try {
-              const evtsRaw = await r.listEvents(car.id)
+              const evtsRaw = await r.listEvents(car.id, { scope: 'owner' })
               const evts = Array.isArray(evtsRaw) ? evtsRaw : []
               return { car, evts }
             } catch {
@@ -494,7 +494,7 @@ export default function OwnerGaragePage() {
           </div>
         </Card>
       ) : null}
-      {bannerSurfaceVisible ? (
+      {cars.length > 0 && bannerSurfaceVisible ? (
         <div
           className="detHero detHero--card garageHero"
           style={{ backgroundImage: resolvedBackgroundImageUrl(owner.garageBanner) }}
@@ -513,6 +513,7 @@ export default function OwnerGaragePage() {
         </div>
       ) : null}
 
+      {cars.length > 0 ? (
       <Card
         className="card pad garageProfileCard"
         style={{ marginTop: bannerSurfaceVisible ? 12 : 0, marginBottom: 16 }}
@@ -789,43 +790,88 @@ export default function OwnerGaragePage() {
               )}
             </Link>
           ) : null}
-          <div className="garageProfileCard__footerCallRow">
-            <div className="garageProfileCard__addCarBlock">
-              {limits.canAddManual ? (
-                <Link className="btn garageProfileCard__addCarBtn" data-variant="primary" to="/create">
+          {cars.length > 0 && !limits.canAddManual ? (
+            <div className="garageProfileCard__footerCallRow">
+              <div className="garageProfileCard__addCarBlock">
+                <SupportButton
+                  type="button"
+                  className="btn garageProfileCard__addCarBtn"
+                  data-variant="primary"
+                  title={addCarPremiumBtnLabel}
+                  aria-label={addCarPremiumBtnLabel}
+                  openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
+                >
                   Добавить авто
-                </Link>
-              ) : (
-                <>
+                </SupportButton>
+                <ServiceHint scopeId="owner-garage-free-limit" variant="compact" label="Справка: лимит гаража">
+                  <p className="serviceHint__panelText">
+                    Бесплатно в гараже — до {OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium — при
+                    нажатии «Добавить авто» откроется заявка в поддержку.
+                  </p>
+                </ServiceHint>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </Card>
+      ) : null}
+
+      <div className={cars.length > 0 ? 'garagePage__listSection' : 'garagePage__onboarding'}>
+        {!cars.length ? (
+          <>
+            <OwnerVinClaimSection
+              ownerEmail={ownerEmail}
+              cars={cars}
+              ownerClaims={ownerClaims}
+              sectionId="garage-vin-claim"
+            />
+            <Card className="card pad garagePage__emptyCta">
+              <p className="garagePage__emptyCtaText">
+                Добавьте свой автомобиль в гараж, чтобы начать историю Вашего автомобиля
+              </p>
+              <div className="garagePage__emptyCtaBtnWrap">
+                {limits.canAddManual ? (
+                  <Link className="btn" data-variant="primary" to="/create">
+                    + Добавить авто
+                  </Link>
+                ) : (
                   <SupportButton
                     type="button"
-                    className="btn garageProfileCard__addCarBtn"
+                    className="btn"
                     data-variant="primary"
                     title={addCarPremiumBtnLabel}
                     aria-label={addCarPremiumBtnLabel}
                     openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
                   >
-                    Добавить авто
+                    + Добавить авто
                   </SupportButton>
-                  <ServiceHint scopeId="owner-garage-free-limit" variant="compact" label="Справка: лимит гаража">
-                    <p className="serviceHint__panelText">
-                      Бесплатно в гараже — до {OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium — при
-                      нажатии «Добавить авто» откроется заявка в поддержку.
-                    </p>
-                  </ServiceHint>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </Card>
-
-      <div style={{ marginTop: 16 }}>
-        {cars.length ? (
+                )}
+              </div>
+            </Card>
+          </>
+        ) : (
           <>
-            <h2 className="h2" style={{ marginBottom: 10 }}>
-              Автомобили в гараже:
-            </h2>
+            <div className="garagePage__carListHead row spread gap wrap">
+              <h2 className="h2 garagePage__carListTitle">Автомобили в гараже: ({cars.length})</h2>
+              <div className="garagePage__carListHeadActions">
+                {limits.canAddManual ? (
+                  <Link className="btn" data-variant="primary" to="/create">
+                    + Добавить авто
+                  </Link>
+                ) : (
+                  <SupportButton
+                    type="button"
+                    className="btn"
+                    data-variant="primary"
+                    title={addCarPremiumBtnLabel}
+                    aria-label={addCarPremiumBtnLabel}
+                    openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
+                  >
+                    + Добавить авто
+                  </SupportButton>
+                )}
+              </div>
+            </div>
             <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} enrichedRows={enrichedRows} />
             <OwnerVinClaimSection
               ownerEmail={ownerEmail}
@@ -835,13 +881,6 @@ export default function OwnerGaragePage() {
               style={{ marginTop: 16 }}
             />
           </>
-        ) : (
-          <OwnerVinClaimSection
-            ownerEmail={ownerEmail}
-            cars={cars}
-            ownerClaims={ownerClaims}
-            sectionId="garage-vin-claim"
-          />
         )}
       </div>
     </div>

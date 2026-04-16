@@ -3,7 +3,9 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
-import { clearSession, hasOwnerSession } from './auth.js'
+import { clearSession, getSessionOwner, hasOwnerSession } from './auth.js'
+import DefaultAvatar from './DefaultAvatar.jsx'
+import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 import { ComboBox } from './ComboBox.jsx'
 import {
   formatPhoneRuInput,
@@ -168,7 +170,7 @@ export { ComboBox }
 export { CityComboBox } from './CityComboBox.jsx'
 export { DropdownCaretIcon } from './DropdownCaretIcon.jsx'
 
-/** Единый блок согласия с политикой и правилами на формах входа и регистрации. */
+/** Согласие с политикой и правилами — только на шагах создания аккаунта (регистрация владельца, заявка партнёра). */
 export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onChange, className = '', style }) {
   return (
     <label className={`authConsent field--full ${className}`.trim()} htmlFor={inputId} style={style}>
@@ -407,7 +409,7 @@ export function TopNav() {
   const nav = useNavigate()
   const loc = useLocation()
   const r = useRepo()
-  const { detailingId, mode, detailing } = useDetailing()
+  const { detailingId, mode, detailing, owner } = useDetailing()
   const detailingOnboarding =
     mode === 'detailing' && detailing && detailing.profileCompleted === false
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
@@ -479,6 +481,30 @@ export function TopNav() {
               <>
                 {hasOwnerSession() ? (
                   <>
+                    {mode === 'owner' ? (
+                      <Link
+                        className="nav__ownerGarageLink"
+                        to="/garage/settings"
+                        aria-label="Настройки гаража: аватар, баннер, контакты"
+                        title="Настройки гаража"
+                      >
+                        {owner?.garageAvatar ? (
+                          <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
+                        ) : (() => {
+                          const snap = owner || getSessionOwner()
+                          const s = String(snap?.name || snap?.email || '').trim()
+                          const ch = s ? s.charAt(0).toUpperCase() : ''
+                          if (ch) {
+                            return (
+                              <span className="nav__ownerGarageLetter" aria-hidden="true">
+                                {ch}
+                              </span>
+                            )
+                          }
+                          return <DefaultAvatar alt="" className="nav__ownerGarageDefaultImg" />
+                        })()}
+                      </Link>
+                    ) : null}
                     <button type="button" className="nav__action" onClick={logout}>
                       Выйти
                     </button>

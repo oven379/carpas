@@ -320,7 +320,8 @@ export default function HistoryPage() {
       prevHistoryCarIdRef.current = id
       if (idChanged) setDataReady(false)
       try {
-        const [cr, ev, dc] = await Promise.all([r.getCar(id), r.listEvents(id), r.listDocs(id)])
+        const evOpts = mode === 'owner' ? { scope: 'owner' } : {}
+        const [cr, ev, dc] = await Promise.all([r.getCar(id), r.listEvents(id, evOpts), r.listDocs(id)])
         if (cancelled) return
         setCar(cr)
         setEvents(Array.isArray(ev) ? ev.map(normalizeCarEventServices) : [])
@@ -338,7 +339,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true
     }
-  }, [id, r, r._version])
+  }, [id, mode, r, r._version])
 
   const docsForEvent = useCallback(
     (evId) => {

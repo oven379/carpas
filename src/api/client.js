@@ -165,7 +165,8 @@ export function createApiClient() {
     },
 
     async publicDetailingShowcase(id) {
-      return await req(`public/detailings/${id}`, { token: null })
+      const t = oTok() || null
+      return await req(`public/detailings/${encodeURIComponent(id)}`, { token: t })
     },
 
     async publicGarage(slug) {
@@ -302,12 +303,21 @@ export function createApiClient() {
       return await req(`cars/${id}`, { method: 'DELETE', token: dTok() })
     },
 
-    async listEvents(carId) {
+    /**
+     * @param {string|number} carId
+     * @param {{ scope?: 'owner' }} [opts] — `scope: 'owner'` для экранов гаража владельца: не дергать `/cars/…/events` без токена партнёра (иначе 401 в консоли и лишняя нагрузка).
+     */
+    async listEvents(carId, opts = {}) {
       const id = String(carId)
-      const key = oTok() ? `o:${id}` : `d:${id}`
+      const forceOwner = opts?.scope === 'owner'
+      if (forceOwner && !oTok()) {
+        return []
+      }
+      const useOwner = forceOwner || Boolean(oTok())
+      const key = useOwner ? `o:${id}` : `d:${id}`
       const existing = inflightEventsByKey.get(key)
       if (existing) return existing
-      const p = (oTok()
+      const p = (useOwner
         ? req(`owners/cars/${id}/events`, { token: oTok() })
         : req(`cars/${id}/events`, { token: dTok() })
       ).finally(() => {
