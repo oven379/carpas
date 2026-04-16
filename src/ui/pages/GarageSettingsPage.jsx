@@ -118,12 +118,12 @@ export default function GarageSettingsPage() {
           <div className="breadcrumbs">
             <Link to="/garage">Мой гараж</Link>
             <span> / </span>
-            <span>Настройки</span>
+            <span>Настройки кабинета</span>
           </div>
           <div className="row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav fallbackTo="/garage" title="Назад" />
             <h1 className="h1 garageSettings__title" style={{ margin: 0 }}>
-              Настройки гаража
+              Личный кабинет
             </h1>
           </div>
         </div>

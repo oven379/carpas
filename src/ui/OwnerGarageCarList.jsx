@@ -9,7 +9,13 @@ import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 import { resolveEffectiveMileageKm } from '../lib/carMileage.js'
 
 /** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
-export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsProp, enrichedRows: enrichedFromParent }) {
+export function OwnerGarageCarList({
+  ownerEmail,
+  fromPath = '/cars',
+  cars: carsProp,
+  enrichedRows: enrichedFromParent,
+  layout = 'list',
+}) {
   const r = useRepo()
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
@@ -82,6 +88,33 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
     )
   }
 
+  if (layout === 'grid') {
+    return (
+      <div className="garageCarGrid">
+        {listRows.map(({ car: c, evts }) => {
+          const mileageKm = resolveEffectiveMileageKm(c, evts)
+          const yearStr = c.year != null && c.year !== '' ? String(c.year) : ''
+          const carHref = `/car/${c.id}${fromQ}`
+          const cover = String(c.hero || c.washPhoto || '').trim()
+          const bgStyle = cover ? { backgroundImage: resolvedBackgroundImageUrl(cover) } : undefined
+          return (
+            <Link key={c.id} className="garageCarTile" to={carHref} aria-label={`Открыть: ${c.make} ${c.model}`}>
+              <div className="garageCarTile__media" style={bgStyle}>
+                {yearStr ? <span className="garageCarTile__year">{yearStr} г</span> : null}
+              </div>
+              <div className="garageCarTile__body">
+                <div className="garageCarTile__title">
+                  {c.make} {c.model}
+                </div>
+                <div className="garageCarTile__mileage muted small">Пробег: {fmtKm(mileageKm)}</div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <div className="list">
       {listRows.map(({ car: c, evts }) => {
@@ -89,6 +122,8 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
         const yearStr = c.year != null && c.year !== '' ? String(c.year) : '—'
         const carHref = `/car/${c.id}${fromQ}`
         const newVisitHref = buildCarSubRoutePath(c.id, 'history', fromPath, { new: '1' })
+        const cover = String(c.hero || c.washPhoto || '').trim()
+        const imgStyle = cover ? { backgroundImage: resolvedBackgroundImageUrl(cover) } : undefined
         return (
           <div key={c.id} className="rowItem">
             <Link
@@ -97,10 +132,7 @@ export function OwnerGarageCarList({ ownerEmail, fromPath = '/cars', cars: carsP
               aria-hidden="true"
               tabIndex={-1}
             >
-              <div
-                className="rowItem__img"
-                style={c.hero ? { backgroundImage: resolvedBackgroundImageUrl(c.hero) } : undefined}
-              />
+              <div className="rowItem__img" style={imgStyle} />
             </Link>
             <div className="rowItem__ownerGarageMid">
               <Link

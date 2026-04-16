@@ -21,7 +21,7 @@ export function CabinetRouteSeo() {
   else if (pathname.startsWith('/auth/partner/apply')) title = 'Регистрация партнёра · КарПас'
   else if (pathname.startsWith('/auth/partner')) title = 'Вход партнёра · КарПас'
   else if (pathname.startsWith('/cars')) title = 'Мой гараж · КарПас'
-  else if (pathname.startsWith('/garage/settings')) title = 'Настройки гаража · КарПас'
+  else if (pathname.startsWith('/garage/settings')) title = 'Личный кабинет · КарПас'
   else if (pathname.startsWith('/garage')) title = 'Мой гараж · КарПас'
   else if (pathname.startsWith('/create')) title = 'Добавить автомобиль · КарПас'
   else if (pathname.includes('/history')) title = 'История автомобиля · КарПас'

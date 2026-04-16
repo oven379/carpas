@@ -4283,6 +4283,381 @@ a.backNav {
   height: 300px;
 }
 
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Гараж с пользовательским баннером: широкая обложка, затем отступ и блок профиля как на макете */
+.garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero {
+  height: clamp(220px, 34vw, 320px);
+  border-radius: 16px;
+  box-shadow: 0 14px 48px color-mix(in oklab, #000 45%, transparent);
+}
+
+.garagePage.garagePage--hasBanner .detHero__overlay--garageOwner {
+  background: linear-gradient(
+    to top,
+    color-mix(in oklab, black 40%, transparent),
+    transparent 55%
+  );
+}
+
+.garageDash--belowBanner {
+  margin-top: 24px;
+}
+
+.garagePage--hasBanner .garageDash__name,
+.garagePage--hasBanner .garageDash__nameBtn {
+  font-size: clamp(1.32rem, 3.4vw, 1.88rem);
+  margin-bottom: 4px;
+}
+
+.garageDash__nameRow {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+/* Гараж владельца: шапка (владелец слева, сервис справа), вкладки, сетка авто */
+.garageDash.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.garageDash__hero {
+  align-items: flex-start;
+  gap: 20px 24px;
+  margin-bottom: 20px;
+}
+
+.garageDash__owner {
+  flex: 1 1 280px;
+  min-width: 0;
+  gap: 16px;
+}
+
+.garageDash__avatarLink {
+  flex: 0 0 auto;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 50%;
+}
+
+.garageDash__avatarLink:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  outline-offset: 3px;
+}
+
+.garageDash__avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--surface-2, #1c1c1e);
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+.garageDash__avatar img,
+.garageDash__avatar .defaultAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.garageDash__ownerText {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.garageDash__garageTitle {
+  color: var(--text-m);
+  font-weight: 600;
+}
+
+.garageDash__name,
+.garageDash__nameBtn {
+  margin: 0 0 6px;
+  font-size: clamp(1.25rem, 3vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-h);
+  letter-spacing: -0.02em;
+}
+
+.garageDash__nameBtn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.garageDash__nameBtn:hover {
+  color: color-mix(in oklab, var(--accent) 55%, var(--text-h));
+}
+
+.garageDash__copyHint {
+  margin: 0 0 8px;
+}
+
+.garageDash__line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 0.95rem;
+  color: var(--text-h);
+}
+
+.garageDash__line--muted {
+  color: color-mix(in oklab, var(--text-m) 88%, var(--text-h));
+}
+
+.garageDash__glyph {
+  flex: 0 0 auto;
+  opacity: 0.75;
+  color: color-mix(in oklab, var(--text-m) 70%, var(--text-h));
+}
+
+.garageDash__inlineLink {
+  text-decoration: none;
+}
+
+.garageDash__service {
+  flex: 0 1 320px;
+  min-width: min(100%, 260px);
+  text-decoration: none;
+  color: inherit;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--surface-2, #1c1c1e) 92%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.garageDash__service:hover {
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  background: color-mix(in oklab, var(--surface-2, #1c1c1e) 100%, transparent);
+}
+
+.garageDash__service:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.garageDash__service--empty {
+  border-style: dashed;
+  padding: 14px 16px;
+  line-height: 1.45;
+}
+
+.garageDash__serviceInner {
+  gap: 12px;
+}
+
+.garageDash__serviceLogo {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--surface-3, #252528);
+}
+
+.garageDash__serviceLogo img,
+.garageDash__serviceLogo .defaultAvatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.garageDash__serviceName {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.25;
+  color: var(--text-h);
+}
+
+.garageDash__tabsBar {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+  gap: 12px 16px;
+}
+
+.garageDash__tab {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: color-mix(in oklab, var(--text-m) 88%, var(--text-h));
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.garageDash__tab:hover {
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--surface-2) 55%, transparent);
+}
+
+.garageDash__tab--active {
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--surface-2) 92%, transparent);
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+}
+
+.garageDash .garageCarGrid {
+  margin-top: 18px;
+}
+
+.garageCarGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.garageCarTile {
+  display: flex;
+  flex-direction: column;
+  text-decoration: none;
+  color: inherit;
+  border-radius: 14px;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--surface-2, #1c1c1e) 94%, transparent);
+  border: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.garageCarTile:hover {
+  border-color: color-mix(in oklab, var(--accent) 38%, var(--border));
+  transform: translateY(-1px);
+}
+
+.garageCarTile:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.garageCarTile__media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  background-color: var(--surface-3, #252528);
+  background-size: cover;
+  background-position: center;
+}
+
+.garageCarTile__year {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #0d1f14;
+  background: linear-gradient(135deg, #5fd68a, #3ecf7a);
+  box-shadow: 0 1px 4px color-mix(in oklab, #000 28%, transparent);
+}
+
+.garageCarTile__body {
+  padding: 12px 14px 14px;
+}
+
+.garageCarTile__title {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: var(--text-h);
+}
+
+.garageCarTile__mileage {
+  margin-top: 6px;
+}
+
+.garageDash__visitsList {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+}
+
+.garageDash__visitItem {
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 55%, transparent);
+}
+
+.garageDash__visitItem:last-child {
+  border-bottom: none;
+}
+
+.garageDash__visitLink {
+  display: block;
+  padding: 12px 4px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.garageDash__visitLink:hover .garageDash__visitTitle {
+  color: color-mix(in oklab, var(--accent) 42%, var(--text-h));
+}
+
+.garageDash__visitTitle {
+  display: block;
+  font-weight: 650;
+  font-size: 0.98rem;
+  line-height: 1.35;
+}
+
+.garageDash__visitSub {
+  display: block;
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .garageDash__hero {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .garageDash__service {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
+  .garageDash__tabsBar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .garageDash__tabsActions {
+    width: 100%;
+  }
+
+  .garageDash__tabsActions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* Карточка-профиль гаража: «Гараж», мета; аватар и подсказка справа */
 .garageProfileCard.card {
   display: flex;
@@ -8210,6 +8585,14 @@ a.btn.carPage__recsAddVisitFull,
 
   .garagePage .detHero.detHero--card.garageHero {
     height: 240px;
+  }
+
+  .garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero {
+    height: clamp(200px, 42vw, 280px);
+  }
+
+  .garageDash--belowBanner {
+    margin-top: 18px;
   }
 
   .garageHero__bannerRow {
