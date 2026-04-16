@@ -4640,16 +4640,41 @@ a.backNav {
 
   .garageDash__hero {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-end;
     gap: 12px;
     margin-bottom: 12px;
   }
 
   .garageDash__owner {
     gap: 12px;
+    align-self: flex-end;
+    justify-content: flex-end;
+    max-width: 100%;
   }
 
-  .garageDash__copyHint {
+  .garageDash__ownerText {
+    text-align: right;
+  }
+
+  .garageDash__ownerText .row.gap.wrap {
+    justify-content: flex-end;
+  }
+
+  .garageDash__ownerText .garageDash__nameBtn {
+    margin-left: auto;
+    text-align: right;
+  }
+
+  .garageDash__ownerText .garageDash__name {
+    text-align: right;
+  }
+
+  .garageDash__ownerText .garageDash__line {
+    justify-content: flex-end;
+  }
+
+  .garageDash__ownerText .garageDash__copyHint {
+    text-align: right;
     margin-bottom: 4px;
   }
 
@@ -4668,13 +4693,21 @@ a.backNav {
     margin-top: 12px;
   }
 
+  /* Сервис на всю ширину под блоком владельца */
   .garageDash__service {
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     flex: 1 1 auto;
-    max-width: none;
     padding: 9px 11px;
   }
 
   .garageDash__service--empty {
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 10px 11px;
   }
 
