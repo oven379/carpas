@@ -4640,41 +4640,19 @@ a.backNav {
 
   .garageDash__hero {
     flex-direction: column;
-    align-items: flex-end;
+    align-items: stretch;
     gap: 12px;
     margin-bottom: 12px;
   }
 
   .garageDash__owner {
     gap: 12px;
-    align-self: flex-end;
-    justify-content: flex-end;
+    align-self: stretch;
+    justify-content: flex-start;
     max-width: 100%;
   }
 
-  .garageDash__ownerText {
-    text-align: right;
-  }
-
-  .garageDash__ownerText .row.gap.wrap {
-    justify-content: flex-end;
-  }
-
-  .garageDash__ownerText .garageDash__nameBtn {
-    margin-left: auto;
-    text-align: right;
-  }
-
-  .garageDash__ownerText .garageDash__name {
-    text-align: right;
-  }
-
-  .garageDash__ownerText .garageDash__line {
-    justify-content: flex-end;
-  }
-
-  .garageDash__ownerText .garageDash__copyHint {
-    text-align: right;
+  .garageDash__copyHint {
     margin-bottom: 4px;
   }
 
