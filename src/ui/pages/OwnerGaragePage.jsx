@@ -272,7 +272,7 @@ export default function OwnerGaragePage() {
     `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
   const { display: phoneDisplay } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
-  const { display: servicePhoneDisplay, telHref: servicePhoneTelHref } = displayRuPhone(primaryServicePhone)
+  const { display: servicePhoneDisplay } = displayRuPhone(primaryServicePhone)
   const serviceWebsiteHref = primaryDetailingFromCars?.website
     ? normalizeHttpUrl(primaryDetailingFromCars.website)
     : ''
@@ -450,27 +450,11 @@ export default function OwnerGaragePage() {
                       {primaryDetailingFromCars.name || 'Сервис'}
                     </div>
                     {servicePhoneDisplay ? (
-                      <div className="garageDash__line garageDash__line--muted small">
-                        <GarageDashPhoneIcon />
-                        {servicePhoneTelHref ? (
-                          <a className="link" href={servicePhoneTelHref}>
-                            {servicePhoneDisplay}
-                          </a>
-                        ) : (
-                          <span>{servicePhoneDisplay}</span>
-                        )}
-                      </div>
+                      <p className="muted small garageDash__serviceMeta">{servicePhoneDisplay}</p>
                     ) : serviceWebsiteHref ? (
-                      <a
-                        className="link muted small garageDash__serviceSite"
-                        href={serviceWebsiteHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Сайт сервиса
-                      </a>
+                      <span className="muted small garageDash__serviceMeta">Сайт сервиса</span>
                     ) : (
-                      <span className="muted small">Публичная страница сервиса</span>
+                      <span className="muted small garageDash__serviceMeta">Публичная страница сервиса</span>
                     )}
                   </div>
                 </div>
