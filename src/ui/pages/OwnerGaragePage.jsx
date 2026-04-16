@@ -14,9 +14,9 @@ import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
-import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
+import { normalizeCarEventServices } from '../../lib/serviceCatalogs.js'
 
-/** Одна строка визита для блока гаража (список + карточка). */
+/** Одна строка визита для вкладки «Мои визиты» на странице гаража. */
 function buildGarageVisitRow(carRow, evtRaw) {
   if (!carRow || !evtRaw || evtRaw.isDraft) return null
   const e = normalizeCarEventServices(evtRaw)
@@ -26,33 +26,20 @@ function buildGarageVisitRow(carRow, evtRaw) {
     .join(' ')
     .trim()
   const titleTrim = String(e.title || '').trim()
-  const linkLabel =
+  const headlineName =
     e.source === 'owner'
       ? titleTrim || 'Визит'
       : titleTrim || String(e.detailingName || '').trim() || 'Сервис'
-  const headlineName = linkLabel
-  const lastEvtMs = (Array.isArray(e.maintenanceServices) ? e.maintenanceServices : []).filter(Boolean)
-  const { wash: lastEvtWash, other: lastEvtDet } = splitWashDetailingServices(e.services)
-  const lastEvtWashF = lastEvtWash.filter(Boolean)
-  const lastEvtDetF = lastEvtDet.filter(Boolean)
-  const lastEvtNote = String(e.note || '').trim()
   const sortTs = Date.parse(e.at || '') || 0
   return {
     key: `${carId}:${e.id}`,
     carId,
     carDisplayName,
     eventId: e.id,
-    linkLabel,
     headlineName,
     at: e.at || '',
     mileageKm: e.mileageKm,
-    maintenanceServices: lastEvtMs,
-    wash: lastEvtWashF,
-    det: lastEvtDetF,
-    note: lastEvtNote,
     sortTs,
-    source: e.source === 'service' ? 'service' : 'owner',
-    careTips: e.careTips,
   }
 }
 
@@ -106,7 +93,7 @@ export default function OwnerGaragePage() {
 
   const [cars, setCars] = useState([])
   const [ownerClaims, setOwnerClaims] = useState([])
-  /** События по авто — одна загрузка на страницу (и список, и «Последний визит»), без второго раунда listEvents */
+  /** События по авто — одна загрузка на страницу (вкладка визитов и сетка), без второго listEvents */
   const [enrichedRows, setEnrichedRows] = useState(null)
   const [copyHint, setCopyHint] = useState('')
   const [garageMainTab, setGarageMainTab] = useState('cars')
