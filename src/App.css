@@ -4334,16 +4334,24 @@ a.backNav {
   gap: 0;
 }
 
-.garageDash__hero {
+/* Перекрываем .row { align-items: center } — аватар и текст сверху слева */
+.garageDash__hero.row {
   align-items: flex-start;
-  gap: 20px 24px;
+}
+
+.garageDash__hero {
+  gap: 14px 16px;
   margin-bottom: 20px;
+}
+
+.garageDash__owner.row {
+  align-items: flex-start;
 }
 
 .garageDash__owner {
   flex: 1 1 280px;
   min-width: 0;
-  gap: 16px;
+  gap: 10px;
 }
 
 .garageDash__avatarLink {
@@ -4434,8 +4442,14 @@ a.backNav {
   color: color-mix(in oklab, var(--text-m) 70%, var(--text-h));
 }
 
-.garageDash__inlineLink {
-  text-decoration: none;
+.garageDash__phoneValue {
+  font-weight: 600;
+  min-width: 0;
+  color: inherit;
+}
+
+.garageDash__serviceInner.row {
+  align-items: flex-start;
 }
 
 .garageDash__service {
@@ -4467,7 +4481,7 @@ a.backNav {
 }
 
 .garageDash__serviceInner {
-  gap: 12px;
+  gap: 10px;
 }
 
 .garageDash__serviceLogo {
@@ -4641,12 +4655,13 @@ a.backNav {
   .garageDash__hero {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 12px;
   }
 
   .garageDash__owner {
-    gap: 12px;
+    flex: 0 1 auto;
+    gap: 8px;
     align-self: stretch;
     justify-content: flex-start;
     max-width: 100%;
@@ -4690,7 +4705,7 @@ a.backNav {
   }
 
   .garageDash__serviceInner {
-    gap: 10px;
+    gap: 8px;
   }
 
   .garageDash__tabsActions {

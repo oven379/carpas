@@ -270,7 +270,7 @@ export default function OwnerGaragePage() {
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel =
     `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
-  const { display: phoneDisplay, telHref: ownerPhoneTelHref } = displayRuPhone(owner?.phone)
+  const { display: phoneDisplay } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
   const { display: servicePhoneDisplay, telHref: servicePhoneTelHref } = displayRuPhone(primaryServicePhone)
   const serviceWebsiteHref = primaryDetailingFromCars?.website
@@ -420,13 +420,7 @@ export default function OwnerGaragePage() {
                 {phoneDisplay ? (
                   <div className="garageDash__line">
                     <GarageDashPhoneIcon />
-                    {ownerPhoneTelHref ? (
-                      <a className="link garageDash__inlineLink" href={ownerPhoneTelHref}>
-                        {phoneDisplay}
-                      </a>
-                    ) : (
-                      <span>{phoneDisplay}</span>
-                    )}
+                    <span className="garageDash__phoneValue">{phoneDisplay}</span>
                   </div>
                 ) : (
                   <p className="muted small garageDash__line" style={{ marginTop: 4 }}>
