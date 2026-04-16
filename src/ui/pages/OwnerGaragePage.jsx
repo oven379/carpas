@@ -25,46 +25,6 @@ import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
 
-function pickBestDetailingId(cars, ownerClaims) {
-  const score = new Map()
-  for (const c of cars || []) {
-    const id = String(c.detailingId || '').trim()
-    if (!id) continue
-    score.set(id, (score.get(id) || 0) + 1)
-  }
-  if (score.size === 0 && Array.isArray(ownerClaims)) {
-    for (const cl of ownerClaims) {
-      const id = String(cl.detailingId || '').trim()
-      if (!id) continue
-      score.set(id, (score.get(id) || 0) + 1)
-    }
-  }
-  let bestId = ''
-  let bestN = 0
-  for (const [id, n] of score) {
-    if (n > bestN) {
-      bestN = n
-      bestId = id
-    }
-  }
-  return bestId
-}
-
-/** Данные сервиса для аватара в гараже: из списка авто, без /public/detailings (там только не «личные» кабинеты). */
-function linkedDetailingFromCars(bestId, cars) {
-  const id = String(bestId || '').trim()
-  if (!id) return null
-  for (const c of cars || []) {
-    if (String(c?.detailingId || '').trim() !== id) continue
-    return {
-      id,
-      name: String(c.detailingName || '').trim(),
-      logo: String(c.detailingLogo || '').trim(),
-    }
-  }
-  return { id, name: '', logo: '' }
-}
-
 function GarageLastVisitMetaRow({ visit }) {
   const showAt = Boolean(visit.at)
   const showKm = visit.mileageKm != null && visit.mileageKm !== ''
@@ -286,12 +246,6 @@ export default function OwnerGaragePage() {
       cancelled = true
     }
   }, [ownerEmail, cars, r, r._version])
-
-  const bestDetailingId = useMemo(() => pickBestDetailingId(cars, ownerClaims), [cars, ownerClaims])
-  const linkedDetailing = useMemo(
-    () => (bestDetailingId ? linkedDetailingFromCars(bestDetailingId, cars) : null),
-    [bestDetailingId, cars],
-  )
 
   const garageLastVisitLoading = !carsClaimsLoading && cars.length > 0 && enrichedRows === null
 
@@ -771,26 +725,8 @@ export default function OwnerGaragePage() {
             </div>
           </div>
         </div>
-        <div className="garageProfileCard__footer">
-          {linkedDetailing ? (
-            <Link
-              className="garageProfileCard__detAvatar"
-              to={`/d/${encodeURIComponent(String(linkedDetailing.id))}`}
-              title={String(linkedDetailing.name || '').trim() || 'Страница сервиса'}
-              aria-label={
-                String(linkedDetailing.name || '').trim()
-                  ? `Публичная страница сервиса: ${String(linkedDetailing.name).trim()}`
-                  : 'Публичная страница сервиса'
-              }
-            >
-              {linkedDetailing.logo ? (
-                <img alt="" src={resolvePublicMediaUrl(linkedDetailing.logo)} />
-              ) : (
-                <DefaultAvatar alt="" />
-              )}
-            </Link>
-          ) : null}
-          {cars.length > 0 && !limits.canAddManual ? (
+        {cars.length > 0 && !limits.canAddManual ? (
+          <div className="garageProfileCard__footer">
             <div className="garageProfileCard__footerCallRow">
               <div className="garageProfileCard__addCarBlock">
                 <SupportButton
@@ -811,8 +747,8 @@ export default function OwnerGaragePage() {
                 </ServiceHint>
               </div>
             </div>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </Card>
       ) : null}
 
