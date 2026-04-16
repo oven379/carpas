@@ -81,7 +81,7 @@ class DetailingAuthController extends Controller
             ->where('is_personal', false)
             ->first();
         if (!$d) {
-            return response()->json(['ok' => false, 'reason' => 'not_found'], 404);
+            return response()->json(['ok' => false, 'reason' => 'not_found'], 422);
         }
         if (!Hash::check($data['password'], $d->password)) {
             return response()->json(['ok' => false, 'reason' => 'bad_password'], 401);

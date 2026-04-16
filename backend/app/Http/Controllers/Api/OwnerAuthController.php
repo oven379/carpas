@@ -91,7 +91,8 @@ class OwnerAuthController extends Controller
         $email = mb_strtolower(trim($data['email']));
         $owner = Owner::query()->where('email', $email)->first();
         if (!$owner) {
-            return response()->json(['ok' => false, 'reason' => 'not_found'], 404);
+            // 422, не 404: иначе в DevTools выглядит как «нет маршрута /api/owners/login».
+            return response()->json(['ok' => false, 'reason' => 'not_found'], 422);
         }
         if (!Hash::check($data['password'], $owner->password)) {
             return response()->json(['ok' => false, 'reason' => 'bad_password'], 401);

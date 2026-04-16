@@ -71,6 +71,17 @@ class OwnerAuthTest extends FeatureTestCase
         $this->assertSame($text, Owner::query()->find($o->id)->garage_visit_self_advice);
     }
 
+    public function test_login_returns_422_when_email_unknown(): void
+    {
+        $this->postJson('/api/owners/login', [
+            'email' => 'no-such-owner@example.test',
+            'password' => 'whatever',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('ok', false)
+            ->assertJsonPath('reason', 'not_found');
+    }
+
     public function test_register_rejects_duplicate_email_with_422(): void
     {
         Owner::query()->create([

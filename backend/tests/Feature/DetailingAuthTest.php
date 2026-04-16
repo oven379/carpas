@@ -77,12 +77,14 @@ class DetailingAuthTest extends FeatureTestCase
         $this->assertNotEmpty($response->json('token'));
     }
 
-    public function test_login_returns_404_when_email_unknown(): void
+    public function test_login_returns_422_when_email_unknown(): void
     {
         $this->postJson('/api/detailings/login', [
             'email' => 'nobody@example.test',
             'password' => 'x',
-        ])->assertNotFound()->assertJsonPath('reason', 'not_found');
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('reason', 'not_found');
     }
 
     public function test_login_returns_401_for_wrong_password(): void

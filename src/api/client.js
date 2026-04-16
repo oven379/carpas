@@ -100,7 +100,7 @@ async function req(path, { method = 'GET', body, token, query } = {}) {
   }
 }
 
-/** Логин: API отвечает 401/404 с JSON { ok, reason } — возвращаем тело, чтобы UI не считал это «ошибкой сети». */
+/** Логин: API отвечает 401/422 (раньше 404) с JSON { ok, reason } — возвращаем тело, чтобы UI не считал это «ошибкой сети». */
 async function authLoginReq(path, body) {
   try {
     return await req(path, { method: 'POST', body, token: null })

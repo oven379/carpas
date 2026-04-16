@@ -825,7 +825,7 @@ export default function OwnerGaragePage() {
               ownerClaims={ownerClaims}
               sectionId="garage-vin-claim"
             />
-            <Card className="card pad garagePage__emptyCta">
+            <div className="garagePage__emptyCta">
               <p className="garagePage__emptyCtaText">
                 Добавьте свой автомобиль в гараж, чтобы начать историю Вашего автомобиля
               </p>
@@ -847,7 +847,7 @@ export default function OwnerGaragePage() {
                   </SupportButton>
                 )}
               </div>
-            </Card>
+            </div>
           </>
         ) : (
           <>
