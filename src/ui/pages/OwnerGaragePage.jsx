@@ -284,7 +284,7 @@ export default function OwnerGaragePage() {
       className={`container garagePage${cars.length ? '' : ' garagePage--emptyOnboarding'}${
         hasGarageBanner ? ' garagePage--hasBanner' : ''
       }`}
-      data-carpas-garage-ui="1.0.4"
+      data-carpas-garage-ui={__APP_VERSION__}
     >
       {showSetupBanner ? (
         <Card className="card pad detPublicSetupBanner" style={{ marginBottom: 12 }}>

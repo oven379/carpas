@@ -4633,19 +4633,53 @@ a.backNav {
 }
 
 @media (max-width: 720px) {
+  /* Гараж: меньше «воздуха» у краёв карточки и между блоками (мобилка) */
+  .garagePage .garageDash.pad {
+    padding: 12px 12px;
+  }
+
   .garageDash__hero {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    margin-bottom: 12px;
   }
 
-  .garageDash__service {
-    flex: 1 1 auto;
-    max-width: none;
+  .garageDash__owner {
+    gap: 12px;
+  }
+
+  .garageDash__copyHint {
+    margin-bottom: 4px;
+  }
+
+  .garageDash__line {
+    margin-top: 4px;
   }
 
   .garageDash__tabsBar {
     flex-direction: column;
     align-items: stretch;
+    padding-top: 10px;
+    margin-top: 0;
+  }
+
+  .garageDash .garageCarGrid {
+    margin-top: 12px;
+  }
+
+  .garageDash__service {
+    flex: 1 1 auto;
+    max-width: none;
+    padding: 9px 11px;
+  }
+
+  .garageDash__service--empty {
+    padding: 10px 11px;
+  }
+
+  .garageDash__serviceInner {
+    gap: 10px;
   }
 
   .garageDash__tabsActions {
@@ -4655,6 +4689,10 @@ a.backNav {
   .garageDash__tabsActions .btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .garageDash__visitLink {
+    padding: 10px 2px;
   }
 }
 
@@ -8353,6 +8391,10 @@ a.btn.carPage__recsAddVisitFull,
     padding: 18px 16px;
   }
 
+  .garagePage .garageDash.pad {
+    padding: 14px 12px;
+  }
+
   .h1 {
     font-size: 26px;
     letter-spacing: -0.6px;
@@ -8900,6 +8942,10 @@ a.btn.carPage__recsAddVisitFull,
 
   .pad {
     padding: 14px 12px;
+  }
+
+  .garagePage .garageDash.pad {
+    padding: 10px 10px;
   }
 
   .btn,
