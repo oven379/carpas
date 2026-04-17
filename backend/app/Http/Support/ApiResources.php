@@ -10,10 +10,34 @@ use App\Models\Owner;
 
 class ApiResources
 {
+    /**
+     * Файл на диске перезаписыется по тому же пути (cover.jpg) — без параметра браузер показывает старый кэш.
+     *
+     * @param  \DateTimeInterface|string|int|null  $updatedAt
+     */
+    private static function storageMediaUrlWithVersion(string $url, $updatedAt): string
+    {
+        if ($url === '' || $updatedAt === null) {
+            return $url;
+        }
+        if (MediaStorage::isDataUri($url)) {
+            return $url;
+        }
+        $path = parse_url($url, PHP_URL_PATH);
+        if (! is_string($path) || $path === '' || ! str_contains($path, '/storage/')) {
+            return $url;
+        }
+        $ts = $updatedAt instanceof \DateTimeInterface ? $updatedAt->getTimestamp() : (int) $updatedAt;
+        $sep = str_contains($url, '?') ? '&' : '?';
+
+        return $url.$sep.'v='.$ts;
+    }
+
     public static function detailing(Detailing $d): array
     {
         $det = is_array($d->services_offered) ? $d->services_offered : [];
         $maint = is_array($d->maintenance_services_offered) ? $d->maintenance_services_offered : [];
+        $bust = $d->updated_at;
 
         return [
             'id' => (string) $d->id,
@@ -28,8 +52,8 @@ class ApiResources
             'website' => $d->website ?? '',
             'telegram' => $d->telegram ?? '',
             'instagram' => $d->instagram ?? '',
-            'logo' => MediaStorage::publicUrl($d->logo ?? null),
-            'cover' => MediaStorage::publicUrl($d->cover ?? null),
+            'logo' => self::storageMediaUrlWithVersion(MediaStorage::publicUrl($d->logo ?? null), $bust),
+            'cover' => self::storageMediaUrlWithVersion(MediaStorage::publicUrl($d->cover ?? null), $bust),
             'servicesOffered' => array_values(array_merge($det, $maint)),
             'detailingServicesOffered' => $det,
             'maintenanceServicesOffered' => $maint,

@@ -41,6 +41,14 @@ import {
 } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
+/** Локальное превью до сохранения: не подменять значением с сервера при фоновом GET /me. */
+function isPendingLocalMediaDraft(s) {
+  const v = String(s || '').trim()
+  if (!v) return false
+  const low = v.toLowerCase()
+  return low.startsWith('data:') || low.startsWith('blob:')
+}
+
 function ServiceGroupSelectAllCheckbox({ items, selectedList, onToggleGroup, groupLabel }) {
   const selectedCount = items.filter((x) => selectedList.includes(x)).length
   const all = items.length > 0 && selectedCount === items.length
@@ -120,8 +128,8 @@ export default function DetailingSettingsPage() {
     const logo = detailing.logo || ''
     const cover = detailing.cover || ''
     setDraft((d) => {
-      const nextLogo = typeof d.logo === 'string' && d.logo.startsWith('data:') ? d.logo : logo
-      const nextCover = typeof d.cover === 'string' && d.cover.startsWith('data:') ? d.cover : cover
+      const nextLogo = isPendingLocalMediaDraft(d.logo) ? d.logo : logo
+      const nextCover = isPendingLocalMediaDraft(d.cover) ? d.cover : cover
       if (d.logo === nextLogo && d.cover === nextCover) return d
       return { ...d, logo: nextLogo, cover: nextCover }
     })

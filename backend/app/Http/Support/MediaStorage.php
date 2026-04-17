@@ -213,11 +213,26 @@ final class MediaStorage
      */
     public static function decodeDataUri(string $dataUri): ?array
     {
-        if (! preg_match('#^data:([^;]+);base64,(.+)$#s', $dataUri, $m)) {
+        if ($dataUri === '') {
             return null;
         }
-        $mime = strtolower(trim(explode(';', $m[1])[0]));
-        $raw = base64_decode($m[2], true);
+        // Линейный разбор вместо preg на весь data:… — длинные base64 не упираются в лимиты PCRE.
+        if (stripos($dataUri, 'data:') !== 0) {
+            return null;
+        }
+        $needle = ';base64,';
+        $pos = stripos($dataUri, $needle);
+        if ($pos === false) {
+            return null;
+        }
+        $meta = substr($dataUri, strlen('data:'), $pos - strlen('data:'));
+        $mime = strtolower(trim(explode(';', $meta)[0]));
+        $b64 = substr($dataUri, $pos + strlen($needle));
+        $b64 = preg_replace('/\s+/', '', $b64) ?? '';
+        if ($b64 === '') {
+            return null;
+        }
+        $raw = base64_decode($b64, true);
         if ($raw === false) {
             return null;
         }
