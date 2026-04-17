@@ -219,7 +219,7 @@ export default function PublicDetailingPage() {
       </div>
 
       <div
-        className="detHero detHero--card detHero--publicDetailing"
+        className="detHero detHero--card detHero--publicDetailing detHero--detailingHero"
         style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
@@ -229,7 +229,6 @@ export default function PublicDetailingPage() {
                 kind="car"
                 variant="overlay"
                 value={carsCount}
-                label="на обслуживании"
                 title={`${carsCount} ${carsCount === 1 ? 'автомобиль' : carsCount < 5 ? 'автомобиля' : 'автомобилей'} на обслуживании`}
               />
             </div>

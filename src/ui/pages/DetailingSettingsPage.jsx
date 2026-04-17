@@ -243,7 +243,7 @@ export default function DetailingSettingsPage() {
           Предпросмотр лендинга (как увидят клиенты)
         </div>
         <div
-          className="detHero detHero--card"
+          className="detHero detHero--card detHero--detailingHero"
           style={previewCoverBg ? { backgroundImage: previewCoverBg } : undefined}
         >
           <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
@@ -262,7 +262,6 @@ export default function DetailingSettingsPage() {
                   kind="car"
                   variant="overlay"
                   value={carsCount}
-                  label="на обслуживании"
                   title={`${carsCount} автомобилей на обслуживании`}
                 />
               </div>

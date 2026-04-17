@@ -277,6 +277,7 @@ export function HeroCoverStat({
     'heroCoverStat',
     variant === 'card' ? 'heroCoverStat--card' : 'heroCoverStat--overlay',
     layout === 'inline' ? 'heroCoverStat--inline' : '',
+    !labelStr ? 'heroCoverStat--noLabel' : '',
     to ? 'heroCoverStat--link' : '',
     to && linkDisabled ? 'heroCoverStat--inactive' : '',
     className,
