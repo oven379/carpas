@@ -15,5 +15,11 @@ class TrimStrings extends Middleware
         'current_password',
         'password',
         'password_confirmation',
+        // data:… / длинные URL медиа — только пробелы по краям уже не критичны, обрезка не должна трогать тело
+        'cover',
+        'logo',
+        'garageBanner',
+        'garageAvatar',
+        'hero',
     ];
 }

@@ -114,6 +114,20 @@ export default function DetailingSettingsPage() {
     })
   }, [detailingHydrateId]) // eslint-disable-line react-hooks/exhaustive-deps -- только id: иначе любой refetch /me затирает форму
 
+  /** Логотип/обложка с API после PATCH или фонового GET /me — не затираем несохранённый data: из превью загрузки. */
+  useEffect(() => {
+    if (!detailing) return
+    const logo = detailing.logo || ''
+    const cover = detailing.cover || ''
+    setDraft((d) => {
+      const nextLogo = typeof d.logo === 'string' && d.logo.startsWith('data:') ? d.logo : logo
+      const nextCover = typeof d.cover === 'string' && d.cover.startsWith('data:') ? d.cover : cover
+      if (d.logo === nextLogo && d.cover === nextCover) return d
+      return { ...d, logo: nextLogo, cover: nextCover }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- достаточно id и строк URL; весь `detailing` лишние циклы
+  }, [detailingHydrateId, detailing?.cover, detailing?.logo])
+
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -610,7 +624,7 @@ export default function DetailingSettingsPage() {
           Кнопка «Сохранить» ниже сохраняет только профиль кабинета. Пароль партнёра меняется отдельно — в блоке выше.
         </p>
 
-        <div className="row gap topBorder">
+        <div className="row gap wrap topBorder historyFormActions">
           <Button
             className="btn"
             variant="primary"
@@ -644,7 +658,15 @@ export default function DetailingSettingsPage() {
               }
               try {
                 const res = await r.updateDetailingMe({ ...draft, profileCompleted: true })
-                if (res?.detailing) applyDetailingSnapshot(res.detailing)
+                if (res?.detailing) {
+                  applyDetailingSnapshot(res.detailing)
+                  const next = res.detailing
+                  setDraft((d) => ({
+                    ...d,
+                    logo: next.logo || '',
+                    cover: next.cover || '',
+                  }))
+                }
                 refreshAllClientData()
                 nav('/detailing', { replace: true })
               } catch (e) {

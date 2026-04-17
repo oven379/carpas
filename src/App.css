@@ -7338,6 +7338,30 @@ a.thumbCard__fileDoc {
   margin-top: 10px;
 }
 
+/* Веб (не мобильная вёрстка): кнопки действий у правого края контейнера */
+@media (min-width: 769px) {
+  .historyFormActions.row {
+    justify-content: flex-end;
+  }
+
+  .authFormActions.row:not(.authFormActions--dual) {
+    justify-content: flex-end;
+  }
+
+  .authFormActions.row:not(.authFormActions--dual) .authOwner__submitGarage {
+    width: auto;
+  }
+
+  /* Карточка авто: подсказка слева, кнопки справа (в DOM кнопки идут первыми) */
+  .carEditFormActions.row.spread {
+    justify-content: flex-start;
+  }
+
+  .carEditFormActions .carEditFormActions__buttons {
+    margin-left: auto;
+  }
+}
+
 .svc.svc--compact {
   gap: 10px;
 }

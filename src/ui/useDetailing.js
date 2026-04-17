@@ -149,6 +149,7 @@ export function DetailingSessionProvider({ children }) {
   }, [])
 
   const value = useMemo(() => {
+    void sessionEpoch
     const sid = getSessionDetailingId()
     const mode = hasOwnerSession() ? 'owner' : hasDetailingSession() ? 'detailing' : 'guest'
     return { detailingId: sid, detailing, owner, mode, loading, applyDetailingSnapshot }
