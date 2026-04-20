@@ -82,8 +82,9 @@ export default function MarketPage() {
               </h1>
               <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
                 <p className="serviceHint__panelText">
-                  Здесь карточки и история по каждой машине. Профиль, баннер и витрина по ссылке <span className="mono">/g/…</span> — в
-                  разделе «Гараж». Бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} авто в гараже.
+                  Здесь карточки и история по каждой машине. Публичную страницу гаража, баннер и фото настраиваете в разделе «Гараж».
+                  Бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} авто в гараже; лимит не распространяется на кабинет партнёра: детейлинг
+                  может вести любое число карточек у себя.
                 </p>
               </ServiceHint>
             </div>

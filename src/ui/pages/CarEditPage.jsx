@@ -379,8 +379,9 @@ export default function CarEditPage({ mode }) {
           </div>
           <Card className="card pad">
             <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '64ch' }}>
-              {limitDetail} Чтобы добавить третье и следующие авто, оформите Premium — откроется заявка в поддержку; в админ-панели она
-              будет помечена как запрос на Premium-аккаунт.
+              {limitDetail} Чтобы добавить третье и следующие авто, оформите Premium — откроется заявка в поддержку КарПас; по ней
+              с вами свяжутся и подключат расширенный гараж. Это ограничение только для личного гаража владельца: в кабинете детейлинга
+              партнёр может заводить неограниченное число карточек клиентов.
             </p>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
               <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
@@ -431,8 +432,8 @@ export default function CarEditPage({ mode }) {
                 </p>
                 {who === 'detailing' ? (
                   <p className="serviceHint__panelText">
-                    Город и госномер — в том же формате, что в гараже владельца: подсказки городов через DaData, номер двумя
-                    полями (основная часть и код региона).
+                    Город и госномер — в том же формате, что в гараже владельца: для города доступны подсказки при вводе; номер
+                    вводится двумя полями — как на белой табличке (основная часть и код региона).
                   </p>
                 ) : null}
               </ServiceHint>
@@ -594,9 +595,9 @@ export default function CarEditPage({ mode }) {
                   <span className="field__label">Клиент (имя)</span>
                   <ServiceHint scopeId="car-edit-client-name-hint" variant="compact" label="Справка: клиент">
                     <p className="serviceHint__panelText">
-                      Имя, телефон и почта необязательны; помогают найти карточку в кабинете и связаться с владельцем. Перед
-                      сохранением новой карточки сервис проверяет совпадения по VIN и по паре «телефон + почта» — если такая
-                      машина уже есть, можно открыть существующую вместо дубля.
+                      Имя, телефон и почта клиента необязательны, но помогают найти карточку в списке и не создать вторую по
+                      ошибке. Перед сохранением новой карточки система предупредит, если уже есть авто с тем же VIN или с той же
+                      парой телефон и почта — можно открыть существующую карточку вместо дубля.
                     </p>
                   </ServiceHint>
                 </div>
@@ -627,7 +628,7 @@ export default function CarEditPage({ mode }) {
                   type="email"
                   value={draft.clientEmail}
                   onChange={(e) => setDraft((d) => ({ ...d, clientEmail: e.target.value }))}
-                  placeholder="client@example.com"
+                  placeholder="pochta@example.ru"
                   autoComplete="email"
                 />
               </Field>

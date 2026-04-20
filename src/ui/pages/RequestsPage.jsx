@@ -146,9 +146,9 @@ export default function RequestsPage() {
               <h1 className="h1">Заявки на привязку авто</h1>
               <ServiceHint scopeId="requests-page-hint" variant="compact" label="Справка: заявки">
                 <p className="serviceHint__panelText">
-                  Владельцы запрашивают привязку авто к вашему кабинету. Аватар справа вверху ведёт на страницу гаража по адресу{' '}
-                  <span className="mono">/g/…</span> (витрина может быть закрыта настройками владельца — страница всё равно откроется).
-                  Если адрес <span className="mono">/g/…</span> не задан, аватар неактивен.
+                  Владельцы запрашивают привязку своего авто к вашему кабинету. Круглое фото в шапке открывает публичную страницу
+                  гаража владельца, если он включил «выйти на улицу» и задал адрес в настройках гаража. Если публичная страница не
+                  настроена, по значку перейти нельзя.
                 </p>
               </ServiceHint>
             </div>
@@ -194,7 +194,7 @@ export default function RequestsPage() {
           ) : (
             <span
               className="requestsCard__avatarCorner requestsCard__ownerAvatar requestsCard__avatarCorner--static"
-              title="У владельца не задан адрес страницы гаража (/g/…)"
+              title="У владельца не задан адрес публичной страницы гаража"
               role="img"
               aria-label={`Аватар владельца ${ownerLabel}, страница гаража не задана`}
             >
@@ -269,7 +269,7 @@ export default function RequestsPage() {
                     {garagePath ? (
                       <div className="muted small requestsCard__factLine">
                         <Link className="requestsCard__ownerPublicLink" to={garagePath} state={navState}>
-                          открыть /g/…
+                          открыть страницу гаража
                         </Link>
                       </div>
                     ) : null}

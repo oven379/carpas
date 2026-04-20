@@ -552,6 +552,7 @@ export default function HistoryPage() {
   const openVisitEdit = useCallback(
     (e) => {
       if (!canOpen(e)) return
+      if (mode === 'owner') setOwnerVisitComposeUi(false)
       setEditingId(e.id)
       setShowNew(true)
       const ne = normalizeCarEventServices(e)
@@ -663,6 +664,26 @@ export default function HistoryPage() {
   const readonlyFormNotice = editingId && !editAllowed && editingEvent ? visitReadonlyFormNotice(mode, editingEvent) : ''
   const detailingAwaitDraft = mode === 'detailing' && wantNew && !editParam
 
+  /** При создании визита — только форма: без списка истории и без плашек-подсказок. */
+  const detailingVisitComposeLayout =
+    mode === 'detailing' &&
+    showNew &&
+    (detailingAwaitDraft || Boolean(editingEvent?.isDraft))
+  const [ownerVisitComposeUi, setOwnerVisitComposeUi] = useState(false)
+  useEffect(() => {
+    if (mode === 'detailing') {
+      setOwnerVisitComposeUi(false)
+      return
+    }
+    if (mode !== 'owner') return
+    if (!wantNew) {
+      setOwnerVisitComposeUi(false)
+      return
+    }
+    if (!editParam) setOwnerVisitComposeUi(true)
+  }, [mode, wantNew, editParam])
+  const visitComposeOnlyUi = detailingVisitComposeLayout || ownerVisitComposeUi
+
   /* Не зависеть от edit=: после выбора фото URL получает edit=<id> — повторная прокрутка к заголовку срывает блок загрузки. */
   useLayoutEffect(() => {
     if (!showNew) return
@@ -748,6 +769,7 @@ export default function HistoryPage() {
   }
 
   const closeVisitFormInUrl = () => {
+    setOwnerVisitComposeUi(false)
     setShowNew(false)
     setEditingId(null)
     const next = new URLSearchParams(sp)
@@ -903,17 +925,21 @@ export default function HistoryPage() {
           <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav to={carCardHref} title="К карточке авто" />
             <h1 className="h1">{title}</h1>
-            <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
-              <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
-            </ServiceHint>
-            {mode === 'detailing' ? (
-              <ServiceHint
-                scopeId={HISTORY_DRAFT_DET_HINT.scopeId}
-                variant="compact"
-                label={HISTORY_DRAFT_DET_HINT.label}
-              >
-                <p className="serviceHint__panelText">{HISTORY_DRAFT_DET_HINT.textDetailing}</p>
-              </ServiceHint>
+            {!visitComposeOnlyUi ? (
+              <>
+                <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
+                  <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
+                </ServiceHint>
+                {mode === 'detailing' ? (
+                  <ServiceHint
+                    scopeId={HISTORY_DRAFT_DET_HINT.scopeId}
+                    variant="compact"
+                    label={HISTORY_DRAFT_DET_HINT.label}
+                  >
+                    <p className="serviceHint__panelText">{HISTORY_DRAFT_DET_HINT.textDetailing}</p>
+                  </ServiceHint>
+                ) : null}
+              </>
             ) : null}
           </div>
         </div>
@@ -923,6 +949,7 @@ export default function HistoryPage() {
               className="btn"
               data-variant="primary"
               onClick={() => {
+                setOwnerVisitComposeUi(true)
                 setShowNew(true)
                 setEditingId(null)
                 setDraft({
@@ -949,7 +976,10 @@ export default function HistoryPage() {
 
       <div className="row spread gap" style={{ marginTop: 10 }}>
         <div className="row gap wrap">
-          {mode === 'owner' && serviceEvents.length > 0 && ownerEvents.length > 0 ? (
+          {!visitComposeOnlyUi &&
+          mode === 'owner' &&
+          serviceEvents.length > 0 &&
+          ownerEvents.length > 0 ? (
             <div className="row gap wrap" aria-label="Фильтр истории">
               <button
                 className="btn"
@@ -995,6 +1025,7 @@ export default function HistoryPage() {
       <div
         className={`historyPage__mainStack${showNew ? ' historyPage__mainStack--formOpen' : ''}`}
       >
+      {!visitComposeOnlyUi ? (
       <div className="historyPage__listCol" ref={historyListTopRef}>
       <div className="list">
         {visibleEvents.map((e, cardIdx) => {
@@ -1274,11 +1305,12 @@ export default function HistoryPage() {
         ) : null}
       </div>
       </div>
+      ) : null}
 
       {showNew ? (
         <div className="historyPage__formCol">
         <Card className="card pad" ref={formRef}>
-          {mode === 'detailing' ? (
+          {mode === 'detailing' && !visitComposeOnlyUi ? (
             <>
               <p className="muted small historyLastVisitPreviewHead">Последний сохранённый визит по этому авто</p>
               {lastFinalizedDetailingVisit ? (
@@ -1581,7 +1613,7 @@ export default function HistoryPage() {
               <div className="field field--full visitPublicPhotosField topBorder">
                 {formLocked ? (
                   <p className="muted small" style={{ margin: 0, lineHeight: 1.45 }}>
-                    Публикация фото на публичной странице сервиса (/d/…):{' '}
+                    Публикация фото на публичной странице сервиса:{' '}
                     <strong>{editingEvent?.allowPublicPhotos !== false ? 'разрешена' : 'запрещена'}</strong>
                   </p>
                 ) : (

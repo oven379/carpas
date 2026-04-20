@@ -100,7 +100,7 @@ export default function AdminHomeLandingEditor() {
           <Field
             className="field--full"
             label="Фон баннера (URL)"
-            hint="необязательно; иначе — сплошная заливка как сейчас"
+            hint="необязательно; без картинки — однотонный фон, как на странице по умолчанию"
           >
             <Input className="input" value={form.bannerImageUrl} onChange={setF('bannerImageUrl')} placeholder="https://…" />
           </Field>
@@ -141,17 +141,17 @@ export default function AdminHomeLandingEditor() {
                 style={{ marginTop: 8 }}
                 onClick={() => setForm((s) => ({ ...s, bannerLogoUrl: '' }))}
               >
-                Снова SVG по умолчанию
+                Вернуть стандартный значок
               </button>
             ) : null}
           </div>
-          <Field className="field--full" label="Заголовок (H1) на баннере" hint="также в title страницы для SEO">
+          <Field className="field--full" label="Главный заголовок на баннере" hint="также показывается во вкладке браузера рядом с названием сайта">
             <Input className="input" value={form.heroTitle} onChange={setF('heroTitle')} />
           </Field>
           <Field
             className="field--full"
-            label="Дополнительная строка под H1"
-            hint="необязательно; слоган «История Вашего авто» под логотипом задаётся в коде"
+            label="Дополнительная строка под заголовком"
+            hint="необязательно; если пусто — под логотипом остаётся стандартная фраза «История Вашего авто»"
           >
             <Input className="input" value={form.bannerTagline} onChange={setF('bannerTagline')} placeholder="" />
           </Field>
@@ -171,7 +171,7 @@ export default function AdminHomeLandingEditor() {
           <Field
             className="field--full"
             label="Аватар в блоке (URL)"
-            hint="квадрат справа; пусто — мини-логотип SVG"
+            hint="квадрат справа в блоке; пусто — стандартный значок КарПас"
           >
             <Input className="input" value={form.infoCardLogoUrl} onChange={setF('infoCardLogoUrl')} placeholder="https://…" />
           </Field>
@@ -188,7 +188,7 @@ export default function AdminHomeLandingEditor() {
                 style={{ marginTop: 8 }}
                 onClick={() => setForm((s) => ({ ...s, infoCardLogoUrl: '' }))}
               >
-                Снова SVG по умолчанию
+                Вернуть стандартный значок
               </button>
             ) : null}
           </div>
@@ -215,7 +215,7 @@ export default function AdminHomeLandingEditor() {
           <Field
             className="field--full"
             label="Список возможностей"
-            hint="одна строка — один пункт; пусто — встроенный список по умолчанию"
+            hint="каждый пункт с новой строки; если оставить пустым — на сайте покажется готовый список возможностей по умолчанию"
           >
             <Textarea
               className="input"

@@ -69,8 +69,8 @@ export default function PartnerLoginPage() {
               </div>
               <ServiceHint scopeId="partner-login-hint" variant="compact" label="Справка: вход партнёра">
                 <p className="serviceHint__panelText">
-                  При первом входе откроется настройка лендинга, затем кабинет и авто. Демо: <strong>test@test</strong> /{' '}
-                  <strong>1111</strong>; кабинет с тестовыми авто: <strong>qa@car.local</strong> / <strong>1111</strong>.
+                  При первом входе после регистрации откроется настройка страницы для клиентов, затем — кабинет и список авто.
+                  Если забыли пароль, на этом экране воспользуйтесь ссылкой «Забыли пароль?».
                 </p>
               </ServiceHint>
             </div>

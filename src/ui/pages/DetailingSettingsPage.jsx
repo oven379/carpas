@@ -223,8 +223,8 @@ export default function DetailingSettingsPage() {
             </h1>
             <ServiceHint scopeId="detailing-settings-intro" variant="compact" label="Справка: настройки лендинга">
               <p className="serviceHint__panelText">
-                Здесь задаётся публичная страница по ссылке <strong>/d/…</strong>: что увидят клиенты до визита. Кабинет подтягивает те
-                же название, обложку и логотип для узнаваемости.
+                Здесь настраивается страница вашего сервиса для клиентов в интернете: что человек увидит до визита. То же название,
+                обложку и логотип использует кабинет — так клиенту проще вас узнать.
               </p>
               {detailing.profileCompleted === false ? (
                 <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
@@ -395,7 +395,7 @@ export default function DetailingSettingsPage() {
               <span className="field__label">Город</span>
               <ServiceHint scopeId="detailing-settings-city" variant="compact" label="Справка: город">
                 <p className="serviceHint__panelText">
-                  {CITY_FIELD_DD_HINT} Указывается на лендинге /d/… вместе с адресом, если поля заполнены.
+                  {CITY_FIELD_DD_HINT} Отображается на вашей публичной странице вместе с адресом, если поля заполнены.
                 </p>
               </ServiceHint>
             </div>
@@ -419,8 +419,8 @@ export default function DetailingSettingsPage() {
             label="Режим работы"
             hint={
               detailing.profileCompleted === false
-                ? 'Обязательно при первой настройке · на лендинге /d/… и в шапке кабинета'
-                : 'на лендинге /d/… и в шапке кабинета'
+                ? 'Обязательно при первой настройке · показывается на вашей публичной странице и в шапке кабинета'
+                : 'Показывается на вашей публичной странице и в шапке кабинета'
             }
           >
             <Textarea
@@ -446,7 +446,7 @@ export default function DetailingSettingsPage() {
           <Field
             className="field--full"
             label="Своя услуга"
-            hint={`до ${DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов · отображается на лендинге и в списке при создании визита`}
+            hint={`до ${DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов · клиенты увидят на вашей публичной странице; сотрудники — в списке при создании визита`}
           >
             <div className="detailingCustomOfferRow">
               <Input
@@ -651,7 +651,7 @@ export default function DetailingSettingsPage() {
               }
               if (firstSetup) {
                 if (!String(draft.address || '').trim()) {
-                  alert('Укажите адрес — он отображается клиентам на лендинге')
+                  alert('Укажите адрес — клиенты увидят его на вашей публичной странице')
                   return
                 }
                 if (!String(draft.workingHours || '').trim()) {

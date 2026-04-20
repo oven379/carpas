@@ -34,7 +34,7 @@ const CHART_SERIES = [
   { name: 'Визиты (записи в истории)', color: '#9333ea', values: [42, 55, 48, 63, 58, 72] },
   { name: 'Уникальные сессии', color: '#0ea5e9', values: [31, 40, 36, 46, 44, 54] },
   { name: 'Новые владельцы', color: '#22c55e', values: [8, 12, 9, 15, 11, 18] },
-  { name: 'Ошибки API (×10)', color: '#f97316', values: [25, 18, 22, 14, 20, 12] },
+  { name: 'Сбои в работе (×10)', color: '#f97316', values: [25, 18, 22, 14, 20, 12] },
 ]
 
 const MOCK_USERS = [
@@ -101,7 +101,7 @@ function MultiLineMonthlyChart() {
         <Pill>мульти-линии</Pill>
       </div>
       <p className="muted small adminChart__explain">
-        Несколько показателей на одной сетке: у каждой метрики свой цвет и своя линия. По оси X — месяцы, по Y — условные величины (после API подставятся реальные числа и единицы).
+        Несколько показателей на одной сетке: у каждой метрики свой цвет и своя линия. По оси X — месяцы, по Y — условные величины; когда панель подключат к данным сервиса, здесь появятся реальные числа и подписи осей.
       </p>
       <svg className="adminChart__svg" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
@@ -214,7 +214,7 @@ function PanelTable({ title, cols, rows }) {
 function formatSupportFrom(f) {
   if (!f || typeof f !== 'object') return '—'
   if (f.role === 'owner') {
-    return `Владелец · ${f.email || '—'}${f.garage_slug ? ` · гараж /g/${f.garage_slug}` : ''}${f.is_premium ? ' · в аккаунте: Premium' : ''}`
+    return `Владелец · ${f.email || '—'}${f.garage_slug ? ` · публичный гараж: ${f.garage_slug}` : ''}${f.is_premium ? ' · в аккаунте: Premium' : ''}`
   }
   if (f.role === 'detailing') {
     return `Партнёр · ${f.name || '—'} · ${f.email || '—'}`
@@ -647,7 +647,7 @@ function PanelCars() {
           Что такое «автомобиль» в админке
         </h2>
         <p className="muted small" style={{ lineHeight: 1.55 }}>
-          Это та же карточка машины, что в продукте (VIN, номер, владелец, визиты), плюс <strong>служебное</strong>: публичная ссылка /share/…, флаги жалобы или спора, внутренний комментарий модератора (видят только админы).
+          Это та же карточка машины, что у владельца (VIN, номер, владелец, визиты), плюс <strong>служебное</strong>: публичная ссылка при шаринге карточки, флаги жалобы или спора, внутренний комментарий модератора (видят только админы).
           Типовые действия: просмотр; временно скрыть авто из витрин/поиска; отключить публичный шаринг; оставить заметку «разобрались / на проверке». Ничего из этого не удаляет данные у владельца без отдельной политики — только видимость и модерация.
         </p>
       </Card>
@@ -664,7 +664,7 @@ function PanelCars() {
           </button>
         </div>
         <p className="muted small" style={{ marginTop: 10 }}>
-          После API: клик по строке → экран с вкладками «Данные», «История», «Публичность», «Жалобы», «Заметки».
+          Когда список подключат к базе: клик по строке откроет карточку с вкладками «Данные», «История», «Публичность», «Жалобы», «Заметки».
         </p>
       </Card>
     </div>
@@ -679,10 +679,8 @@ function PanelPartners() {
           Доступ к кабинету и лендингу
         </h2>
         <p className="muted small" style={{ lineHeight: 1.55 }}>
-          Удобнее всего два пути. <strong>1) Публично</strong> — ссылка <code className="adminMono">/d/&#123;id&#125;</code> (как у клиентов).
-          <strong> 2) Кабинет партнёра</strong> — те же экраны <code className="adminMono">/detailing</code> и{' '}
-          <code className="adminMono">/detailing/landing</code>, но после бэкенда через роль «админ» или режим <em>impersonate</em> (войти от имени партнёра на ограниченное время с записью в аудит).
-          Прямых «чужих» паролей хранить не нужно — только безопасный токен сессии от сервера.
+          Удобнее всего два пути. <strong>1) Как у клиента</strong> — открыть публичную страницу партнёра по ссылке из списка ниже.
+          <strong> 2) Из панели поддержки</strong> — зайти в кабинет детейлинга или в настройки его публичной страницы от имени партнёра, когда такая функция будет доступна, без хранения чужих паролей.
         </p>
       </Card>
       <Card className="card pad">
@@ -701,12 +699,12 @@ function PanelPartners() {
               <div className="row gap wrap" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
                 <Pill>{p.claims}</Pill>
                 <Link className="btn" data-variant="ghost" to={`/d/${p.id.replace('d-', '')}`}>
-                  Лендинг /d/…
+                  Публичная страница
                 </Link>
-                <button type="button" className="btn" data-variant="outline" disabled title="После API: impersonate">
+                <button type="button" className="btn" data-variant="outline" disabled title="Скоро: вход в кабинет от имени партнёра">
                   Кабинет
                 </button>
-                <button type="button" className="btn" data-variant="outline" disabled title="После API: impersonate">
+                <button type="button" className="btn" data-variant="outline" disabled title="Скоро: настройки публичной страницы от имени партнёра">
                   Настройки лендинга
                 </button>
               </div>
