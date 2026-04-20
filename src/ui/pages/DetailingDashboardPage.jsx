@@ -12,7 +12,7 @@ import {
   Pill,
   ServiceHint,
 } from '../components.jsx'
-import { detailingCarAccessBadge, detailingCarHasLinkedOwner } from '../serviceLinkUi.js'
+import { detailingCarAccessBadge, detailingCarHasLinkedOwner, publicDetailingPath } from '../serviceLinkUi.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import {
   CITY_FIELD_DD_HINT,
@@ -376,7 +376,9 @@ export default function DetailingDashboardPage() {
           <p className="muted small" style={{ marginTop: 8 }}>
             <Link to="/detailing/landing">Настройки лендинга</Link>
             <span aria-hidden="true"> · </span>
-            <Link to={`/d/${encodeURIComponent(String(detailingId))}`}>Публичная страница</Link>
+            <Link to={publicDetailingPath(detailing ? { ...detailing, id: detailingId } : { id: detailingId })}>
+              Публичная страница
+            </Link>
           </p>
         </div>
       </div>

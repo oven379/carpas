@@ -236,19 +236,20 @@ export default function OwnerGaragePage() {
     const name = String(sample.detailingName || '').trim()
     const logo = String(sample.detailingLogo || '').trim()
     const website = String(sample.detailingWebsite || '').trim()
-    return { id, name, logo, website }
+    const publicSlug = String(sample.detailingPublicSlug || '').trim()
+    return { id, publicSlug, name, logo, website }
   }, [cars])
 
   useEffect(() => {
-    const id = primaryDetailingFromCars?.id
-    if (!id) {
+    const seg = primaryDetailingFromCars?.publicSlug || primaryDetailingFromCars?.id
+    if (!seg) {
       setPrimaryServicePhone('')
       return () => {}
     }
     let cancelled = false
     void (async () => {
       try {
-        const data = await r.publicDetailingShowcase(id)
+        const data = await r.publicDetailingShowcase(seg)
         if (cancelled || !data?.detailing) return
         setPrimaryServicePhone(String(data.detailing.phone || '').trim())
       } catch {
@@ -258,7 +259,7 @@ export default function OwnerGaragePage() {
     return () => {
       cancelled = true
     }
-  }, [primaryDetailingFromCars?.id, r])
+  }, [primaryDetailingFromCars?.id, primaryDetailingFromCars?.publicSlug, r])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
@@ -443,7 +444,7 @@ export default function OwnerGaragePage() {
             {primaryDetailingFromCars ? (
               <Link
                 className="garageDash__service"
-                to={`/d/${encodeURIComponent(primaryDetailingFromCars.id)}`}
+                to={`/d/${encodeURIComponent(primaryDetailingFromCars.publicSlug || primaryDetailingFromCars.id)}`}
               >
                 <div className="garageDash__serviceInner row gap wrap align-start">
                   <div className="garageDash__serviceLogo">

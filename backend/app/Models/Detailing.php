@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Http\Support\DetailingPublicSlug;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -34,6 +35,7 @@ class Detailing extends Authenticatable
         'verification_approved_at',
         'is_personal',
         'owner_id',
+        'public_slug',
     ];
 
     protected $hidden = [
@@ -52,5 +54,20 @@ class Detailing extends Authenticatable
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Owner::class, 'owner_id');
+    }
+
+    protected static function booted(): void
+    {
+        static::created(function (Detailing $d) {
+            if (! filled($d->public_slug)) {
+                DetailingPublicSlug::assignUnique($d, $d->name, true);
+            }
+        });
+
+        static::updated(function (Detailing $d) {
+            if ($d->wasChanged('name')) {
+                DetailingPublicSlug::assignUnique($d, $d->name, true);
+            }
+        });
     }
 }

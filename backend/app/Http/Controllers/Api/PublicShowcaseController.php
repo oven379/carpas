@@ -142,7 +142,7 @@ class PublicShowcaseController extends Controller
         return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
     }
 
-    /** Владелец гаража (личный «тень»-детейлинг) может открыть /d/:id со своим токеном; для остальных — 404. */
+    /** Владелец гаража (личный «тень»-детейлинг) может открыть /d/:slug со своим токеном; для остальных — 404. Числовой сегмент — совместимость со старыми ссылками по id. */
     private function ownerFromBearerForPublicShowcase(Request $request): ?Owner
     {
         $raw = $request->bearerToken();
@@ -157,9 +157,13 @@ class PublicShowcaseController extends Controller
         return $pat->tokenable;
     }
 
-    public function detailing(Request $request, $id)
+    public function detailing(Request $request, $slugOrId)
     {
-        $d = Detailing::query()->find($id);
+        $raw = trim((string) $slugOrId);
+        $d = Detailing::query()->where('public_slug', $raw)->first();
+        if (! $d && ctype_digit($raw)) {
+            $d = Detailing::query()->find((int) $raw);
+        }
         if (! $d) {
             abort(404);
         }

@@ -648,8 +648,11 @@ export default function HistoryPage() {
     const idMatch = detailingId && String(detailingId) === String(detId)
     const logoFromSession = idMatch && detailing?.logo ? String(detailing.logo).trim() : ''
     const logoFromCar = String(car?.detailingLogo || '').trim()
+    const slugFromSession = idMatch && detailing?.publicSlug ? String(detailing.publicSlug).trim() : ''
+    const slugFromCar = String(car?.detailingPublicSlug || '').trim()
     return {
       id: detId,
+      publicSlug: slugFromSession || slugFromCar || '',
       name: String(car.detailingName || car.seller?.name || 'Сервис').trim() || 'Сервис',
       logo: logoFromSession || logoFromCar || null,
       website: car.detailingWebsite || '',

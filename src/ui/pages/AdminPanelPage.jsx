@@ -866,7 +866,7 @@ function PanelPartners() {
               </div>
               <div className="row gap wrap" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
                 <Pill>{p.claims}</Pill>
-                <Link className="btn" data-variant="ghost" to={`/d/${p.id.replace('d-', '')}`}>
+                <Link className="btn" data-variant="ghost" to="/d/demo-glyanets">
                   Публичная страница
                 </Link>
                 <button type="button" className="btn" data-variant="outline" disabled title="Скоро: вход в кабинет от имени партнёра">

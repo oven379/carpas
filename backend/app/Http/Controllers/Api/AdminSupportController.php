@@ -188,6 +188,7 @@ class AdminSupportController extends Controller
 
         return [
             'id' => (string) $d->id,
+            'publicSlug' => trim((string) ($d->public_slug ?? '')),
             'name' => $d->name,
             'email' => $d->email,
             'contactName' => $d->contact_name ?? '',

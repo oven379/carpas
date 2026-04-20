@@ -19,6 +19,18 @@ class PublicDetailingShowcaseTest extends FeatureTestCase
             ->assertJsonPath('carsCount', 0);
     }
 
+    public function test_partner_detailing_showcase_ok_by_public_slug(): void
+    {
+        $d = $this->detailing(['name' => 'Студия Глянец', 'is_personal' => false]);
+        $slug = trim((string) $d->fresh()->public_slug);
+        $this->assertNotSame('', $slug);
+
+        $this->getJson('/api/public/detailings/'.$slug)
+            ->assertOk()
+            ->assertJsonPath('detailing.id', (string) $d->id)
+            ->assertJsonPath('detailing.publicSlug', $slug);
+    }
+
     public function test_personal_detailing_showcase_404_without_token(): void
     {
         $owner = Owner::query()->create([

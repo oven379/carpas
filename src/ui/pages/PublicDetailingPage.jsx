@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
@@ -44,6 +44,8 @@ function mediaUrlToOgImage(url) {
 export default function PublicDetailingPage() {
   const { id } = useParams()
   const [sp] = useSearchParams()
+  const loc = useLocation()
+  const nav = useNavigate()
   const r = useRepo()
   const { detailingId: sessionDetailingId, mode } = useDetailing()
   const [photoLb, setPhotoLb] = useState(null)
@@ -76,6 +78,18 @@ export default function PublicDetailingPage() {
   }, [idNorm, r, r._version])
 
   const det = payload?.detailing ?? null
+
+  useEffect(() => {
+    if (!det) return
+    const slug = String(det.publicSlug || '').trim()
+    if (!slug || idNorm === slug) return
+    if (idNorm === String(det.id)) {
+      nav(`/d/${encodeURIComponent(slug)}${loc.search || ''}`, { replace: true })
+    }
+  }, [det, idNorm, loc.search, nav])
+
+  const slugForCanonical =
+    det && String(det.publicSlug || '').trim() ? String(det.publicSlug || '').trim() : idNorm
   const carsCount = typeof payload?.carsCount === 'number' ? payload.carsCount : 0
   const lastWorkPhotos = useMemo(
     () => (Array.isArray(payload?.lastWorkPhotos) ? payload.lastWorkPhotos : []),
@@ -95,7 +109,7 @@ export default function PublicDetailingPage() {
         <Seo
           title="Страница сервиса · КарПас"
           description="Публичная страница детейлинга или СТО в сервисе КарПас: контакты, услуги, режим работы."
-          canonicalPath={`/d/${idNorm}`}
+          canonicalPath={`/d/${encodeURIComponent(slugForCanonical)}`}
         />
         <PageLoadSpinner />
       </div>
@@ -111,7 +125,7 @@ export default function PublicDetailingPage() {
     String(det.description || '').trim() ||
     [servicesLine && `Услуги: ${servicesLine}.`, `${devName} — детейлинг и СТО в КарПас.`, citySeo && citySeo].filter(Boolean).join(' ')
   const seoDesc = truncateMetaDescription(seoDescRaw)
-  const canonicalPath = `/d/${idNorm}`
+  const canonicalPath = `/d/${encodeURIComponent(slugForCanonical)}`
   const ogImage = mediaUrlToOgImage(det.cover)
   const absPage = absoluteUrl(canonicalPath).startsWith('http')
   const hasAddressParts = Boolean(citySeo || String(det.address || '').trim())

@@ -67,8 +67,21 @@ export function detailingCarAccessBadge(car, detailingId, inboxClaims) {
   return { label: DETAILING_ACCESS_SERVICE_ONLY_LABEL, tone: 'neutral' }
 }
 
+/** Сегмент URL публичной страницы детейлинга: транслит slug или fallback на id. */
+export function publicDetailingUrlSegment(detOrCar) {
+  if (!detOrCar || typeof detOrCar !== 'object') return ''
+  const slug = String(detOrCar.publicSlug || detOrCar.detailingPublicSlug || '').trim()
+  const id = String(detOrCar.id || detOrCar.detailingId || '').trim()
+  return slug || id || ''
+}
+
+export function publicDetailingPath(detOrCar) {
+  const seg = publicDetailingUrlSegment(detOrCar)
+  return seg ? `/d/${encodeURIComponent(seg)}` : '/'
+}
+
 /**
- * Куда вести кнопку бренда детейлинга: внешний website или публичная страница /d/:id.
+ * Куда вести кнопку бренда детейлинга: внешний website или публичная страница /d/:slug.
  * @returns {{ kind: 'external', href: string } | { kind: 'app', to: string } | null}
  */
 export function detailingBrandHref(det) {
@@ -78,7 +91,7 @@ export function detailingBrandHref(det) {
     const href = /^https?:\/\//i.test(w) ? w : `https://${w}`
     return { kind: 'external', href }
   }
-  const id = String(det.id || '').trim()
-  if (id) return { kind: 'app', to: `/d/${id}` }
+  const seg = publicDetailingUrlSegment(det)
+  if (seg) return { kind: 'app', to: `/d/${encodeURIComponent(seg)}` }
   return null
 }

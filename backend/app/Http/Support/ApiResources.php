@@ -41,6 +41,7 @@ class ApiResources
 
         return [
             'id' => (string) $d->id,
+            'publicSlug' => trim((string) ($d->public_slug ?? '')),
             'name' => $d->name,
             'email' => $d->email,
             'contactName' => $d->contact_name ?? '',
@@ -103,6 +104,7 @@ class ApiResources
         return [
             'id' => (string) $c->id,
             'detailingId' => $c->detailing_id ? (string) $c->detailing_id : '',
+            'detailingPublicSlug' => trim((string) ($c->detailing?->public_slug ?? '')),
             'detailingIsPersonal' => (bool) ($c->detailing?->is_personal ?? false),
             'detailingName' => $c->detailing?->name ?? '',
             'detailingLogo' => MediaStorage::publicUrl($c->detailing?->logo ?? null),
