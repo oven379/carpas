@@ -47,6 +47,11 @@ export default function MarketPage() {
     }
   }, [r, r._version, ownerEmail])
 
+  const pendingClaimsCount = useMemo(
+    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
+    [ownerClaims],
+  )
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
   if (mode === 'owner' && loading) {
@@ -66,10 +71,6 @@ export default function MarketPage() {
   }
 
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
-  const pendingClaimsCount = useMemo(
-    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
-    [ownerClaims],
-  )
 
   return (
     <div className="container">

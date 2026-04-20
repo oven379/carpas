@@ -209,6 +209,11 @@ export default function OwnerGaragePage() {
     }
   }, [ownerEmail, cars, r, r._version])
 
+  const pendingClaimsCount = useMemo(
+    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
+    [ownerClaims],
+  )
+
   const garageVisitsList = useMemo(() => {
     if (!Array.isArray(enrichedRows) || !enrichedRows.length) return []
     const out = []
@@ -266,10 +271,6 @@ export default function OwnerGaragePage() {
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
 
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
-  const pendingClaimsCount = useMemo(
-    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
-    [ownerClaims],
-  )
   const createFromGarageHref = '/create?from=%2Fgarage'
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const cityLine = String(owner?.garageCity || '').trim()
