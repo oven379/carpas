@@ -13,12 +13,14 @@ export default function OwnerGarageAddCarHint({
   canAddManual,
   fromPath = '/garage',
   pendingClaimsCount = 0,
+  /** Для якоря из URL (#…) и скролла */
+  sectionId,
 }) {
   const from = String(fromPath || '/garage') || '/garage'
   const createHref = `/create?from=${encodeURIComponent(from)}`
 
   return (
-    <Card className={`card pad ${className}`.trim()} style={style}>
+    <Card id={sectionId || undefined} className={`card pad ${className}`.trim()} style={style}>
       <div className="cardTitle" style={{ margin: '0 0 8px' }}>
         Добавить автомобиль
       </div>
