@@ -566,6 +566,18 @@ export function createApiClient() {
       return await req('admin/support/tickets', { token: adminToken })
     },
 
+    async adminPartnerRegistrationsPending(adminToken) {
+      return await req('admin/support/partner-registrations/pending', { token: adminToken })
+    },
+
+    async adminPartnerRegistrationApprove(adminToken, detailingId) {
+      return await req(`admin/support/partner-registrations/${encodeURIComponent(String(detailingId))}/approve`, {
+        method: 'POST',
+        body: {},
+        token: adminToken,
+      })
+    },
+
     async adminSupportReply(adminToken, ticketId, message) {
       return await req(`admin/support/tickets/${encodeURIComponent(String(ticketId))}/reply`, {
         method: 'POST',

@@ -208,7 +208,7 @@ export default function PublicGaragePage() {
             {owner.garageAvatar ? (
               <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
             ) : (
-              <DefaultAvatar alt="" />
+              <DefaultAvatar fallback={displayName} alt="" />
             )}
           </div>
         </div>

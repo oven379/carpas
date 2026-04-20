@@ -161,6 +161,36 @@ function buildYearOptions(carYear) {
   return [...set].sort((a, b) => b - a).map(String)
 }
 
+/** Подпись «Клиент:» в списке авто: имя и телефон из учёта; иначе владелец из ЛК; иначе owner_phone с карточки. */
+function detailingCarClientListSubline(car, linkedOwner) {
+  const phoneLabel = (raw) => {
+    const t = String(raw || '').trim()
+    if (!t) return ''
+    const { display } = displayRuPhone(t)
+    return display || t
+  }
+  const clientName = String(car.clientName || '').trim()
+  const clientPhone = String(car.clientPhone || '').trim()
+  const parts = []
+  if (clientName) parts.push(clientName)
+  const clientPhoneLab = phoneLabel(clientPhone)
+  if (clientPhoneLab) parts.push(clientPhoneLab)
+  if (parts.length) return parts.join(' · ')
+
+  if (linkedOwner) {
+    const ownerName = String(car.ownerName || '').trim()
+    const ownerAcct = String(car.ownerAccountPhone || '').trim()
+    const ownerParts = []
+    if (ownerName) ownerParts.push(ownerName)
+    const ownerPhoneLab = phoneLabel(ownerAcct)
+    if (ownerPhoneLab) ownerParts.push(ownerPhoneLab)
+    if (ownerParts.length) return ownerParts.join(' · ')
+  }
+
+  const legacy = phoneLabel(car.ownerPhone)
+  return legacy || '—'
+}
+
 export default function DetailingDashboardPage() {
   const r = useRepo()
   const nav = useNavigate()
@@ -355,7 +385,7 @@ export default function DetailingDashboardPage() {
         <div className="row gap detSearchCard__row detSearchCard__row--main">
           <Input
             className="input detSearchCard__input"
-            placeholder="VIN, госномер или телефон"
+            placeholder="VIN"
             value={q}
             autoCapitalize="off"
             autoComplete="off"
@@ -568,11 +598,21 @@ export default function DetailingDashboardPage() {
           /* Телефон в полосе владельца — из ЛК/гаража (поле владельца), не «клиентский» номер в карточке авто */
           const garageOwnerPhone = String(c.ownerAccountPhone || '').trim()
           const { display: ownerPhoneRaw, telHref: ownerPhoneHref } = displayRuPhone(garageOwnerPhone)
-          const clientSummaryText = c.clientName || c.clientPhone || c.ownerPhone || '—'
-          const clientProfileLine =
-            String(c.clientName || '').trim() || String(c.clientPhone || '').trim() || '—'
-          const clientPhoneOnly = String(c.clientPhone || '').trim()
-          const { display: clientPhoneDisplay, telHref: clientPhoneHref } = displayRuPhone(clientPhoneOnly)
+          const clientSummaryText = detailingCarClientListSubline(c, linkedOwner)
+          const clientPhoneRawForLink =
+            String(c.clientPhone || '').trim() || String(c.ownerPhone || '').trim()
+          const clientProfileLine = (() => {
+            const cn = String(c.clientName || '').trim()
+            if (cn) return cn
+            const { display: d1 } = displayRuPhone(String(c.clientPhone || '').trim())
+            const cp = String(c.clientPhone || '').trim()
+            if (d1 || cp) return d1 || cp
+            const { display: d2 } = displayRuPhone(String(c.ownerPhone || '').trim())
+            const op = String(c.ownerPhone || '').trim()
+            if (d2 || op) return d2 || op
+            return '—'
+          })()
+          const { display: clientPhoneDisplay, telHref: clientPhoneHref } = displayRuPhone(clientPhoneRawForLink)
           return (
             <div key={c.id} className="rowItem rowItem--ownerPeek">
               <Link
@@ -673,14 +713,18 @@ export default function DetailingDashboardPage() {
                       <a className="rowItem__ownerSummaryPhone" href={clientPhoneHref}>
                         {clientPhoneDisplay}
                       </a>
-                    ) : clientPhoneOnly ? (
-                      <span className="muted small">{clientPhoneDisplay || clientPhoneOnly}</span>
+                    ) : clientPhoneRawForLink ? (
+                      <span className="muted small">{clientPhoneDisplay || clientPhoneRawForLink}</span>
                     ) : (
                       <span className="muted small">Телефон не указан</span>
                     )}
                   </div>
                   <span className="rowItem__ownerSummaryAvatar" aria-hidden="true">
-                    <DefaultAvatar alt="" />
+                    <DefaultAvatar
+                      email={String(c.clientEmail || '').trim()}
+                      fallback={clientProfileLine}
+                      alt=""
+                    />
                   </span>
                 </div>
               )}
@@ -724,7 +768,11 @@ export default function DetailingDashboardPage() {
                     className="rowItem__ownerPeekLink rowItem__ownerPeekLink--clientPlaceholder"
                     aria-hidden="true"
                   >
-                    <DefaultAvatar alt="" />
+                    <DefaultAvatar
+                      email={String(c.clientEmail || '').trim()}
+                      fallback={String(c.clientName || '').trim() || clientProfileLine}
+                      alt=""
+                    />
                   </span>
                 </div>
               )}

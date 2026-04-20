@@ -1,6 +1,9 @@
 export function partnerLoginErrorMessage(reason) {
   if (reason === 'bad_password') return 'Неверный пароль'
   if (reason === 'not_found') return 'Нет учётной записи с такой почтой'
+  if (reason === 'pending_verification') {
+    return 'Аккаунт ещё на проверке. Мы свяжемся с вами для верификации; после подтверждения вход станет доступен.'
+  }
   if (reason === 'bad_credentials') return 'Укажите почту и пароль'
   return 'Не удалось войти'
 }

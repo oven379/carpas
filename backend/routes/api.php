@@ -32,6 +32,9 @@ Route::middleware('throttle:30,1')->post('/support/tickets', [SupportTicketContr
 Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
 
 Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
+    Route::get('/admin/support/partner-registrations/pending', [AdminSupportController::class, 'partnerRegistrationsPending']);
+    Route::post('/admin/support/partner-registrations/{id}/approve', [AdminSupportController::class, 'approvePartnerRegistration'])
+        ->middleware('throttle:60,1');
     Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
     Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);

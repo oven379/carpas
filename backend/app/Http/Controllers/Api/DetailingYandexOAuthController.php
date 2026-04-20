@@ -104,8 +104,17 @@ class DetailingYandexOAuthController extends Controller
                 'password' => Hash::make(Str::random(64)),
                 'yandex_id' => $yandexId,
                 'profile_completed' => false,
+                'verification_approved_at' => now(),
                 'is_personal' => false,
             ]);
+        }
+
+        if (! $detailing->is_personal && $detailing->verification_approved_at === null) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'pending_verification',
+                'message' => 'Аккаунт ещё на проверке. Мы свяжемся с вами для верификации; после подтверждения вход через Яндекс станет доступен.',
+            ], 422);
         }
 
         $plain = $detailing->createToken('detailing')->plainTextToken;

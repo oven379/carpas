@@ -31,6 +31,7 @@ class Detailing extends Authenticatable
         'services_offered',
         'maintenance_services_offered',
         'profile_completed',
+        'verification_approved_at',
         'is_personal',
         'owner_id',
     ];
@@ -45,6 +46,7 @@ class Detailing extends Authenticatable
         'maintenance_services_offered' => 'array',
         'profile_completed' => 'boolean',
         'is_personal' => 'boolean',
+        'verification_approved_at' => 'datetime',
     ];
 
     public function owner(): BelongsTo

@@ -46,6 +46,7 @@ function buildGarageVisitRow(carRow, evtRaw) {
 function pickBestDetailingId(cars) {
   const counts = new Map()
   for (const c of cars || []) {
+    if (c?.detailingIsPersonal) continue
     const id = String(c?.detailingId ?? '').trim()
     if (!id) continue
     counts.set(id, (counts.get(id) || 0) + 1)
@@ -273,6 +274,7 @@ export default function OwnerGaragePage() {
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
   const createFromGarageHref = '/create?from=%2Fgarage'
   const displayName = String(owner?.name || '').trim() || 'Владелец'
+  const ownerEmailTrim = String(owner?.email || '').trim()
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel =
     `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
@@ -365,7 +367,7 @@ export default function OwnerGaragePage() {
                   {owner?.garageAvatar ? (
                     <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} />
                   ) : (
-                    <DefaultAvatar alt="" />
+                    <DefaultAvatar email={ownerEmailTrim} fallback={displayName} alt="" />
                   )}
                 </div>
               </Link>
@@ -448,7 +450,10 @@ export default function OwnerGaragePage() {
                     {primaryDetailingFromCars.logo ? (
                       <img alt="" src={resolvePublicMediaUrl(primaryDetailingFromCars.logo)} />
                     ) : (
-                      <DefaultAvatar alt="" />
+                      <DefaultAvatar
+                        fallback={primaryDetailingFromCars.name || 'Сервис'}
+                        alt=""
+                      />
                     )}
                   </div>
                   <div className="garageDash__serviceBody">
@@ -465,11 +470,7 @@ export default function OwnerGaragePage() {
                   </div>
                 </div>
               </Link>
-            ) : (
-              <div className="garageDash__service garageDash__service--empty muted small">
-                Привяжите авто к детейлинг-партнёру — здесь появится ваш сервис.
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div className="garageDash__tabsBar row spread gap wrap align-center">

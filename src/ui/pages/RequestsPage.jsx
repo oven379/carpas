@@ -176,10 +176,11 @@ export default function RequestsPage() {
           const garagePath = ownerGarageSlug ? `/g/${encodeURIComponent(ownerGarageSlug)}` : null
           const navState = { from: `${loc.pathname}${loc.search}` }
           const carHeroBg = car?.hero ? resolvedBackgroundImageUrl(car.hero) : undefined
+          const claimOwnerEmail = String(x.ownerEmail || '').trim()
           const avatarInner = ownerAvatar ? (
             <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
           ) : (
-            <DefaultAvatar alt="" />
+            <DefaultAvatar email={claimOwnerEmail} fallback={ownerLabel} alt="" />
           )
           const avatarCorner = garagePath ? (
             <Link

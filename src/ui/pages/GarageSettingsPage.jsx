@@ -205,6 +205,8 @@ export default function GarageSettingsPage() {
             avatarUrl={draft.garageAvatar}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, garageBanner: url }))}
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, garageAvatar: url }))}
+            placeholderEmail={ownerEmail}
+            placeholderFallback={String(draft.name || '').trim()}
           />
         </div>
 

@@ -58,6 +58,7 @@ class ApiResources
             'detailingServicesOffered' => $det,
             'maintenanceServicesOffered' => $maint,
             'profileCompleted' => (bool) $d->profile_completed,
+            'verificationApprovedAt' => optional($d->verification_approved_at)->toISOString(),
             'createdAt' => optional($d->created_at)->toISOString(),
             'yandexLinked' => $d->yandex_id !== null,
         ];
@@ -102,6 +103,7 @@ class ApiResources
         return [
             'id' => (string) $c->id,
             'detailingId' => $c->detailing_id ? (string) $c->detailing_id : '',
+            'detailingIsPersonal' => (bool) ($c->detailing?->is_personal ?? false),
             'detailingName' => $c->detailing?->name ?? '',
             'detailingLogo' => MediaStorage::publicUrl($c->detailing?->logo ?? null),
             'detailingWebsite' => $c->detailing?->website ?? '',

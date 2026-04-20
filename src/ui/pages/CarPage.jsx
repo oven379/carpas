@@ -531,7 +531,11 @@ export default function CarPage() {
                 {car.ownerGarageAvatar ? (
                   <img alt="" src={resolvePublicMediaUrl(String(car.ownerGarageAvatar))} />
                 ) : (
-                  <DefaultAvatar alt="" />
+                  <DefaultAvatar
+                    email={String(car.ownerEmail || '').trim()}
+                    fallback={String(car.ownerName || '').trim()}
+                    alt=""
+                  />
                 )}
               </div>
               <div className="carPage__detailingOwnerProfileBody">
@@ -572,7 +576,11 @@ export default function CarPage() {
           ) : (
             <div className="carPage__detailingOwnerProfile">
               <div className="carPage__detailingOwnerProfileAvatar" aria-hidden="true">
-                <DefaultAvatar alt="" />
+                <DefaultAvatar
+                  email={String(car.clientEmail || '').trim()}
+                  fallback={detailingClientCardName}
+                  alt=""
+                />
               </div>
               <div className="carPage__detailingOwnerProfileBody">
                 <div className="carPage__detailingOwnerProfileName">
@@ -662,12 +670,15 @@ export default function CarPage() {
                           servicingAtDetailingLogo ? (
                             <img alt="" src={servicingAtDetailingLogo} />
                           ) : (
-                            <DefaultAvatar alt="" />
+                            <DefaultAvatar
+                              fallback={servicingAtDetailingName || 'Сервис'}
+                              alt=""
+                            />
                           )
                         ) : ownerGarageAvatarResolved ? (
                           <img alt="" src={ownerGarageAvatarResolved} />
                         ) : (
-                          <DefaultAvatar alt="" />
+                          <DefaultAvatar email={ownerEmailResolved} fallback={String(owner?.name || '').trim()} alt="" />
                         )}
                       </div>
                       <div className="carPage__ownerServiceStack">
@@ -704,7 +715,7 @@ export default function CarPage() {
                   ) : ownerServiceSummary.ownerLink === 'pending' ? (
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
                       <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <DefaultAvatar alt="" />
+                        <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
                       </div>
                       <div className="carPage__ownerServiceStack">
                         <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
@@ -725,7 +736,7 @@ export default function CarPage() {
                   ) : (
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
                       <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <DefaultAvatar alt="" />
+                        <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
                       </div>
                       <div className="carPage__ownerServiceStack">
                         <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>

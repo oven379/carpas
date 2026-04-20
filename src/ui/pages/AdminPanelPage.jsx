@@ -17,6 +17,7 @@ const NAV = [
   { id: 'push', label: 'Push' },
   { id: 'cars', label: 'Автомобили' },
   { id: 'partners', label: 'Партнёры' },
+  { id: 'partnerApps', label: 'Заявки партнёров' },
   { id: 'mods', label: 'Модерация' },
   { id: 'sys', label: 'Система' },
 ]
@@ -671,6 +672,173 @@ function PanelCars() {
   )
 }
 
+function PanelPartnerApplications() {
+  const token = getAdminApiToken()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [okMsg, setOkMsg] = useState('')
+  const [busyId, setBusyId] = useState(null)
+
+  const reload = useCallback(async () => {
+    if (!hasAdminApiToken()) return
+    const list = await getApi().adminPartnerRegistrationsPending(getAdminApiToken())
+    setItems(Array.isArray(list) ? list : [])
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!hasAdminApiToken()) {
+      setLoading(false)
+      setItems([])
+      return undefined
+    }
+    setLoading(true)
+    setErr('')
+    ;(async () => {
+      try {
+        await reload()
+      } catch (e) {
+        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить заявки.'))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, reload])
+
+  if (!hasAdminApiToken()) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Заявки партнёров
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Раздел доступен после входа с учётными данными из <code className="adminMono">ADMIN_SUPPORT_LOGIN</code> /{' '}
+          <code className="adminMono">ADMIN_SUPPORT_PASSWORD</code> — тогда сохраняется токен API и список подтягивается из
+          базы.
+        </p>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="adminPreview__stack">
+      <Card className="card pad">
+        <div className="row spread gap wrap" style={{ marginBottom: 12 }}>
+          <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
+            Заявки партнёров
+          </h2>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void (async () => {
+                setErr('')
+                setOkMsg('')
+                setLoading(true)
+                try {
+                  await reload()
+                } catch (e) {
+                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                } finally {
+                  setLoading(false)
+                }
+              })()
+            }
+          >
+            Обновить
+          </button>
+        </div>
+        <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55 }}>
+          Партнёры, зарегистрировавшиеся по форме и ожидающие подтверждения. После нажатия «Подтвердить» на почту уходит
+          благодарность и новый пароль для входа; старый пароль из заявки сбрасывается.
+        </p>
+        {err ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
+            {err}
+          </p>
+        ) : null}
+        {okMsg ? (
+          <p className="muted small" style={{ marginBottom: 12 }}>
+            {okMsg}
+          </p>
+        ) : null}
+        {loading ? <p className="muted small">Загрузка…</p> : null}
+        {!loading && items.length === 0 ? <p className="muted small">Нет заявок на проверке.</p> : null}
+        {!loading && items.length > 0 ? (
+          <div className="adminPreview__tableWrap">
+            <table className="adminPreview__table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Название</th>
+                  <th>Контакт</th>
+                  <th>Город</th>
+                  <th>Дата</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <code className="adminMono">{row.id}</code>
+                    </td>
+                    <td>{row.name || '—'}</td>
+                    <td>
+                      <div style={{ fontSize: 13 }}>{row.email || '—'}</div>
+                      <div className="muted small">
+                        {[row.contactName, row.phone].filter(Boolean).join(' · ') || '—'}
+                      </div>
+                    </td>
+                    <td>{row.city || '—'}</td>
+                    <td className="muted small">
+                      {row.createdAt ? new Date(row.createdAt).toLocaleString('ru-RU') : '—'}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="primary"
+                        disabled={busyId === row.id}
+                        onClick={() =>
+                          void (async () => {
+                            setBusyId(row.id)
+                            setErr('')
+                            setOkMsg('')
+                            try {
+                              await getApi().adminPartnerRegistrationApprove(getAdminApiToken(), row.id)
+                              setOkMsg(
+                                `Партнёр #${row.id} подтверждён. На ${row.email} отправлено письмо с паролем для входа.`,
+                              )
+                              await reload()
+                            } catch (e) {
+                              setErr(formatHttpErrorMessage(e, 'Не удалось подтвердить заявку.'))
+                            } finally {
+                              setBusyId(null)
+                            }
+                          })()
+                        }
+                      >
+                        {busyId === row.id ? '…' : 'Подтвердить'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+    </div>
+  )
+}
+
 function PanelPartners() {
   return (
     <div className="adminPreview__stack">
@@ -839,6 +1007,7 @@ export default function AdminPanelPage() {
   else if (tab === 'push') body = <PanelPush />
   else if (tab === 'cars') body = <PanelCars />
   else if (tab === 'partners') body = <PanelPartners />
+  else if (tab === 'partnerApps') body = <PanelPartnerApplications />
   else if (tab === 'mods') body = <PanelMods />
   else body = <PanelSys />
 

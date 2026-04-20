@@ -17,6 +17,7 @@ abstract class FeatureTestCase extends BaseTestCase
             'name' => 'Тестовый детейлинг',
             'email' => 'd-'.uniqid('', true).'@example.test',
             'password' => Hash::make('secret'),
+            'verification_approved_at' => now(),
         ], $overrides));
     }
 }

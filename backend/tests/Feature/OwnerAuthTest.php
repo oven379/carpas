@@ -100,4 +100,45 @@ class OwnerAuthTest extends FeatureTestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['email']);
     }
+
+    public function test_register_rejects_duplicate_phone_across_owners(): void
+    {
+        Owner::query()->create([
+            'email' => 'first-phone@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Первый',
+            'phone' => '+7 900 555 66 77',
+        ]);
+
+        $this->postJson('/api/owners/register', [
+            'email' => 'second-phone@example.test',
+            'password' => 'pass1234',
+            'name' => 'Второй',
+            'phone' => '89005556677',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['phone']);
+    }
+
+    public function test_register_rejects_phone_already_used_by_detailing(): void
+    {
+        \App\Models\Detailing::query()->create([
+            'name' => 'СТО',
+            'email' => 'sto-phone@example.test',
+            'password' => Hash::make('secret'),
+            'phone' => '+7 900 444 33 22',
+            'is_personal' => false,
+            'profile_completed' => true,
+            'verification_approved_at' => now(),
+        ]);
+
+        $this->postJson('/api/owners/register', [
+            'email' => 'owner-after-sto@example.test',
+            'password' => 'pass1234',
+            'name' => 'Владелец',
+            'phone' => '+7 (900) 444-33-22',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['phone']);
+    }
 }

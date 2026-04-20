@@ -1,15 +1,19 @@
-import defaultAvatarSrc from '../assets/default-avatar.png?url'
+import { avatarPlaceholderLetter } from '../lib/avatarPlaceholder.js'
 
 /**
- * Плейсхолдер аватара: фирменный трёхцветный знак (PNG). Приглушение: `.defaultAvatarImg` в App.css.
+ * Плейсхолдер вместо фото: буква из email, иначе из fallback (имя, название сервиса).
  */
-export default function DefaultAvatar({ className = '', alt = '' }) {
+export default function DefaultAvatar({ email, fallback = '', className = '', alt = '', ...rest }) {
+  const letter = avatarPlaceholderLetter(email, fallback)
   return (
-    <img
-      src={defaultAvatarSrc}
-      alt={alt}
+    <span
       className={['defaultAvatarImg', className].filter(Boolean).join(' ')}
-      decoding="async"
-    />
+      role={alt ? 'img' : undefined}
+      aria-label={alt || undefined}
+      aria-hidden={alt ? undefined : true}
+      {...rest}
+    >
+      {letter}
+    </span>
   )
 }

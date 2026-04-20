@@ -490,19 +490,14 @@ export function TopNav() {
                       >
                         {owner?.garageAvatar ? (
                           <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
-                        ) : (() => {
-                          const snap = owner || getSessionOwner()
-                          const s = String(snap?.name || snap?.email || '').trim()
-                          const ch = s ? s.charAt(0).toUpperCase() : ''
-                          if (ch) {
-                            return (
-                              <span className="nav__ownerGarageLetter" aria-hidden="true">
-                                {ch}
-                              </span>
-                            )
-                          }
-                          return <DefaultAvatar alt="" className="nav__ownerGarageDefaultImg" />
-                        })()}
+                        ) : (
+                          <DefaultAvatar
+                            email={String((owner || getSessionOwner())?.email || '').trim()}
+                            fallback={String((owner || getSessionOwner())?.name || '').trim()}
+                            alt=""
+                            className="nav__ownerGarageDefaultImg"
+                          />
+                        )}
                       </Link>
                     ) : null}
                     <button type="button" className="nav__action" onClick={logout}>

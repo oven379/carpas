@@ -6,18 +6,36 @@ export function getDadataSuggestToken() {
   return String(import.meta.env.VITE_DADATA_TOKEN || '').trim()
 }
 
+/** Типовые префиксы НП в хвосте `value` у DaData (без однобуквенных сокращений — меньше ложных срабатываний). */
+const NP_TAIL_RE =
+  /^(г|город|пгт|пос\.?|поселок|село|дер\.?|деревня|станица|аул|рп\.?|мкр|мкрн|нп|пст|жилрайон)\.?\s+(.+)$/i
+
 function suggestionToCityLabel(s) {
   const d = s?.data || {}
-  const city = String(d.city || d.settlement || '').trim()
+  let city = String(d.city || d.settlement || '').trim()
+  const rtf = String(d.region_type_full || '').toLowerCase()
+  if (
+    !city &&
+    (String(d.region_type || '').toLowerCase() === 'г' || rtf.includes('город'))
+  ) {
+    city = String(d.region || '').trim()
+  }
   if (city) return city
-  const v = String(s?.value || '').trim()
-  if (!v) return ''
-  const head = v.split(',')[0].trim()
+
+  const raw = String(s?.unrestricted_value || s?.value || '').trim()
+  if (!raw) return ''
+
+  const parts = raw.split(',').map((p) => p.trim()).filter(Boolean)
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const m = parts[i].match(NP_TAIL_RE)
+    if (m && String(m[2] || '').trim()) return String(m[2]).trim()
+  }
+  const head = parts[0] || raw
   return head.replace(/^г\.?\s+/i, '').trim() || head
 }
 
 /**
- * Подсказки только по городам РФ (гранулярность city…city).
+ * Подсказки по городам и НП РФ (гранулярность city…settlement в API адресов).
  * @param {string} query
  * @param {{ signal?: AbortSignal }} [opts]
  * @returns {Promise<string[]>}
@@ -41,8 +59,8 @@ export async function fetchDadataCitySuggestions(query, { signal } = {}) {
       query: q,
       count: 20,
       from_bound: { value: 'city' },
-      to_bound: { value: 'city' },
-      locations: [{ country_iso_code: 'RU' }],
+      to_bound: { value: 'settlement' },
+      /* Не передаём locations: в связке с гранулярностью city…settlement у части ключей DaData отдаёт пустой список. Оставляем только РФ по полю data.country_iso_code ниже. */
     }),
   })
 
@@ -68,6 +86,8 @@ export async function fetchDadataCitySuggestions(query, { signal } = {}) {
   const labels = []
   const seen = new Set()
   for (const s of suggestions) {
+    const iso = String(s?.data?.country_iso_code || '').trim().toUpperCase()
+    if (iso && iso !== 'RU') continue
     const label = suggestionToCityLabel(s)
     const key = label.toLowerCase()
     if (!label || seen.has(key)) continue

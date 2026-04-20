@@ -84,7 +84,10 @@ class PublicShowcaseController extends Controller
         $limit = min(24, max(1, (int) $request->query('limit', 12)));
 
         $cars = Car::query()
-            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->whereHas(
+                'detailing',
+                fn ($q) => $q->where('is_personal', false)->whereNotNull('verification_approved_at'),
+            )
             ->with('detailing')
             ->orderByDesc('updated_at')
             ->limit(400)
@@ -127,7 +130,10 @@ class PublicShowcaseController extends Controller
         $limit = min(20, max(1, (int) $request->query('limit', 6)));
 
         $cars = Car::query()
-            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->whereHas(
+                'detailing',
+                fn ($q) => $q->where('is_personal', false)->whereNotNull('verification_approved_at'),
+            )
             ->with('owner')
             ->orderByDesc('updated_at')
             ->limit($limit)
@@ -162,6 +168,8 @@ class PublicShowcaseController extends Controller
             if (! $owner || (int) $d->owner_id !== (int) $owner->id) {
                 abort(404);
             }
+        } elseif ($d->verification_approved_at === null) {
+            abort(404);
         }
 
         $cars = Car::query()->where('detailing_id', $d->id)->get();

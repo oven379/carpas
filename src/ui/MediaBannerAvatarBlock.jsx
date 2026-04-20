@@ -47,6 +47,9 @@ export function MediaThumbRemoveButton({ shape, onRemove, 'aria-label': ariaLabe
  */
 export default function MediaBannerAvatarBlock({
   variant = 'garage',
+  /** Для плейсхолдера без фото: буква из почты, иначе из fallback */
+  placeholderEmail = '',
+  placeholderFallback = '',
   title = '',
   bannerLabel = 'Баннер',
   avatarLabel = 'Аватар',
@@ -128,7 +131,12 @@ export default function MediaBannerAvatarBlock({
                 <img alt={`Превью: ${avatarLabel}`} src={avatarSrc} />
               ) : (
                 <>
-                  <DefaultAvatar alt="" className="garageSettings__thumbPlaceholderAvatar" />
+                  <DefaultAvatar
+                    email={placeholderEmail}
+                    fallback={placeholderFallback}
+                    alt=""
+                    className="garageSettings__thumbPlaceholderAvatar"
+                  />
                   <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--onPlaceholder">
                     <span className="garageSettings__thumbEmptyPrimary">{avatarEmptyHint}</span>
                   </span>

@@ -18,6 +18,9 @@ class EnsureDetailing
         if ($u->is_personal) {
             abort(403, 'use_owner_token');
         }
+        if ($u->verification_approved_at === null) {
+            abort(403, 'detailing_pending_verification');
+        }
 
         return $next($request);
     }

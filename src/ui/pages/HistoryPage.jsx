@@ -1243,7 +1243,7 @@ export default function HistoryPage() {
                         className="eventCardServiceAvatar__img"
                       />
                     ) : (
-                      <DefaultAvatar alt="" className="eventCardServiceAvatar__img" />
+                      <DefaultAvatar fallback={serviceDetLabel} alt="" />
                     )}
                   </div>
                 </div>
@@ -1255,7 +1255,7 @@ export default function HistoryPage() {
                   const detBadgeInner = detForBadge?.logo ? (
                     <img alt="" src={resolvePublicMediaUrl(detForBadge.logo)} />
                   ) : (
-                    <DefaultAvatar alt="" />
+                    <DefaultAvatar fallback={detBadgeLabel} alt="" />
                   )
                   const detBadgeNode =
                     detBrandTarget?.kind === 'external' ? (

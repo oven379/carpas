@@ -68,10 +68,10 @@ export default function PartnerApplyPage() {
               </div>
               <ServiceHint scopeId="partner-apply-hint" variant="compact" label="Справка: стать партнёром">
                 <p className="serviceHint__panelText">
-                  Укажите название студии или СТО, контактное лицо, телефон, почту, город и адрес. После отправки откроется
-                  настройка страницы для клиентов. Пароль для первого входа по почте студии — <strong>1111</strong> (его можно
-                  сменить в настройках или через «Забыли пароль?» на экране входа партнёра). Список услуг для клиентов заполняется
-                  на той же странице ниже.
+                  Укажите название студии или СТО, контактное лицо, телефон, почту, город и адрес. После отправки заявки мы
+                  свяжемся с вами для верификации аккаунта; когда доступ откроется, войдите на экране «Вход партнёра» (пароль по
+                  умолчанию для первого входа — <strong>1111</strong>, его можно сменить в настройках или через «Забыли пароль?»).
+                  Список услуг для клиентов настраивается уже в кабинете.
                 </p>
               </ServiceHint>
             </div>
@@ -157,15 +157,32 @@ export default function PartnerApplyPage() {
                         address: regAddress,
                         servicesOffered: [],
                       })
-                      setSessionDetailingId(String(res.detailing.id), res.token)
-                      invalidateRepo()
-                      nav('/detailing/landing', { replace: true })
+                      if (res?.pendingVerification) {
+                        alert(
+                          String(
+                            res.message ||
+                              'Заявка принята. Вскоре с вами свяжутся для верификации аккаунта. После подтверждения войдите на экране «Вход партнёра».',
+                          ),
+                        )
+                        nav('/auth/partner', { replace: true, state: partnerLoginLinkState })
+                        return
+                      }
+                      if (res?.token && res?.detailing?.id) {
+                        setSessionDetailingId(String(res.detailing.id), res.token)
+                        invalidateRepo()
+                        nav('/detailing/landing', { replace: true })
+                      }
                     } catch (e) {
                       const body = e?.body
                       const emailErr = body?.errors?.email
                       const first = Array.isArray(emailErr) ? emailErr[0] : emailErr
                       if (first === 'email_taken') alert(partnerApplyErrorMessage('email_taken'))
-                      else alert('Не удалось отправить заявку. Проверьте поля и подключение к интернету.')
+                      else {
+                        const phoneErr = body?.errors?.phone
+                        const phoneFirst = Array.isArray(phoneErr) ? phoneErr[0] : phoneErr
+                        if (phoneFirst) alert(String(phoneFirst))
+                        else alert('Не удалось отправить заявку. Проверьте поля и подключение к интернету.')
+                      }
                     }
                   }}
                 >
@@ -176,7 +193,6 @@ export default function PartnerApplyPage() {
                 <Link className="link" to="/auth/partner">
                   Уже есть аккаунт — войти
                 </Link>
-                . Забыли пароль — на экране входа нажмите «Забыли пароль?» и укажите почту организации.
               </p>
             </div>
           </Card>

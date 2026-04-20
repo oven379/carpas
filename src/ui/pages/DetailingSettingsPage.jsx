@@ -351,6 +351,8 @@ export default function DetailingSettingsPage() {
             avatarUrl={draft.logo}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, cover: url }))}
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, logo: url }))}
+            placeholderEmail={String(detailing?.email || '').trim()}
+            placeholderFallback={String(draft.name || detailing.name || '').trim()}
             avatarEmptyHint="Нажмите для загрузки"
             bannerEmptyHint="Нажмите — широкое фото: фасад, зал или работа"
             avatarRemoveLabel="Убрать логотип"

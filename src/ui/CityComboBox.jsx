@@ -35,6 +35,10 @@ export function CityComboBox({
       return
     }
 
+    /* Иначе ComboBox фильтрует старый список по новому вводу и до ответа DaData список пустой. */
+    setRemote([])
+    setRemoteMatchQuery('')
+
     const id = ++reqId.current
     const ac = new AbortController()
     const t = window.setTimeout(() => {

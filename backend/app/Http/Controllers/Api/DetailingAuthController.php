@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\AccountPhoneUniqueness;
 use App\Http\Support\ApiResources;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\ServiceOfferedCatalog;
@@ -35,6 +36,8 @@ class DetailingAuthController extends Controller
             throw ValidationException::withMessages(['email' => 'email_taken']);
         }
 
+        AccountPhoneUniqueness::assertUniqueAcrossAccounts(trim($data['phone']));
+
         $pwd = trim((string) ($data['password'] ?? ''));
         if ($pwd === '') {
             $pwd = '1111';
@@ -57,14 +60,15 @@ class DetailingAuthController extends Controller
             'services_offered' => $split['det'],
             'maintenance_services_offered' => $split['maint'],
             'profile_completed' => false,
+            'verification_approved_at' => null,
             'is_personal' => false,
         ]);
 
-        $token = $d->createToken('detailing')->plainTextToken;
-
         return response()->json([
-            'detailing' => ApiResources::detailing($d),
-            'token' => $token,
+            'detailing' => ApiResources::detailing($d->fresh()),
+            'token' => null,
+            'pendingVerification' => true,
+            'message' => 'Заявка принята. Вскоре с вами свяжутся по указанным контактам для верификации аккаунта. После подтверждения можно будет войти на экране «Вход партнёра».',
         ]);
     }
 
@@ -85,6 +89,14 @@ class DetailingAuthController extends Controller
         }
         if (!Hash::check($data['password'], $d->password)) {
             return response()->json(['ok' => false, 'reason' => 'bad_password'], 401);
+        }
+
+        if ($d->verification_approved_at === null) {
+            return response()->json([
+                'ok' => false,
+                'reason' => 'pending_verification',
+                'message' => 'Аккаунт ещё на проверке. Мы свяжемся с вами для верификации; после подтверждения вход станет доступен.',
+            ], 422);
         }
 
         $token = $d->createToken('detailing')->plainTextToken;
@@ -187,7 +199,9 @@ class DetailingAuthController extends Controller
             $d->contact_name = TextFormat::mbUcfirst((string) $patch['contactName']);
         }
         if (array_key_exists('phone', $patch)) {
-            $d->phone = trim((string) $patch['phone']);
+            $nextPhone = trim((string) $patch['phone']);
+            AccountPhoneUniqueness::assertUniqueAcrossAccounts($nextPhone, null, (int) $d->id);
+            $d->phone = $nextPhone;
         }
         if (array_key_exists('city', $patch)) {
             $d->city = trim((string) $patch['city']);

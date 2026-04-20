@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\AccountPhoneUniqueness;
 use App\Http\Support\ApiResources;
 use App\Http\Support\GarageSlug;
 use App\Http\Support\MediaStorage;
@@ -48,6 +49,8 @@ class OwnerAuthController extends Controller
         if (Owner::query()->where('email', $email)->exists()) {
             throw ValidationException::withMessages(['email' => self::DUPLICATE_OWNER_EMAIL]);
         }
+
+        AccountPhoneUniqueness::assertUniqueAcrossAccounts(trim((string) $data['phone']));
 
         try {
             $owner = Owner::query()->create([
@@ -203,6 +206,7 @@ class OwnerAuthController extends Controller
             if (mb_strlen($p) > 80) {
                 $p = mb_substr($p, 0, 80);
             }
+            AccountPhoneUniqueness::assertUniqueAcrossAccounts($p, (int) $o->id, null);
             $o->phone = $p;
         }
         if (array_key_exists('garageCity', $patch)) {

@@ -3,8 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\ApiResources;
+use App\Models\Detailing;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
 class AdminSupportController extends Controller
@@ -96,6 +101,102 @@ class AdminSupportController extends Controller
             'admin_replied_at' => $t->admin_replied_at?->toIso8601String(),
             'user_read_at' => $t->user_read_at?->toIso8601String(),
             'created_at' => $t->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Партнёрские аккаунты (не личный кабинет), ожидающие подтверждения после регистрации.
+     */
+    public function partnerRegistrationsPending()
+    {
+        $rows = Detailing::query()
+            ->where('is_personal', false)
+            ->whereNull('verification_approved_at')
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+
+        return response()->json($rows->map(fn (Detailing $d) => $this->serializePendingPartner($d))->values());
+    }
+
+    public function approvePartnerRegistration(int $id)
+    {
+        $d = Detailing::query()
+            ->where('id', $id)
+            ->where('is_personal', false)
+            ->whereNull('verification_approved_at')
+            ->first();
+
+        if (! $d) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Заявка не найдена или уже обработана.',
+            ], 404);
+        }
+
+        $plain = bin2hex(random_bytes(8));
+        $email = (string) $d->email;
+
+        $body = implode("\n", [
+            'Здравствуйте!',
+            '',
+            'Спасибо за регистрацию в КарПас как партнёр (детейлинг / СТО).',
+            'Ваш аккаунт подтверждён — можно входить в кабинет и настраивать публичную страницу.',
+            '',
+            'Логин (почта): '.$email,
+            'Пароль: '.$plain,
+            '',
+            'Рекомендуем после первого входа сменить пароль в настройках.',
+            '',
+            'С уважением,',
+            'КарПас',
+        ]);
+
+        try {
+            Mail::raw($body, function ($message) use ($email) {
+                $message->to($email)->subject('КарПас: аккаунт партнёра подтверждён');
+            });
+        } catch (\Throwable $e) {
+            Log::error('admin_partner_registration_approve_mail_failed', [
+                'detailing_id' => $d->id,
+                'email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'ok' => false,
+                'message' => 'Не удалось отправить письмо. Партнёр не подтверждён — проверьте настройки почты на сервере и повторите попытку.',
+            ], 503);
+        }
+
+        $d->password = Hash::make($plain);
+        $d->verification_approved_at = now();
+        $d->save();
+        $d->tokens()->delete();
+        $d->refresh();
+
+        return response()->json([
+            'ok' => true,
+            'detailing' => ApiResources::detailing($d),
+        ]);
+    }
+
+    protected function serializePendingPartner(Detailing $d): array
+    {
+        $det = is_array($d->services_offered) ? $d->services_offered : [];
+        $maint = is_array($d->maintenance_services_offered) ? $d->maintenance_services_offered : [];
+
+        return [
+            'id' => (string) $d->id,
+            'name' => $d->name,
+            'email' => $d->email,
+            'contactName' => $d->contact_name ?? '',
+            'phone' => $d->phone ?? '',
+            'city' => $d->city ?? '',
+            'address' => $d->address ?? '',
+            'description' => $d->description ?? '',
+            'createdAt' => optional($d->created_at)->toISOString(),
+            'servicesOfferedCount' => count(array_merge($det, $maint)),
         ];
     }
 }
