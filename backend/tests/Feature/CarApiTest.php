@@ -19,19 +19,23 @@ class CarApiTest extends FeatureTestCase
 
         $this->getJson('/api/cars')->assertOk()->assertJsonCount(0);
 
-        $create = $this->postJson('/api/cars', [
+        $create = $this->postJson('/api/cars/for-visit', [
+            'vin' => '1HGBH41JXMN109186',
+        ]);
+        $create->assertOk();
+        $create->assertJsonPath('vin', '1HGBH41JXMN109186');
+        $id = $create->json('id');
+        $this->assertNotEmpty($id);
+
+        $this->getJson('/api/cars')->assertOk()->assertJsonCount(1);
+
+        $this->patchJson("/api/cars/{$id}", [
             'make' => 'Toyota',
             'model' => 'Camry',
             'year' => 2020,
             'plate' => 'A123BC',
             'plateRegion' => '77',
-        ]);
-        $create->assertOk();
-        $create->assertJsonPath('make', 'Toyota');
-        $id = $create->json('id');
-        $this->assertNotEmpty($id);
-
-        $this->getJson('/api/cars')->assertOk()->assertJsonCount(1);
+        ])->assertOk();
 
         $this->getJson("/api/cars/{$id}")
             ->assertOk()
@@ -53,21 +57,34 @@ class CarApiTest extends FeatureTestCase
         $d = $this->detailing();
         Sanctum::actingAs($d);
 
-        $create = $this->postJson('/api/cars', [
-            'make' => 'Lada',
-            'model' => 'Vesta',
-            'year' => '',
-            'vin' => '',
-            'plate' => '',
-            'plateRegion' => '',
+        $create = $this->postJson('/api/cars/for-visit', [
+            'vin' => '2HGBH41JXMN109186',
         ]);
         $create->assertOk();
         $create->assertJsonPath('year', null);
         $id = $create->json('id');
+        $this->patchJson("/api/cars/{$id}", [
+            'make' => 'Lada',
+            'model' => 'Vesta',
+            'year' => '',
+            'plate' => '',
+            'plateRegion' => '',
+        ])->assertOk()->assertJsonPath('year', null);
         $this->assertDatabaseHas('cars', [
             'id' => $id,
             'year' => null,
         ]);
+    }
+
+    public function test_studio_cannot_use_legacy_post_cars(): void
+    {
+        $d = $this->detailing();
+        Sanctum::actingAs($d);
+
+        $this->postJson('/api/cars', [
+            'make' => 'X',
+            'vin' => '3HGBH41JXMN109186',
+        ])->assertStatus(422);
     }
 
     public function test_cannot_access_other_detailing_car(): void

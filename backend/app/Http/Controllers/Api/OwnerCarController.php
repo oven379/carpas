@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\CarGarageMerge;
 use App\Http\Support\CarMileageSync;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\Detailing;
@@ -144,7 +146,9 @@ class OwnerCarController extends Controller
             $car->save();
         }
 
-        return response()->json(ApiResources::car($car->load('owner')));
+        CarGarageMerge::mergeOrphanStudioCarsByVinIntoOwnerCar($car->fresh());
+
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 
     public function update(Request $request, $id)
@@ -239,6 +243,51 @@ class OwnerCarController extends Controller
         );
 
         $car->save();
+
+        CarGarageMerge::mergeOrphanStudioCarsByVinIntoOwnerCar($car->fresh());
+
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
+    }
+
+    /**
+     * Передача автомобиля другому владельцу по email (аккаунт есть — сразу в гараж; нет — ожидание до регистрации).
+     */
+    public function transfer(Request $request, $id)
+    {
+        /** @var Owner $owner */
+        $owner = $request->user();
+        $car = Car::query()->where('owner_id', $owner->id)->findOrFail($id);
+
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+        $targetEmail = mb_strtolower(trim($data['email']));
+        if ($targetEmail === mb_strtolower(trim((string) $owner->email))) {
+            throw ValidationException::withMessages([
+                'email' => ['Укажите почту другого получателя.'],
+            ]);
+        }
+
+        $target = Owner::query()->where('email', $targetEmail)->first();
+        if ($target) {
+            $this->assertOwnerCarIdentifiersUnique(
+                $target,
+                (string) ($car->vin ?? ''),
+                (string) ($car->plate ?? ''),
+                (string) ($car->plate_region ?? ''),
+                null,
+            );
+            $pd = $this->personalDetailing($target);
+            $car->owner_id = $target->id;
+            $car->detailing_id = $pd->id;
+            $car->pending_owner_email = null;
+            $car->save();
+        } else {
+            $car->owner_id = null;
+            $car->pending_owner_email = $targetEmail;
+            $car->detailing_id = PendingOwnerPool::detailingId();
+            $car->save();
+        }
 
         return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }

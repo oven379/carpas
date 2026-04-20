@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\DetailingCarAccess;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
@@ -18,7 +19,7 @@ class CarShareController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
 
         $share = CarShare::query()->create([
             'car_id' => $carId,
@@ -34,7 +35,7 @@ class CarShareController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
 
         $shares = CarShare::query()
             ->where('car_id', $carId)
@@ -49,7 +50,7 @@ class CarShareController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $share = CarShare::query()->where('token', $token)->firstOrFail();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($share->car_id);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $share->car_id);
         $share->revoked_at = now();
         $share->save();
 

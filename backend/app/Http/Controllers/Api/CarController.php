@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
 use App\Http\Support\CarMileageSync;
+use App\Http\Support\DetailingCarAccess;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
+use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
@@ -20,8 +22,15 @@ class CarController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $cars = Car::query()
+        $fromEvents = CarEvent::query()
             ->where('detailing_id', $d->id)
+            ->where('source', 'service')
+            ->distinct()
+            ->pluck('car_id');
+        $fromHome = Car::query()->where('detailing_id', $d->id)->pluck('id');
+        $ids = $fromEvents->merge($fromHome)->unique()->filter()->values();
+        $cars = Car::query()
+            ->whereIn('id', $ids)
             ->with('owner')
             ->orderByDesc('updated_at')
             ->get();
@@ -33,15 +42,82 @@ class CarController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $car = Car::query()->where('detailing_id', $d->id)->with('owner')->findOrFail($id);
+        $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $id);
 
         return response()->json(ApiResources::car($car));
+    }
+
+    /**
+     * Минимальная карточка под визит по VIN (кабинет партнёра). Не «добавление авто владельцем».
+     */
+    public function storeForVisit(Request $request)
+    {
+        /** @var Detailing $d */
+        $d = $request->user();
+        if ($d->is_personal) {
+            throw ValidationException::withMessages([
+                'vin' => ['Этот метод только для кабинета партнёра.'],
+            ]);
+        }
+
+        $data = $request->validate([
+            'vin' => ['required', 'string'],
+            'clientName' => ['nullable', 'string'],
+            'clientPhone' => ['nullable', 'string'],
+            'clientEmail' => ['nullable', 'string'],
+        ]);
+
+        $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));
+        if ($msg = VinPlateValidator::vinError($vin)) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if (strlen($vin) !== 17) {
+            throw ValidationException::withMessages(['vin' => ['Укажите полный VIN из 17 символов.']]);
+        }
+
+        $existing = Car::query()
+            ->where('detailing_id', $d->id)
+            ->whereRaw('lower(trim(vin)) = ?', [mb_strtolower($vin, 'UTF-8')])
+            ->first();
+        if ($existing) {
+            return response()->json(ApiResources::car($existing->load('owner')));
+        }
+
+        $car = Car::query()->create([
+            'detailing_id' => $d->id,
+            'owner_id' => null,
+            'vin' => $vin,
+            'plate' => '',
+            'plate_region' => '',
+            'make' => '',
+            'model' => '',
+            'year' => null,
+            'mileage_km' => 0,
+            'price_rub' => 0,
+            'color' => '',
+            'city' => '',
+            'hero' => null,
+            'segment' => 'mass',
+            'seller' => ['id' => (string) $d->id, 'name' => $d->name, 'type' => 'service'],
+            'owner_phone' => '',
+            'client_name' => trim((string) ($data['clientName'] ?? '')),
+            'client_phone' => trim((string) ($data['clientPhone'] ?? '')),
+            'client_email' => trim((string) ($data['clientEmail'] ?? '')),
+            'wash_photos' => [],
+        ]);
+
+        return response()->json(ApiResources::car($car->load('owner')));
     }
 
     public function store(Request $request)
     {
         /** @var Detailing $d */
         $d = $request->user();
+        if (! $d->is_personal) {
+            throw ValidationException::withMessages([
+                'vin' => ['Создание карточки через этот запрос отключено: добавьте визит по VIN (эндпоинт /cars/for-visit).'],
+            ]);
+        }
 
         $data = $request->validate([
             'vin' => ['nullable', 'string'],
@@ -226,6 +302,9 @@ class CarController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $car = Car::query()->where('detailing_id', $d->id)->findOrFail($id);
+        if (! DetailingCarAccess::detailingOwnsCarRow($d, $car)) {
+            abort(404);
+        }
         $car->delete();
 
         return response()->json(['ok' => true]);

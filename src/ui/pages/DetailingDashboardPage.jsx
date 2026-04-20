@@ -226,6 +226,7 @@ export default function DetailingDashboardPage() {
   const [externalLinkHits, setExternalLinkHits] = useState([])
   const [linkEvidenceByCarId, setLinkEvidenceByCarId] = useState({})
   const [linkBusyId, setLinkBusyId] = useState(null)
+  const [visitStartBusy, setVisitStartBusy] = useState(false)
 
   useEffect(() => {
     if (!detailingId || mode !== 'detailing') {
@@ -364,52 +365,79 @@ export default function DetailingDashboardPage() {
           <div className="detSearchCard__actions">
               <ServiceHint scopeId="detailing-dash-empty-hint" variant="compact" label="Справка: список авто">
               <p className="serviceHint__panelText">
-                Список авто на обслуживании. Поиск по VIN (в т.ч. частично), по госномеру РФ (как на табличке, с регионом) и по
-                телефону — номер из карточки клиента, поле «телефон владельца» на авто или телефон владельца в личном кабинете.
-                Полный VIN, 10+ цифр телефона или полный госномер: если карточка есть в сети, но не у вас, появится блок «Добавить
-                к нам» для авто из личного гаража.
+                Список авто на обслуживании. Поиск по VIN (в т.ч. частично), по госномеру РФ и по телефону клиента. Новый визит без
+                карточки в вашем списке: введите в поле поиска полный VIN (17 символов) и нажмите «+ Визит» — карточка создаётся
+                автоматически только под визит. Если авто уже в списке, откроется форма визита по найденной строке.
               </p>
             </ServiceHint>
             <button
               type="button"
               className="btn detSearchCard__addBtn"
               data-variant="primary"
+              disabled={visitStartBusy}
+              aria-busy={visitStartBusy || undefined}
               onClick={() => {
-                const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
-                if (quickTargetCar) {
-                  nav(`/car/${quickTargetCar.id}/history?new=1&from=${encodeURIComponent(from)}`)
-                  return
-                }
-                const strictLookup =
-                  searchIntent.kind === 'vin' ||
-                  searchIntent.kind === 'phone' ||
-                  searchIntent.kind === 'plate'
-                if (strictLookup && externalLinkHits.length > 0) {
-                  document
-                    .getElementById('det-external-link-card')
-                    ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-                  return
-                }
-                const qp = new URLSearchParams()
-                const vinResolved = resolveVinFromDashboardQuery(q)
-                if (vinResolved) qp.set('vin', vinResolved)
-                if (searchIntent.kind === 'plate') {
-                  qp.set('plate', searchIntent.plate)
-                  qp.set('plateRegion', searchIntent.plateRegion)
-                }
-                if (searchIntent.kind === 'phone') {
-                  qp.set('clientPhone', searchIntent.raw)
-                }
-                const qs = qp.toString()
-                nav(`/create${qs ? `?${qs}` : ''}`)
+                void (async () => {
+                  const from = `/detailing${q ? `?q=${encodeURIComponent(q)}` : ''}`
+                  if (quickTargetCar) {
+                    nav(`/car/${quickTargetCar.id}/history?new=1&from=${encodeURIComponent(from)}`)
+                    return
+                  }
+                  const strictLookup =
+                    searchIntent.kind === 'vin' ||
+                    searchIntent.kind === 'phone' ||
+                    searchIntent.kind === 'plate'
+                  if (strictLookup && externalLinkHits.length > 0) {
+                    document
+                      .getElementById('det-external-link-card')
+                      ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                    return
+                  }
+                  const vinResolved = resolveVinFromDashboardQuery(q)
+                  const vinErr = vinResolved ? describeVinValidationError(vinResolved) : null
+                  if (!vinResolved || vinErr) {
+                    alert(
+                      vinErr ||
+                        'Чтобы начать новый визит без карточки в списке, введите в поиск полный VIN (17 символов латиницы и цифр). Если авто уже у вас — найдите его в списке или уточните запрос.',
+                    )
+                    return
+                  }
+                  if (!r.ensureCarForVisit) {
+                    alert('Действие недоступно в этой сборке.')
+                    return
+                  }
+                  setVisitStartBusy(true)
+                  try {
+                    const clientPhone =
+                      searchIntent.kind === 'phone' && String(searchIntent.raw || '').trim()
+                        ? String(searchIntent.raw).trim()
+                        : ''
+                    const created = await r.ensureCarForVisit({
+                      vin: vinResolved,
+                      clientName: '',
+                      clientPhone,
+                      clientEmail: '',
+                    })
+                    if (!created?.id) {
+                      alert('Не удалось подготовить визит.')
+                      return
+                    }
+                    invalidateRepo()
+                    nav(`/car/${created.id}/history?new=1&from=${encodeURIComponent(from)}`)
+                  } catch (e) {
+                    alert(formatHttpErrorMessage(e, 'Не удалось начать визит. Проверьте VIN и вход в кабинет.'))
+                  } finally {
+                    setVisitStartBusy(false)
+                  }
+                })()
               }}
               title={
                 quickTargetCar
-                  ? 'Открыть создание визита для найденного авто'
-                  : 'Создать новое авто (VIN, госномер или телефон из поиска подставятся, если распознаны)'
+                  ? 'Открыть форму нового визита для найденного авто'
+                  : 'Новый визит: нужен полный VIN в строке поиска (17 символов), если карточки ещё нет в вашем списке'
               }
             >
-              {quickTargetCar ? '+ Визит' : '+ Добавить авто'}
+              {visitStartBusy ? 'Подождите…' : '+ Визит'}
             </button>
           </div>
         </div>

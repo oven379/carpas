@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CareTips;
 use App\Http\Support\CarMileageSync;
+use App\Http\Support\DetailingCarAccess;
 use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Detailing;
@@ -79,7 +80,7 @@ class CarEventController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
 
         $events = CarEvent::query()
             ->with('detailing')
@@ -116,7 +117,7 @@ class CarEventController extends Controller
             ? $request->boolean('allowPublicPhotos')
             : true;
 
-        $car = Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
         $incomingKm = isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0;
         if (! $isDraft) {
             $min = CarMileageSync::minAllowedMileageForVisit($car, null);
@@ -169,7 +170,7 @@ class CarEventController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $evt = CarEvent::query()->where('detailing_id', $d->id)->findOrFail($id);
-        Car::query()->where('detailing_id', $d->id)->findOrFail($evt->car_id);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $evt->car_id);
 
         $wasDraft = (bool) $evt->is_draft;
 
@@ -211,7 +212,7 @@ class CarEventController extends Controller
             $this->assertFinalizeDraftPayload($evt);
         }
 
-        $car = Car::query()->where('detailing_id', $d->id)->findOrFail($evt->car_id);
+        $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $evt->car_id);
         $willBeFinalized = ! $evt->is_draft;
         if ($willBeFinalized) {
             $min = CarMileageSync::minAllowedMileageForVisit($car, (int) $evt->id);
@@ -239,7 +240,7 @@ class CarEventController extends Controller
         $this->assertDetailingMayMutateServiceVisit($d, $evt);
         $carId = (int) $evt->car_id;
         $evt->delete();
-        $car = Car::query()->where('detailing_id', $d->id)->find($carId);
+        $car = Car::query()->find($carId);
         if ($car) {
             CarMileageSync::refreshCarMileageAfterEventDeleted($car->fresh());
         }

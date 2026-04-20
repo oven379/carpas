@@ -6,7 +6,7 @@ import { SupportButton } from '../support/SupportHub.jsx'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
-import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
+import OwnerGarageAddCarHint from '../OwnerGarageAddCarHint.jsx'
 import {
   displayRuPhone,
   fmtDate,
@@ -440,6 +440,11 @@ export default function OwnerGaragePage() {
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
 
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
+  const pendingClaimsCount = useMemo(
+    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
+    [ownerClaims],
+  )
+  const createFromGarageHref = '/create?from=%2Fgarage'
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel =
@@ -471,7 +476,7 @@ export default function OwnerGaragePage() {
             </div>
             <div className="row gap wrap detPublicSetupBanner__actions">
               {limits.canAddManual ? (
-                <Link className="btn" data-variant="primary" to="/create">
+                <Link className="btn" data-variant="primary" to={createFromGarageHref}>
                   Добавить автомобиль
                 </Link>
               ) : (
@@ -792,7 +797,7 @@ export default function OwnerGaragePage() {
           <div className="garageProfileCard__footerCallRow">
             <div className="garageProfileCard__addCarBlock">
               {limits.canAddManual ? (
-                <Link className="btn garageProfileCard__addCarBtn" data-variant="primary" to="/create">
+                <Link className="btn garageProfileCard__addCarBtn" data-variant="primary" to={createFromGarageHref}>
                   Добавить авто
                 </Link>
               ) : (
@@ -827,22 +832,14 @@ export default function OwnerGaragePage() {
               Автомобили в гараже:
             </h2>
             <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/garage" cars={cars} enrichedRows={enrichedRows} />
-            <OwnerVinClaimSection
-              ownerEmail={ownerEmail}
-              cars={cars}
-              ownerClaims={ownerClaims}
-              sectionId="garage-vin-claim"
-              style={{ marginTop: 16 }}
-            />
           </>
-        ) : (
-          <OwnerVinClaimSection
-            ownerEmail={ownerEmail}
-            cars={cars}
-            ownerClaims={ownerClaims}
-            sectionId="garage-vin-claim"
-          />
-        )}
+        ) : null}
+        <OwnerGarageAddCarHint
+          canAddManual={limits.canAddManual}
+          fromPath="/garage"
+          pendingClaimsCount={pendingClaimsCount}
+          style={{ marginTop: cars.length ? 16 : 0 }}
+        />
       </div>
     </div>
   )
