@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Link, Navigate, useLocation } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, Navigate } from 'react-router-dom'
 import { useRepo } from '../useRepo.js'
 import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
 import { HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
@@ -8,24 +8,15 @@ import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
-import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
+import OwnerGarageAddCarHint from '../OwnerGarageAddCarHint.jsx'
 
 export default function MarketPage() {
   const r = useRepo()
-  const loc = useLocation()
   const { owner, mode, loading } = useDetailing()
   const ownerEmail = String(owner?.email || '').trim()
   const [cars, setCars] = useState([])
   const [ownerClaims, setOwnerClaims] = useState([])
   const [listBusy, setListBusy] = useState(true)
-
-  useEffect(() => {
-    if (loc.hash !== '#owner-vin-claim') return
-    const t = window.setTimeout(() => {
-      document.getElementById('owner-vin-claim')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-    return () => window.clearTimeout(t)
-  }, [loc.hash, loc.pathname])
 
   useEffect(() => {
     let cancelled = false
@@ -75,6 +66,10 @@ export default function MarketPage() {
   }
 
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
+  const pendingClaimsCount = useMemo(
+    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
+    [ownerClaims],
+  )
 
   return (
     <div className="container">
@@ -88,8 +83,7 @@ export default function MarketPage() {
               <ServiceHint scopeId="market-cars-hint" variant="compact" label="Справка: список авто">
                 <p className="serviceHint__panelText">
                   Здесь карточки и история по каждой машине. Профиль, баннер и витрина по ссылке <span className="mono">/g/…</span> — в
-                  разделе «Гараж». Бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} авто в гараже; лимит не распространяется на кабинет
-                  партнёра: детейлинг может вести любое число карточек у себя.
+                  разделе «Гараж». Бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} авто в гараже.
                 </p>
               </ServiceHint>
             </div>
@@ -98,7 +92,7 @@ export default function MarketPage() {
                 В гараж
               </Link>
               {limits.canAddManual ? (
-                <Link className="btn" data-variant="primary" to="/create">
+                <Link className="btn" data-variant="primary" to="/create?from=%2Fcars">
                   + Добавить авто
                 </Link>
               ) : (
@@ -116,12 +110,12 @@ export default function MarketPage() {
             {!limits.canAddManual ? (
               <p className="muted small" style={{ marginTop: 10, lineHeight: 1.55, maxWidth: '64ch' }}>
                 В личном гараже бесплатно — до {OWNER_MAX_FREE_GARAGE_CARS} автомобилей. Нажмите «+ Добавить авто», чтобы отправить
-                заявку на Premium и расширить гараж. У детейлинга в его кабинете ограничений на число карточек клиентов нет.
+                заявку на Premium и расширить гараж.
               </p>
             ) : null}
           </div>
           <div className="muted" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-            <span>Карточки, история визитов, заявка по VIN</span>
+            <span>Карточки и история визитов</span>
             <span aria-hidden="true"> · </span>
             <HeroCoverStat
               kind="car"
@@ -138,12 +132,10 @@ export default function MarketPage() {
 
       <OwnerGarageCarList ownerEmail={ownerEmail} fromPath="/cars" cars={cars} />
 
-      <OwnerVinClaimSection
-        ownerEmail={ownerEmail}
-        sectionId="owner-vin-claim"
-        cars={cars}
-        ownerClaims={ownerClaims}
-        evidenceMode="full"
+      <OwnerGarageAddCarHint
+        canAddManual={limits.canAddManual}
+        fromPath="/cars"
+        pendingClaimsCount={pendingClaimsCount}
         style={{ marginTop: 12 }}
       />
     </div>

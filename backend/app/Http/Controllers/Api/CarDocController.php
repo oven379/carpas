@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\DetailingCarAccess;
 use App\Http\Support\MediaStorage;
 use App\Models\Car;
 use App\Models\CarDoc;
@@ -16,7 +17,7 @@ class CarDocController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
 
         $docs = CarDoc::query()
             ->where('detailing_id', $d->id)
@@ -31,7 +32,7 @@ class CarDocController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        Car::query()->where('detailing_id', $d->id)->findOrFail($carId);
+        DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
 
         $data = $request->validate([
             'title' => ['nullable', 'string'],

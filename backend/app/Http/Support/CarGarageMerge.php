@@ -5,6 +5,7 @@ namespace App\Http\Support;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
+use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Support\Facades\DB;
 
@@ -101,5 +102,41 @@ final class CarGarageMerge
             CarEvent::query()->where('car_id', $car->id)->update(['detailing_id' => $studioDetailingId]);
             CarDoc::query()->where('car_id', $car->id)->update(['detailing_id' => $studioDetailingId]);
         });
+    }
+
+    /**
+     * Владелец завёл авто в гараже: переносим визиты/документы с «сервисных» карточек по тому же VIN (без владельца) на личную карточку.
+     * detailing_id у визитов не трогаем — остаётся кабинет сервиса.
+     */
+    public static function mergeOrphanStudioCarsByVinIntoOwnerCar(Car $target): void
+    {
+        $vin = mb_strtolower(trim((string) $target->vin), 'UTF-8');
+        if ($vin === '') {
+            return;
+        }
+
+        $personalDetailingIds = Detailing::query()
+            ->where('is_personal', true)
+            ->pluck('id');
+
+        $poolId = PendingOwnerPool::detailingId();
+
+        $donors = Car::query()
+            ->whereRaw('lower(trim(vin)) = ?', [$vin])
+            ->where('id', '!=', $target->id)
+            ->whereNull('owner_id')
+            ->whereNotIn('detailing_id', $personalDetailingIds)
+            ->where('detailing_id', '!=', $poolId)
+            ->get();
+
+        foreach ($donors as $dup) {
+            DB::transaction(function () use ($dup, $target) {
+                CarEvent::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
+                CarDoc::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
+                self::fillEmptyScalars($target, $dup);
+                Car::withoutEvents(static fn () => $dup->delete());
+            });
+            $target->refresh();
+        }
     }
 }

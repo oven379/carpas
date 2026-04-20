@@ -6,7 +6,7 @@ import { SupportButton } from '../support/SupportHub.jsx'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
-import OwnerVinClaimSection from '../OwnerVinClaimSection.jsx'
+import OwnerGarageAddCarHint from '../OwnerGarageAddCarHint.jsx'
 import { displayRuPhone, fmtDate, fmtKm, normalizeHttpUrl } from '../../lib/format.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
@@ -266,6 +266,11 @@ export default function OwnerGaragePage() {
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
 
   const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
+  const pendingClaimsCount = useMemo(
+    () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
+    [ownerClaims],
+  )
+  const createFromGarageHref = '/create?from=%2Fgarage'
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel =
@@ -300,7 +305,7 @@ export default function OwnerGaragePage() {
             </div>
             <div className="row gap wrap detPublicSetupBanner__actions">
               {limits.canAddManual ? (
-                <Link className="btn" data-variant="primary" to="/create">
+                <Link className="btn" data-variant="primary" to={createFromGarageHref}>
                   Добавить автомобиль
                 </Link>
               ) : (
@@ -489,7 +494,7 @@ export default function OwnerGaragePage() {
             </div>
             <div className="garageDash__tabsActions row gap wrap align-center">
               {limits.canAddManual ? (
-                <Link className="btn" data-variant="primary" to="/create">
+                <Link className="btn" data-variant="primary" to={createFromGarageHref}>
                   + Добавить авто
                 </Link>
               ) : (
@@ -559,45 +564,26 @@ export default function OwnerGaragePage() {
       <div className={cars.length > 0 ? 'garagePage__listSection' : 'garagePage__onboarding'}>
         {!cars.length ? (
           <>
-            <OwnerVinClaimSection
-              ownerEmail={ownerEmail}
-              cars={cars}
-              ownerClaims={ownerClaims}
+            <OwnerGarageAddCarHint
+              canAddManual={limits.canAddManual}
+              fromPath="/garage"
+              pendingClaimsCount={pendingClaimsCount}
               sectionId="garage-vin-claim"
             />
             <div className="garagePage__emptyCta">
               <p className="garagePage__emptyCtaText">
-                Добавьте свой автомобиль в гараж, чтобы начать историю Вашего автомобиля
+                Добавьте свой автомобиль в гараж, чтобы начать историю вашего автомобиля
               </p>
-              <div className="garagePage__emptyCtaBtnWrap">
-                {limits.canAddManual ? (
-                  <Link className="btn" data-variant="primary" to="/create">
-                    + Добавить авто
-                  </Link>
-                ) : (
-                  <SupportButton
-                    type="button"
-                    className="btn"
-                    data-variant="primary"
-                    title={addCarPremiumBtnLabel}
-                    aria-label={addCarPremiumBtnLabel}
-                    openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
-                  >
-                    + Добавить авто
-                  </SupportButton>
-                )}
-              </div>
             </div>
           </>
-        ) : (
-          <OwnerVinClaimSection
-            ownerEmail={ownerEmail}
-            cars={cars}
-            ownerClaims={ownerClaims}
-            sectionId="garage-vin-claim"
+        ) : pendingClaimsCount > 0 ? (
+          <OwnerGarageAddCarHint
+            canAddManual={limits.canAddManual}
+            fromPath="/garage"
+            pendingClaimsCount={pendingClaimsCount}
             style={{ marginTop: 16 }}
           />
-        )}
+        ) : null}
       </div>
     </div>
   )

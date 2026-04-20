@@ -14,6 +14,7 @@ class Car extends Model
     protected $fillable = [
         'detailing_id',
         'owner_id',
+        'pending_owner_email',
         'vin',
         'plate',
         'plate_region',

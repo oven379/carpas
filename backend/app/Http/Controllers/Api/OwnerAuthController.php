@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\GarageSlug;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\PendingOwnerCars;
 use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use App\Models\Owner;
@@ -73,6 +74,8 @@ class OwnerAuthController extends Controller
             'profile_completed' => true,
         ]);
 
+        PendingOwnerCars::claimForOwner($owner);
+
         $token = $owner->createToken('owner')->plainTextToken;
 
         return response()->json([
@@ -99,6 +102,8 @@ class OwnerAuthController extends Controller
         }
 
         $token = $owner->createToken('owner')->plainTextToken;
+
+        PendingOwnerCars::claimForOwner($owner);
 
         return response()->json([
             'ok' => true,

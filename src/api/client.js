@@ -288,7 +288,20 @@ export function createApiClient() {
     async createCar(_scope, input) {
       flushCoalescedRequests()
       if (oTok()) return await req('owners/cars', { method: 'POST', body: input, token: oTok() })
-      return await req('cars', { method: 'POST', body: input, token: dTok() })
+      throw new Error('createCar доступен только владельцу; для визита в кабинете партнёра используйте ensureCarForVisit.')
+    },
+
+    /** Кабинет партнёра: минимальная карточка по VIN для нового визита (POST /cars/for-visit). */
+    async ensureCarForVisit(body) {
+      flushCoalescedRequests()
+      return await req('cars/for-visit', { method: 'POST', body, token: dTok() })
+    },
+
+    /** Владелец: передать автомобиль другому пользователю по email. */
+    async transferOwnerCar(carId, body) {
+      flushCoalescedRequests()
+      const id = encodeURIComponent(String(carId ?? '').trim())
+      return await req(`owners/cars/${id}/transfer`, { method: 'POST', body, token: oTok() })
     },
 
     async updateCar(id, patch) {

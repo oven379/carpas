@@ -101,6 +101,8 @@ export default function CarEditPage({ mode }) {
   const r = useRepo()
   const { owner, mode: who, loading, detailingId } = useDetailing()
   const deleteCarLock = useAsyncActionLock()
+  const [transferEmail, setTransferEmail] = useState('')
+  const [transferBusy, setTransferBusy] = useState(false)
   const [car, setCar] = useState(null)
   const [carEditEvents, setCarEditEvents] = useState([])
   const [carReady, setCarReady] = useState(mode !== 'edit')
@@ -330,6 +332,10 @@ export default function CarEditPage({ mode }) {
     )
   }
 
+  if (mode === 'create' && who === 'detailing') {
+    return <Navigate to="/detailing" replace />
+  }
+
   if (mode === 'edit') {
     if (!carReady) {
       return (
@@ -374,8 +380,7 @@ export default function CarEditPage({ mode }) {
           <Card className="card pad">
             <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '64ch' }}>
               {limitDetail} Чтобы добавить третье и следующие авто, оформите Premium — откроется заявка в поддержку; в админ-панели она
-              будет помечена как запрос на Premium-аккаунт. Это ограничение только для личного гаража владельца: в кабинете детейлинга
-              партнёр может заводить неограниченное число карточек клиентов.
+              будет помечена как запрос на Premium-аккаунт.
             </p>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
               <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
@@ -680,6 +685,72 @@ export default function CarEditPage({ mode }) {
           <p className="muted small carEditCoverBlock__photoHints">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
         </div>
 
+        {mode === 'edit' && who === 'owner' && id ? (
+          <div className="topBorder" style={{ marginTop: 16, paddingTop: 16 }}>
+            <div className="cardTitle" style={{ margin: '0 0 8px' }}>
+              Передать автомобиль
+            </div>
+            <p className="muted small" style={{ margin: '0 0 10px', lineHeight: 1.55, maxWidth: '64ch' }}>
+              Укажите почту аккаунта КарПас получателя. Если пользователь с такой почтой уже есть, машина сразу появится в его
+              гараже. Если аккаунта ещё нет, карточка будет зарезервирована за этой почтой до регистрации.
+            </p>
+            <div className="row gap wrap" style={{ alignItems: 'center' }}>
+              <Input
+                className="input"
+                type="email"
+                autoComplete="email"
+                placeholder="получатель@example.com"
+                value={transferEmail}
+                style={{ minWidth: 220, flex: '1 1 220px' }}
+                onChange={(e) => setTransferEmail(e.target.value)}
+              />
+              <Button
+                className="btn"
+                variant="ghost"
+                type="button"
+                disabled={transferBusy || !String(transferEmail || '').includes('@')}
+                aria-busy={transferBusy || undefined}
+                onClick={() => {
+                  void (async () => {
+                    const em = String(transferEmail || '')
+                      .trim()
+                      .toLowerCase()
+                    if (!em || !em.includes('@')) {
+                      alert('Введите корректный email получателя.')
+                      return
+                    }
+                    if (
+                      !confirm(
+                        'Передать автомобиль этому пользователю? Вы потеряете доступ к карточке в своём гараже (история останется у получателя и у сервисов, где были визиты).',
+                      )
+                    ) {
+                      return
+                    }
+                    if (!r.transferOwnerCar) {
+                      alert('Действие недоступно в этой сборке.')
+                      return
+                    }
+                    setTransferBusy(true)
+                    try {
+                      await r.transferOwnerCar(id, { email: em })
+                      invalidateRepo()
+                      refreshAllClientData()
+                      const list = await r.listCars({ ownerEmail: owner?.email || '' })
+                      nav(getPathAfterCarRemovedFromScope(list, { mode: 'owner', owner, detailingId }), { replace: true })
+                    } catch (e) {
+                      alert(formatHttpErrorMessage(e, 'Не удалось передать автомобиль.'))
+                    } finally {
+                      setTransferBusy(false)
+                    }
+                  })()
+                }}
+              >
+                {transferBusy ? 'Отправка…' : 'Передать'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         <div className="row spread gap topBorder carEditFormActions">
           <div className="row gap wrap carEditFormActions__buttons">
             <Button
@@ -770,20 +841,6 @@ export default function CarEditPage({ mode }) {
                       }
                     }
 
-                    if (who === 'owner' && vin && r.findCarsByVin) {
-                      try {
-                        const matches = await r.findCarsByVin(vin)
-                        if (Array.isArray(matches) && matches.length) {
-                          const msg =
-                            'Похоже, авто с таким VIN уже есть в сервисе.\n\n' +
-                            'Это может быть дубль. Обычно в этом случае лучше запросить доступ по VIN и пройти модерацию у детейлинга.\n\n' +
-                            'Создать новую карточку всё равно?'
-                          if (!confirm(msg)) return
-                        }
-                      } catch {
-                        /* ignore duplicate check */
-                      }
-                    }
                     const plateKey =
                       draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
                     if (who === 'owner' && plateKey && r.findCarsByPlate) {
@@ -803,9 +860,7 @@ export default function CarEditPage({ mode }) {
                     }
                     const created = await r.createCar(null, draft)
                     if (!created?.id) {
-                      alert(
-                        'Не удалось создать карточку: возможен лимит гаража или временный сбой. Дополнительные авто — через поиск по VIN.',
-                      )
+                      alert('Не удалось создать карточку: возможен лимит гаража или временный сбой.')
                       return
                     }
                     if (who === 'owner') refreshAllClientData()

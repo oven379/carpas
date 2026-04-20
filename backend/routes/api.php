@@ -89,6 +89,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
 
     Route::get('/owners/cars/{id}', [OwnerCarController::class, 'show']);
     Route::patch('/owners/cars/{id}', [OwnerCarController::class, 'update']);
+    Route::post('/owners/cars/{id}/transfer', [OwnerCarController::class, 'transfer']);
     Route::delete('/owners/cars/{id}', [OwnerCarController::class, 'destroy']);
 
     Route::post('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'store']);
@@ -109,6 +110,7 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);
 
     Route::get('/cars', [CarController::class, 'index']);
+    Route::post('/cars/for-visit', [CarController::class, 'storeForVisit']);
     Route::post('/cars', [CarController::class, 'store']);
     Route::get('/cars/{id}', [CarController::class, 'show']);
     Route::patch('/cars/{id}', [CarController::class, 'update']);
