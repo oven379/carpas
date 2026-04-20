@@ -292,6 +292,17 @@ button.nav__action {
   min-height: 100svh;
 }
 
+/* Главная для гостей: ровно один экран, без вертикального скролла layout */
+.main--homeLux {
+  padding: 0;
+  flex: none;
+  box-sizing: border-box;
+  height: 100svh;
+  max-height: 100svh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* Лого в шапке презентационного /about (тёмный фон) */
 .etherealHeroHeader .brandLogoLockup__tagline {
   color: rgba(255, 255, 255, 0.72);

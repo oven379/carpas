@@ -10,6 +10,10 @@ import DevHud from './ui/DevHud.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 
+function homeLuxSoloPath(pathname) {
+  return pathname === '/' && !isAuthed()
+}
+
 const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
 const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
@@ -91,7 +95,8 @@ export default function App() {
   const aboutLandingChrome = loc.pathname === '/about'
   const adminSolo =
     loc.pathname === '/admin/379team' || loc.pathname === '/admin/panel'
-  const soloChrome = aboutLandingChrome || adminSolo
+  const homeLuxChrome = homeLuxSoloPath(loc.pathname)
+  const soloChrome = aboutLandingChrome || adminSolo || homeLuxChrome
 
   return (
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
@@ -99,7 +104,7 @@ export default function App() {
       <SyncClientDataOnTabReturn />
       {soloChrome ? null : <TopNav />}
       <main
-        className={`main${aboutLandingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}`}
+        className={`main${aboutLandingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${homeLuxChrome ? ' main--homeLux' : ''}`}
       >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />

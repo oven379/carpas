@@ -5,10 +5,10 @@ export const SITE_NAME = 'КарПас'
 export const SEO_DEFAULT_OG_IMAGE_PATH = '/logo.svg'
 
 /** Маркетинговая главная (маршрут /) */
-export const HOME_TITLE = 'КарПас — история обслуживания авто'
+export const HOME_TITLE = 'Carpass — история вашего авто'
 
 export const HOME_META_DESCRIPTION =
-  'История обслуживания авто в телефоне: визиты детейлинга и СТО, записи владельца, фото и документы. КарПас — владельцам и сервисам по России.'
+  'Carpass: история обслуживания и ухода за автомобилем в одном месте — для владельцев, детейлинга и СТО.'
 
 /** Кабинет и служебные маршруты: короткое описание без обещаний «гарантии». */
 export const CABINET_META_DESCRIPTION =

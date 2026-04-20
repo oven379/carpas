@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   /* Единая тёмная тема сервиса: не следуем prefers-color-scheme (веб и Capacitor). */
   --text: #9ca3af;
