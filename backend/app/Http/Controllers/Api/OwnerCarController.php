@@ -240,43 +240,87 @@ class OwnerCarController extends Controller
     }
 
     /**
-     * Передача автомобиля другому владельцу по email (аккаунт есть — сразу в гараж; нет — ожидание до регистрации).
+     * Шаг добавления авто в гараж: по полному VIN — нет / «сирота» / уже у владельца.
      */
-    public function transfer(Request $request, $id)
+    public function lookupForAdd(Request $request)
+    {
+        $vin = VinPlateValidator::normalizeVin(trim((string) $request->query('vin', '')));
+        if ($msg = VinPlateValidator::vinError($vin)) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if (strlen($vin) !== 17) {
+            throw ValidationException::withMessages(['vin' => ['Укажите полный VIN из 17 символов.']]);
+        }
+
+        $car = Car::query()
+            ->whereRaw('lower(trim(vin)) = ?', [mb_strtolower($vin, 'UTF-8')])
+            ->with('owner')
+            ->first();
+
+        if (! $car instanceof Car) {
+            return response()->json(['status' => 'not_found']);
+        }
+        if ($car->owner_id !== null) {
+            return response()->json(['status' => 'claimed']);
+        }
+        if ($car->detailing_id !== null && PendingOwnerPool::isPoolDetailingId((int) $car->detailing_id)) {
+            return response()->json(['status' => 'claimed']);
+        }
+
+        return response()->json([
+            'status' => 'orphan',
+            'car' => ApiResources::car($car),
+        ]);
+    }
+
+    /**
+     * Привязать существующую «сетевую» карточку без владельца к текущему аккаунту.
+     */
+    public function attachExisting(Request $request)
+    {
+        /** @var Owner $owner */
+        $owner = $request->user();
+        $data = $request->validate(['carId' => ['required', 'integer']]);
+        $car = Car::query()->with('owner')->findOrFail($data['carId']);
+
+        if ($car->owner_id !== null) {
+            throw ValidationException::withMessages(['carId' => ['Автомобиль уже привязан к владельцу.']]);
+        }
+        if ($car->detailing_id !== null && PendingOwnerPool::isPoolDetailingId((int) $car->detailing_id)) {
+            throw ValidationException::withMessages(['carId' => ['Карточка зарезервирована до регистрации получателя.']]);
+        }
+
+        $this->assertOwnerCarIdentifiersUnique(
+            $owner,
+            (string) ($car->vin ?? ''),
+            (string) ($car->plate ?? ''),
+            (string) ($car->plate_region ?? ''),
+            null,
+        );
+
+        $car->owner_id = $owner->id;
+        $car->detailing_id = null;
+        $car->pending_owner_email = null;
+        $car->save();
+
+        CarGarageMerge::mergeOrphanStudioCarsByVinIntoOwnerCar($car->fresh());
+        CarGarageMerge::mergeOwnerPersonalDuplicatesIntoCar($car->fresh(), $owner);
+
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
+    }
+
+    /**
+     * Убрать авто из гаража владельца: карточка остаётся в сети без владельца, другой пользователь сможет привязать её снова.
+     */
+    public function unlink(Request $request, $id)
     {
         /** @var Owner $owner */
         $owner = $request->user();
         $car = Car::query()->where('owner_id', $owner->id)->findOrFail($id);
 
-        $data = $request->validate([
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-        $targetEmail = mb_strtolower(trim($data['email']));
-        if ($targetEmail === mb_strtolower(trim((string) $owner->email))) {
-            throw ValidationException::withMessages([
-                'email' => ['Укажите почту другого получателя.'],
-            ]);
-        }
-
-        $target = Owner::query()->where('email', $targetEmail)->first();
-        if ($target) {
-            $this->assertOwnerCarIdentifiersUnique(
-                $target,
-                (string) ($car->vin ?? ''),
-                (string) ($car->plate ?? ''),
-                (string) ($car->plate_region ?? ''),
-                null,
-            );
-            $car->owner_id = $target->id;
-            $car->detailing_id = null;
-            $car->pending_owner_email = null;
-            $car->save();
-        } else {
-            $car->owner_id = null;
-            $car->pending_owner_email = $targetEmail;
-            $car->detailing_id = PendingOwnerPool::detailingId();
-            $car->save();
-        }
+        $car->owner_id = null;
+        $car->pending_owner_email = null;
+        $car->save();
 
         return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }

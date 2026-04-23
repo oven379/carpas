@@ -75,6 +75,8 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/cars/search-by-vin', [CarSearchController::class, 'byVin']);
     Route::get('/owners/cars/search-for-claim', [CarSearchController::class, 'forOwnerClaim']);
     Route::get('/owners/cars/search-by-plate', [CarSearchController::class, 'byPlate']);
+    Route::get('/owners/cars/lookup-for-add', [OwnerCarController::class, 'lookupForAdd']);
+    Route::post('/owners/cars/attach-existing', [OwnerCarController::class, 'attachExisting']);
 
     Route::delete('/owners/docs/{id}', [OwnerCarDocController::class, 'destroyByDocId']);
 
@@ -92,7 +94,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
 
     Route::get('/owners/cars/{id}', [OwnerCarController::class, 'show']);
     Route::patch('/owners/cars/{id}', [OwnerCarController::class, 'update']);
-    Route::post('/owners/cars/{id}/transfer', [OwnerCarController::class, 'transfer']);
+    Route::post('/owners/cars/{id}/unlink', [OwnerCarController::class, 'unlink']);
     Route::delete('/owners/cars/{id}', [OwnerCarController::class, 'destroy']);
 
     Route::post('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'store']);

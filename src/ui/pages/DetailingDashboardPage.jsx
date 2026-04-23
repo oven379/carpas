@@ -28,7 +28,7 @@ import {
   normVin,
   parsePlateFull,
 } from '../../lib/format.js'
-import { formatHttpErrorMessage } from '../../api/http.js'
+import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { useDetailing } from '../useDetailing.js'
 
@@ -399,8 +399,9 @@ export default function DetailingDashboardPage() {
               <p className="serviceHint__panelText">
                 Список авто на обслуживании. Поиск по VIN (в т.ч. частично), по госномеру РФ как на белой табличке (с регионом) и по
                 телефону клиента — в карточке авто, в поле «телефон владельца» или в профиле владельца в КарПас. Новый визит без
-                карточки в вашем списке: введите в поле поиска полный VIN (17 символов) и нажмите «+ Визит» — карточка создаётся
-                автоматически только под визит. Если авто уже в списке, откроется форма визита по найденной строке. Если по полному
+                карточки в вашем списке: введите в поле поиска полный VIN (17 символов) и нажмите «+ Визит» — если такой VIN уже есть в
+                сети КарПас, откроется визит по общей карточке; если нет — откроется форма полного создания карточки (как у владельца),
+                без привязки к клиенту-владельцу. Если авто уже в списке, откроется форма визита по найденной строке. Если по полному
                 VIN, по номеру из 10 цифр или по полному госномеру найдётся авто в сервисе, но не в вашем списке, появится блок «Добавить
                 к нам» для машин из личного гаража владельца.
               </p>
@@ -460,6 +461,19 @@ export default function DetailingDashboardPage() {
                     invalidateRepo()
                     nav(`/car/${created.id}/history?new=1&from=${encodeURIComponent(from)}`)
                   } catch (e) {
+                    if (e instanceof HttpError && e.status === 404 && e.body && e.body.code === 'car_not_found') {
+                      invalidateRepo()
+                      nav(`/create?from=${encodeURIComponent(from)}&vin=${encodeURIComponent(vinResolved)}`)
+                      return
+                    }
+                    if (e instanceof HttpError && e.status === 422 && e.body && e.body.code === 'car_in_owner_garage') {
+                      alert(
+                        typeof e.body.message === 'string' && e.body.message.trim()
+                          ? e.body.message.trim()
+                          : 'Этот VIN уже в личном гараже владельца в КарПас — новую карточку по нему не создаём.',
+                      )
+                      return
+                    }
                     alert(formatHttpErrorMessage(e, 'Не удалось начать визит. Проверьте VIN и вход в кабинет.'))
                   } finally {
                     setVisitStartBusy(false)

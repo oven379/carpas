@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
 import {
@@ -101,8 +102,12 @@ export default function CarEditPage({ mode }) {
   const r = useRepo()
   const { owner, mode: who, loading, detailingId } = useDetailing()
   const deleteCarLock = useAsyncActionLock()
-  const [transferEmail, setTransferEmail] = useState('')
-  const [transferBusy, setTransferBusy] = useState(false)
+  const [ownerAddVinPhase, setOwnerAddVinPhase] = useState('form')
+  const [ownerOrphanModalOpen, setOwnerOrphanModalOpen] = useState(false)
+  const [ownerOrphanCar, setOwnerOrphanCar] = useState(null)
+  const [ownerVinLookupBusy, setOwnerVinLookupBusy] = useState(false)
+  const [ownerAttachBusy, setOwnerAttachBusy] = useState(false)
+  const ownerUrlVinLookupDone = useRef(false)
   const [car, setCar] = useState(null)
   const [carEditEvents, setCarEditEvents] = useState([])
   const [carReady, setCarReady] = useState(mode !== 'edit')
@@ -324,16 +329,58 @@ export default function CarEditPage({ mode }) {
     }
   }, [mode, who, owner?.email, owner?.isPremium, r, r._version])
 
+  useEffect(() => {
+    if (mode === 'create' && who === 'owner') {
+      setOwnerAddVinPhase('vin')
+      setOwnerOrphanModalOpen(false)
+      setOwnerOrphanCar(null)
+    } else {
+      setOwnerAddVinPhase('form')
+    }
+  }, [mode, who])
+
+  useEffect(() => {
+    if (mode !== 'create' || who !== 'owner') return
+    const urlVin = normVin(String(sp.get('vin') || '').trim())
+    if (urlVin.length !== 17) return
+    if (ownerUrlVinLookupDone.current) return
+    ownerUrlVinLookupDone.current = true
+    let cancelled = false
+    ;(async () => {
+      setOwnerVinLookupBusy(true)
+      try {
+        if (!r.lookupOwnerCarForAdd) {
+          ownerUrlVinLookupDone.current = false
+          return
+        }
+        const res = await r.lookupOwnerCarForAdd(urlVin)
+        if (cancelled) return
+        if (res.status === 'not_found') {
+          setOwnerAddVinPhase('form')
+        } else if (res.status === 'orphan') {
+          setOwnerOrphanCar(res.car)
+          setOwnerOrphanModalOpen(true)
+        } else {
+          alert('По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.')
+        }
+      } catch (e) {
+        ownerUrlVinLookupDone.current = false
+        if (!cancelled) alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
+      } finally {
+        if (!cancelled) setOwnerVinLookupBusy(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [mode, who, sp, r])
+
   if ((who === 'owner' || who === 'detailing') && loading) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
         <PageLoadSpinner />
       </div>
     )
-  }
-
-  if (mode === 'create' && who === 'detailing') {
-    return <Navigate to="/detailing" replace />
   }
 
   if (mode === 'edit') {
@@ -401,6 +448,8 @@ export default function CarEditPage({ mode }) {
   const listReturn = resolveCarListReturnPath(who, fromParam)
   const carCardHref = mode === 'edit' && id ? `/car/${id}${buildCarFromQuery(fromParam)}` : listReturn
 
+  const ownerVinFieldsLocked = mode === 'create' && who === 'owner' && ownerAddVinPhase === 'vin'
+
   const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
   /** Редактирование: «Отмена» и назад — на страницу автомобиля (с ?from=). Создание — в гараж/список или кабинет. */
   const backNavTo = mode === 'edit' && id ? carCardHref : listReturn
@@ -413,8 +462,89 @@ export default function CarEditPage({ mode }) {
           : 'К автомобилям'
         : 'К кабинету'
 
+  const ownerOrphanModalEl =
+    ownerOrphanModalOpen && ownerOrphanCar && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            className="supportModalOverlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="car-edit-orphan-title"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) {
+                setOwnerOrphanModalOpen(false)
+                nav(listReturn, { replace: true })
+              }
+            }}
+          >
+            <div className="supportModal card pad">
+              <h2 id="car-edit-orphan-title" className="h2 supportModal__title">
+                Автомобиль уже в системе
+              </h2>
+              <p className="supportModal__lead" style={{ marginTop: 12, lineHeight: 1.55 }}>
+                По этому VIN есть карточка без владельца в КарПас (её вели сервисы). Вы можете добавить её в свой гараж — данные и
+                история визитов сохранятся.
+              </p>
+              <p className="muted small mono" style={{ marginTop: 10 }}>
+                VIN: {ownerOrphanCar.vin || '—'}
+              </p>
+              <p className="muted small" style={{ marginTop: 6 }}>
+                {[ownerOrphanCar.make, ownerOrphanCar.model].filter(Boolean).join(' ') || '—'}
+                {ownerOrphanCar.year ? `, ${ownerOrphanCar.year} г.` : ''}
+              </p>
+              <div className="supportModal__submitRow" style={{ marginTop: 18 }}>
+                <Button
+                  className="btn"
+                  variant="primary"
+                  type="button"
+                  disabled={ownerAttachBusy}
+                  aria-busy={ownerAttachBusy || undefined}
+                  onClick={() =>
+                    void (async () => {
+                      if (!r.attachOwnerExistingCar) {
+                        alert('Действие недоступно в этой сборке.')
+                        return
+                      }
+                      setOwnerAttachBusy(true)
+                      try {
+                        await r.attachOwnerExistingCar({ carId: ownerOrphanCar.id })
+                        invalidateRepo()
+                        refreshAllClientData()
+                        setOwnerOrphanModalOpen(false)
+                        nav(listReturn, { replace: true })
+                      } catch (e) {
+                        alert(formatHttpErrorMessage(e, 'Не удалось добавить автомобиль в гараж.'))
+                      } finally {
+                        setOwnerAttachBusy(false)
+                      }
+                    })()
+                  }
+                >
+                  {ownerAttachBusy ? 'Добавление…' : 'Добавить в гараж'}
+                </Button>
+                <Button
+                  className="btn"
+                  variant="ghost"
+                  type="button"
+                  disabled={ownerAttachBusy}
+                  onClick={() => {
+                    setOwnerOrphanModalOpen(false)
+                    nav(listReturn, { replace: true })
+                  }}
+                >
+                  Отмена
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null
+
   return (
-    <div className="container">
+    <>
+      {ownerOrphanModalEl}
+      <div className="container">
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
@@ -449,6 +579,7 @@ export default function CarEditPage({ mode }) {
               value={draft.make}
               options={makes}
               placeholder="Начните вводить… (например: Volkswagen)"
+              disabled={ownerVinFieldsLocked}
               onChange={(v) => setDraft((d) => ({ ...d, make: v }))}
               onBlur={() => addCustomMake(draft.make)}
             />
@@ -458,7 +589,7 @@ export default function CarEditPage({ mode }) {
               value={draft.model}
               options={modelOptions}
               placeholder={draft.make ? 'Выберите из списка или введите вручную…' : 'Сначала выберите марку'}
-              disabled={!draft.make}
+              disabled={!draft.make || ownerVinFieldsLocked}
               onChange={(v) => setDraft((d) => ({ ...d, model: v }))}
               emptyText={draft.make ? 'Нет моделей для этой марки' : 'Сначала выберите марку'}
               onBlur={() => addCustomModel(draft.make, draft.model)}
@@ -470,6 +601,7 @@ export default function CarEditPage({ mode }) {
               options={years}
               placeholder="Например: 2020"
               maxItems={30}
+              disabled={ownerVinFieldsLocked}
               onChange={(v) =>
                 setDraft((d) => ({ ...d, year: normDigits(v, { max: 2100, maxLen: 4 }) }))
               }
@@ -493,6 +625,7 @@ export default function CarEditPage({ mode }) {
               inputMode="numeric"
               value={draft.mileageKm}
               maxLength={7}
+              disabled={ownerVinFieldsLocked}
               onChange={(e) =>
                 setDraft((d) => {
                   const nextRaw = normDigits(e.target.value, { maxLen: 7 })
@@ -510,6 +643,7 @@ export default function CarEditPage({ mode }) {
               options={COLOR_SUGGESTIONS}
               placeholder="Например: Чёрный (можно свой вариант)"
               maxItems={20}
+              disabled={ownerVinFieldsLocked}
               onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
             />
           </Field>
@@ -539,6 +673,51 @@ export default function CarEditPage({ mode }) {
               onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />
+            {ownerVinFieldsLocked ? (
+              <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
+                <Button
+                  className="btn"
+                  variant="primary"
+                  type="button"
+                  disabled={ownerVinLookupBusy}
+                  aria-busy={ownerVinLookupBusy || undefined}
+                  onClick={() =>
+                    void (async () => {
+                      const v = normVin(draft.vin)
+                      const vinErr = describeVinValidationError(v)
+                      if (vinErr || v.length !== 17) {
+                        alert(vinErr || 'Введите полный VIN из 17 символов.')
+                        return
+                      }
+                      setOwnerVinLookupBusy(true)
+                      try {
+                        if (!r.lookupOwnerCarForAdd) {
+                          alert('Действие недоступно в этой сборке.')
+                          return
+                        }
+                        const res = await r.lookupOwnerCarForAdd(v)
+                        if (res.status === 'not_found') {
+                          setOwnerAddVinPhase('form')
+                        } else if (res.status === 'orphan') {
+                          setOwnerOrphanCar(res.car)
+                          setOwnerOrphanModalOpen(true)
+                        } else {
+                          alert(
+                            'По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.',
+                          )
+                        }
+                      } catch (e) {
+                        alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
+                      } finally {
+                        setOwnerVinLookupBusy(false)
+                      }
+                    })()
+                  }
+                >
+                  {ownerVinLookupBusy ? 'Проверка…' : 'Проверить VIN и продолжить'}
+                </Button>
+              </div>
+            ) : null}
           </div>
           <div className="field serviceHint__fieldWrap" id="car-edit-plate-hint">
             <div className="field__top serviceHint__fieldTop">
@@ -562,6 +741,7 @@ export default function CarEditPage({ mode }) {
                 spellCheck={false}
                 value={draft.plate}
                 maxLength={6}
+                disabled={ownerVinFieldsLocked}
                 title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы (можно вводить кириллицей)"
                 onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBaseUi(e.target.value) }))}
                 placeholder="А777АА"
@@ -571,6 +751,7 @@ export default function CarEditPage({ mode }) {
                 inputMode="numeric"
                 value={draft.plateRegion}
                 maxLength={3}
+                disabled={ownerVinFieldsLocked}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
                 }
@@ -586,7 +767,12 @@ export default function CarEditPage({ mode }) {
                 <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
               </ServiceHint>
             </div>
-            <CityComboBox value={draft.city} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, city: v }))} />
+            <CityComboBox
+              value={draft.city}
+              maxItems={20}
+              disabled={ownerVinFieldsLocked}
+              onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
+            />
           </div>
           {who !== 'owner' ? (
             <>
@@ -636,7 +822,14 @@ export default function CarEditPage({ mode }) {
           ) : null}
         </div>
 
-        <div className="topBorder carEditCoverBlock">
+        <div
+          className="topBorder carEditCoverBlock"
+          style={
+            ownerVinFieldsLocked
+              ? { pointerEvents: 'none', opacity: 0.55 }
+              : undefined
+          }
+        >
           <div
             className="field field--full serviceHint__fieldWrap carEditCoverBlock__field"
             id="car-edit-hero-hint"
@@ -686,78 +879,12 @@ export default function CarEditPage({ mode }) {
           <p className="muted small carEditCoverBlock__photoHints">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
         </div>
 
-        {mode === 'edit' && who === 'owner' && id ? (
-          <div className="topBorder" style={{ marginTop: 16, paddingTop: 16 }}>
-            <div className="cardTitle" style={{ margin: '0 0 8px' }}>
-              Передать автомобиль
-            </div>
-            <p className="muted small" style={{ margin: '0 0 10px', lineHeight: 1.55, maxWidth: '64ch' }}>
-              Укажите почту аккаунта КарПас получателя. Если пользователь с такой почтой уже есть, машина сразу появится в его
-              гараже. Если аккаунта ещё нет, карточка будет зарезервирована за этой почтой до регистрации.
-            </p>
-            <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <Input
-                className="input"
-                type="email"
-                autoComplete="email"
-                placeholder="получатель@example.com"
-                value={transferEmail}
-                style={{ minWidth: 220, flex: '1 1 220px' }}
-                onChange={(e) => setTransferEmail(e.target.value)}
-              />
-              <Button
-                className="btn"
-                variant="ghost"
-                type="button"
-                disabled={transferBusy || !String(transferEmail || '').includes('@')}
-                aria-busy={transferBusy || undefined}
-                onClick={() => {
-                  void (async () => {
-                    const em = String(transferEmail || '')
-                      .trim()
-                      .toLowerCase()
-                    if (!em || !em.includes('@')) {
-                      alert('Введите корректный email получателя.')
-                      return
-                    }
-                    if (
-                      !confirm(
-                        'Передать автомобиль этому пользователю? Вы потеряете доступ к карточке в своём гараже (история останется у получателя и у сервисов, где были визиты).',
-                      )
-                    ) {
-                      return
-                    }
-                    if (!r.transferOwnerCar) {
-                      alert('Действие недоступно в этой сборке.')
-                      return
-                    }
-                    setTransferBusy(true)
-                    try {
-                      await r.transferOwnerCar(id, { email: em })
-                      invalidateRepo()
-                      refreshAllClientData()
-                      const list = await r.listCars({ ownerEmail: owner?.email || '' })
-                      nav(getPathAfterCarRemovedFromScope(list, { mode: 'owner', owner, detailingId }), { replace: true })
-                    } catch (e) {
-                      alert(formatHttpErrorMessage(e, 'Не удалось передать автомобиль.'))
-                    } finally {
-                      setTransferBusy(false)
-                    }
-                  })()
-                }}
-              >
-                {transferBusy ? 'Отправка…' : 'Передать'}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-
         <div className="row spread gap topBorder carEditFormActions">
           <div className="row gap wrap carEditFormActions__buttons">
             <Button
               className="btn"
               variant="primary"
-              disabled={saveBusy}
+              disabled={saveBusy || ownerVinFieldsLocked}
               aria-busy={saveBusy || undefined}
               onClick={async () => {
                 if (saveInFlightRef.current) return
@@ -765,6 +892,14 @@ export default function CarEditPage({ mode }) {
                 const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
                 if (vinErr) {
                   alert(vinErr)
+                  return
+                }
+                if (mode === 'create' && who === 'owner' && normVin(draft.vin).length !== 17) {
+                  alert('Укажите полный VIN из 17 символов.')
+                  return
+                }
+                if (mode === 'create' && who === 'detailing' && normVin(draft.vin).length !== 17) {
+                  alert('Для новой карточки в кабинете партнёра нужен полный VIN из 17 символов.')
                   return
                 }
                 if (plateErr) {
@@ -896,7 +1031,7 @@ export default function CarEditPage({ mode }) {
                     const msg =
                       'Удалить авто навсегда?\n\n' +
                       'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
-                      'Альтернатива: вместо удаления вы можете передать авто другому хозяину.'
+                      'Альтернатива: в настройках карточки можно отвязать авто от гаража — карточка останется в сети без владельца.'
                     if (!confirm(msg)) return
                     try {
                       await r.deleteCar(id)
@@ -917,6 +1052,7 @@ export default function CarEditPage({ mode }) {
         </div>
       </Card>
     </div>
+    </>
   )
 }
 

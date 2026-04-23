@@ -9,6 +9,7 @@ use App\Http\Support\CarMileageSync;
 use App\Http\Support\DetailingCarAccess;
 use App\Http\Support\OwnerGarageCar;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\CarEvent;
@@ -49,7 +50,7 @@ class CarController extends Controller
     }
 
     /**
-     * Минимальная карточка под визит по VIN (кабинет партнёра). Не «добавление авто владельцем».
+     * Подготовка визита по VIN: вернуть существующую карточку в сети или 404 (клиент открывает полную форму создания).
      */
     public function storeForVisit(Request $request)
     {
@@ -71,29 +72,112 @@ class CarController extends Controller
             throw ValidationException::withMessages(['vin' => ['Укажите полный VIN из 17 символов.']]);
         }
 
-        $existing = Car::query()
-            ->where('detailing_id', $d->id)
-            ->whereRaw('lower(trim(vin)) = ?', [mb_strtolower($vin, 'UTF-8')])
+        $vinKey = mb_strtolower($vin, 'UTF-8');
+        $poolId = PendingOwnerPool::detailingId();
+
+        $inOwnerGarageOnly = Car::query()
+            ->whereRaw('lower(trim(vin)) = ?', [$vinKey])
+            ->whereNotNull('owner_id')
+            ->whereNull('detailing_id')
+            ->exists();
+        if ($inOwnerGarageOnly) {
+            return response()->json([
+                'code' => 'car_in_owner_garage',
+                'message' => 'Этот VIN уже в личном гараже владельца в КарПас — новую карточку по нему не создаём. Клиент может пригласить вас из гаража или оформить заявку.',
+            ], 422);
+        }
+
+        $candidate = Car::query()
+            ->whereRaw('lower(trim(vin)) = ?', [$vinKey])
+            ->whereRaw('NOT(owner_id IS NOT NULL AND detailing_id IS NULL)')
+            ->where(function ($q) use ($poolId) {
+                $q->whereNull('detailing_id')
+                    ->orWhere('detailing_id', '!=', $poolId);
+            })
+            ->orderByRaw('CASE WHEN detailing_id = ? THEN 0 ELSE 1 END', [$d->id])
+            ->orderByDesc('updated_at')
             ->first();
-        if ($existing) {
-            return response()->json(ApiResources::car($existing->load('owner')));
+
+        if (! $candidate instanceof Car) {
+            return response()->json([
+                'code' => 'car_not_found',
+                'message' => 'Карточки с таким VIN в сети нет — создайте полную карточку вручную.',
+            ], 404);
+        }
+
+        return response()->json(ApiResources::car($candidate->load('owner')));
+    }
+
+    /**
+     * Полная карточка без владельца (как у владельца): в сети, другие партнёры смогут вести по ней визиты.
+     */
+    public function store(Request $request)
+    {
+        /** @var Detailing $d */
+        $d = $request->user();
+
+        $data = $request->validate([
+            'vin' => ['nullable', 'string'],
+            'plate' => ['nullable', 'string'],
+            'plateRegion' => ['nullable', 'string'],
+            'make' => ['nullable', 'string'],
+            'model' => ['nullable', 'string'],
+            'year' => ['nullable'],
+            'mileageKm' => ['nullable'],
+            'priceRub' => ['nullable'],
+            'color' => ['nullable', 'string'],
+            'city' => ['nullable', 'string'],
+            'hero' => ['nullable', 'string'],
+            'segment' => ['nullable', 'string'],
+            'clientName' => ['nullable', 'string'],
+            'clientPhone' => ['nullable', 'string'],
+            'clientEmail' => ['nullable', 'string'],
+        ]);
+
+        $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));
+        $plate = VinPlateValidator::normalizePlateBase(trim((string) ($data['plate'] ?? '')));
+        $region = VinPlateValidator::normalizePlateRegion(trim((string) ($data['plateRegion'] ?? '')));
+        if ($msg = VinPlateValidator::vinError($vin)) {
+            throw ValidationException::withMessages(['vin' => [$msg]]);
+        }
+        if (strlen($vin) !== 17) {
+            throw ValidationException::withMessages(['vin' => ['Укажите полный VIN из 17 символов.']]);
+        }
+        if ($msg = VinPlateValidator::ruPlatePairError($plate, $region)) {
+            throw ValidationException::withMessages(['plate' => [$msg]]);
+        }
+
+        $vinKey = mb_strtolower($vin, 'UTF-8');
+        $poolId = PendingOwnerPool::detailingId();
+        $dup = Car::query()
+            ->whereRaw('lower(trim(vin)) = ?', [$vinKey])
+            ->whereRaw('NOT(owner_id IS NOT NULL AND detailing_id IS NULL)')
+            ->where(function ($q) use ($poolId) {
+                $q->whereNull('detailing_id')
+                    ->orWhere('detailing_id', '!=', $poolId);
+            })
+            ->exists();
+        if ($dup) {
+            throw ValidationException::withMessages([
+                'vin' => ['Автомобиль с таким VIN уже есть в системе. Откройте существующую карточку или уточните VIN.'],
+            ]);
         }
 
         $car = Car::query()->create([
             'detailing_id' => $d->id,
             'owner_id' => null,
             'vin' => $vin,
-            'plate' => '',
-            'plate_region' => '',
-            'make' => '',
-            'model' => '',
-            'year' => null,
-            'mileage_km' => 0,
-            'price_rub' => 0,
-            'color' => '',
-            'city' => '',
+            'plate' => $plate,
+            'plate_region' => $region,
+            'make' => trim((string) ($data['make'] ?? '')),
+            'model' => trim((string) ($data['model'] ?? '')),
+            'year' => VinPlateValidator::normalizeOptionalYear($data['year'] ?? null),
+            'mileage_km' => isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0,
+            'price_rub' => isset($data['priceRub']) ? (int) $data['priceRub'] : 0,
+            'color' => trim((string) ($data['color'] ?? '')),
+            'city' => trim((string) ($data['city'] ?? '')),
             'hero' => null,
-            'segment' => 'mass',
+            'segment' => trim((string) ($data['segment'] ?? 'mass')) ?: 'mass',
             'seller' => ['id' => (string) $d->id, 'name' => $d->name, 'type' => 'service'],
             'owner_phone' => '',
             'client_name' => trim((string) ($data['clientName'] ?? '')),
@@ -102,21 +186,24 @@ class CarController extends Controller
             'wash_photos' => [],
         ]);
 
-        return response()->json(ApiResources::car($car->load('owner')));
-    }
+        if (array_key_exists('hero', $data) && is_string($data['hero']) && trim($data['hero']) !== '') {
+            $car->hero = MediaStorage::ingestScalar(
+                trim($data['hero']),
+                null,
+                'cars/'.$car->id,
+                'hero',
+            );
+            $car->save();
+        }
 
-    public function store(Request $request)
-    {
-        throw ValidationException::withMessages([
-            'vin' => ['Создание карточки через этот запрос отключено: добавьте визит по VIN (эндпоинт /cars/for-visit).'],
-        ]);
+        return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 
     public function update(Request $request, $id)
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $car = Car::query()->where('detailing_id', $d->id)->with('owner')->findOrFail($id);
+        $car = DetailingCarAccess::findCarForDetailingEditableOrFail($d, (int) $id);
 
         $data = $request->all();
 

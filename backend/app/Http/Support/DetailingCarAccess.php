@@ -8,7 +8,7 @@ use App\Models\Detailing;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
- * Доступ кабинета детейлинга к карточке: своя запись или есть сервисные визиты по этому car_id.
+ * Доступ кабинета детейлинга к карточке: своя запись, визиты или «сетевая» карточка без владельца (не пул ожидания).
  */
 final class DetailingCarAccess
 {
@@ -26,7 +26,31 @@ final class DetailingCarAccess
             ->exists();
     }
 
-    public static function detailingMayAccessCar(Detailing $d, Car $car): bool
+    /**
+     * Карточка без владельца (кроме пула «ожидание регистрации»): любой верифицированный партнёр может открыть и вести визиты.
+     */
+    public static function isUnownedNetworkCar(Car $car): bool
+    {
+        if ($car->owner_id !== null) {
+            return false;
+        }
+        if ($car->detailing_id !== null && PendingOwnerPool::isPoolDetailingId((int) $car->detailing_id)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /** Просмотр карточки, история визитов, создание визита. */
+    public static function detailingMayViewCar(Detailing $d, Car $car): bool
+    {
+        return self::detailingOwnsCarRow($d, $car)
+            || self::detailingHasServiceHistoryForCar($d, $car)
+            || self::isUnownedNetworkCar($car);
+    }
+
+    /** Редактирование полей карточки (PATCH /cars/{id}). */
+    public static function detailingMayEditCarScalars(Detailing $d, Car $car): bool
     {
         return self::detailingOwnsCarRow($d, $car) || self::detailingHasServiceHistoryForCar($d, $car);
     }
@@ -37,7 +61,20 @@ final class DetailingCarAccess
         if (! $car instanceof Car) {
             throw (new ModelNotFoundException)->setModel(Car::class, [$carId]);
         }
-        if (! self::detailingMayAccessCar($d, $car)) {
+        if (! self::detailingMayViewCar($d, $car)) {
+            throw (new ModelNotFoundException)->setModel(Car::class, [$carId]);
+        }
+
+        return $car;
+    }
+
+    public static function findCarForDetailingEditableOrFail(Detailing $d, int $carId): Car
+    {
+        $car = Car::query()->with('owner')->find($carId);
+        if (! $car instanceof Car) {
+            throw (new ModelNotFoundException)->setModel(Car::class, [$carId]);
+        }
+        if (! self::detailingMayEditCarScalars($d, $car)) {
             throw (new ModelNotFoundException)->setModel(Car::class, [$carId]);
         }
 

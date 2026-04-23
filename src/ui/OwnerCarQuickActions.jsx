@@ -7,14 +7,13 @@ import { getPathAfterCarRemovedFromScope } from './navAfterCarRemoved.js'
 import { useAsyncActionLock } from './useAsyncActionLock.js'
 
 /**
- * Действия владельца на карточке авто: «Поделиться историей», «Передать авто».
- * Сейчас UI на баннере отключён (CarPage) до масштабирования — компонент оставлен для возврата.
+ * Действия владельца на карточке авто: «Поделиться историей», «Отвязать от гаража».
  */
 export function OwnerCarQuickActions({ carId, car }) {
   const r = useRepo()
   const nav = useNavigate()
   const shareLock = useAsyncActionLock()
-  const transferLock = useAsyncActionLock()
+  const unlinkLock = useAsyncActionLock()
   const { detailingId, owner, mode } = useDetailing()
   const [shares, setShares] = useState([])
 
@@ -73,31 +72,31 @@ export function OwnerCarQuickActions({ carId, car }) {
         type="button"
         className="btn carHero__ownerActionBtn"
         data-variant="ghost"
-        disabled={transferLock.pending}
-        title="Передать авто другому владельцу"
+        disabled={unlinkLock.pending}
+        title="Убрать авто из вашего гаража КарПас — карточка останется в сети, другой пользователь сможет добавить её к себе"
         onClick={() =>
-          void transferLock.run(async () => {
-            const nextEmail = prompt('Введите почту нового владельца', '')
-            const em = String(nextEmail || '').trim().toLowerCase()
-            if (!em) return
-            const msg =
-              'Передать авто другому владельцу?\n\n' +
-              `Новый владелец: ${em}\n\n` +
-              'После передачи это авто исчезнет из вашего гаража.'
-            if (!confirm(msg)) return
+          void unlinkLock.run(async () => {
+            if (
+              !confirm(
+                'Отвязать автомобиль от вашего гаража?\n\n' +
+                  'Карточка и история визитов останутся в КарПас, но вы потеряете доступ как владелец. Другой пользователь сможет привязать этот VIN к своему гаражу.',
+              )
+            ) {
+              return
+            }
             try {
-              await r.updateCar(carId, { ownerEmail: em })
+              await r.unlinkOwnerCar(carId)
               invalidateRepo()
-              alert('Авто передано новому владельцу.')
+              alert('Авто отвязано от гаража.')
               const list = await r.listCars()
               nav(getPathAfterCarRemovedFromScope(list, { mode, owner, detailingId }), { replace: true })
             } catch {
-              alert('Не удалось передать авто (нет доступа к карточке).')
+              alert('Не удалось отвязать авто (нет доступа к карточке).')
             }
           })
         }
       >
-        Передать авто
+        Отвязать от гаража
       </button>
     </div>
   )

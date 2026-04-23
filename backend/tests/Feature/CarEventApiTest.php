@@ -121,8 +121,15 @@ class CarEventApiTest extends FeatureTestCase
 
     public function test_events_for_foreign_car_return_404(): void
     {
-        $owner = $this->detailing();
-        $car = $this->carForDetailing($owner->id);
+        $ownerDet = $this->detailing();
+        $car = $this->carForDetailing($ownerDet->id);
+        $client = Owner::query()->create([
+            'email' => 'foreign-car-'.uniqid('', true).'@example.test',
+            'password' => Hash::make('secret'),
+        ]);
+        $car->owner_id = $client->id;
+        $car->save();
+
         Sanctum::actingAs($this->detailing());
 
         $this->getJson("/api/cars/{$car->id}/events")->assertNotFound();
