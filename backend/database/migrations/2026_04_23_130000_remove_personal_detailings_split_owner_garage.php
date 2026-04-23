@@ -9,6 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Сначала делаем FK nullable (в т.ч. PostgreSQL), иначе UPDATE … SET detailing_id = NULL падает по NOT NULL.
+        $this->nullableDetailingFk('cars');
+        $this->nullableDetailingFk('car_events');
+        $this->nullableDetailingFk('car_docs');
+
         $personalIds = DB::table('detailings')->where('is_personal', true)->pluck('id')->all();
 
         if ($personalIds !== []) {
@@ -26,10 +31,6 @@ return new class extends Migration
 
             DB::table('detailings')->whereIn('id', $personalIds)->delete();
         }
-
-        $this->nullableDetailingFk('cars');
-        $this->nullableDetailingFk('car_events');
-        $this->nullableDetailingFk('car_docs');
 
         $this->dropDetailingsOwnerColumns();
 
@@ -72,6 +73,18 @@ return new class extends Migration
             return;
         }
 
+        if ($driver === 'pgsql') {
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->dropForeign(['detailing_id']);
+            });
+            DB::statement('ALTER TABLE "'.$tableName.'" ALTER COLUMN detailing_id DROP NOT NULL');
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->foreign('detailing_id')->references('id')->on('detailings')->nullOnDelete();
+            });
+
+            return;
+        }
+
         throw new \RuntimeException('Unsupported DB driver for migration: '.$driver);
     }
 
@@ -90,6 +103,18 @@ return new class extends Migration
                 $table->dropForeign(['detailing_id']);
             });
             DB::statement('ALTER TABLE `'.$tableName.'` MODIFY `detailing_id` BIGINT UNSIGNED NOT NULL');
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->foreign('detailing_id')->references('id')->on('detailings')->cascadeOnDelete();
+            });
+
+            return;
+        }
+
+        if ($driver === 'pgsql') {
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->dropForeign(['detailing_id']);
+            });
+            DB::statement('ALTER TABLE "'.$tableName.'" ALTER COLUMN detailing_id SET NOT NULL');
             Schema::table($tableName, function (Blueprint $table) {
                 $table->foreign('detailing_id')->references('id')->on('detailings')->cascadeOnDelete();
             });
