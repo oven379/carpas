@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\AccountPhoneUniqueness;
 use App\Http\Support\ApiResources;
 use App\Http\Support\MediaStorage;
+use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\ServiceOfferedCatalog;
 use App\Http\Support\TextFormat;
 use App\Models\Detailing;
@@ -61,7 +62,6 @@ class DetailingAuthController extends Controller
             'maintenance_services_offered' => $split['maint'],
             'profile_completed' => false,
             'verification_approved_at' => null,
-            'is_personal' => false,
         ]);
 
         return response()->json([
@@ -82,7 +82,7 @@ class DetailingAuthController extends Controller
         $email = mb_strtolower(trim($data['email']));
         $d = Detailing::query()
             ->where('email', $email)
-            ->where('is_personal', false)
+            ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)
             ->first();
         if (!$d) {
             return response()->json(['ok' => false, 'reason' => 'not_found'], 422);
@@ -116,7 +116,7 @@ class DetailingAuthController extends Controller
         $email = mb_strtolower(trim($data['email']));
         $d = Detailing::query()
             ->where('email', $email)
-            ->where('is_personal', false)
+            ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)
             ->first();
 
         if ($d) {
@@ -167,9 +167,6 @@ class DetailingAuthController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        if ($d->is_personal) {
-            abort(403);
-        }
 
         if ($request->filled('newPassword')) {
             $pwdData = $request->validate([

@@ -80,7 +80,7 @@ class PublicGarageApiTest extends FeatureTestCase
             ->assertJsonCount(1, 'cars');
     }
 
-    public function test_private_garage_not_bypassed_by_personal_detailing_token(): void
+    public function test_private_garage_not_bypassed_by_unrelated_partner_token(): void
     {
         $owner = Owner::query()->create([
             'email' => 'pg4-'.uniqid('', true).'@example.test',
@@ -90,16 +90,9 @@ class PublicGarageApiTest extends FeatureTestCase
             'garage_slug' => 'test-slug-d-'.uniqid(),
             'garage_private' => true,
         ]);
-        $personal = Detailing::query()->create([
-            'name' => 'Мой гараж',
-            'email' => 'pg4-'.uniqid('', true).'@garage.internal',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-            'profile_completed' => true,
-        ]);
+        $unrelatedPartner = $this->detailing();
         Car::query()->create([
-            'detailing_id' => $personal->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => '',
             'plate' => '',
@@ -114,7 +107,7 @@ class PublicGarageApiTest extends FeatureTestCase
             'segment' => 'mass',
             'seller' => null,
         ]);
-        $token = $personal->createToken('t')->plainTextToken;
+        $token = $unrelatedPartner->createToken('t')->plainTextToken;
         $slug = mb_strtolower(trim((string) $owner->garage_slug));
 
         $this->getJson('/api/public/garages/'.$slug, [

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\PendingOwnerPool;
 use App\Models\Detailing;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
@@ -110,7 +111,7 @@ class AdminSupportController extends Controller
     public function partnerRegistrationsPending()
     {
         $rows = Detailing::query()
-            ->where('is_personal', false)
+            ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)
             ->whereNull('verification_approved_at')
             ->orderByDesc('created_at')
             ->limit(200)
@@ -123,7 +124,7 @@ class AdminSupportController extends Controller
     {
         $d = Detailing::query()
             ->where('id', $id)
-            ->where('is_personal', false)
+            ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)
             ->whereNull('verification_approved_at')
             ->first();
 

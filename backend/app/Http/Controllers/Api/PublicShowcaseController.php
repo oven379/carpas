@@ -86,7 +86,7 @@ class PublicShowcaseController extends Controller
         $cars = Car::query()
             ->whereHas(
                 'detailing',
-                fn ($q) => $q->where('is_personal', false)->whereNotNull('verification_approved_at'),
+                fn ($q) => $q->whereNotNull('verification_approved_at'),
             )
             ->with('detailing')
             ->orderByDesc('updated_at')
@@ -132,7 +132,7 @@ class PublicShowcaseController extends Controller
         $cars = Car::query()
             ->whereHas(
                 'detailing',
-                fn ($q) => $q->where('is_personal', false)->whereNotNull('verification_approved_at'),
+                fn ($q) => $q->whereNotNull('verification_approved_at'),
             )
             ->with('owner')
             ->orderByDesc('updated_at')
@@ -142,7 +142,7 @@ class PublicShowcaseController extends Controller
         return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
     }
 
-    /** Владелец гаража (личный «тень»-детейлинг) может открыть /d/:slug со своим токеном; для остальных — 404. Числовой сегмент — совместимость со старыми ссылками по id. */
+    /** Числовой сегмент в URL — совместимость со старыми ссылками по id. */
     private function ownerFromBearerForPublicShowcase(Request $request): ?Owner
     {
         $raw = $request->bearerToken();
@@ -167,12 +167,7 @@ class PublicShowcaseController extends Controller
         if (! $d) {
             abort(404);
         }
-        if ($d->is_personal) {
-            $owner = $this->ownerFromBearerForPublicShowcase($request);
-            if (! $owner || (int) $d->owner_id !== (int) $owner->id) {
-                abort(404);
-            }
-        } elseif ($d->verification_approved_at === null) {
+        if ($d->verification_approved_at === null) {
             abort(404);
         }
 
@@ -274,7 +269,7 @@ class PublicShowcaseController extends Controller
     }
 
     /**
-     * Партнёрский детейлинг (не личный «тень»-кабинет владельца) с авто этого владельца видит полный ответ,
+     * Партнёрский детейлинг, у которого в кабинете есть авто этого владельца, видит полный ответ
      * даже если garage_private — для анонимов страница закрыта.
      */
     private function partnerDetailingLinkedToOwnerFromBearer(Request $request, Owner $owner): ?Detailing
@@ -288,9 +283,6 @@ class PublicShowcaseController extends Controller
             return null;
         }
         $d = $pat->tokenable;
-        if ($d->is_personal) {
-            return null;
-        }
         $linked = Car::query()
             ->where('detailing_id', $d->id)
             ->where('owner_id', $owner->id)

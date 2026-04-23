@@ -4,14 +4,13 @@ namespace Tests\Feature;
 
 use App\Models\Car;
 use App\Models\CarDoc;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 class OwnerCarDocApiTest extends FeatureTestCase
 {
-    private function ownerWithPersonalDetailing(): array
+    private function ownerWithGarageCar(): array
     {
         $owner = Owner::query()->create([
             'email' => 'owner-docs-'.uniqid('', true).'@example.test',
@@ -19,16 +18,8 @@ class OwnerCarDocApiTest extends FeatureTestCase
             'name' => 'Владелец',
             'phone' => '+7',
         ]);
-        $det = Detailing::query()->create([
-            'name' => 'Гараж',
-            'email' => 'od-'.uniqid('', true).'@garage.internal',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-            'profile_completed' => true,
-        ]);
         $car = Car::query()->create([
-            'detailing_id' => $det->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => '',
             'plate' => '',
@@ -49,7 +40,7 @@ class OwnerCarDocApiTest extends FeatureTestCase
 
     public function test_owner_deletes_doc_by_doc_id_without_car_in_path(): void
     {
-        [$owner, $car] = $this->ownerWithPersonalDetailing();
+        [$owner, $car] = $this->ownerWithGarageCar();
         Sanctum::actingAs($owner);
 
         $doc = CarDoc::query()->create([
@@ -74,8 +65,8 @@ class OwnerCarDocApiTest extends FeatureTestCase
 
     public function test_owner_cannot_delete_other_owners_doc(): void
     {
-        [$ownerA, $carA] = $this->ownerWithPersonalDetailing();
-        [, $carB] = $this->ownerWithPersonalDetailing();
+        [$ownerA, $carA] = $this->ownerWithGarageCar();
+        [, $carB] = $this->ownerWithGarageCar();
 
         $docOnB = CarDoc::query()->create([
             'detailing_id' => $carB->detailing_id,
@@ -96,7 +87,7 @@ class OwnerCarDocApiTest extends FeatureTestCase
 
     public function test_owner_cannot_delete_service_doc_on_own_car(): void
     {
-        [$owner, $car] = $this->ownerWithPersonalDetailing();
+        [$owner, $car] = $this->ownerWithGarageCar();
         Sanctum::actingAs($owner);
 
         $doc = CarDoc::query()->create([

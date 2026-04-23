@@ -18,18 +18,10 @@ class CarSearchDuplicateTest extends FeatureTestCase
             'phone' => '+79161234567',
         ]);
 
-        $personalDet = \App\Models\Detailing::query()->create([
-            'name' => 'Личный',
-            'email' => 'pd-phone-'.uniqid('', true).'@example.test',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-        ]);
-
         $partner = $this->detailing();
 
         Car::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => 'WPH1234567890ABCD',
             'plate' => '',
@@ -76,19 +68,11 @@ class CarSearchDuplicateTest extends FeatureTestCase
             'phone' => '',
         ]);
 
-        $personalDet = \App\Models\Detailing::query()->create([
-            'name' => 'Личный',
-            'email' => 'pd-plate-'.uniqid('', true).'@example.test',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-        ]);
-
         $partner = $this->detailing();
         Sanctum::actingAs($partner);
 
         Car::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => 'XW8ZZZ1JZ12345678',
             'plate' => 'a777aa',

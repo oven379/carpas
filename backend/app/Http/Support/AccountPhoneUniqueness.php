@@ -7,7 +7,7 @@ use App\Models\Owner;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Один номер — один кабинет: владелец (owners) и партнёрский детейлинг (detailings, не личный «тень»-кабинет).
+ * Один номер — один кабинет: владелец (owners) или партнёрский детейлинг (detailings, без служебных записей пула).
  * Нормализация совпадает с фронтом comparablePhoneDigitsRu.
  */
 final class AccountPhoneUniqueness
@@ -60,7 +60,7 @@ final class AccountPhoneUniqueness
             }
         }
 
-        foreach (Detailing::query()->where('is_personal', false)->cursor() as $d) {
+        foreach (Detailing::query()->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)->cursor() as $d) {
             if ($exceptDetailingId !== null && (int) $d->id === $exceptDetailingId) {
                 continue;
             }

@@ -5,7 +5,6 @@ namespace App\Http\Support;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Support\Facades\DB;
 
@@ -35,7 +34,7 @@ final class CarGarageMerge
     }
 
     /**
-     * После привязки владельца к карточке сервиса — сливаем дубликаты с тем же VIN из личного детейлинга владельца.
+     * После привязки владельца к карточке сервиса — сливаем дубликаты с тем же VIN из гаража владельца (detailing_id null).
      */
     public static function mergeOwnerPersonalDuplicatesIntoCar(Car $target, Owner $owner): void
     {
@@ -52,7 +51,7 @@ final class CarGarageMerge
             ->get();
 
         foreach ($dups as $dup) {
-            if (! $dup->detailing || ! $dup->detailing->is_personal) {
+            if (! OwnerGarageCar::isGarageOnly($dup)) {
                 continue;
             }
             DB::transaction(function () use ($dup, $target) {
@@ -92,7 +91,7 @@ final class CarGarageMerge
     }
 
     /**
-     * Карточка из личного гаража (личный детейлинг) переносится в кабинет партнёрского сервиса.
+     * Карточка из гаража владельца (detailing_id null) переносится в кабинет партнёрского сервиса.
      */
     public static function attachPersonalGarageCarToDetailing(Car $car, int $studioDetailingId): void
     {
@@ -115,17 +114,12 @@ final class CarGarageMerge
             return;
         }
 
-        $personalDetailingIds = Detailing::query()
-            ->where('is_personal', true)
-            ->pluck('id');
-
         $poolId = PendingOwnerPool::detailingId();
 
         $donors = Car::query()
             ->whereRaw('lower(trim(vin)) = ?', [$vin])
             ->where('id', '!=', $target->id)
             ->whereNull('owner_id')
-            ->whereNotIn('detailing_id', $personalDetailingIds)
             ->where('detailing_id', '!=', $poolId)
             ->get();
 

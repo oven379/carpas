@@ -20,20 +20,12 @@ class CarGarageMergeTest extends FeatureTestCase
             'phone' => '+7',
         ]);
 
-        $personalDet = \App\Models\Detailing::query()->create([
-            'name' => 'Личный',
-            'email' => 'pd-merge-'.uniqid('', true).'@example.test',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-        ]);
-
         $studio = $this->detailing();
 
         $vin = 'WBA12345678901234';
 
         $personalCar = Car::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => $vin,
             'plate' => '',
@@ -69,8 +61,9 @@ class CarGarageMergeTest extends FeatureTestCase
         ]);
 
         $ev = CarEvent::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'car_id' => $personalCar->id,
+            'owner_id' => $owner->id,
             'at' => now(),
             'type' => 'visit',
             'title' => 'Мой визит',
@@ -116,18 +109,10 @@ class CarGarageMergeTest extends FeatureTestCase
             'phone' => '+7',
         ]);
 
-        $personalDet = \App\Models\Detailing::query()->create([
-            'name' => 'Личный',
-            'email' => 'pd-link-'.uniqid('', true).'@example.test',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-        ]);
-
         $studio = $this->detailing();
 
         $car = Car::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => 'XW8ZZZ61ZJG123456',
             'plate' => '',

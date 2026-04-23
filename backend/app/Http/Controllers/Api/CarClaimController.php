@@ -7,7 +7,6 @@ use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
 use App\Models\Car;
 use App\Models\CarClaim;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -25,8 +24,7 @@ class CarClaimController extends Controller
         ]);
 
         $car = Car::query()->findOrFail((int) $data['carId']);
-        $det = Detailing::query()->findOrFail($car->detailing_id);
-        if ($det->is_personal) {
+        if (! $car->detailing_id) {
             abort(422, 'invalid_car');
         }
 

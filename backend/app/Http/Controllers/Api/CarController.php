@@ -7,6 +7,7 @@ use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
 use App\Http\Support\CarMileageSync;
 use App\Http\Support\DetailingCarAccess;
+use App\Http\Support\OwnerGarageCar;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
@@ -54,11 +55,6 @@ class CarController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        if ($d->is_personal) {
-            throw ValidationException::withMessages([
-                'vin' => ['Этот метод только для кабинета партнёра.'],
-            ]);
-        }
 
         $data = $request->validate([
             'vin' => ['required', 'string'],
@@ -111,78 +107,9 @@ class CarController extends Controller
 
     public function store(Request $request)
     {
-        /** @var Detailing $d */
-        $d = $request->user();
-        if (! $d->is_personal) {
-            throw ValidationException::withMessages([
-                'vin' => ['Создание карточки через этот запрос отключено: добавьте визит по VIN (эндпоинт /cars/for-visit).'],
-            ]);
-        }
-
-        $data = $request->validate([
-            'vin' => ['nullable', 'string'],
-            'plate' => ['nullable', 'string'],
-            'plateRegion' => ['nullable', 'string'],
-            'make' => ['nullable', 'string'],
-            'model' => ['nullable', 'string'],
-            'year' => ['nullable'],
-            'mileageKm' => ['nullable'],
-            'priceRub' => ['nullable'],
-            'color' => ['nullable', 'string'],
-            'city' => ['nullable', 'string'],
-            'hero' => ['nullable', 'string'],
-            'segment' => ['nullable', 'string'],
-            'seller' => ['nullable'],
-            'ownerPhone' => ['nullable', 'string'],
-            'clientName' => ['nullable', 'string'],
-            'clientPhone' => ['nullable', 'string'],
-            'clientEmail' => ['nullable', 'string'],
+        throw ValidationException::withMessages([
+            'vin' => ['Создание карточки через этот запрос отключено: добавьте визит по VIN (эндпоинт /cars/for-visit).'],
         ]);
-
-        $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));
-        $plate = VinPlateValidator::normalizePlateBase(trim((string) ($data['plate'] ?? '')));
-        $region = VinPlateValidator::normalizePlateRegion(trim((string) ($data['plateRegion'] ?? '')));
-        if ($msg = VinPlateValidator::vinError($vin)) {
-            throw ValidationException::withMessages(['vin' => [$msg]]);
-        }
-        if ($msg = VinPlateValidator::ruPlatePairError($plate, $region)) {
-            throw ValidationException::withMessages(['plate' => [$msg]]);
-        }
-
-        $car = Car::query()->create([
-            'detailing_id' => $d->id,
-            'owner_id' => null,
-            'vin' => $vin,
-            'plate' => $plate,
-            'plate_region' => $region,
-            'make' => trim((string) ($data['make'] ?? '')),
-            'model' => trim((string) ($data['model'] ?? '')),
-            'year' => VinPlateValidator::normalizeOptionalYear($data['year'] ?? null),
-            'mileage_km' => isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0,
-            'price_rub' => isset($data['priceRub']) ? (int) $data['priceRub'] : 0,
-            'color' => trim((string) ($data['color'] ?? '')),
-            'city' => trim((string) ($data['city'] ?? '')),
-            'hero' => null,
-            'segment' => trim((string) ($data['segment'] ?? 'mass')) ?: 'mass',
-            'seller' => $data['seller'] ?? ['id' => (string) $d->id, 'name' => $d->name, 'type' => 'service'],
-            'owner_phone' => trim((string) ($data['ownerPhone'] ?? '')),
-            'client_name' => trim((string) ($data['clientName'] ?? '')),
-            'client_phone' => trim((string) ($data['clientPhone'] ?? '')),
-            'client_email' => trim((string) ($data['clientEmail'] ?? '')),
-            'wash_photos' => [],
-        ]);
-
-        if (array_key_exists('hero', $data) && is_string($data['hero']) && trim($data['hero']) !== '') {
-            $car->hero = MediaStorage::ingestScalar(
-                trim($data['hero']),
-                null,
-                'cars/'.$car->id,
-                'hero',
-            );
-            $car->save();
-        }
-
-        return response()->json(ApiResources::car($car->load('owner')));
     }
 
     public function update(Request $request, $id)
@@ -331,7 +258,7 @@ class CarController extends Controller
                 'carId' => ['Карточка без владельца — привязка из гаража недоступна.'],
             ]);
         }
-        if (! $car->detailing || ! $car->detailing->is_personal) {
+        if (! OwnerGarageCar::isGarageOnly($car)) {
             throw ValidationException::withMessages([
                 'carId' => ['Доступно только для авто из личного гаража владельца. У другого сервиса создайте новую карточку или дождитесь заявки клиента.'],
             ]);

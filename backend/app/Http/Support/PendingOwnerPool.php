@@ -20,8 +20,8 @@ final class PendingOwnerPool
             [
                 'name' => 'Ожидание владельца (системный)',
                 'password' => Hash::make(Str::random(64)),
-                'is_personal' => false,
                 'profile_completed' => true,
+                'verification_approved_at' => now(),
             ],
         );
     }

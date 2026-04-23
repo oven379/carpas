@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\OwnerGarageCar;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use Illuminate\Http\Request;
@@ -31,10 +32,11 @@ class CarSearchController extends Controller
         return $d;
     }
 
-    private static function nonPersonalCarsQuery()
+    /** Карточки с привязкой к кабинету партнёра (в т.ч. служебный пул ожидания владельца). */
+    private static function studioLinkedCarsQuery()
     {
         return Car::query()
-            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->whereNotNull('detailing_id')
             ->with(['detailing', 'owner']);
     }
 
@@ -48,7 +50,7 @@ class CarSearchController extends Controller
             ->map(function (Car $c) {
                 $row = ApiResources::car($c);
                 $row['detailingName'] = $c->detailing?->name ?? '';
-                $row['vinHitFromOwnerGarage'] = (bool) ($c->detailing?->is_personal ?? false);
+                $row['vinHitFromOwnerGarage'] = OwnerGarageCar::isGarageOnly($c);
 
                 return $row;
             });
@@ -101,10 +103,10 @@ class CarSearchController extends Controller
                 ->get();
         };
 
-        $pushMatches($narrowAndLoad(self::nonPersonalCarsQuery()));
+        $pushMatches($narrowAndLoad(self::studioLinkedCarsQuery()));
         if ($includePersonalGarageCars) {
             $pushMatches($narrowAndLoad(
-                Car::query()->whereHas('detailing', fn ($q) => $q->where('is_personal', true)),
+                Car::query()->whereNotNull('owner_id')->whereNull('detailing_id'),
             ));
         }
 
@@ -123,7 +125,7 @@ class CarSearchController extends Controller
 
         if (str_contains($raw, '@')) {
             $email = mb_strtolower($raw);
-            $cars = self::nonPersonalCarsQuery()
+            $cars = self::studioLinkedCarsQuery()
                 ->whereRaw('lower(trim(client_email)) = ?', [$email])
                 ->orderByDesc('updated_at')
                 ->limit(50)
@@ -137,7 +139,7 @@ class CarSearchController extends Controller
             $vin = mb_strtolower($vinNorm, 'UTF-8');
             $cars = Car::query()
                 ->whereRaw('lower(trim(vin)) = ?', [$vin])
-                ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+                ->whereNotNull('detailing_id')
                 ->with(['detailing', 'owner'])
                 ->orderByDesc('updated_at')
                 ->limit(50)
@@ -181,7 +183,7 @@ class CarSearchController extends Controller
 
         if ($wantVin) {
             $found = $found->merge(
-                self::nonPersonalCarsQuery()
+                self::studioLinkedCarsQuery()
                     ->whereRaw('lower(trim(vin)) = ?', [$vin])
                     ->orderByDesc('updated_at')
                     ->limit(50)
@@ -189,7 +191,8 @@ class CarSearchController extends Controller
             );
             $found = $found->merge(
                 Car::query()
-                    ->whereHas('detailing', fn ($q) => $q->where('is_personal', true))
+                    ->whereNotNull('owner_id')
+                    ->whereNull('detailing_id')
                     ->whereRaw('lower(trim(vin)) = ?', [$vin])
                     ->with(['detailing', 'owner'])
                     ->orderByDesc('updated_at')
@@ -203,7 +206,7 @@ class CarSearchController extends Controller
         }
 
         if ($wantContact) {
-            $candidates = self::nonPersonalCarsQuery()
+            $candidates = self::studioLinkedCarsQuery()
                 ->whereRaw('lower(trim(client_email)) = ?', [$email])
                 ->orderByDesc('updated_at')
                 ->limit(80)
@@ -219,7 +222,7 @@ class CarSearchController extends Controller
             $pb = mb_strtolower($plateBase, 'UTF-8');
             $pr = mb_strtolower($plateRegion, 'UTF-8');
             $found = $found->merge(
-                self::nonPersonalCarsQuery()
+                self::studioLinkedCarsQuery()
                     ->whereRaw('lower(trim(plate)) = ?', [$pb])
                     ->whereRaw('lower(trim(plate_region)) = ?', [$pr])
                     ->orderByDesc('updated_at')
@@ -228,7 +231,8 @@ class CarSearchController extends Controller
             );
             $found = $found->merge(
                 Car::query()
-                    ->whereHas('detailing', fn ($q) => $q->where('is_personal', true))
+                    ->whereNotNull('owner_id')
+                    ->whereNull('detailing_id')
                     ->whereRaw('lower(trim(plate)) = ?', [$pb])
                     ->whereRaw('lower(trim(plate_region)) = ?', [$pr])
                     ->with(['detailing', 'owner'])
@@ -251,7 +255,7 @@ class CarSearchController extends Controller
 
         $cars = Car::query()
             ->whereRaw('lower(trim(vin)) = ?', [$vin])
-            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->whereNotNull('detailing_id')
             ->with(['detailing', 'owner'])
             ->orderByDesc('updated_at')
             ->limit(50)
@@ -278,7 +282,7 @@ class CarSearchController extends Controller
         $cars = Car::query()
             ->whereRaw('lower(trim(plate)) = ?', [$plate])
             ->whereRaw('lower(trim(plate_region)) = ?', [$region])
-            ->whereHas('detailing', fn ($q) => $q->where('is_personal', false))
+            ->whereNotNull('detailing_id')
             ->with(['detailing', 'owner'])
             ->orderByDesc('updated_at')
             ->limit(50)

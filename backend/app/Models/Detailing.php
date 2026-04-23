@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Http\Support\DetailingPublicSlug;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -33,8 +32,6 @@ class Detailing extends Authenticatable
         'maintenance_services_offered',
         'profile_completed',
         'verification_approved_at',
-        'is_personal',
-        'owner_id',
         'public_slug',
     ];
 
@@ -47,14 +44,8 @@ class Detailing extends Authenticatable
         'services_offered' => 'array',
         'maintenance_services_offered' => 'array',
         'profile_completed' => 'boolean',
-        'is_personal' => 'boolean',
         'verification_approved_at' => 'datetime',
     ];
-
-    public function owner(): BelongsTo
-    {
-        return $this->belongsTo(Owner::class, 'owner_id');
-    }
 
     protected static function booted(): void
     {

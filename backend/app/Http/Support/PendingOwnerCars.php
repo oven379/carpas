@@ -3,7 +3,6 @@
 namespace App\Http\Support;
 
 use App\Models\Car;
-use App\Models\Detailing;
 use App\Models\Owner;
 
 final class PendingOwnerCars
@@ -17,16 +16,12 @@ final class PendingOwnerCars
         if ($email === '') {
             return;
         }
-        $pd = Detailing::query()->where('owner_id', $owner->id)->where('is_personal', true)->first();
-        if (! $pd) {
-            return;
-        }
         Car::query()
             ->whereNull('owner_id')
             ->whereRaw('lower(trim(pending_owner_email)) = ?', [$email])
             ->update([
                 'owner_id' => $owner->id,
-                'detailing_id' => $pd->id,
+                'detailing_id' => null,
                 'pending_owner_email' => null,
             ]);
     }

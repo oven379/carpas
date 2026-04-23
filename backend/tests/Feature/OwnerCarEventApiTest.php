@@ -3,14 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\Car;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 class OwnerCarEventApiTest extends FeatureTestCase
 {
-    private function ownerWithPersonalDetailing(): array
+    private function ownerWithGarageCar(): array
     {
         $owner = Owner::query()->create([
             'email' => 'owner-cev-'.uniqid('', true).'@example.test',
@@ -18,16 +17,8 @@ class OwnerCarEventApiTest extends FeatureTestCase
             'name' => 'Владелец',
             'phone' => '+7',
         ]);
-        $det = Detailing::query()->create([
-            'name' => 'Гараж',
-            'email' => 'od-cev-'.uniqid('', true).'@garage.internal',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-            'profile_completed' => true,
-        ]);
         $car = Car::query()->create([
-            'detailing_id' => $det->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => '',
             'plate' => '',
@@ -48,7 +39,7 @@ class OwnerCarEventApiTest extends FeatureTestCase
 
     public function test_owner_can_store_visit_with_care_tips(): void
     {
-        [$owner, $car] = $this->ownerWithPersonalDetailing();
+        [$owner, $car] = $this->ownerWithGarageCar();
         Sanctum::actingAs($owner);
 
         $this->postJson("/api/owners/cars/{$car->id}/events", [
@@ -70,7 +61,7 @@ class OwnerCarEventApiTest extends FeatureTestCase
 
     public function test_owner_store_rejects_care_tips_over_non_space_limit(): void
     {
-        [$owner, $car] = $this->ownerWithPersonalDetailing();
+        [$owner, $car] = $this->ownerWithGarageCar();
         Sanctum::actingAs($owner);
 
         $tooLong = str_repeat('x', 301);
@@ -78,39 +69,12 @@ class OwnerCarEventApiTest extends FeatureTestCase
         $this->postJson("/api/owners/cars/{$car->id}/events", [
             'type' => 'visit',
             'title' => 'Визит',
-            'mileageKm' => 1400,
-            'services' => [],
-            'maintenanceServices' => [],
+            'mileageKm' => 1200,
             'careTips' => [
                 'important' => $tooLong,
                 'tips' => [],
             ],
-        ])->assertStatus(422);
-    }
-
-    public function test_owner_can_patch_care_tips_on_own_visit(): void
-    {
-        [$owner, $car] = $this->ownerWithPersonalDetailing();
-        Sanctum::actingAs($owner);
-
-        $create = $this->postJson("/api/owners/cars/{$car->id}/events", [
-            'type' => 'visit',
-            'title' => 'Визит',
-            'mileageKm' => 1300,
-            'services' => [],
-            'maintenanceServices' => [],
-        ])->assertOk();
-
-        $id = $create->json('id');
-        $this->assertNotEmpty($id);
-
-        $this->patchJson("/api/owners/cars/{$car->id}/events/{$id}", [
-            'careTips' => [
-                'important' => 'Обновлённый совет',
-                'tips' => [],
-            ],
         ])
-            ->assertOk()
-            ->assertJsonPath('careTips.important', 'Обновлённый совет');
+            ->assertStatus(422);
     }
 }

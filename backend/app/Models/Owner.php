@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -52,10 +51,5 @@ class Owner extends Authenticatable
     public function cars(): HasMany
     {
         return $this->hasMany(Car::class, 'owner_id');
-    }
-
-    public function personalDetailing(): HasOne
-    {
-        return $this->hasOne(Detailing::class, 'owner_id')->where('is_personal', true);
     }
 }

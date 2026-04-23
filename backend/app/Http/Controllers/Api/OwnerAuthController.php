@@ -9,14 +9,12 @@ use App\Http\Support\GarageSlug;
 use App\Http\Support\MediaStorage;
 use App\Http\Support\PendingOwnerCars;
 use App\Http\Support\TextFormat;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class OwnerAuthController extends Controller
@@ -67,15 +65,6 @@ class OwnerAuthController extends Controller
             }
             throw $e;
         }
-
-        Detailing::query()->create([
-            'name' => TextFormat::mbUcfirst($owner->name) ?: 'Мой гараж',
-            'email' => 'owner-'.$owner->id.'@garage.internal',
-            'password' => Hash::make(Str::random(48)),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-            'profile_completed' => true,
-        ]);
 
         PendingOwnerCars::claimForOwner($owner);
 

@@ -10,7 +10,6 @@ use App\Http\Support\MediaStorage;
 use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
-use App\Models\Detailing;
 use App\Models\Owner;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -54,14 +53,6 @@ class OwnerCarController extends Controller
         }
     }
 
-    private function personalDetailing(Owner $owner): Detailing
-    {
-        return Detailing::query()
-            ->where('owner_id', $owner->id)
-            ->where('is_personal', true)
-            ->firstOrFail();
-    }
-
     public function index(Request $request)
     {
         /** @var Owner $owner */
@@ -88,7 +79,6 @@ class OwnerCarController extends Controller
     {
         /** @var Owner $owner */
         $owner = $request->user();
-        $pd = $this->personalDetailing($owner);
 
         $data = $request->validate([
             'vin' => ['nullable', 'string'],
@@ -118,7 +108,7 @@ class OwnerCarController extends Controller
         $this->assertOwnerCarIdentifiersUnique($owner, $vin, $plate, $region, null);
 
         $car = Car::query()->create([
-            'detailing_id' => $pd->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => $vin,
             'plate' => $plate,
@@ -277,9 +267,8 @@ class OwnerCarController extends Controller
                 (string) ($car->plate_region ?? ''),
                 null,
             );
-            $pd = $this->personalDetailing($target);
             $car->owner_id = $target->id;
-            $car->detailing_id = $pd->id;
+            $car->detailing_id = null;
             $car->pending_owner_email = null;
             $car->save();
         } else {

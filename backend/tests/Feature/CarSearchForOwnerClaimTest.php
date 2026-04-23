@@ -74,19 +74,12 @@ class CarSearchForOwnerClaimTest extends FeatureTestCase
         $res->assertJsonPath('0.vin', $vin);
     }
 
-    public function test_phone_search_skips_personal_garage(): void
+    public function test_phone_search_skips_owner_garage_without_studio(): void
     {
         $owner = $this->actingOwner();
-        $personalDet = \App\Models\Detailing::query()->create([
-            'name' => 'Личный',
-            'email' => 'pd-oc-'.uniqid('', true).'@example.test',
-            'password' => Hash::make('secret'),
-            'is_personal' => true,
-            'owner_id' => $owner->id,
-        ]);
 
         Car::query()->create([
-            'detailing_id' => $personalDet->id,
+            'detailing_id' => null,
             'owner_id' => $owner->id,
             'vin' => strtoupper(substr(str_replace('-', '', (string) Str::uuid()), 0, 17)),
             'plate' => '',

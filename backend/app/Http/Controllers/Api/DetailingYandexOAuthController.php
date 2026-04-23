@@ -105,11 +105,10 @@ class DetailingYandexOAuthController extends Controller
                 'yandex_id' => $yandexId,
                 'profile_completed' => false,
                 'verification_approved_at' => now(),
-                'is_personal' => false,
             ]);
         }
 
-        if (! $detailing->is_personal && $detailing->verification_approved_at === null) {
+        if ($detailing->verification_approved_at === null) {
             return response()->json([
                 'ok' => false,
                 'reason' => 'pending_verification',

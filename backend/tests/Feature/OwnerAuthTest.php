@@ -127,7 +127,6 @@ class OwnerAuthTest extends FeatureTestCase
             'email' => 'sto-phone@example.test',
             'password' => Hash::make('secret'),
             'phone' => '+7 900 444 33 22',
-            'is_personal' => false,
             'profile_completed' => true,
             'verification_approved_at' => now(),
         ]);

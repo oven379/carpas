@@ -26,7 +26,7 @@ class SupportTicketController extends Controller
         if ($m instanceof Owner) {
             return $m;
         }
-        if ($m instanceof Detailing && ! $m->is_personal) {
+        if ($m instanceof Detailing) {
             return $m;
         }
 

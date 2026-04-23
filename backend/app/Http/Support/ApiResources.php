@@ -105,7 +105,7 @@ class ApiResources
             'id' => (string) $c->id,
             'detailingId' => $c->detailing_id ? (string) $c->detailing_id : '',
             'detailingPublicSlug' => trim((string) ($c->detailing?->public_slug ?? '')),
-            'detailingIsPersonal' => (bool) ($c->detailing?->is_personal ?? false),
+            'detailingIsPersonal' => OwnerGarageCar::isGarageOnly($c),
             'detailingName' => $c->detailing?->name ?? '',
             'detailingLogo' => MediaStorage::publicUrl($c->detailing?->logo ?? null),
             'detailingWebsite' => $c->detailing?->website ?? '',
@@ -171,7 +171,7 @@ class ApiResources
 
         return [
             'id' => (string) $e->id,
-            'detailingId' => (string) $e->detailing_id,
+            'detailingId' => $e->detailing_id ? (string) $e->detailing_id : '',
             'carId' => (string) $e->car_id,
             'ownerId' => $e->owner_id ? (string) $e->owner_id : null,
             'source' => $e->source ?? 'service',
@@ -196,7 +196,7 @@ class ApiResources
     {
         return [
             'id' => (string) $d->id,
-            'detailingId' => (string) $d->detailing_id,
+            'detailingId' => $d->detailing_id ? (string) $d->detailing_id : '',
             'carId' => (string) $d->car_id,
             'ownerId' => $d->owner_id ? (string) $d->owner_id : null,
             'source' => $d->source ?? 'service',

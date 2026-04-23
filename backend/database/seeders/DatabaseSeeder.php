@@ -48,8 +48,6 @@ class DatabaseSeeder extends Seeder
                 'services_offered' => ['Керамика', 'Мойка', 'Полировка', 'Химчистка', 'PPF'],
                 'profile_completed' => true,
                 'verification_approved_at' => now(),
-                'is_personal' => false,
-                'owner_id' => null,
             ],
         );
 
@@ -65,8 +63,6 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Минимальный демо-аккаунт (как в старых инструкциях).',
                 'profile_completed' => true,
                 'verification_approved_at' => now(),
-                'is_personal' => false,
-                'owner_id' => null,
             ],
         );
 
@@ -88,17 +84,6 @@ class DatabaseSeeder extends Seeder
                 'show_phone_public' => false,
                 'is_premium' => false,
                 'garage_private' => false,
-            ],
-        );
-
-        Detailing::query()->updateOrCreate(
-            ['owner_id' => $owner->id],
-            [
-                'name' => trim((string) $owner->name) ?: 'Мой гараж',
-                'email' => 'owner-'.$owner->id.'@garage.internal',
-                'password' => Hash::make(bin2hex(random_bytes(12))),
-                'is_personal' => true,
-                'profile_completed' => true,
             ],
         );
 
