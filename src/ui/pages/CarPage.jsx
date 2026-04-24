@@ -565,7 +565,8 @@ export default function CarPage() {
           ) : detailingAccess?.label === 'Заявка владельца' ? (
             <>
               <p className="muted small carPage__detailingClientHint">
-                Владелец запросил привязку аккаунта к этой машине. Примите или отклоните заявку в разделе «Заявки».
+                Владелец запросил привязку аккаунта к этой машине. Примите заявку (кнопка «Добавить авто») или отмените её в
+                разделе «Заявки».
               </p>
               <div className="row gap wrap carPage__detailingClientActions">
                 <Link className="btn" data-variant="primary" to="/requests">
@@ -651,13 +652,8 @@ export default function CarPage() {
                         </p>
                       )}
                       <p className="muted small" style={{ margin: 0 }}>
-                        Привязка к партнёру на улице добавит записи «от сервиса» в историю.
+                        После привязки к партнёру записи «от сервиса» появятся в этой истории.
                       </p>
-                      <div className="row gap wrap" style={{ margin: 0 }}>
-                        <Link className="btn" data-variant="primary" to="/market">
-                          Открыть улицу
-                        </Link>
-                      </div>
                     </div>
                   ) : ownerServiceSummary.ownerLink === 'approved' || ownerServiceSummary.ownerLink === 'implicit' ? (
                     <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
@@ -744,7 +740,7 @@ export default function CarPage() {
                           <Pill tone="neutral">Заявка отклонена</Pill>
                         </div>
                         <p className="muted small" style={{ margin: 0 }}>
-                          Уточните данные и попробуйте снова через улицу или свяжитесь с сервисом напрямую.
+                          Уточните данные и свяжитесь с сервисом напрямую при необходимости.
                         </p>
                         {lastHistoryEvent && ownerLastVisitPath ? (
                           <CarPageOwnerLastVisitPreview
@@ -752,11 +748,6 @@ export default function CarPage() {
                             histPath={ownerLastVisitPath}
                           />
                         ) : null}
-                        <div className="row gap wrap" style={{ margin: 0 }}>
-                          <Link className="btn" data-variant="primary" to="/market">
-                            Улица
-                          </Link>
-                        </div>
                       </div>
                     </div>
                   )}

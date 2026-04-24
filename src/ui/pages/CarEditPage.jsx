@@ -574,6 +574,78 @@ export default function CarEditPage({ mode }) {
 
       <Card className="card pad">
         <div className="formGrid">
+          <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
+            <div className="field__top serviceHint__fieldTop">
+              <span className="field__label">VIN</span>
+              <ServiceHint scopeId="car-edit-vin-hint" variant="compact" label="Справка: VIN">
+                <p className="serviceHint__panelText">
+                  Ровно 17 символов: латиница (A–Z) и цифры. Пробелы и дефисы при вводе убираются автоматически.
+                </p>
+                <p className="serviceHint__panelText">
+                  Поле можно оставить пустым, если VIN пока неизвестен.
+                </p>
+              </ServiceHint>
+            </div>
+            <Input
+              id="car-edit-vin-input"
+              className="input mono"
+              value={draft.vin}
+              maxLength={17}
+              autoComplete="off"
+              autoCapitalize="characters"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="text"
+              autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
+              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
+              placeholder="WDD..."
+            />
+            {ownerVinFieldsLocked ? (
+              <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
+                <Button
+                  className="btn"
+                  variant="primary"
+                  type="button"
+                  disabled={ownerVinLookupBusy}
+                  aria-busy={ownerVinLookupBusy || undefined}
+                  onClick={() =>
+                    void (async () => {
+                      const v = normVin(draft.vin)
+                      const vinErr = describeVinValidationError(v)
+                      if (vinErr || v.length !== 17) {
+                        alert(vinErr || 'Введите полный VIN из 17 символов.')
+                        return
+                      }
+                      setOwnerVinLookupBusy(true)
+                      try {
+                        if (!r.lookupOwnerCarForAdd) {
+                          alert('Действие недоступно в этой сборке.')
+                          return
+                        }
+                        const res = await r.lookupOwnerCarForAdd(v)
+                        if (res.status === 'not_found') {
+                          setOwnerAddVinPhase('form')
+                        } else if (res.status === 'orphan') {
+                          setOwnerOrphanCar(res.car)
+                          setOwnerOrphanModalOpen(true)
+                        } else {
+                          alert(
+                            'По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.',
+                          )
+                        }
+                      } catch (e) {
+                        alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
+                      } finally {
+                        setOwnerVinLookupBusy(false)
+                      }
+                    })()
+                  }
+                >
+                  {ownerVinLookupBusy ? 'Проверка…' : 'Проверить VIN и продолжить'}
+                </Button>
+              </div>
+            ) : null}
+          </div>
           <Field label="Марка">
             <ComboBox
               value={draft.make}
@@ -647,78 +719,6 @@ export default function CarEditPage({ mode }) {
               onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
             />
           </Field>
-          <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">VIN</span>
-              <ServiceHint scopeId="car-edit-vin-hint" variant="compact" label="Справка: VIN">
-                <p className="serviceHint__panelText">
-                  Ровно 17 символов: латиница (A–Z) и цифры. Пробелы и дефисы при вводе убираются автоматически.
-                </p>
-                <p className="serviceHint__panelText">
-                  Поле можно оставить пустым, если VIN пока неизвестен.
-                </p>
-              </ServiceHint>
-            </div>
-            <Input
-              id="car-edit-vin-input"
-              className="input mono"
-              value={draft.vin}
-              maxLength={17}
-              autoComplete="off"
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="text"
-              autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
-              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
-              placeholder="WDD..."
-            />
-            {ownerVinFieldsLocked ? (
-              <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
-                <Button
-                  className="btn"
-                  variant="primary"
-                  type="button"
-                  disabled={ownerVinLookupBusy}
-                  aria-busy={ownerVinLookupBusy || undefined}
-                  onClick={() =>
-                    void (async () => {
-                      const v = normVin(draft.vin)
-                      const vinErr = describeVinValidationError(v)
-                      if (vinErr || v.length !== 17) {
-                        alert(vinErr || 'Введите полный VIN из 17 символов.')
-                        return
-                      }
-                      setOwnerVinLookupBusy(true)
-                      try {
-                        if (!r.lookupOwnerCarForAdd) {
-                          alert('Действие недоступно в этой сборке.')
-                          return
-                        }
-                        const res = await r.lookupOwnerCarForAdd(v)
-                        if (res.status === 'not_found') {
-                          setOwnerAddVinPhase('form')
-                        } else if (res.status === 'orphan') {
-                          setOwnerOrphanCar(res.car)
-                          setOwnerOrphanModalOpen(true)
-                        } else {
-                          alert(
-                            'По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.',
-                          )
-                        }
-                      } catch (e) {
-                        alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
-                      } finally {
-                        setOwnerVinLookupBusy(false)
-                      }
-                    })()
-                  }
-                >
-                  {ownerVinLookupBusy ? 'Проверка…' : 'Проверить VIN и продолжить'}
-                </Button>
-              </div>
-            ) : null}
-          </div>
           <div className="field serviceHint__fieldWrap" id="car-edit-plate-hint">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Госномер</span>

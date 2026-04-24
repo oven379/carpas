@@ -481,13 +481,14 @@ button.nav__action {
 
 @media (max-width: 560px) {
   .footer__bar {
-    align-items: start;
+    align-items: flex-start;
     row-gap: 10px;
   }
 
+  /* В одну линию с первым рядом ссылок (не «плавает» по центру многострочного блока) */
   .footerSupportSlot {
     justify-self: end;
-    align-self: center;
+    align-self: flex-start;
   }
 }
 
@@ -8669,35 +8670,38 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .navBrandLockup {
-    max-width: min(168px, calc(100vw - 108px));
+    max-width: min(152px, calc(100vw - 120px));
     width: auto;
-    align-items: flex-start;
+    align-items: center;
   }
 
   .navLogoFrame {
     padding: 0;
-    align-items: flex-start;
+    align-items: center;
     max-width: 100%;
   }
 
   .navLogoFrame .brandLogoLockup {
-    align-items: flex-start;
+    align-items: center;
     gap: 2px;
     max-width: 100%;
   }
 
+  /* Не растягивать блок на 100% ширины — иначе img с inline-высотой даёт «плавающую» геометрию */
   .navLogoFrame .navWordmarkSvg {
     display: block;
-    width: 100%;
+    width: auto;
     max-width: 100%;
     height: auto;
     line-height: 0;
   }
 
-  /* Высота/ширина задаются inline в Logo.jsx; не переопределять — иначе мобилка ломает размер */
+  /* Inline-стили Logo.jsx перебиваем: компактная высота на узких экранах + предсказуемая ширина */
   .navLogoFrame .brandLogoLockup__img {
     display: block;
     max-width: 100%;
+    height: clamp(24px, 6.25vw, 36px) !important;
+    width: auto !important;
     object-fit: contain;
     object-position: left center;
   }

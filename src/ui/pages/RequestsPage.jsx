@@ -298,21 +298,28 @@ export default function RequestsPage() {
                               setCarsById(map)
                               setClaimApprovedModalOpen(true)
                             } catch {
-                              alert('Не удалось подтвердить заявку.')
+                              alert('Не удалось принять заявку.')
                             }
                           })
                         }
                       >
-                        Подтвердить
+                        Добавить авто
                       </button>
                       <button
                         className="btn"
-                        data-variant="danger"
+                        data-variant="outline"
                         type="button"
                         disabled={claimLock.pending}
                         aria-busy={claimLock.pending || undefined}
                         onClick={() =>
                           void claimLock.run(async () => {
+                            if (
+                              !confirm(
+                                'Отменить заявку владельца? Привязка к приложению не будет создана, карточка у вас останется как раньше.',
+                              )
+                            ) {
+                              return
+                            }
                             try {
                               await r.reviewClaim(x.id, { status: 'rejected' })
                               invalidateRepo()
@@ -324,12 +331,12 @@ export default function RequestsPage() {
                               }
                               setCarsById(map)
                             } catch {
-                              alert('Не удалось отклонить заявку.')
+                              alert('Не удалось отменить заявку.')
                             }
                           })
                         }
                       >
-                        Отклонить
+                        Отменить
                       </button>
                     </div>
                   ) : null}
