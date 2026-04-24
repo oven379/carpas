@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Application\Cars\RemoveCarFromOwnerGarage;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
@@ -325,12 +326,13 @@ class OwnerCarController extends Controller
         return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, $id, RemoveCarFromOwnerGarage $removeFromOwnerGarage)
     {
         /** @var Owner $owner */
         $owner = $request->user();
         $car = Car::query()->where('owner_id', $owner->id)->findOrFail($id);
-        $car->delete();
+
+        $removeFromOwnerGarage->handle($owner, $car);
 
         return response()->json(['ok' => true]);
     }

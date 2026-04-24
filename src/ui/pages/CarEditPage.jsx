@@ -643,6 +643,15 @@ export default function CarEditPage({ mode }) {
                 >
                   {ownerVinLookupBusy ? 'Проверка…' : 'Проверить VIN и продолжить'}
                 </Button>
+                <Button
+                  className="btn"
+                  variant="outline"
+                  type="button"
+                  disabled={ownerVinLookupBusy}
+                  onClick={() => nav(listReturn)}
+                >
+                  Отменить
+                </Button>
               </div>
             ) : null}
           </div>
@@ -1016,8 +1025,8 @@ export default function CarEditPage({ mode }) {
             >
               {saveBusy ? 'Сохранение…' : 'Сохранить'}
             </Button>
-            <Link className="btn" data-variant="ghost" to={backNavTo}>
-              Отмена
+            <Link className="btn" data-variant="outline" to={backNavTo}>
+              Отменить
             </Link>
             {mode === 'edit' && id ? (
               <Button

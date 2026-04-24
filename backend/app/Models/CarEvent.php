@@ -12,6 +12,8 @@ class CarEvent extends Model
 
     protected $fillable = [
         'detailing_id',
+        'service_partner_name',
+        'service_partner_logo',
         'car_id',
         'owner_id',
         'source',

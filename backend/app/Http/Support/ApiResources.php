@@ -169,6 +169,9 @@ class ApiResources
             ]
             : null;
 
+        $partnerName = trim((string) ($e->service_partner_name ?? ''));
+        $partnerLogo = trim((string) ($e->service_partner_logo ?? ''));
+
         return [
             'id' => (string) $e->id,
             'detailingId' => $e->detailing_id ? (string) $e->detailing_id : '',
@@ -187,8 +190,12 @@ class ApiResources
             'careTips' => $careTips,
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),
-            'detailingName' => $isService ? (string) ($e->detailing?->name ?? '') : '',
-            'detailingLogo' => $isService ? MediaStorage::publicUrl($e->detailing?->logo ?? null) : '',
+            'detailingName' => $isService
+                ? (string) ($e->detailing?->name ?? ($partnerName !== '' ? $partnerName : ''))
+                : '',
+            'detailingLogo' => $isService
+                ? MediaStorage::publicUrl($e->detailing?->logo ?? ($partnerLogo !== '' ? $partnerLogo : null))
+                : '',
         ];
     }
 

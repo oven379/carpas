@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Application\Cars\RemoveCarFromDetailingCabinet;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\CarGarageMerge;
@@ -311,7 +312,7 @@ class CarController extends Controller
         return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }
 
-    public function destroy(Request $request, $id)
+    public function destroy(Request $request, $id, RemoveCarFromDetailingCabinet $removeFromDetailingCabinet)
     {
         /** @var Detailing $d */
         $d = $request->user();
@@ -319,7 +320,8 @@ class CarController extends Controller
         if (! DetailingCarAccess::detailingOwnsCarRow($d, $car)) {
             abort(404);
         }
-        $car->delete();
+
+        $removeFromDetailingCabinet->handle($d, $car);
 
         return response()->json(['ok' => true]);
     }
