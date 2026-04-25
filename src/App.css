@@ -9396,6 +9396,127 @@ a.btn.carPage__recsAddVisitFull,
   margin: 6px 0 4px;
 }
 
+/* Статистика в админке: три акцента + график + таблица */
+.adminStatDashIntro {
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.adminStatDashHighlights {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 720px) {
+  .adminStatDashHighlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adminStatDashHighlight {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-height: 108px;
+}
+
+.adminStatDashHighlight::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+  background: color-mix(in oklab, var(--muted) 55%, var(--border));
+}
+
+.adminStatDashHighlight--attention::before {
+  background: linear-gradient(180deg, #ef4444, #b91c1c);
+}
+
+.adminStatDashHighlight--pending::before {
+  background: linear-gradient(180deg, #f59e0b, #b45309);
+}
+
+.adminStatDashHighlight--warn::before {
+  background: linear-gradient(180deg, #94a3b8, #64748b);
+}
+
+.adminStatDashHighlightLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+.adminStatDashHighlightVal {
+  font-size: clamp(28px, 5vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--text-h);
+  margin-bottom: 6px;
+}
+
+.adminStatDashHighlightHint {
+  line-height: 1.45;
+}
+
+.adminStatDashChart {
+  margin-bottom: 16px;
+}
+
+.adminStatDashSheet {
+  border-radius: 12px;
+}
+
+.adminStatDashTableWrap {
+  overflow-x: auto;
+  margin: 0 -2px;
+}
+
+.adminStatDashDefTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.adminStatDashDefTable th,
+.adminStatDashDefTable td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 80%, transparent);
+}
+
+.adminStatDashDefTable th {
+  width: 46%;
+  max-width: 280px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.adminStatDashDefTable tr:last-child th,
+.adminStatDashDefTable tr:last-child td {
+  border-bottom: none;
+}
+
+.adminStatDashDefVal {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-h);
+}
+
+.adminStatDashDefHint {
+  font-weight: 400;
+}
+
 .adminPreview__chartCard {
   min-height: 200px;
 }

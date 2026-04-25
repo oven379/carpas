@@ -177,38 +177,75 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
     },
   ]
 
-  const kpi = [
-    { k: 'Обращения без ответа', v: String(s.awaitingAdminReply ?? 0), d: 'ожидают ответа администратора' },
-    { k: 'Обращения за 7 дней', v: String(s.createdLast7Days ?? 0), d: 'создано за последнюю неделю' },
-    { k: 'Всего обращений', v: String(s.total ?? 0), d: 'все тикеты в базе' },
-    { k: 'Заявки партнёров', v: String(p.pendingVerification ?? 0), d: 'на проверке (email ≠ служебный)' },
-    { k: 'Подтверждённых партнёров', v: String(p.approvedTotal ?? 0), d: 'аккаунты с подтверждением' },
-    { k: 'Владельцев', v: String(r.ownersTotal ?? 0), d: 'зарегистрированных аккаунтов' },
-    { k: 'Автомобилей', v: String(r.carsTotal ?? 0), d: 'записей в таблице машин' },
-    { k: 'События в истории (30 дн.)', v: String(r.carEventsLast30Days ?? 0), d: 'записи визитов и т.п.' },
-    { k: 'Push-токены', v: String(push.deviceTokensTotal ?? 0), d: `FCM: ${push.fcmConfigured ? 'ок' : 'не настроен'}` },
+  const awaiting = Number(s.awaitingAdminReply ?? 0)
+  const pendingPartners = Number(p.pendingVerification ?? 0)
+  const pushTotal = Number(push.deviceTokensTotal ?? 0)
+  const fcmOk = push.fcmConfigured === true
+
+  const sheetRows = [
+    { label: 'Обращения за 7 дней', value: String(s.createdLast7Days ?? 0), hint: 'новых тикетов' },
+    { label: 'Всего обращений в базе', value: String(s.total ?? 0), hint: '' },
+    { label: 'Партнёров с подтверждением', value: String(p.approvedTotal ?? 0), hint: '' },
+    { label: 'Аккаунтов владельцев', value: String(r.ownersTotal ?? 0), hint: '' },
+    { label: 'Автомобилей в базе', value: String(r.carsTotal ?? 0), hint: '' },
+    { label: 'Событий в истории за 30 дн.', value: String(r.carEventsLast30Days ?? 0), hint: 'визиты и др.' },
+    { label: 'Push: устройств', value: String(pushTotal), hint: `владельцы ${push.deviceTokensOwners ?? 0} · партнёры ${push.deviceTokensDetailings ?? 0}` },
   ]
 
   return (
     <>
-      <p className="muted small" style={{ margin: '0 0 14px', lineHeight: 1.5 }}>
-        Общая статистика сервиса: обращения, партнёры, реестр, push. Детальные списки — в соответствующих разделах меню.
+      <p className="muted small adminStatDashIntro">
+        Сначала смотрите на сигналы слева; график — динамика по месяцам; ниже — полная сводка числом в одной таблице.
       </p>
-      <div className="adminPreview__kpiGrid">
-        {kpi.map((x) => (
-          <Card key={x.k} className="adminPreview__kpi card pad">
-            <div className="muted" style={{ fontSize: 12 }}>
-              {x.k}
-            </div>
-            <div className="adminPreview__kpiVal">{x.v}</div>
-            <div className="muted" style={{ fontSize: 11 }}>
-              {x.d}
-            </div>
-          </Card>
-        ))}
+
+      <div className="adminStatDashHighlights">
+        <Card
+          className={`card pad adminStatDashHighlight${awaiting > 0 ? ' adminStatDashHighlight--attention' : ''}`}
+        >
+          <div className="adminStatDashHighlightLabel">Без ответа</div>
+          <div className="adminStatDashHighlightVal">{awaiting}</div>
+          <div className="muted small adminStatDashHighlightHint">обращения в поддержку</div>
+        </Card>
+        <Card
+          className={`card pad adminStatDashHighlight${pendingPartners > 0 ? ' adminStatDashHighlight--pending' : ''}`}
+        >
+          <div className="adminStatDashHighlightLabel">Заявки партнёров</div>
+          <div className="adminStatDashHighlightVal">{pendingPartners}</div>
+          <div className="muted small adminStatDashHighlightHint">на проверке</div>
+        </Card>
+        <Card className={`card pad adminStatDashHighlight${fcmOk ? '' : ' adminStatDashHighlight--warn'}`}>
+          <div className="adminStatDashHighlightLabel">Push / FCM</div>
+          <div className="adminStatDashHighlightVal">{pushTotal}</div>
+          <div className="adminStatDashHighlightHint row gap wrap" style={{ alignItems: 'center' }}>
+            <span className="muted small">токенов на устройствах</span>
+            {fcmOk ? <Pill>FCM настроен</Pill> : <Pill tone="accent">FCM не настроен</Pill>}
+          </div>
+        </Card>
       </div>
-      <Card className="card pad adminPreview__chartCard">
+
+      <Card className="card pad adminPreview__chartCard adminStatDashChart">
         <MultiLineMonthlyChart monthLabels={monthLabels} series={chartSeries} />
+      </Card>
+
+      <Card className="card pad adminStatDashSheet">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Сводка по базе
+        </h2>
+        <div className="adminStatDashTableWrap">
+          <table className="adminStatDashDefTable">
+            <tbody>
+              {sheetRows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>
+                    <span className="adminStatDashDefVal">{row.value}</span>
+                    {row.hint ? <span className="muted small adminStatDashDefHint"> · {row.hint}</span> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </>
   )
