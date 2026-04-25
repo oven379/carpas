@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OwnerCarDocController;
 use App\Http\Controllers\Api\OwnerCarEventController;
 use App\Http\Controllers\Api\OwnerCarShareController;
 use App\Http\Controllers\Api\AdminPushController;
+use App\Http\Controllers\Api\AdminRegistryController;
 use App\Http\Controllers\Api\AdminSupportController;
 use App\Http\Controllers\Api\DevicePushTokenController;
 use App\Http\Controllers\Api\PublicShowcaseController;
@@ -32,6 +33,13 @@ Route::middleware('throttle:30,1')->post('/support/tickets', [SupportTicketContr
 Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
 
 Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
+    Route::get('/admin/support/overview', [AdminSupportController::class, 'overview']);
+    Route::get('/admin/support/partners', [AdminSupportController::class, 'partnersDirectory']);
+    Route::get('/admin/support/partners/{id}/summary', [AdminRegistryController::class, 'partnerSummary']);
+    Route::get('/admin/support/registry/owners', [AdminRegistryController::class, 'owners']);
+    Route::get('/admin/support/registry/owners/{id}', [AdminRegistryController::class, 'ownerShow']);
+    Route::get('/admin/support/registry/cars', [AdminRegistryController::class, 'cars']);
+    Route::get('/admin/support/registry/cars/{id}', [AdminRegistryController::class, 'carShow']);
     Route::get('/admin/support/partner-registrations/pending', [AdminSupportController::class, 'partnerRegistrationsPending']);
     Route::post('/admin/support/partner-registrations/{id}/approve', [AdminSupportController::class, 'approvePartnerRegistration'])
         ->middleware('throttle:60,1');

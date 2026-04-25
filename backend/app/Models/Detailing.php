@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Http\Support\DetailingPublicSlug;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -46,6 +47,11 @@ class Detailing extends Authenticatable
         'profile_completed' => 'boolean',
         'verification_approved_at' => 'datetime',
     ];
+
+    public function cars(): HasMany
+    {
+        return $this->hasMany(Car::class, 'detailing_id');
+    }
 
     protected static function booted(): void
     {
