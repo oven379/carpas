@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Application\Admin\AdminOverviewMetrics;
+use App\Application\Admin\AdminPartnersDirectory;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\PendingOwnerPool;
@@ -15,6 +17,11 @@ use Illuminate\Support\Facades\Storage;
 
 class AdminSupportController extends Controller
 {
+    public function __construct(
+        private readonly AdminOverviewMetrics $adminOverviewMetrics,
+        private readonly AdminPartnersDirectory $adminPartnersDirectory,
+    ) {}
+
     public function login(Request $request)
     {
         $data = $request->validate([
@@ -33,6 +40,16 @@ class AdminSupportController extends Controller
             'ok' => true,
             'token' => config('support.admin_bearer_token'),
         ]);
+    }
+
+    public function overview()
+    {
+        return response()->json($this->adminOverviewMetrics->build());
+    }
+
+    public function partnersDirectory()
+    {
+        return response()->json($this->adminPartnersDirectory->combinedDirectory());
     }
 
     public function index()
@@ -110,14 +127,7 @@ class AdminSupportController extends Controller
      */
     public function partnerRegistrationsPending()
     {
-        $rows = Detailing::query()
-            ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)
-            ->whereNull('verification_approved_at')
-            ->orderByDesc('created_at')
-            ->limit(200)
-            ->get();
-
-        return response()->json($rows->map(fn (Detailing $d) => $this->serializePendingPartner($d))->values());
+        return response()->json($this->adminPartnersDirectory->pendingRegistrationRows());
     }
 
     public function approvePartnerRegistration(int $id)
@@ -180,25 +190,5 @@ class AdminSupportController extends Controller
             'ok' => true,
             'detailing' => ApiResources::detailing($d),
         ]);
-    }
-
-    protected function serializePendingPartner(Detailing $d): array
-    {
-        $det = is_array($d->services_offered) ? $d->services_offered : [];
-        $maint = is_array($d->maintenance_services_offered) ? $d->maintenance_services_offered : [];
-
-        return [
-            'id' => (string) $d->id,
-            'publicSlug' => trim((string) ($d->public_slug ?? '')),
-            'name' => $d->name,
-            'email' => $d->email,
-            'contactName' => $d->contact_name ?? '',
-            'phone' => $d->phone ?? '',
-            'city' => $d->city ?? '',
-            'address' => $d->address ?? '',
-            'description' => $d->description ?? '',
-            'createdAt' => optional($d->created_at)->toISOString(),
-            'servicesOfferedCount' => count(array_merge($det, $maint)),
-        ];
     }
 }

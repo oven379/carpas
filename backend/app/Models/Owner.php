@@ -52,4 +52,9 @@ class Owner extends Authenticatable
     {
         return $this->hasMany(Car::class, 'owner_id');
     }
+
+    public function supportTickets(): HasMany
+    {
+        return $this->hasMany(SupportTicket::class, 'owner_id');
+    }
 }

@@ -2,86 +2,54 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import { Button, Card, Field, Input, Pill, Textarea } from '../components.jsx'
-import AdminHomeLandingEditor from '../admin/AdminHomeLandingEditor.jsx'
 import { clearAdminMockSession } from '../../lib/adminMockSession.js'
 import { clearAdminApiToken, getAdminApiToken, hasAdminApiToken } from '../../lib/adminApiSession.js'
 import { getApi } from '../../api/index.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
+import { publicDetailingPath } from '../serviceLinkUi.js'
 
 const NAV = [
-  { id: 'dash', label: 'Обзор' },
-  { id: 'landing', label: 'Главная' },
+  { id: 'dash', label: 'Статистика' },
+  { id: 'support', label: 'Поддержка', badgeTone: 'urgent', badgeFrom: (o) => o?.support?.awaitingAdminReply ?? 0 },
+  { id: 'partners', label: 'Партнёры и заявки', badgeTone: 'pending', badgeFrom: (o) => o?.partners?.pendingVerification ?? 0 },
   { id: 'users', label: 'Пользователи' },
-  { id: 'support', label: 'Поддержка' },
-  { id: 'push', label: 'Push' },
   { id: 'cars', label: 'Автомобили' },
-  { id: 'partners', label: 'Партнёры' },
-  { id: 'partnerApps', label: 'Заявки партнёров' },
-  { id: 'mods', label: 'Модерация' },
-  { id: 'sys', label: 'Система' },
+  { id: 'push', label: 'Push-уведомления' },
 ]
 
-const MOCK_STATS = [
-  { k: 'Владельцы', v: '12 480', d: '+3,2% за 7 дн.' },
-  { k: 'Активные авто', v: '18 920', d: 'с историей за месяц' },
-  { k: 'Партнёры', v: '214', d: '12 на проверке' },
-  { k: 'Визиты / мес.', v: '46 200', d: 'по данным аналитики' },
-]
+function AdminDetailModal({ open, title, loading, err, onClose, children }) {
+  if (!open) return null
+  return (
+    <div
+      className="adminModalOverlay"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="adminModal card pad" role="dialog" aria-modal="true" aria-labelledby="adminModalTitle">
+        <div className="row spread gap wrap" style={{ marginBottom: 12, alignItems: 'flex-start' }}>
+          <h2 id="adminModalTitle" className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
+            {title}
+          </h2>
+          <button type="button" className="btn" data-variant="ghost" onClick={onClose} aria-label="Закрыть">
+            Закрыть
+          </button>
+        </div>
+        {err ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginBottom: 10 }}>
+            {err}
+          </p>
+        ) : null}
+        {loading ? <p className="muted small">Загрузка…</p> : children}
+      </div>
+    </div>
+  )
+}
 
-/** Серии для мультиграфика: у каждой свой цвет и линия по месяцам (масштаб условный). */
-const CHART_MONTHS = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн']
-const CHART_SERIES = [
-  { name: 'Визиты (записи в истории)', color: '#9333ea', values: [42, 55, 48, 63, 58, 72] },
-  { name: 'Уникальные сессии', color: '#0ea5e9', values: [31, 40, 36, 46, 44, 54] },
-  { name: 'Новые владельцы', color: '#22c55e', values: [8, 12, 9, 15, 11, 18] },
-  { name: 'Сбои в работе (×10)', color: '#f97316', values: [25, 18, 22, 14, 20, 12] },
-]
-
-const MOCK_USERS = [
-  { id: 'u-10291', mail: 'ivan***@mail.ru', role: 'Владелец', status: 'Активен', at: '02.04.2026' },
-  { id: 'u-10290', mail: 'sto***@yandex.ru', role: 'Партнёр', status: 'Активен', at: '01.04.2026' },
-  { id: 'u-10289', mail: 'guest***@gmail.com', role: 'Гость', status: 'Новый', at: '31.03.2026' },
-]
-
-const MOCK_CARS = [
-  { vin: 'XTA***…***45', plate: 'А 123 ВС 77', owner: 'u-10291', visits: '14', at: '28.03.2026' },
-  { vin: 'WVW***…***01', plate: 'К 777 ОО 199', owner: 'u-10288', visits: '3', at: '27.03.2026' },
-]
-
-const MOCK_PARTNERS = [
-  { id: 'd-881', name: 'Детейлинг «Глянец»', city: 'Москва', tier: 'Pro', claims: '2 ожидают' },
-  { id: 'd-442', name: 'СТО «Мотор+»', city: 'Казань', tier: 'Base', claims: '0' },
-]
-
-const MOCK_QUEUE = [
-  {
-    t: 'Заявка партнёра',
-    s: 'ИП Иванов — проверка реквизитов',
-    who: 'Система / форма заявки',
-    badge: 'Новая',
-  },
-  {
-    t: 'Жалоба на визит',
-    s: 'Авто XTA… — спор по сумме',
-    who: 'Владелец u-10291',
-    badge: 'В работе',
-  },
-  {
-    t: 'Новый автомобиль в базе',
-    s: 'VIN WVW… — первичное появление',
-    who: 'Партнёр «Глянец» (d-881)',
-    badge: 'Ожидает',
-  },
-  {
-    t: 'Публичный гараж',
-    s: 'Слаг «best-detailing» — смена обложки',
-    who: 'Владелец u-10302',
-    badge: 'Ожидает',
-  },
-]
-
-function MultiLineMonthlyChart() {
+/** @param {{ monthLabels: string[], series: { name: string, color: string, values: number[] }[] }} props */
+function MultiLineMonthlyChart({ monthLabels, series }) {
   const W = 420
   const H = 200
   const padL = 44
@@ -90,19 +58,21 @@ function MultiLineMonthlyChart() {
   const padB = 36
   const innerW = W - padL - padR
   const innerH = H - padT - padB
-  const maxV = Math.max(...CHART_SERIES.flatMap((s) => s.values), 1)
-  const n = CHART_MONTHS.length
+  const labels = Array.isArray(monthLabels) && monthLabels.length ? monthLabels : ['—']
+  const safeSeries = Array.isArray(series) ? series.filter((s) => s && Array.isArray(s.values)) : []
+  const maxV = Math.max(1, ...safeSeries.flatMap((s) => s.values))
+  const n = labels.length
   const xAt = (i) => padL + (innerW * i) / Math.max(n - 1, 1)
   const yAt = (v) => padT + innerH - (innerH * v) / maxV
 
   return (
     <div className="adminChart">
       <div className="adminChart__head row spread gap wrap">
-        <h2 className="h2 adminPreview__panelTitle">Посещения и активность по месяцам</h2>
-        <Pill>мульти-линии</Pill>
+        <h2 className="h2 adminPreview__panelTitle">Динамика по месяцам</h2>
+        <Pill>из базы</Pill>
       </div>
       <p className="muted small adminChart__explain">
-        Несколько показателей на одной сетке: у каждой метрики свой цвет и своя линия. По оси X — месяцы, по Y — условные величины; когда панель подключат к данным сервиса, здесь появятся реальные числа и подписи осей.
+        Обращения в поддержку и новые регистрации партнёрских аккаунтов за последние полные месяцы (по дате создания записи).
       </p>
       <svg className="adminChart__svg" viewBox={`0 0 ${W} ${H}`} aria-hidden="true">
         {[0, 0.25, 0.5, 0.75, 1].map((t) => {
@@ -113,12 +83,12 @@ function MultiLineMonthlyChart() {
             </g>
           )
         })}
-        {CHART_MONTHS.map((label, i) => (
-          <text key={label} x={xAt(i)} y={H - 10} textAnchor="middle" className="adminChart__monthLabel">
+        {labels.map((label, i) => (
+          <text key={`${label}-${i}`} x={xAt(i)} y={H - 10} textAnchor="middle" className="adminChart__monthLabel">
             {label}
           </text>
         ))}
-        {CHART_SERIES.map((s) => {
+        {safeSeries.map((s) => {
           const pts = s.values.map((v, i) => `${xAt(i)},${yAt(v)}`).join(' ')
           return (
             <polyline
@@ -133,14 +103,14 @@ function MultiLineMonthlyChart() {
             />
           )
         })}
-        {CHART_SERIES.map((s) =>
+        {safeSeries.map((s) =>
           s.values.map((v, i) => (
             <circle key={`${s.name}-${i}`} cx={xAt(i)} cy={yAt(v)} r="4" fill={s.color} className="adminChart__dot" />
           )),
         )}
       </svg>
       <ul className="adminChart__legend">
-        {CHART_SERIES.map((s) => (
+        {safeSeries.map((s) => (
           <li key={s.name}>
             <span className="adminChart__legendSwatch" style={{ background: s.color }} />
             {s.name}
@@ -151,64 +121,133 @@ function MultiLineMonthlyChart() {
   )
 }
 
-function PanelDash() {
+function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetry }) {
+  if (!hasApiToken) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Статистика
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Общая статистика сервиса подтягивается из API после входа с учётными данными{' '}
+          <code className="adminMono">ADMIN_SUPPORT_LOGIN</code> / <code className="adminMono">ADMIN_SUPPORT_PASSWORD</code>{' '}
+          на сервере. Локальный вход в макет без API не показывает числа из базы.
+        </p>
+      </Card>
+    )
+  }
+
+  if (overviewLoading && !overview) {
+    return <p className="muted small">Загрузка статистики…</p>
+  }
+
+  if (overviewErr) {
+    return (
+      <Card className="card pad">
+        <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
+          {overviewErr}
+        </p>
+        <button type="button" className="btn" data-variant="outline" onClick={onRetry}>
+          Повторить
+        </button>
+      </Card>
+    )
+  }
+
+  if (!overview) {
+    return null
+  }
+
+  const s = overview.support || {}
+  const p = overview.partners || {}
+  const r = overview.registry || {}
+  const push = overview.push || {}
+  const months = Array.isArray(overview.chart?.months) ? overview.chart.months : []
+  const monthLabels = months.map((m) => m.label || m.key || '—')
+  const chartSeries = [
+    {
+      name: 'Обращения в поддержку',
+      color: '#9333ea',
+      values: months.map((m) => Number(m.supportTickets) || 0),
+    },
+    {
+      name: 'Новые аккаунты партнёров',
+      color: '#0ea5e9',
+      values: months.map((m) => Number(m.newPartnerAccounts) || 0),
+    },
+  ]
+
+  const awaiting = Number(s.awaitingAdminReply ?? 0)
+  const pendingPartners = Number(p.pendingVerification ?? 0)
+  const pushTotal = Number(push.deviceTokensTotal ?? 0)
+  const fcmOk = push.fcmConfigured === true
+
+  const sheetRows = [
+    { label: 'Обращения за 7 дней', value: String(s.createdLast7Days ?? 0), hint: 'новых тикетов' },
+    { label: 'Всего обращений в базе', value: String(s.total ?? 0), hint: '' },
+    { label: 'Партнёров с подтверждением', value: String(p.approvedTotal ?? 0), hint: '' },
+    { label: 'Аккаунтов владельцев', value: String(r.ownersTotal ?? 0), hint: '' },
+    { label: 'Автомобилей в базе', value: String(r.carsTotal ?? 0), hint: '' },
+    { label: 'Событий в истории за 30 дн.', value: String(r.carEventsLast30Days ?? 0), hint: 'визиты и др.' },
+    { label: 'Push: устройств', value: String(pushTotal), hint: `владельцы ${push.deviceTokensOwners ?? 0} · партнёры ${push.deviceTokensDetailings ?? 0}` },
+  ]
+
   return (
     <>
-      <div className="adminPreview__kpiGrid">
-        {MOCK_STATS.map((x) => (
-          <Card key={x.k} className="adminPreview__kpi card pad">
-            <div className="muted" style={{ fontSize: 12 }}>
-              {x.k}
-            </div>
-            <div className="adminPreview__kpiVal">{x.v}</div>
-            <div className="muted" style={{ fontSize: 11 }}>
-              {x.d}
-            </div>
-          </Card>
-        ))}
+      <p className="muted small adminStatDashIntro">
+        Сначала смотрите на сигналы слева; график — динамика по месяцам; ниже — полная сводка числом в одной таблице.
+      </p>
+
+      <div className="adminStatDashHighlights">
+        <Card
+          className={`card pad adminStatDashHighlight${awaiting > 0 ? ' adminStatDashHighlight--attention' : ''}`}
+        >
+          <div className="adminStatDashHighlightLabel">Без ответа</div>
+          <div className="adminStatDashHighlightVal">{awaiting}</div>
+          <div className="muted small adminStatDashHighlightHint">обращения в поддержку</div>
+        </Card>
+        <Card
+          className={`card pad adminStatDashHighlight${pendingPartners > 0 ? ' adminStatDashHighlight--pending' : ''}`}
+        >
+          <div className="adminStatDashHighlightLabel">Заявки партнёров</div>
+          <div className="adminStatDashHighlightVal">{pendingPartners}</div>
+          <div className="muted small adminStatDashHighlightHint">на проверке</div>
+        </Card>
+        <Card className={`card pad adminStatDashHighlight${fcmOk ? '' : ' adminStatDashHighlight--warn'}`}>
+          <div className="adminStatDashHighlightLabel">Push / FCM</div>
+          <div className="adminStatDashHighlightVal">{pushTotal}</div>
+          <div className="adminStatDashHighlightHint row gap wrap" style={{ alignItems: 'center' }}>
+            <span className="muted small">токенов на устройствах</span>
+            {fcmOk ? <Pill>FCM настроен</Pill> : <Pill tone="accent">FCM не настроен</Pill>}
+          </div>
+        </Card>
       </div>
-      <Card className="card pad adminPreview__chartCard">
-        <MultiLineMonthlyChart />
+
+      <Card className="card pad adminPreview__chartCard adminStatDashChart">
+        <MultiLineMonthlyChart monthLabels={monthLabels} series={chartSeries} />
+      </Card>
+
+      <Card className="card pad adminStatDashSheet">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Сводка по базе
+        </h2>
+        <div className="adminStatDashTableWrap">
+          <table className="adminStatDashDefTable">
+            <tbody>
+              {sheetRows.map((row) => (
+                <tr key={row.label}>
+                  <th scope="row">{row.label}</th>
+                  <td>
+                    <span className="adminStatDashDefVal">{row.value}</span>
+                    {row.hint ? <span className="muted small adminStatDashDefHint"> · {row.hint}</span> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </>
-  )
-}
-
-function PanelTable({ title, cols, rows }) {
-  return (
-    <Card className="card pad adminPreview__tableCard">
-      <div className="row spread gap wrap" style={{ marginBottom: 14 }}>
-        <h2 className="h2 adminPreview__panelTitle">{title}</h2>
-        <div className="row gap wrap">
-          <span className="input adminPreview__fakeSearch" aria-hidden>
-            Поиск…
-          </span>
-          <button type="button" className="btn" data-variant="ghost" disabled>
-            Экспорт
-          </button>
-        </div>
-      </div>
-      <div className="adminPreview__tableWrap">
-        <table className="adminPreview__table">
-          <thead>
-            <tr>
-              {cols.map((c) => (
-                <th key={c}>{c}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i}>
-                {r.map((cell, j) => (
-                  <td key={j}>{cell}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </Card>
   )
 }
 
@@ -240,7 +279,7 @@ function supportContextLine(ctx) {
   return parts.length ? parts.join(' · ') : '—'
 }
 
-function PanelSupport() {
+function PanelSupport({ onTicketPipelineChanged }) {
   const token = getAdminApiToken()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -323,6 +362,10 @@ function PanelSupport() {
             Обновить
           </button>
         </div>
+        <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55 }}>
+          Уведомления о новых обращениях — счётчик в боковом меню у пункта «Поддержка» (обращения без ответа администратора). Здесь
+          полный список и отправка ответа пользователю.
+        </p>
         {err ? (
           <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
             {err}
@@ -403,6 +446,7 @@ function PanelSupport() {
                             await getApi().adminSupportReply(getAdminApiToken(), id, msg)
                             setReplyDraft((d) => ({ ...d, [id]: '' }))
                             await reload()
+                            onTicketPipelineChanged?.()
                           } catch (e) {
                             setErr(formatHttpErrorMessage(e, 'Не удалось отправить ответ.'))
                           } finally {
@@ -624,66 +668,20 @@ function PanelPush() {
 }
 
 function PanelUsers() {
-  return (
-    <div className="adminPreview__stack">
-      <PanelTable
-        title="Пользователи"
-        cols={['ID', 'Контакт', 'Роль', 'Статус', 'Регистрация']}
-        rows={MOCK_USERS.map((u) => [u.id, u.mail, u.role, u.status, u.at])}
-      />
-      <Card className="card pad adminExplainCard">
-        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
-          Живые обращения в поддержку смотрите в разделе <strong>Поддержка</strong> в боковом меню.
-        </p>
-      </Card>
-    </div>
-  )
-}
-
-function PanelCars() {
-  return (
-    <div className="adminPreview__stack">
-      <Card className="card pad adminExplainCard">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
-          Что такое «автомобиль» в админке
-        </h2>
-        <p className="muted small" style={{ lineHeight: 1.55 }}>
-          Это та же карточка машины, что у владельца (VIN, номер, владелец, визиты), плюс <strong>служебное</strong>: публичная ссылка при шаринге карточки, флаги жалобы или спора, внутренний комментарий модератора (видят только админы).
-          Типовые действия: просмотр; временно скрыть авто из витрин/поиска; отключить публичный шаринг; оставить заметку «разобрались / на проверке». Ничего из этого не удаляет данные у владельца без отдельной политики — только видимость и модерация.
-        </p>
-      </Card>
-      <PanelTable
-        title="Автомобили"
-        cols={['VIN', 'Госномер', 'Владелец', 'Визиты', 'Обновлено']}
-        rows={MOCK_CARS.map((c) => [c.vin, c.plate, c.owner, c.visits, c.at])}
-      />
-      <Card className="card pad">
-        <div className="row spread gap wrap">
-          <h2 className="h2 adminPreview__panelTitle">Карточка авто (макет)</h2>
-          <button type="button" className="btn" data-variant="outline" disabled>
-            Открыть полную карточку
-          </button>
-        </div>
-        <p className="muted small" style={{ marginTop: 10 }}>
-          Когда список подключат к базе: клик по строке откроет карточку с вкладками «Данные», «История», «Публичность», «Жалобы», «Заметки».
-        </p>
-      </Card>
-    </div>
-  )
-}
-
-function PanelPartnerApplications() {
   const token = getAdminApiToken()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
-  const [okMsg, setOkMsg] = useState('')
-  const [busyId, setBusyId] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalId, setModalId] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailErr, setDetailErr] = useState('')
+  const [detail, setDetail] = useState(null)
 
   const reload = useCallback(async () => {
     if (!hasAdminApiToken()) return
-    const list = await getApi().adminPartnerRegistrationsPending(getAdminApiToken())
-    setItems(Array.isArray(list) ? list : [])
+    const res = await getApi().adminRegistryOwners(getAdminApiToken())
+    setItems(res && typeof res === 'object' && Array.isArray(res.items) ? res.items : [])
   }, [])
 
   useEffect(() => {
@@ -699,7 +697,7 @@ function PanelPartnerApplications() {
       try {
         await reload()
       } catch (e) {
-        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить заявки.'))
+        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить пользователей.'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -709,27 +707,515 @@ function PanelPartnerApplications() {
     }
   }, [token, reload])
 
+  const openOwner = (id) => {
+    setModalId(String(id))
+    setModalOpen(true)
+    setDetail(null)
+    setDetailErr('')
+    setDetailLoading(true)
+    void (async () => {
+      try {
+        const d = await getApi().adminRegistryOwner(getAdminApiToken(), id)
+        setDetail(d && typeof d === 'object' ? d : null)
+      } catch (e) {
+        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить карточку пользователя.'))
+      } finally {
+        setDetailLoading(false)
+      }
+    })()
+  }
+
   if (!hasAdminApiToken()) {
     return (
       <Card className="card pad adminExplainCard">
         <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
-          Заявки партнёров
+          Пользователи
         </h2>
         <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
-          Раздел доступен после входа с учётными данными из <code className="adminMono">ADMIN_SUPPORT_LOGIN</code> /{' '}
-          <code className="adminMono">ADMIN_SUPPORT_PASSWORD</code> — тогда сохраняется токен API и список подтягивается из
-          базы.
+          Список владельцев (аккаунтов) и статистика доступны после входа с <code className="adminMono">ADMIN_SUPPORT_*</code> на сервере.
         </p>
       </Card>
     )
   }
 
+  const st = detail?.stats || {}
+
   return (
     <div className="adminPreview__stack">
+      <Card className="card pad adminExplainCard">
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Владельцы приложения: почта, гараж, число машин и обращений в поддержку. Кнопка «Просмотр» открывает сводную статистику по аккаунту.
+        </p>
+      </Card>
       <Card className="card pad">
         <div className="row spread gap wrap" style={{ marginBottom: 12 }}>
           <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
-            Заявки партнёров
+            Пользователи
+          </h2>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void (async () => {
+                setErr('')
+                setLoading(true)
+                try {
+                  await reload()
+                } catch (e) {
+                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                } finally {
+                  setLoading(false)
+                }
+              })()
+            }
+          >
+            Обновить
+          </button>
+        </div>
+        {err ? (
+          <p className="adminSupportErr small" role="alert">
+            {err}
+          </p>
+        ) : null}
+        {loading ? <p className="muted small">Загрузка…</p> : null}
+        {!loading && items.length === 0 ? <p className="muted small">Пока нет записей.</p> : null}
+        {!loading && items.length > 0 ? (
+          <div className="adminPreview__tableWrap">
+            <table className="adminPreview__table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Email</th>
+                  <th>Имя</th>
+                  <th>Авто</th>
+                  <th>Тикеты</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((u) => (
+                  <tr key={u.id}>
+                    <td>
+                      <code className="adminMono">{u.id}</code>
+                    </td>
+                    <td>{u.email}</td>
+                    <td>{u.name || '—'}</td>
+                    <td>{u.carsCount ?? 0}</td>
+                    <td>{u.supportTicketsCount ?? 0}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button type="button" className="btn" data-variant="outline" onClick={() => openOwner(u.id)}>
+                        Просмотр
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+      <AdminDetailModal
+        open={modalOpen}
+        title={`Пользователь #${modalId}`}
+        loading={detailLoading}
+        err={detailErr}
+        onClose={() => {
+          setModalOpen(false)
+          setDetail(null)
+        }}
+      >
+        {detail?.owner ? (
+          <div className="adminDetailBody">
+            <p style={{ margin: '0 0 8px' }}>
+              <strong>{detail.owner.email}</strong>
+              {detail.owner.name ? <span className="muted"> · {detail.owner.name}</span> : null}
+            </p>
+            <p className="muted small" style={{ margin: '0 0 12px' }}>
+              Телефон: {detail.owner.phone || '—'} · Premium: {detail.owner.isPremium ? 'да' : 'нет'} · Слаг гаража:{' '}
+              {detail.owner.garageSlug || '—'}
+            </p>
+            <ul className="muted small adminDetailStatList">
+              <li>Автомобилей в гараже: {st.carsTotal ?? 0}</li>
+              <li>Событий в истории (по машинам): {st.carEventsTotal ?? 0}</li>
+              <li>Документов: {st.carDocsTotal ?? 0}</li>
+              <li>Обращений в поддержку: {st.supportTicketsTotal ?? 0}</li>
+              <li>Без ответа администратора: {st.supportTicketsAwaitingAdminReply ?? 0}</li>
+            </ul>
+            {detail.owner.garageSlug ? (
+              <div style={{ marginTop: 14 }}>
+                <Link className="btn" data-variant="ghost" to={`/g/${encodeURIComponent(detail.owner.garageSlug)}`}>
+                  Публичный гараж
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </AdminDetailModal>
+    </div>
+  )
+}
+
+function PanelCars() {
+  const token = getAdminApiToken()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalId, setModalId] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailErr, setDetailErr] = useState('')
+  const [detail, setDetail] = useState(null)
+
+  const reload = useCallback(async () => {
+    if (!hasAdminApiToken()) return
+    const res = await getApi().adminRegistryCars(getAdminApiToken())
+    setItems(res && typeof res === 'object' && Array.isArray(res.items) ? res.items : [])
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!hasAdminApiToken()) {
+      setLoading(false)
+      setItems([])
+      return undefined
+    }
+    setLoading(true)
+    setErr('')
+    ;(async () => {
+      try {
+        await reload()
+      } catch (e) {
+        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить автомобили.'))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, reload])
+
+  const openCar = (id) => {
+    setModalId(String(id))
+    setModalOpen(true)
+    setDetail(null)
+    setDetailErr('')
+    setDetailLoading(true)
+    void (async () => {
+      try {
+        const d = await getApi().adminRegistryCar(getAdminApiToken(), id)
+        setDetail(d && typeof d === 'object' ? d : null)
+      } catch (e) {
+        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить карточку автомобиля.'))
+      } finally {
+        setDetailLoading(false)
+      }
+    })()
+  }
+
+  if (!hasAdminApiToken()) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Автомобили
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Реестр машин и карточка просмотра доступны после входа с <code className="adminMono">ADMIN_SUPPORT_*</code>.
+        </p>
+      </Card>
+    )
+  }
+
+  const c = detail?.car
+  const st = detail?.stats || {}
+
+  return (
+    <div className="adminPreview__stack">
+      <Card className="card pad adminExplainCard">
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Все автомобили в базе (детейлинг и привязка к владельцу). «Просмотр» — данные по машине и счётчики истории и документов. Редактирование из админки не подключено.
+        </p>
+      </Card>
+      <Card className="card pad">
+        <div className="row spread gap wrap" style={{ marginBottom: 12 }}>
+          <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
+            Автомобили
+          </h2>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void (async () => {
+                setErr('')
+                setLoading(true)
+                try {
+                  await reload()
+                } catch (e) {
+                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                } finally {
+                  setLoading(false)
+                }
+              })()
+            }
+          >
+            Обновить
+          </button>
+        </div>
+        {err ? (
+          <p className="adminSupportErr small" role="alert">
+            {err}
+          </p>
+        ) : null}
+        {loading ? <p className="muted small">Загрузка…</p> : null}
+        {!loading && items.length === 0 ? <p className="muted small">Пока нет записей.</p> : null}
+        {!loading && items.length > 0 ? (
+          <div className="adminPreview__tableWrap">
+            <table className="adminPreview__table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>VIN</th>
+                  <th>Номер</th>
+                  <th>Владелец</th>
+                  <th>Партнёр</th>
+                  <th>События</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <code className="adminMono">{row.id}</code>
+                    </td>
+                    <td style={{ maxWidth: 140, wordBreak: 'break-all' }}>{row.vin || '—'}</td>
+                    <td>{row.plate || '—'}</td>
+                    <td>
+                      <div style={{ fontSize: 13 }}>{row.ownerEmail || '—'}</div>
+                      <div className="muted small">{row.ownerName || ''}</div>
+                    </td>
+                    <td className="muted small">{row.detailingName || '—'}</td>
+                    <td>{row.eventsCount ?? 0}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button type="button" className="btn" data-variant="outline" onClick={() => openCar(row.id)}>
+                        Просмотр
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+      <AdminDetailModal
+        open={modalOpen}
+        title={c ? `Авто #${c.id}` : `Автомобиль #${modalId}`}
+        loading={detailLoading}
+        err={detailErr}
+        onClose={() => {
+          setModalOpen(false)
+          setDetail(null)
+        }}
+      >
+        {c ? (
+          <div className="adminDetailBody">
+            <p style={{ margin: '0 0 8px' }}>
+              <strong>
+                {c.make} {c.model}
+              </strong>
+              {c.year ? <span className="muted"> · {c.year}</span> : null}
+            </p>
+            <p className="muted small" style={{ margin: '0 0 12px' }}>
+              VIN: <code className="adminMono">{c.vin || '—'}</code> · Госномер: {c.plate || '—'} {c.plateRegion || ''} ·
+              Город: {c.city || '—'}
+            </p>
+            <ul className="muted small adminDetailStatList">
+              <li>События в истории: {st.eventsCount ?? 0}</li>
+              <li>Документов: {st.docsCount ?? 0}</li>
+            </ul>
+            {detail?.owner ? (
+              <p className="muted small" style={{ marginTop: 12 }}>
+                Владелец: {detail.owner.email}
+                {detail.owner.name ? ` (${detail.owner.name})` : ''}
+              </p>
+            ) : null}
+            {detail?.detailing ? (
+              <p className="muted small">
+                Партнёр: {detail.detailing.name} · {detail.detailing.city || '—'}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </AdminDetailModal>
+    </div>
+  )
+}
+
+function PanelPartners({ onPartnersPipelineChanged }) {
+  const token = getAdminApiToken()
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [okMsg, setOkMsg] = useState('')
+  const [busyId, setBusyId] = useState(null)
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalPartnerId, setModalPartnerId] = useState('')
+  const [detailLoading, setDetailLoading] = useState(false)
+  const [detailErr, setDetailErr] = useState('')
+  const [partnerDetail, setPartnerDetail] = useState(null)
+
+  const reload = useCallback(async () => {
+    if (!hasAdminApiToken()) return
+    const res = await getApi().adminPartnersDirectory(getAdminApiToken())
+    const list = res && typeof res === 'object' && Array.isArray(res.items) ? res.items : []
+    setItems(list)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!hasAdminApiToken()) {
+      setLoading(false)
+      setItems([])
+      return undefined
+    }
+    setLoading(true)
+    setErr('')
+    ;(async () => {
+      try {
+        await reload()
+      } catch (e) {
+        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить список партнёров.'))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, reload])
+
+  const openPartnerSummary = (id) => {
+    setModalPartnerId(String(id))
+    setModalOpen(true)
+    setPartnerDetail(null)
+    setDetailErr('')
+    setDetailLoading(true)
+    void (async () => {
+      try {
+        const d = await getApi().adminPartnerSummary(getAdminApiToken(), id)
+        setPartnerDetail(d && typeof d === 'object' ? d : null)
+      } catch (e) {
+        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить сводку по партнёру.'))
+      } finally {
+        setDetailLoading(false)
+      }
+    })()
+  }
+
+  if (!hasAdminApiToken()) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Партнёры и заявки
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Раздел доступен после входа с учётными данными из <code className="adminMono">ADMIN_SUPPORT_LOGIN</code> /{' '}
+          <code className="adminMono">ADMIN_SUPPORT_PASSWORD</code> — тогда сохраняется токен API и список подтягивается из
+          базы. Сверху — новые заявки на подтверждение, ниже — уже подтверждённые партнёры.
+        </p>
+      </Card>
+    )
+  }
+
+  const pending = items.filter((row) => row.kind === 'registration_pending')
+  const approved = items.filter((row) => row.kind === 'partner')
+
+  const pendingTable = (
+    <div className="adminPreview__tableWrap" style={{ marginTop: 12 }}>
+      <table className="adminPreview__table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Название</th>
+            <th>Контакт</th>
+            <th>Город</th>
+            <th>Дата</th>
+            <th />
+            <th />
+          </tr>
+        </thead>
+        <tbody>
+          {pending.map((row) => (
+            <tr key={`p-${row.id}`}>
+              <td>
+                <code className="adminMono">{row.id}</code>
+              </td>
+              <td>{row.name || '—'}</td>
+              <td>
+                <div style={{ fontSize: 13 }}>{row.email || '—'}</div>
+                <div className="muted small">{[row.contactName, row.phone].filter(Boolean).join(' · ') || '—'}</div>
+              </td>
+              <td>{row.city || '—'}</td>
+              <td className="muted small">{row.createdAt ? new Date(row.createdAt).toLocaleString('ru-RU') : '—'}</td>
+              <td style={{ whiteSpace: 'nowrap' }}>
+                <button type="button" className="btn" data-variant="outline" onClick={() => openPartnerSummary(row.id)}>
+                  Статистика
+                </button>
+              </td>
+              <td style={{ whiteSpace: 'nowrap' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  data-variant="primary"
+                  disabled={busyId === row.id}
+                  onClick={() =>
+                    void (async () => {
+                      setBusyId(row.id)
+                      setErr('')
+                      setOkMsg('')
+                      try {
+                        await getApi().adminPartnerRegistrationApprove(getAdminApiToken(), row.id)
+                        setOkMsg(`Партнёр #${row.id} подтверждён. На ${row.email} отправлено письмо с паролем для входа.`)
+                        await reload()
+                        onPartnersPipelineChanged?.()
+                      } catch (e) {
+                        setErr(formatHttpErrorMessage(e, 'Не удалось подтвердить заявку.'))
+                      } finally {
+                        setBusyId(null)
+                      }
+                    })()
+                  }
+                >
+                  {busyId === row.id ? '…' : 'Подтвердить'}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+
+  return (
+    <div className="adminPreview__stack">
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Партнёры и заявки
+        </h2>
+        <p className="muted small" style={{ lineHeight: 1.55 }}>
+          <strong>Заявки</strong> (сверху списка) — новые регистрации без подтверждения; после «Подтвердить» на почту уходит письмо с паролем.
+          <strong> Подтверждённые</strong> — рабочие аккаунты; «Статистика» — машины, визиты, заявки на привязку, тикеты поддержки. Публичная страница — как у клиента.
+        </p>
+      </Card>
+      <Card className="card pad">
+        <div className="row spread gap wrap" style={{ marginBottom: 12 }}>
+          <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
+            Список
           </h2>
           <button
             type="button"
@@ -754,10 +1240,6 @@ function PanelPartnerApplications() {
             Обновить
           </button>
         </div>
-        <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55 }}>
-          Партнёры, зарегистрировавшиеся по форме и ожидающие подтверждения. После нажатия «Подтвердить» на почту уходит
-          благодарность и новый пароль для входа; старый пароль из заявки сбрасывается.
-        </p>
         {err ? (
           <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
             {err}
@@ -769,222 +1251,95 @@ function PanelPartnerApplications() {
           </p>
         ) : null}
         {loading ? <p className="muted small">Загрузка…</p> : null}
-        {!loading && items.length === 0 ? <p className="muted small">Нет заявок на проверке.</p> : null}
-        {!loading && items.length > 0 ? (
-          <div className="adminPreview__tableWrap">
-            <table className="adminPreview__table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Название</th>
-                  <th>Контакт</th>
-                  <th>Город</th>
-                  <th>Дата</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <code className="adminMono">{row.id}</code>
-                    </td>
-                    <td>{row.name || '—'}</td>
-                    <td>
-                      <div style={{ fontSize: 13 }}>{row.email || '—'}</div>
-                      <div className="muted small">
-                        {[row.contactName, row.phone].filter(Boolean).join(' · ') || '—'}
+
+        {!loading ? (
+          <>
+            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '16px 0 8px', fontWeight: 700 }}>
+              Заявки на проверке
+              {pending.length ? (
+                <Pill tone="accent" className="adminPreview__inlinePill">
+                  {pending.length}
+                </Pill>
+              ) : null}
+            </p>
+            {pending.length === 0 ? (
+              <p className="muted small" style={{ marginTop: 0 }}>
+                Нет заявок на проверке.
+              </p>
+            ) : (
+              pendingTable
+            )}
+
+            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '24px 0 8px', fontWeight: 700 }}>
+              Подтверждённые партнёры
+            </p>
+            {approved.length === 0 ? (
+              <p className="muted small">Пока нет подтверждённых аккаунтов.</p>
+            ) : (
+              <ul className="adminPreview__partnerList">
+                {approved.map((p) => (
+                  <li key={`a-${p.id}`} className="adminPreview__partnerRow">
+                    <div>
+                      <div className="adminPreview__partnerName">{p.name || '—'}</div>
+                      <div className="muted" style={{ fontSize: 12 }}>
+                        {p.city || '—'} · авто в базе: {p.carsCount ?? 0} · <code className="adminMono">{p.id}</code>
                       </div>
-                    </td>
-                    <td>{row.city || '—'}</td>
-                    <td className="muted small">
-                      {row.createdAt ? new Date(row.createdAt).toLocaleString('ru-RU') : '—'}
-                    </td>
-                    <td style={{ whiteSpace: 'nowrap' }}>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-variant="primary"
-                        disabled={busyId === row.id}
-                        onClick={() =>
-                          void (async () => {
-                            setBusyId(row.id)
-                            setErr('')
-                            setOkMsg('')
-                            try {
-                              await getApi().adminPartnerRegistrationApprove(getAdminApiToken(), row.id)
-                              setOkMsg(
-                                `Партнёр #${row.id} подтверждён. На ${row.email} отправлено письмо с паролем для входа.`,
-                              )
-                              await reload()
-                            } catch (e) {
-                              setErr(formatHttpErrorMessage(e, 'Не удалось подтвердить заявку.'))
-                            } finally {
-                              setBusyId(null)
-                            }
-                          })()
-                        }
-                      >
-                        {busyId === row.id ? '…' : 'Подтвердить'}
+                    </div>
+                    <div className="row gap wrap" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <button type="button" className="btn" data-variant="outline" onClick={() => openPartnerSummary(p.id)}>
+                        Статистика
                       </button>
-                    </td>
-                  </tr>
+                      <Link className="btn" data-variant="ghost" to={publicDetailingPath({ id: p.id, publicSlug: p.publicSlug })}>
+                        Публичная страница
+                      </Link>
+                    </div>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-          </div>
+              </ul>
+            )}
+          </>
         ) : null}
       </Card>
-    </div>
-  )
-}
-
-function PanelPartners() {
-  return (
-    <div className="adminPreview__stack">
-      <Card className="card pad adminExplainCard">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
-          Доступ к кабинету и лендингу
-        </h2>
-        <p className="muted small" style={{ lineHeight: 1.55 }}>
-          Удобнее всего два пути. <strong>1) Как у клиента</strong> — открыть публичную страницу партнёра по ссылке из списка ниже.
-          <strong> 2) Из панели поддержки</strong> — зайти в кабинет детейлинга или в настройки его публичной страницы от имени партнёра, когда такая функция будет доступна, без хранения чужих паролей.
-        </p>
-      </Card>
-      <Card className="card pad">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 14 }}>
-          Партнёры и тарифы
-        </h2>
-        <ul className="adminPreview__partnerList">
-          {MOCK_PARTNERS.map((p) => (
-            <li key={p.id} className="adminPreview__partnerRow">
-              <div>
-                <div className="adminPreview__partnerName">{p.name}</div>
-                <div className="muted" style={{ fontSize: 12 }}>
-                  {p.city} · тариф {p.tier} · <code className="adminMono">{p.id}</code>
-                </div>
-              </div>
-              <div className="row gap wrap" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-                <Pill>{p.claims}</Pill>
-                <Link className="btn" data-variant="ghost" to="/d/demo-glyanets">
-                  Публичная страница
-                </Link>
-                <button type="button" className="btn" data-variant="outline" disabled title="Скоро: вход в кабинет от имени партнёра">
-                  Кабинет
-                </button>
-                <button type="button" className="btn" data-variant="outline" disabled title="Скоро: настройки публичной страницы от имени партнёра">
-                  Настройки лендинга
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
-  )
-}
-
-function PanelMods() {
-  return (
-    <div className="adminPreview__stack">
-      <Card className="card pad adminExplainCard">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
-          Кто добавил автомобиль
-        </h2>
-        <p className="muted small" style={{ lineHeight: 1.55 }}>
-          В проде на каждую машину сохраняйте <strong>источник создания</strong>: <code className="adminMono">created_by_user_id</code>, роль (владелец / партнёр / система), при партнёре — <code className="adminMono">detailing_id</code>.
-          Тогда в модерации и в карточке авто всегда видно: «добавил владелец», «создано из кабинета детейлинга X» или «импорт/миграция». Журнал аудита дополняет спорные случаи.
-        </p>
-      </Card>
-      <Card className="card pad">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 14 }}>
-          Очередь модерации
-        </h2>
-        <ul className="adminPreview__modList">
-          {MOCK_QUEUE.map((q) => (
-            <li key={q.t + q.s} className="adminPreview__modCard">
-              <div className="row spread gap wrap">
-                <div>
-                  <div className="adminPreview__modTitle">{q.t}</div>
-                  <div className="muted" style={{ fontSize: 13 }}>
-                    {q.s}
-                  </div>
-                  <div className="adminModWho muted small" style={{ marginTop: 8 }}>
-                    <strong>Кто инициатор / добавил:</strong> {q.who}
-                  </div>
-                </div>
-                <Pill>{q.badge}</Pill>
-              </div>
-              <div className="row gap" style={{ marginTop: 12 }}>
-                <button type="button" className="btn" data-variant="primary" disabled>
-                  Открыть сущность
-                </button>
-                <button type="button" className="btn" data-variant="ghost" disabled>
-                  Решение
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </Card>
-    </div>
-  )
-}
-
-function PanelLanding() {
-  return <AdminHomeLandingEditor />
-}
-
-function PanelSys() {
-  return (
-    <div className="adminPreview__stack">
-      <Card className="card pad adminSuperCard">
-        <Pill data-tone="accent">Супер-админ</Pill>
-        <p className="adminSuperCard__text">
-          Раздел «Система» и опасные кнопки (рассылки, инвалидация, глобальные флаги) — только у роли супер-администратора. Сейчас в макете один администратор; позже разнесём права по ролям и аудиту.
-        </p>
-      </Card>
-      <Card className="card pad">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 14 }}>
-          Флаги и лимиты
-        </h2>
-        <ul className="adminPreview__toggleList">
-          <li>
-            <span>Регистрация новых партнёров</span>
-            <span className="adminPreview__fakeToggle" aria-hidden>
-              Вкл
-            </span>
-          </li>
-          <li>
-            <span>Публичные страницы гаража</span>
-            <span className="adminPreview__fakeToggle adminPreview__fakeToggle--off" aria-hidden>
-              Выкл
-            </span>
-          </li>
-          <li>
-            <span>Жёсткий лимит фото на визит</span>
-            <span className="muted" style={{ fontSize: 12 }}>
-              24 шт. (макет)
-            </span>
-          </li>
-        </ul>
-      </Card>
-      <Card className="card pad">
-        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 14 }}>
-          Сервисные действия
-        </h2>
-        <div className="row gap wrap">
-          <button type="button" className="btn" data-variant="ghost" disabled>
-            Сброс кэша CDN
-          </button>
-          <button type="button" className="btn" data-variant="ghost" disabled>
-            Рассылка (черновик)
-          </button>
-          <button type="button" className="btn" data-variant="danger" disabled>
-            Только супер-админ
-          </button>
-        </div>
-      </Card>
+      <AdminDetailModal
+        open={modalOpen}
+        title={`Партнёр #${modalPartnerId}`}
+        loading={detailLoading}
+        err={detailErr}
+        onClose={() => {
+          setModalOpen(false)
+          setPartnerDetail(null)
+        }}
+      >
+        {partnerDetail?.profile ? (
+          <div className="adminDetailBody">
+            <p style={{ margin: '0 0 8px' }}>
+              <strong>{partnerDetail.profile.name}</strong>
+              <span className="muted"> · {partnerDetail.profile.email}</span>
+            </p>
+            {partnerDetail.isPendingVerification ? (
+              <Pill tone="accent">Заявка на проверке</Pill>
+            ) : (
+              <Pill>подтверждён</Pill>
+            )}
+            <ul className="muted small adminDetailStatList" style={{ marginTop: 12 }}>
+              <li>Автомобилей в базе: {partnerDetail.stats?.carsTotal ?? 0}</li>
+              <li>Событий в истории: {partnerDetail.stats?.carEventsTotal ?? 0}</li>
+              <li>Заявок на привязку (ожидают): {partnerDetail.stats?.claimsPending ?? 0}</li>
+              <li>Заявок на привязку (всего): {partnerDetail.stats?.claimsTotal ?? 0}</li>
+              <li>Обращений в поддержку: {partnerDetail.stats?.supportTicketsTotal ?? 0}</li>
+            </ul>
+            <div style={{ marginTop: 14 }}>
+              <Link
+                className="btn"
+                data-variant="ghost"
+                to={publicDetailingPath({ id: partnerDetail.profile.id, publicSlug: partnerDetail.profile.publicSlug })}
+              >
+                Публичная страница
+              </Link>
+            </div>
+          </div>
+        ) : null}
+      </AdminDetailModal>
     </div>
   )
 }
@@ -992,6 +1347,41 @@ function PanelSys() {
 export default function AdminPanelPage() {
   const nav = useNavigate()
   const [tab, setTab] = useState('dash')
+  const hasApiToken = hasAdminApiToken()
+  const [overview, setOverview] = useState(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+  const [overviewErr, setOverviewErr] = useState('')
+
+  const reloadOverview = useCallback(async () => {
+    if (!hasAdminApiToken()) {
+      setOverview(null)
+      setOverviewErr('')
+      setOverviewLoading(false)
+      return
+    }
+    setOverviewLoading(true)
+    setOverviewErr('')
+    try {
+      const data = await getApi().adminDashboardOverview(getAdminApiToken())
+      setOverview(data && typeof data === 'object' ? data : null)
+    } catch (e) {
+      setOverviewErr(formatHttpErrorMessage(e, 'Не удалось загрузить статистику.'))
+      setOverview(null)
+    } finally {
+      setOverviewLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!hasApiToken) {
+      setOverview(null)
+      setOverviewErr('')
+      setOverviewLoading(false)
+      return undefined
+    }
+    void reloadOverview()
+    return undefined
+  }, [hasApiToken, reloadOverview])
 
   const logout = () => {
     clearAdminMockSession()
@@ -1000,22 +1390,34 @@ export default function AdminPanelPage() {
   }
 
   let body = null
-  if (tab === 'dash') body = <PanelDash />
-  else if (tab === 'landing') body = <PanelLanding />
+  if (tab === 'dash') {
+    body = (
+      <PanelDash
+        hasApiToken={hasApiToken}
+        overview={overview}
+        overviewLoading={overviewLoading}
+        overviewErr={overviewErr}
+        onRetry={() => void reloadOverview()}
+      />
+    )
+  } else if (tab === 'support') body = <PanelSupport onTicketPipelineChanged={reloadOverview} />
+  else if (tab === 'partners') body = <PanelPartners onPartnersPipelineChanged={reloadOverview} />
   else if (tab === 'users') body = <PanelUsers />
-  else if (tab === 'support') body = <PanelSupport />
-  else if (tab === 'push') body = <PanelPush />
   else if (tab === 'cars') body = <PanelCars />
-  else if (tab === 'partners') body = <PanelPartners />
-  else if (tab === 'partnerApps') body = <PanelPartnerApplications />
-  else if (tab === 'mods') body = <PanelMods />
-  else body = <PanelSys />
+  else if (tab === 'push') body = <PanelPush />
+  else {
+    body = (
+      <Card className="card pad">
+        <p className="muted small">Выберите раздел в меню слева.</p>
+      </Card>
+    )
+  }
 
   return (
     <div className="container adminPreviewPage">
       <Seo
         title="Админ-панель (макет) · КарПас"
-        description="Панель управления сервисом: обзор, пользователи, тикеты, авто, партнёры, модерация, система."
+        description="Панель управления: статистика, поддержка, партнёры и заявки, пользователи, автомобили, push."
         noindex
       />
       <div className="adminPreview__layout">
@@ -1024,16 +1426,32 @@ export default function AdminPanelPage() {
             КарПас · администрирование
           </div>
           <nav className="adminPreview__nav">
-            {NAV.map((n) => (
-              <button
-                key={n.id}
-                type="button"
-                className={`adminPreview__navBtn${tab === n.id ? ' adminPreview__navBtn--active' : ''}`}
-                onClick={() => setTab(n.id)}
-              >
-                {n.label}
-              </button>
-            ))}
+            {NAV.map((n) => {
+              const count = typeof n.badgeFrom === 'function' ? Number(n.badgeFrom(overview)) || 0 : 0
+              const showBadge = count > 0
+              return (
+                <button
+                  key={n.id}
+                  type="button"
+                  className={`adminPreview__navBtn${tab === n.id ? ' adminPreview__navBtn--active' : ''}`}
+                  onClick={() => setTab(n.id)}
+                >
+                  <span className="adminPreview__navBtnInner">
+                    <span>{n.label}</span>
+                    {showBadge ? (
+                      <span
+                        className={`adminPreview__navBadge${
+                          n.badgeTone === 'urgent' ? ' adminPreview__navBadge--urgent' : ' adminPreview__navBadge--pending'
+                        }`}
+                        aria-label={`${count} новых`}
+                      >
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              )
+            })}
           </nav>
         </aside>
 

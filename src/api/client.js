@@ -578,6 +578,34 @@ export function createApiClient() {
       return await req('admin/support/tickets', { token: adminToken })
     },
 
+    async adminDashboardOverview(adminToken) {
+      return await req('admin/support/overview', { token: adminToken })
+    },
+
+    async adminPartnersDirectory(adminToken) {
+      return await req('admin/support/partners', { token: adminToken })
+    },
+
+    async adminPartnerSummary(adminToken, detailingId) {
+      return await req(`admin/support/partners/${encodeURIComponent(String(detailingId))}/summary`, { token: adminToken })
+    },
+
+    async adminRegistryOwners(adminToken) {
+      return await req('admin/support/registry/owners', { token: adminToken })
+    },
+
+    async adminRegistryOwner(adminToken, ownerId) {
+      return await req(`admin/support/registry/owners/${encodeURIComponent(String(ownerId))}`, { token: adminToken })
+    },
+
+    async adminRegistryCars(adminToken) {
+      return await req('admin/support/registry/cars', { token: adminToken })
+    },
+
+    async adminRegistryCar(adminToken, carId) {
+      return await req(`admin/support/registry/cars/${encodeURIComponent(String(carId))}`, { token: adminToken })
+    },
+
     async adminPartnerRegistrationsPending(adminToken) {
       return await req('admin/support/partner-registrations/pending', { token: adminToken })
     },
