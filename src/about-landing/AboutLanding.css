@@ -1,0 +1,737 @@
+/* Маркетинговый лендинг: только layout + медиа; цвета — var() из index.css, иначе hex из ТЗ. */
+
+.aboutLanding {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--text-primary);
+  background: var(--bg-base);
+}
+
+.al-main {
+  padding-top: 52px;
+}
+
+/* Контент и футер: на десктопе боковые поля + ограничение ширины */
+.al-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 24px;
+}
+
+@media (min-width: 1024px) {
+  .al-shell {
+    padding: 0 48px;
+  }
+
+  .al-navInner {
+    padding: 0 48px;
+  }
+}
+
+/* ——— NAV ——— */
+.al-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 52px;
+  padding: 0;
+  background: rgba(11, 11, 11, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid #1a1a1a;
+}
+
+.al-navInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.al-nav__logoLink {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.al-nav__logoLink .brandLogoLockup--markOnly {
+  display: inline-flex;
+  align-items: center;
+}
+
+.al-nav__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.al-nav__btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+  text-decoration: none;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 6px;
+  background: transparent;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.al-nav__btnGhost:hover {
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.al-nav__btnGold {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  border: 0.5px solid rgba(200, 169, 110, 0.4);
+  border-radius: 6px;
+  background: rgba(200, 169, 110, 0.06);
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+
+.al-nav__btnGold:hover {
+  background: rgba(200, 169, 110, 0.1);
+}
+
+/* ——— HERO ——— */
+.al-hero {
+  padding: 56px 0 40px;
+  background: var(--bg-base);
+  border-bottom: 0.5px solid #141414;
+}
+
+.al-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.al-eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  flex-shrink: 0;
+  background: var(--accent);
+}
+
+.al-eyebrow__text {
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+}
+
+.al-hero__h1 {
+  margin: 0 0 0 0;
+  font-size: 40px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: -1px;
+  line-height: 1.15;
+}
+
+.al-hero__h1 b {
+  font-weight: 600;
+}
+
+.al-hero__sub {
+  margin: 0 0 28px;
+  max-width: 420px;
+  font-size: 15px;
+  color: #555;
+  line-height: 1.6;
+}
+
+.al-hero__ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.al-btnPrimarySolid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--bg-base);
+  text-decoration: none;
+  background: var(--accent);
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: filter 150ms ease;
+}
+
+.al-btnPrimarySolid:hover {
+  filter: brightness(1.06);
+}
+
+.al-hero__scrollLink {
+  font-size: 14px;
+  color: #555;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 150ms ease;
+}
+
+.al-hero__scrollLink:hover {
+  color: var(--text-secondary);
+}
+
+.al-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 28px;
+  padding-top: 28px;
+  margin-top: 36px;
+  border-top: 0.5px solid #161616;
+}
+
+.al-stat__val {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.al-stat__val b {
+  font-weight: 600;
+}
+
+.al-stat__label {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #3a3a3a;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* ——— TIMELINE ——— */
+.al-timeline {
+  padding: 48px 0;
+  background: var(--bg-base);
+  border-bottom: 0.5px solid #141414;
+}
+
+.al-sectionTitle {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--text-primary);
+}
+
+.al-sectionTitle b {
+  font-weight: 600;
+}
+
+.al-sectionSub {
+  margin: 6px 0 28px;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.5;
+}
+
+.al-timeline__layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.al-timeline__feed {
+  flex: 1;
+  min-width: 0;
+}
+
+.al-tlItem {
+  display: flex;
+  gap: 14px;
+}
+
+.al-tlItem + .al-tlItem {
+  margin-top: 20px;
+}
+
+.al-tlItem__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.al-tlItem__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.al-tlItem__dot--gold {
+  background: var(--accent);
+}
+
+.al-tlItem__dot--muted {
+  background: #2a2a2a;
+}
+
+.al-tlItem__stem {
+  flex: 1;
+  width: 0.5px;
+  margin-top: 6px;
+  min-height: 24px;
+  background: #1e1e1e;
+}
+
+.al-tlItem__date {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.al-tlItem__date--gold {
+  color: var(--accent);
+}
+
+.al-tlItem__date--muted {
+  color: #2a2a2a;
+}
+
+.al-tlCard {
+  background: #111;
+  border: 0.5px solid #1e1e1e;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.al-tlItem--faded .al-tlCard {
+  opacity: 0.35;
+}
+
+.al-tlCard__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.al-tlCard__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.al-tlCard__badge {
+  font-size: 10px;
+  color: #555;
+  border: 0.5px solid #222;
+  border-radius: 3px;
+  padding: 2px 6px;
+}
+
+.al-tlCard__text {
+  margin: 0;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.al-tlCard__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 0.5px solid #161616;
+}
+
+.al-tlCard__master {
+  font-size: 11px;
+  color: #3a3a3a;
+}
+
+.al-tlCard__master span {
+  color: #666;
+}
+
+.al-tlCard__status {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+/* Car card */
+.al-carCard {
+  width: 175px;
+  flex-shrink: 0;
+  background: #111;
+  border: 0.5px solid #1e1e1e;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.al-carPhoto {
+  position: relative;
+  height: 96px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.al-carPhoto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.al-carPhoto__ph {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #2a2a2a;
+  letter-spacing: 2px;
+  pointer-events: none;
+}
+
+.al-carPhoto__label {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 9px;
+  color: #3a3a3a;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.al-carCard__body {
+  padding: 12px 14px;
+}
+
+.al-carCard__plate {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+}
+
+.al-carCard__model {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.al-carCard__goldLine {
+  height: 1px;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, var(--accent), transparent);
+}
+
+.al-carStatRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  font-size: 12px;
+}
+
+.al-carStatRow + .al-carStatRow {
+  border-top: 0.5px solid #161616;
+}
+
+.al-carStatRow__k {
+  font-size: 10px;
+  color: #3a3a3a;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.al-carStatRow__v {
+  color: #888;
+}
+
+.al-carStatRow__v--accent {
+  color: var(--accent);
+}
+
+.al-carCard__footer {
+  padding: 10px 14px;
+  border-top: 0.5px solid #161616;
+}
+
+.al-carCard__share {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  font-size: 11px;
+  color: #444;
+  padding: 5px 10px;
+  border: 0.5px solid #222;
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ——— HOW ——— */
+.al-how {
+  padding: 52px 12px 56px;
+  scroll-margin-top: 56px;
+  background: #0d0d0d;
+  border-bottom: 0.5px solid #141414;
+}
+
+.al-how__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.al-step {
+  display: flex;
+  gap: 16px;
+}
+
+.al-step + .al-step {
+  margin-top: 4px;
+}
+
+.al-step__rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.al-step__num {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0.5px solid rgba(200, 169, 110, 0.4);
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.al-step__stem {
+  flex: 1;
+  width: 0.5px;
+  margin-top: 6px;
+  min-height: 20px;
+  background: #161616;
+}
+
+.al-step__body {
+  padding-bottom: 18px;
+}
+
+.al-step__title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.al-step__desc {
+  margin: 0;
+  font-size: 12px;
+  color: #444;
+  line-height: 1.55;
+}
+
+/* ——— DETAILING ——— */
+.al-det {
+  padding: 40px 0;
+  background: var(--bg-base);
+  border-bottom: 0.5px solid #141414;
+}
+
+.al-det__inner {
+  max-width: 42rem;
+}
+
+.al-det__eyebrow {
+  margin-bottom: 8px;
+  font-size: 10px;
+  color: #3a3a3a;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.al-det__title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.al-det__sub {
+  margin: 0;
+  font-size: 13px;
+  color: #444;
+  line-height: 1.55;
+}
+
+.al-det__link {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.al-det__link:hover {
+  text-decoration: underline;
+}
+
+/* ——— FINAL CTA ——— */
+.al-final {
+  padding: 56px 0;
+  background: #0e0e0e;
+  text-align: center;
+}
+
+.al-final__line {
+  height: 1px;
+  max-width: 280px;
+  margin: 0 auto 32px;
+  background: linear-gradient(to right, transparent, var(--accent), transparent);
+}
+
+.al-final__h2 {
+  margin: 0 0 0;
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.al-final__h2 b {
+  font-weight: 600;
+}
+
+.al-final__sub {
+  margin: 0 0 24px;
+  font-size: 13px;
+  color: #444;
+}
+
+.al-final__note {
+  margin: 10px 0 0;
+  font-size: 11px;
+  color: #333;
+}
+
+.al-final__note a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+/* ——— FOOTER ——— */
+.al-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  background: #080808;
+  border-top: 0.5px solid #141414;
+}
+
+.al-footer__brand {
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  opacity: 0.85;
+}
+
+.al-footer__brand .brandLogoLockup--markOnly {
+  display: inline-flex;
+  align-items: center;
+}
+
+.al-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.al-footer__links a {
+  font-size: 11px;
+  color: #2a2a2a;
+  text-decoration: none;
+}
+
+.al-footer__links a:hover {
+  color: var(--text-muted);
+}
+
+/* ——— responsive ——— */
+@media (max-width: 639px) {
+  .al-hero__h1 {
+    font-size: 28px;
+  }
+
+  .al-timeline__layout {
+    flex-direction: column;
+  }
+
+  .al-carCard {
+    width: 100%;
+    order: -1;
+  }
+
+  .al-final__h2 {
+    font-size: 22px;
+  }
+
+  .al-navInner,
+  .al-shell {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}

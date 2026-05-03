@@ -10,8 +10,9 @@ import DevHud from './ui/DevHud.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 
-function homeLuxSoloPath(pathname) {
-  return pathname === '/' && !isAuthed()
+/** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
+function guestMarketingSoloPath(pathname) {
+  return (pathname === '/' && !isAuthed()) || pathname === '/about'
 }
 
 const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
@@ -92,11 +93,10 @@ function SyncClientDataOnTabReturn() {
 
 export default function App() {
   const loc = useLocation()
-  const aboutLandingChrome = loc.pathname === '/about'
   const adminSolo =
     loc.pathname === '/admin/379team' || loc.pathname === '/admin/panel'
-  const homeLuxChrome = homeLuxSoloPath(loc.pathname)
-  const soloChrome = aboutLandingChrome || adminSolo || homeLuxChrome
+  const guestMarketingChrome = guestMarketingSoloPath(loc.pathname)
+  const soloChrome = guestMarketingChrome || adminSolo
 
   return (
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
@@ -104,7 +104,7 @@ export default function App() {
       <SyncClientDataOnTabReturn />
       {soloChrome ? null : <TopNav />}
       <main
-        className={`main${aboutLandingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${homeLuxChrome ? ' main--homeLux' : ''}`}
+        className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}`}
       >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />

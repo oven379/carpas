@@ -16,7 +16,7 @@ import {
 export { default as ServiceHint } from './ServiceHint.jsx'
 export { PageLoadSpinner } from './PageLoadSpinner.jsx'
 
-export function Button({ variant = 'primary', onClick, disabled, type = 'button', ...props }) {
+export function Button({ variant = 'primary', onClick, disabled, type = 'button', className, ...props }) {
   const lockRef = useRef(false)
   const [pending, setPending] = useState(false)
 
@@ -42,10 +42,13 @@ export function Button({ variant = 'primary', onClick, disabled, type = 'button'
     [onClick, disabled],
   )
 
+  const mergedClass = [className].filter(Boolean).join(' ') || undefined
+
   return (
     <button
       type={type}
       data-variant={variant}
+      className={mergedClass}
       {...props}
       disabled={disabled || pending}
       aria-busy={pending ? true : undefined}
@@ -162,9 +165,15 @@ export const PhoneRuInput = forwardRef(function PhoneRuInput(
   )
 })
 
-export function Textarea(props) {
-  return <textarea {...props} />
-}
+export const Textarea = forwardRef(function Textarea({ className, ...props }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      className={['textarea', 'input', className].filter(Boolean).join(' ')}
+      {...props}
+    />
+  )
+})
 
 export { ComboBox }
 export { CityComboBox } from './CityComboBox.jsx'

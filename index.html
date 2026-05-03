@@ -5,10 +5,10 @@
     <!-- Документ приложения: подсказка кэшу (часть браузеров, в т.ч. на Chromium, чаще смотрят заголовки nginx) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
-    <!-- PNG первым: часть WebView/браузеров надёжнее берёт растр; ?v= подставляет vite (версия пакета) -->
+    <!-- SVG вордмарк (как src/assets/brand-wordmark.svg); PNG — запас для WebView без SVG -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
@@ -33,6 +33,11 @@
     <meta
       property="og:description"
       content="История обслуживания авто в телефоне: визиты детейлинга и СТО, записи владельца, фото и документы. КарПас — владельцам и сервисам по России."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
     />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
   </head>

@@ -6,7 +6,7 @@ import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import HomeLuxuryHero from './HomeLuxuryHero.jsx'
+import AboutLanding from '../../about-landing/AboutLanding.tsx'
 
 export default function HomePage() {
   const { detailing } = useDetailing()
@@ -23,7 +23,7 @@ export default function HomePage() {
     <>
       <Seo title={HOME_TITLE} description={seoDesc} canonicalPath="/" jsonLd={homeJsonLd} />
       <h1 className="srOnly">{HOME_TITLE}</h1>
-      <HomeLuxuryHero />
+      <AboutLanding />
     </>
   )
 }
