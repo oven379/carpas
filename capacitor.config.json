@@ -3,9 +3,9 @@
   "appName": "КарПас",
   "webDir": "dist",
   "android": {
-    "allowMixedContent": true
+    "allowMixedContent": false
   },
   "server": {
-    "androidScheme": "http"
+    "androidScheme": "https"
   }
 }

@@ -679,7 +679,7 @@ export default function DetailingSettingsPage() {
                 refreshAllClientData()
                 nav('/detailing', { replace: true })
               } catch (e) {
-                alert(formatHttpErrorMessage(e, 'Не удалось сохранить настройки.'))
+                alert(formatHttpErrorMessage(e))
               }
             }}
           >

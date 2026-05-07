@@ -256,12 +256,7 @@ export default function GarageSettingsPage() {
                   const res = await r.updateOwnerMe(patch)
                   if (res?.owner) mergeSessionOwnerScalars(res.owner)
                 } catch (e) {
-                  alert(
-                    formatHttpErrorMessage(
-                      e,
-                      'Не удалось сохранить. Проверьте интернет и правильность полей.',
-                    ),
-                  )
+                  alert(formatHttpErrorMessage(e))
                   if (e instanceof HttpError && e.status === 401) {
                     navigate('/auth/owner', { replace: true })
                   }

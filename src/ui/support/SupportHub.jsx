@@ -206,7 +206,7 @@ export function SupportProvider({ children }) {
       await refreshUnread()
       return true
     } catch (err) {
-      setFormError(formatHttpErrorMessage(err, 'Не удалось отправить обращение.'))
+      setFormError(formatHttpErrorMessage(err))
       return false
     } finally {
       setSubmitting(false)

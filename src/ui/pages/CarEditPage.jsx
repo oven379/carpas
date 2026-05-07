@@ -365,7 +365,7 @@ export default function CarEditPage({ mode }) {
         }
       } catch (e) {
         ownerUrlVinLookupDone.current = false
-        if (!cancelled) alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
+        if (!cancelled) alert(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setOwnerVinLookupBusy(false)
       }
@@ -513,7 +513,7 @@ export default function CarEditPage({ mode }) {
                         setOwnerOrphanModalOpen(false)
                         nav(listReturn, { replace: true })
                       } catch (e) {
-                        alert(formatHttpErrorMessage(e, 'Не удалось добавить автомобиль в гараж.'))
+                        alert(formatHttpErrorMessage(e))
                       } finally {
                         setOwnerAttachBusy(false)
                       }
@@ -634,7 +634,7 @@ export default function CarEditPage({ mode }) {
                           )
                         }
                       } catch (e) {
-                        alert(formatHttpErrorMessage(e, 'Не удалось проверить VIN.'))
+                        alert(formatHttpErrorMessage(e))
                       } finally {
                         setOwnerVinLookupBusy(false)
                       }
@@ -930,12 +930,7 @@ export default function CarEditPage({ mode }) {
                     try {
                       await r.updateCar(id, draft)
                     } catch (e) {
-                      alert(
-                        formatHttpErrorMessage(
-                          e,
-                          'Не удалось сохранить изменения: нет доступа к этой карточке (проверьте, что вы вошли в правильный аккаунт).',
-                        ),
-                      )
+                      alert(formatHttpErrorMessage(e))
                       return
                     }
                     invalidateRepo()
@@ -1005,7 +1000,7 @@ export default function CarEditPage({ mode }) {
                     }
                     const created = await r.createCar(null, draft)
                     if (!created?.id) {
-                      alert('Не удалось создать карточку: возможен лимит гаража или временный сбой.')
+                      alert('Ошибка')
                       return
                     }
                     if (who === 'owner') refreshAllClientData()
@@ -1014,9 +1009,7 @@ export default function CarEditPage({ mode }) {
                   }
                 } catch (e) {
                   if (import.meta.env.DEV) console.error(e)
-                  alert(
-                    formatHttpErrorMessage(e, 'Не удалось сохранить. Проверьте поля и интернет.'),
-                  )
+                  alert(formatHttpErrorMessage(e))
                 } finally {
                   saveInFlightRef.current = false
                   setSaveBusy(false)

@@ -22,7 +22,7 @@ import {
 } from '../auth.js'
 import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
+import { formatHttpErrorMessage } from '../../api/http.js'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
@@ -157,7 +157,7 @@ export default function OwnerAuthPage() {
       if (reason === 'bad_credentials') alert('Укажите почту и пароль')
       else alert('Не удалось войти')
     } catch (e) {
-      alert(formatHttpErrorMessage(e, 'Не удалось войти.'))
+      alert(formatHttpErrorMessage(e))
     }
   }
 
@@ -186,10 +186,7 @@ export default function OwnerAuthPage() {
       const dest = resolveAfterRegister()
       nav(dest, { replace: true })
     } catch (e) {
-      const base = formatHttpErrorMessage(e, 'Не удалось создать аккаунт.')
-      const hint =
-        e instanceof HttpError && e.status === 422 ? ' Если аккаунт уже есть, переключитесь на «Вход».' : ''
-      alert(`${base}${hint}`)
+      alert(formatHttpErrorMessage(e))
     }
   }
 

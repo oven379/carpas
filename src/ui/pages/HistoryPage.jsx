@@ -467,7 +467,7 @@ export default function HistoryPage() {
           return next
         }, { replace: true })
       } catch (e) {
-        if (!cancelled) alert(formatHttpErrorMessage(e, 'Не удалось создать черновик визита.'))
+        if (!cancelled) alert(formatHttpErrorMessage(e))
       }
     })()
     return () => {
@@ -793,7 +793,7 @@ export default function HistoryPage() {
       closeVisitFormInUrl()
       if (from) nav(from)
     } catch (e) {
-      alert(formatHttpErrorMessage(e, 'Не удалось сохранить черновик.'))
+      alert(formatHttpErrorMessage(e))
     }
   }
 
@@ -1749,7 +1749,7 @@ export default function HistoryPage() {
                     historyListTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
                   })
                 } catch (e) {
-                  alert(formatHttpErrorMessage(e, 'Не удалось сохранить историю. Попробуйте ещё раз.'))
+                  alert(formatHttpErrorMessage(e))
                 }
               }}
             >
@@ -1830,7 +1830,7 @@ export default function HistoryPage() {
                     invalidateRepo()
                     nav(from)
                   } catch (e) {
-                    alert(formatHttpErrorMessage(e, 'Не удалось сохранить историю. Попробуйте ещё раз.'))
+                    alert(formatHttpErrorMessage(e))
                   }
                 }}
               >

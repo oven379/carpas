@@ -128,7 +128,7 @@ export default function PartnerLoginPage() {
                       nav(okFrom ? fromStr : '/detailing')
                     }
                   } catch {
-                    alert('Не удалось войти. Проверьте логин и пароль, попробуйте позже.')
+                    alert('Ошибка')
                   }
                 }}
               >

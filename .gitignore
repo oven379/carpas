@@ -38,7 +38,13 @@ android/app/build
 android/.gradle
 android/build
 android/local.properties
+android/keystore.properties
 *.keystore
 !debug.keystore
+
+# Capacitor / iOS
+ios/App/Pods
+ios/App/App/public
+ios/.xcode.env.local
 public/robots.txt
 public/sitemap.xml

@@ -308,7 +308,7 @@ function PanelSupport({ onTicketPipelineChanged }) {
       try {
         await reload()
       } catch (e) {
-        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить обращения.'))
+        if (!cancelled) setErr(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -352,7 +352,7 @@ function PanelSupport({ onTicketPipelineChanged }) {
                 try {
                   await reload()
                 } catch (e) {
-                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                  setErr(formatHttpErrorMessage(e))
                 } finally {
                   setLoading(false)
                 }
@@ -448,7 +448,7 @@ function PanelSupport({ onTicketPipelineChanged }) {
                             await reload()
                             onTicketPipelineChanged?.()
                           } catch (e) {
-                            setErr(formatHttpErrorMessage(e, 'Не удалось отправить ответ.'))
+                            setErr(formatHttpErrorMessage(e))
                           } finally {
                             setReplyBusy(null)
                           }
@@ -499,7 +499,7 @@ function PanelPush() {
       try {
         await loadStats()
       } catch (e) {
-        if (!cancelled) setStatsErr(formatHttpErrorMessage(e, 'Не удалось загрузить статистику push.'))
+        if (!cancelled) setStatsErr(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setStatsLoading(false)
       }
@@ -545,7 +545,7 @@ function PanelPush() {
                 try {
                   await loadStats()
                 } catch (e) {
-                  setStatsErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                  setStatsErr(formatHttpErrorMessage(e))
                 } finally {
                   setStatsLoading(false)
                 }
@@ -652,7 +652,7 @@ function PanelPush() {
                   await loadStats()
                 } catch (e) {
                   setSendOk('')
-                  setSendErr(formatHttpErrorMessage(e, 'Не удалось отправить рассылку.'))
+                  setSendErr(formatHttpErrorMessage(e))
                 } finally {
                   setSendBusy(false)
                 }
@@ -697,7 +697,7 @@ function PanelUsers() {
       try {
         await reload()
       } catch (e) {
-        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить пользователей.'))
+        if (!cancelled) setErr(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -718,7 +718,7 @@ function PanelUsers() {
         const d = await getApi().adminRegistryOwner(getAdminApiToken(), id)
         setDetail(d && typeof d === 'object' ? d : null)
       } catch (e) {
-        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить карточку пользователя.'))
+        setDetailErr(formatHttpErrorMessage(e))
       } finally {
         setDetailLoading(false)
       }
@@ -764,7 +764,7 @@ function PanelUsers() {
                 try {
                   await reload()
                 } catch (e) {
-                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                  setErr(formatHttpErrorMessage(e))
                 } finally {
                   setLoading(false)
                 }
@@ -887,7 +887,7 @@ function PanelCars() {
       try {
         await reload()
       } catch (e) {
-        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить автомобили.'))
+        if (!cancelled) setErr(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -908,7 +908,7 @@ function PanelCars() {
         const d = await getApi().adminRegistryCar(getAdminApiToken(), id)
         setDetail(d && typeof d === 'object' ? d : null)
       } catch (e) {
-        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить карточку автомобиля.'))
+        setDetailErr(formatHttpErrorMessage(e))
       } finally {
         setDetailLoading(false)
       }
@@ -955,7 +955,7 @@ function PanelCars() {
                 try {
                   await reload()
                 } catch (e) {
-                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                  setErr(formatHttpErrorMessage(e))
                 } finally {
                   setLoading(false)
                 }
@@ -1089,7 +1089,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
       try {
         await reload()
       } catch (e) {
-        if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить список партнёров.'))
+        if (!cancelled) setErr(formatHttpErrorMessage(e))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -1110,7 +1110,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
         const d = await getApi().adminPartnerSummary(getAdminApiToken(), id)
         setPartnerDetail(d && typeof d === 'object' ? d : null)
       } catch (e) {
-        setDetailErr(formatHttpErrorMessage(e, 'Не удалось загрузить сводку по партнёру.'))
+        setDetailErr(formatHttpErrorMessage(e))
       } finally {
         setDetailLoading(false)
       }
@@ -1184,7 +1184,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
                         await reload()
                         onPartnersPipelineChanged?.()
                       } catch (e) {
-                        setErr(formatHttpErrorMessage(e, 'Не удалось подтвердить заявку.'))
+                        setErr(formatHttpErrorMessage(e))
                       } finally {
                         setBusyId(null)
                       }
@@ -1230,7 +1230,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
                 try {
                   await reload()
                 } catch (e) {
-                  setErr(formatHttpErrorMessage(e, 'Не удалось обновить.'))
+                  setErr(formatHttpErrorMessage(e))
                 } finally {
                   setLoading(false)
                 }
@@ -1365,7 +1365,7 @@ export default function AdminPanelPage() {
       const data = await getApi().adminDashboardOverview(getAdminApiToken())
       setOverview(data && typeof data === 'object' ? data : null)
     } catch (e) {
-      setOverviewErr(formatHttpErrorMessage(e, 'Не удалось загрузить статистику.'))
+      setOverviewErr(formatHttpErrorMessage(e))
       setOverview(null)
     } finally {
       setOverviewLoading(false)

@@ -181,7 +181,7 @@ export default function PartnerApplyPage() {
                         const phoneErr = body?.errors?.phone
                         const phoneFirst = Array.isArray(phoneErr) ? phoneErr[0] : phoneErr
                         if (phoneFirst) alert(String(phoneFirst))
-                        else alert('Не удалось отправить заявку. Проверьте поля и подключение к интернету.')
+                        else alert('Ошибка')
                       }
                     }
                   }}

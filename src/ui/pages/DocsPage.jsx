@@ -206,13 +206,11 @@ export default function DocsPage() {
                     }
                   }
                   if (firstErr && okCount === 0) {
-                    alert(formatHttpErrorMessage(firstErr, 'Не удалось добавить документ.'))
+                    alert(formatHttpErrorMessage(firstErr))
                     return
                   }
                   if (firstErr && okCount > 0) {
-                    alert(
-                      `Загружено файлов: ${okCount}. Остальные не удалось отправить: ${formatHttpErrorMessage(firstErr, 'ошибка сохранения')}`,
-                    )
+                    alert(`Загружено файлов: ${okCount}. Ошибка`)
                   }
                   if (okCount > 0) {
                     setDraft({ title: '' })
@@ -222,7 +220,7 @@ export default function DocsPage() {
                       const dc = await r.listDocs(id)
                       setDocs((Array.isArray(dc) ? dc : []).filter((d) => !d.eventId))
                     } catch (e) {
-                      alert(formatHttpErrorMessage(e, 'Список документов не обновился.'))
+                      alert(formatHttpErrorMessage(e))
                     }
                   }
                 }}

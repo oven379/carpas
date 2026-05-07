@@ -330,7 +330,7 @@ export default function DetailingDashboardPage() {
       invalidateRepo()
       alert('Автомобиль добавлен в ваш кабинет. Владелец сохраняет доступ в гараже.')
     } catch (e) {
-      alert(formatHttpErrorMessage(e, 'Не удалось добавить автомобиль.'))
+      alert(formatHttpErrorMessage(e))
     } finally {
       setLinkBusyId(null)
     }
@@ -474,7 +474,7 @@ export default function DetailingDashboardPage() {
                       )
                       return
                     }
-                    alert(formatHttpErrorMessage(e, 'Не удалось добавить автомобиль. Проверьте VIN и вход в кабинет.'))
+                    alert(formatHttpErrorMessage(e))
                   } finally {
                     setVisitStartBusy(false)
                   }

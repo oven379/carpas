@@ -42,7 +42,7 @@ export function AuthChangePasswordSection({ variant, r, onPasswordChanged }) {
       }
       alert('Пароль не обновлён. Попробуйте ещё раз.')
     } catch (e) {
-      alert(formatHttpErrorMessage(e, 'Не удалось сменить пароль.'))
+      alert(formatHttpErrorMessage(e))
     } finally {
       setBusy(false)
     }

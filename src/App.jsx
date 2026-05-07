@@ -7,8 +7,9 @@ import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
 import DevHud from './ui/DevHud.jsx'
-import { isAuthed } from './ui/auth.js'
+import { hasDetailingSession, hasOwnerSession, isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
+import { Capacitor } from '@capacitor/core'
 
 /** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
@@ -36,6 +37,7 @@ const GarageSettingsPage = lazy(() => import('./ui/pages/GarageSettingsPage.jsx'
 const PublicGaragePage = lazy(() => import('./ui/pages/PublicGaragePage.jsx'))
 const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
 const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
+const PolicyPage = lazy(() => import('./ui/pages/PolicyPage.jsx'))
 
 function RouteFallback() {
   return (
@@ -45,11 +47,19 @@ function RouteFallback() {
   )
 }
 
+/** На нативной платформе отправляем на кабинет владельца вместо маркетинговой главной. */
+function MobileHomeRedirect() {
+  if (hasOwnerSession()) return <Navigate to="/garage" replace />
+  if (hasDetailingSession()) return <Navigate to="/detailing" replace />
+  return <Navigate to="/auth/owner" replace />
+}
+
 function RequireAuth({ children }) {
   const loc = useLocation()
   if (!isAuthed()) {
     const from = `${loc.pathname}${loc.search}`
-    return <Navigate to="/auth" replace state={{ from }} />
+    const authPath = Capacitor.isNativePlatform() ? '/auth/owner' : '/auth'
+    return <Navigate to={authPath} replace state={{ from }} />
   }
   return <DetailingOnboardingGate>{children}</DetailingOnboardingGate>
 }
@@ -110,7 +120,7 @@ export default function App() {
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={Capacitor.isNativePlatform() ? <MobileHomeRedirect /> : <HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
             <Route path="/admin/379team" element={<AdminLoginPage />} />
@@ -215,6 +225,7 @@ export default function App() {
             <Route path="/d/:id" element={<PublicDetailingPage />} />
             <Route path="/g/:slug" element={<PublicGaragePage />} />
             <Route path="/share/:token" element={<PublicCarPage />} />
+            <Route path="/policy" element={<PolicyPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />

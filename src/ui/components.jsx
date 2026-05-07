@@ -192,7 +192,7 @@ export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onCh
       />
       <span className="authConsent__text">
         Я соглашаюсь с{' '}
-        <Link className="authConsent__legalLink" to="/">
+        <Link className="authConsent__legalLink" to="/policy">
           политикой конфиденциальности
         </Link>{' '}
         и{' '}

@@ -8,7 +8,7 @@ export default function FooterSupport() {
   return (
     <div className="footer__bar">
       <nav className="footerLegal" aria-label="Правовая информация">
-        <Link className="authConsent__legalLink" to="/">
+        <Link className="authConsent__legalLink" to="/policy">
           Политика конфиденциальности
         </Link>
         <span className="footerLegal__sep" aria-hidden="true">

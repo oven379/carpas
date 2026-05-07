@@ -65,7 +65,7 @@ export function AuthForgotPasswordBlock({ sendForgot }) {
                   setOpen(false)
                   setEmail('')
                 } catch (e) {
-                  alert(formatHttpErrorMessage(e, 'Не удалось отправить запрос. Попробуйте позже.'))
+                  alert(formatHttpErrorMessage(e))
                 } finally {
                   setSending(false)
                 }
