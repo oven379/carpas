@@ -196,7 +196,7 @@ export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onCh
           политикой конфиденциальности
         </Link>{' '}
         и{' '}
-        <Link className="authConsent__legalLink" to="/">
+        <Link className="authConsent__legalLink" to="/terms">
           правилами использования сервиса
         </Link>
         .

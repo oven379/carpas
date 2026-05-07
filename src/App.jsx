@@ -38,6 +38,7 @@ const PublicGaragePage = lazy(() => import('./ui/pages/PublicGaragePage.jsx'))
 const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
 const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
 const PolicyPage = lazy(() => import('./ui/pages/PolicyPage.jsx'))
+const TermsPage = lazy(() => import('./ui/pages/TermsPage.jsx'))
 
 function RouteFallback() {
   return (
@@ -226,6 +227,7 @@ export default function App() {
             <Route path="/g/:slug" element={<PublicGaragePage />} />
             <Route path="/share/:token" element={<PublicCarPage />} />
             <Route path="/policy" element={<PolicyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />

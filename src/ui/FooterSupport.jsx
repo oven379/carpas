@@ -14,8 +14,8 @@ export default function FooterSupport() {
         <span className="footerLegal__sep" aria-hidden="true">
           ·
         </span>
-        <Link className="authConsent__legalLink" to="/">
-          Согласие с правилами сервиса
+        <Link className="authConsent__legalLink" to="/terms">
+          Условия использования
         </Link>
         {__APP_VERSION__ ? (
           <>

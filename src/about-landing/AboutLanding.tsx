@@ -204,8 +204,8 @@ export default function AboutLanding() {
             <Logo tagline={false} size={14} />
           </Link>
           <div className="al-footer__links">
-            <Link to="/">Условия</Link>
-            <Link to="/">Конфиденциальность</Link>
+            <Link to="/terms">Условия</Link>
+            <Link to="/policy">Конфиденциальность</Link>
             <Link to="/auth/partner">Партнёрам</Link>
           </div>
         </footer>
