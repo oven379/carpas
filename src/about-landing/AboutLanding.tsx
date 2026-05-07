@@ -71,26 +71,6 @@ export default function AboutLanding() {
               Как это работает →
             </button>
           </div>
-          <div className="al-hero__stats">
-            <div>
-              <div className="al-stat__val">
-                <b>1</b> место
-              </div>
-              <div className="al-stat__label">Хранение истории</div>
-            </div>
-            <div>
-              <div className="al-stat__val">
-                <b>100%</b>
-              </div>
-              <div className="al-stat__label">Записей от детейлинга</div>
-            </div>
-            <div>
-              <div className="al-stat__val">
-                <b>∞</b>
-              </div>
-              <div className="al-stat__label">Лет хранения</div>
-            </div>
-          </div>
         </FadeSection>
 
         <FadeSection className="al-timeline">
