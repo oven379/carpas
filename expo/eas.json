@@ -1,0 +1,32 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_WEB_URL": "http://10.0.2.2:5173/auth/owner",
+        "EXPO_PUBLIC_API_BASE_URL": "http://10.0.2.2:8088/api"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_WEB_URL": "https://carpasss.ru/auth/owner",
+        "EXPO_PUBLIC_API_BASE_URL": "https://carpasss.ru/api"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_WEB_URL": "https://carpasss.ru/auth/owner",
+        "EXPO_PUBLIC_API_BASE_URL": "https://carpasss.ru/api"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

@@ -21,8 +21,10 @@ import {
   setSessionOwner,
 } from '../auth.js'
 import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
+import { isNativeApp } from '../../lib/nativePlatform.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
+import Logo from '../Logo.jsx'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
@@ -49,6 +51,7 @@ export default function OwnerAuthPage() {
         : returnPath
       : '/garage'
   const authHubLinkState = returnPath ? { from: returnPath } : undefined
+  const nativeApp = isNativeApp()
 
   /** После первой регистрации ведём в настройки гаража, если не было явного deep-link. */
   function resolveAfterRegister() {
@@ -86,13 +89,13 @@ export default function OwnerAuthPage() {
     return true
   }
 
-  function requireEmailPassword() {
+  function requireEmailPassword({ enforceMin = false } = {}) {
     const { em, pwd } = readCreds()
     if (!em || !pwd) {
       alert('Укажите почту и пароль')
       return null
     }
-    if (pwd.length < OWNER_PASSWORD_MIN_LEN) {
+    if (enforceMin && pwd.length < OWNER_PASSWORD_MIN_LEN) {
       alert(`Пароль слишком короткий: не менее ${OWNER_PASSWORD_MIN_LEN} символов.`)
       return null
     }
@@ -163,7 +166,7 @@ export default function OwnerAuthPage() {
 
   async function onRegisterSubmit() {
     if (!requireConsent()) return
-    const creds = requireEmailPassword()
+    const creds = requireEmailPassword({ enforceMin: true })
     if (!creds) return
     const extra = requireNamePhoneForRegister()
     if (!extra) return
@@ -192,17 +195,22 @@ export default function OwnerAuthPage() {
 
   return (
     <div className="container authPage">
-      <div className="authSplit">
+      <div className="authSplit ownerAuthSplit">
         <aside className="authSplit__aside">
           <div className="authPage__head authPage__head--splitAside">
+            <div className="ownerAuthBrand">
+              <Logo size={70} className="ownerAuthBrand__logo" tagline={false} />
+              <p className="ownerAuthBrand__caption">
+                История авто в вашем телефоне, для тех кто действительно любит свою машину
+              </p>
+            </div>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav to="/auth" title="К выбору входа" linkState={authHubLinkState} />
+              {nativeApp ? null : <BackNav to="/auth" title="К выбору входа" linkState={authHubLinkState} />}
               <h1 className="h1" style={{ margin: 0 }}>
                 Мой гараж
               </h1>
             </div>
             <div className="authSplit__lede">
-              <p className="authSplit__tagline">Создавайте историю своего автомобиля</p>
               <ul className="authSplit__benefits">
                 <li>Визиты, пробег и материалы — в одном месте, без разрозненных чеков и переписок.</li>
                 <li>Фото и документы к работам, понятная хронология обслуживания.</li>
@@ -244,17 +252,22 @@ export default function OwnerAuthPage() {
               <Field
                 className="field--full"
                 label="Пароль"
-                hint={`Не короче ${OWNER_PASSWORD_MIN_LEN} символов — для входа и для нового аккаунта`}
+                hint={
+                  authMode === 'register'
+                    ? `Не короче ${OWNER_PASSWORD_MIN_LEN} символов — для нового аккаунта`
+                    : 'Введите пароль от аккаунта'
+                }
               >
                 <PasswordInput
                   ref={ownPasswordRef}
                   autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+                  minLength={authMode === 'register' ? OWNER_PASSWORD_MIN_LEN : undefined}
                   value={ownPassword}
                   onChange={(e) => setOwnPassword(e.target.value)}
                   onInput={(e) => setOwnPassword(e.currentTarget.value)}
                   onBlur={(e) => setOwnPassword(e.currentTarget.value)}
                   onAnimationStart={(e) => onAutofillAnimation(e, setOwnPassword)}
-                  placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
+                  placeholder={authMode === 'register' ? `от ${OWNER_PASSWORD_MIN_LEN} символов` : 'пароль'}
                 />
               </Field>
               {authMode === 'register' ? (

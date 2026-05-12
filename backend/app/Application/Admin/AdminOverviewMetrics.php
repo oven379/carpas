@@ -10,6 +10,7 @@ use App\Models\DevicePushToken;
 use App\Models\Owner;
 use App\Models\SupportTicket;
 use App\Services\FcmV1Client;
+use App\Services\PushSettings;
 use Carbon\Carbon;
 
 /**
@@ -24,6 +25,7 @@ final class AdminOverviewMetrics
 
     public function __construct(
         private readonly FcmV1Client $fcm,
+        private readonly PushSettings $pushSettings,
     ) {}
 
     /**
@@ -98,6 +100,8 @@ final class AdminOverviewMetrics
                 'deviceTokensOwners' => DevicePushToken::query()->whereNotNull('owner_id')->count(),
                 'deviceTokensDetailings' => DevicePushToken::query()->whereNotNull('detailing_id')->count(),
                 'fcmConfigured' => $this->fcm->isConfigured(),
+                'expoConfigured' => $this->fcm->isExpoConfigured(),
+                'settings' => $this->pushSettings->get(),
             ],
             'chart' => [
                 'months' => $chartMonths,

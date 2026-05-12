@@ -29,6 +29,7 @@ class CarApiTest extends FeatureTestCase
             'vin' => '1HGBH41JXMN109186',
             'make' => 'Honda',
             'model' => 'Accord',
+            'legalConsentAccepted' => true,
         ]);
         $create->assertOk();
         $create->assertJsonPath('vin', '1HGBH41JXMN109186');
@@ -71,6 +72,7 @@ class CarApiTest extends FeatureTestCase
 
         $create = $this->postJson('/api/cars', [
             'vin' => '2HGBH41JXMN109186',
+            'legalConsentAccepted' => true,
         ]);
         $create->assertOk();
         $create->assertJsonPath('year', null);
@@ -96,7 +98,39 @@ class CarApiTest extends FeatureTestCase
         $this->postJson('/api/cars', [
             'make' => 'X',
             'vin' => 'TOOSHORT',
+            'legalConsentAccepted' => true,
         ])->assertStatus(422);
+    }
+
+    public function test_store_car_requires_legal_consent(): void
+    {
+        $d = $this->detailing();
+        Sanctum::actingAs($d);
+
+        $this->postJson('/api/cars', [
+            'vin' => '3HGBH41JXMN109186',
+            'make' => 'Honda',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['legalConsentAccepted']);
+    }
+
+    public function test_owner_store_car_requires_legal_consent(): void
+    {
+        $owner = Owner::query()->create([
+            'email' => 'owner-car-consent@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Owner',
+            'phone' => '+7',
+        ]);
+        Sanctum::actingAs($owner);
+
+        $this->postJson('/api/owners/cars', [
+            'vin' => '5HGBH41JXMN109186',
+            'make' => 'Honda',
+        ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['legalConsentAccepted']);
     }
 
     public function test_unowned_network_car_visible_to_second_detailing_but_not_editable_without_history(): void
@@ -109,6 +143,7 @@ class CarApiTest extends FeatureTestCase
             'vin' => $vin,
             'make' => 'VW',
             'model' => 'Golf',
+            'legalConsentAccepted' => true,
         ]);
         $created->assertOk();
         $id = (int) $created->json('id');

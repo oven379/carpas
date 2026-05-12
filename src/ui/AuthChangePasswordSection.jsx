@@ -69,6 +69,7 @@ export function AuthChangePasswordSection({ variant, r, onPasswordChanged }) {
         <Field className="field--full" label="Новый пароль" hint={`Не короче ${OWNER_PASSWORD_MIN_LEN} символов`}>
           <PasswordInput
             autoComplete="new-password"
+            minLength={OWNER_PASSWORD_MIN_LEN}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder={`от ${OWNER_PASSWORD_MIN_LEN} символов`}
@@ -77,6 +78,7 @@ export function AuthChangePasswordSection({ variant, r, onPasswordChanged }) {
         <Field className="field--full" label="Повторите новый пароль">
           <PasswordInput
             autoComplete="new-password"
+            minLength={OWNER_PASSWORD_MIN_LEN}
             value={newPasswordAgain}
             onChange={(e) => setNewPasswordAgain(e.target.value)}
             placeholder="ещё раз"

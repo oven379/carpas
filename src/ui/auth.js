@@ -1,5 +1,5 @@
 import { ownerCityPublicFlag, ownerPublicFlagTrue } from '../lib/format.js'
-import { readSS, removeSS, writeSS } from '../lib/storage.js'
+import { readLS, readSS, removeLS, removeSS, writeLS, writeSS } from '../lib/storage.js'
 
 /** Счётчик для принудительного обновления профиля после PATCH /me (токен тот же). Не связан с invalidateRepo. */
 let sessionRefreshEpoch = 0
@@ -24,20 +24,36 @@ const SESSION_DETAILING_TOKEN_KEY = 'auth.detailingToken'
 const SESSION_OWNER_KEY = 'auth.owner'
 const SESSION_OWNER_TOKEN_KEY = 'auth.ownerToken'
 
+function readPersistentSession(key, fallback = null) {
+  const fromSession = readSS(key, null)
+  if (fromSession != null) return fromSession
+  return readLS(key, fallback)
+}
+
+function writePersistentSession(key, value) {
+  writeSS(key, value)
+  writeLS(key, value)
+}
+
+function removePersistentSession(key) {
+  removeSS(key)
+  removeLS(key)
+}
+
 export function getSessionDetailingId() {
-  return readSS(SESSION_DETAILING_KEY, null)
+  return readPersistentSession(SESSION_DETAILING_KEY, null)
 }
 
 export function getSessionOwner() {
-  return readSS(SESSION_OWNER_KEY, null)
+  return readPersistentSession(SESSION_OWNER_KEY, null)
 }
 
 export function getDetailingToken() {
-  return readSS(SESSION_DETAILING_TOKEN_KEY, null)
+  return readPersistentSession(SESSION_DETAILING_TOKEN_KEY, null)
 }
 
 export function getOwnerToken() {
-  return readSS(SESSION_OWNER_TOKEN_KEY, null)
+  return readPersistentSession(SESSION_OWNER_TOKEN_KEY, null)
 }
 
 /** Синхронно: есть сессия владельца (токен + почта в storage). Редиректы и mode — от этого, не от async /me. */
@@ -68,20 +84,20 @@ export function safeAuthReturnPath(raw) {
 }
 
 export function setSessionDetailingId(id, token = null) {
-  writeSS(SESSION_DETAILING_KEY, id)
-  if (token) writeSS(SESSION_DETAILING_TOKEN_KEY, String(token))
-  else removeSS(SESSION_DETAILING_TOKEN_KEY)
-  removeSS(SESSION_OWNER_KEY)
-  removeSS(SESSION_OWNER_TOKEN_KEY)
+  writePersistentSession(SESSION_DETAILING_KEY, id)
+  if (token) writePersistentSession(SESSION_DETAILING_TOKEN_KEY, String(token))
+  else removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
+  removePersistentSession(SESSION_OWNER_KEY)
+  removePersistentSession(SESSION_OWNER_TOKEN_KEY)
   bumpSessionRefresh()
 }
 
 export function setSessionOwner(owner, token = null) {
-  writeSS(SESSION_OWNER_KEY, owner || { ok: true })
-  if (token) writeSS(SESSION_OWNER_TOKEN_KEY, String(token))
-  else removeSS(SESSION_OWNER_TOKEN_KEY)
-  removeSS(SESSION_DETAILING_KEY)
-  removeSS(SESSION_DETAILING_TOKEN_KEY)
+  writePersistentSession(SESSION_OWNER_KEY, owner || { ok: true })
+  if (token) writePersistentSession(SESSION_OWNER_TOKEN_KEY, String(token))
+  else removePersistentSession(SESSION_OWNER_TOKEN_KEY)
+  removePersistentSession(SESSION_DETAILING_KEY)
+  removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
   bumpSessionRefresh()
 }
 
@@ -89,7 +105,7 @@ export function setSessionOwner(owner, token = null) {
 export function mergeSessionOwnerScalars(patch) {
   const cur = getSessionOwner()
   if (!cur?.email || !patch || typeof patch !== 'object') return
-  writeSS(SESSION_OWNER_KEY, {
+  writePersistentSession(SESSION_OWNER_KEY, {
     ...cur,
     name: patch.name != null ? String(patch.name) : cur.name,
     phone: patch.phone != null ? String(patch.phone) : cur.phone,
@@ -167,29 +183,29 @@ export function ownerToSessionSnapshot(o) {
 }
 
 export function clearSession() {
-  removeSS(SESSION_DETAILING_KEY)
-  removeSS(SESSION_DETAILING_TOKEN_KEY)
-  removeSS(SESSION_OWNER_KEY)
-  removeSS(SESSION_OWNER_TOKEN_KEY)
+  removePersistentSession(SESSION_DETAILING_KEY)
+  removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
+  removePersistentSession(SESSION_OWNER_KEY)
+  removePersistentSession(SESSION_OWNER_TOKEN_KEY)
   bumpSessionRefresh()
 }
 
 /** Только владелец (например 401 на /owners/* — токен протух или отозван). */
 export function clearOwnerSession() {
-  removeSS(SESSION_OWNER_KEY)
-  removeSS(SESSION_OWNER_TOKEN_KEY)
+  removePersistentSession(SESSION_OWNER_KEY)
+  removePersistentSession(SESSION_OWNER_TOKEN_KEY)
   bumpSessionRefresh()
 }
 
 /** Только партнёр (401 на запросы с токеном детейлинга). */
 export function clearDetailingSession() {
-  removeSS(SESSION_DETAILING_KEY)
-  removeSS(SESSION_DETAILING_TOKEN_KEY)
+  removePersistentSession(SESSION_DETAILING_KEY)
+  removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
   bumpSessionRefresh()
 }
 
 /** @deprecated используйте setSessionDetailingId(id, token) */
 export function setDetailingToken(token) {
-  if (token) writeSS(SESSION_DETAILING_TOKEN_KEY, String(token))
-  else removeSS(SESSION_DETAILING_TOKEN_KEY)
+  if (token) writePersistentSession(SESSION_DETAILING_TOKEN_KEY, String(token))
+  else removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
 }

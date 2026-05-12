@@ -27,6 +27,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
+Route::get('/push/settings', [AdminPushController::class, 'publicSettings']);
 
 Route::middleware('throttle:30,1')->post('/support/tickets', [SupportTicketController::class, 'store']);
 
@@ -46,6 +47,7 @@ Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
     Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
     Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);
+    Route::patch('/admin/support/push/settings', [AdminPushController::class, 'updateSettings']);
     Route::post('/admin/support/push/broadcast', [AdminPushController::class, 'broadcast'])
         ->middleware('throttle:12,1');
 });

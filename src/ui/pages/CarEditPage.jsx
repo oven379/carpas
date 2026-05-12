@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
 import {
   BackNav,
+  AuthLegalConsent,
   Button,
   Card,
   CityComboBox,
@@ -188,6 +189,7 @@ export default function CarEditPage({ mode }) {
   const [modelOptions, setModelOptions] = useState([])
 
   const [draft, setDraft] = useState(() => emptyDraft())
+  const [carLegalConsent, setCarLegalConsent] = useState(false)
   const [saveBusy, setSaveBusy] = useState(false)
   /** null — ещё не загрузили список; лимиты для режима создания у владельца */
   const [ownerCreateLimits, setOwnerCreateLimits] = useState(null)
@@ -234,6 +236,7 @@ export default function CarEditPage({ mode }) {
         clientEmail: car.clientEmail || '',
         hero,
       })
+      setCarLegalConsent(false)
       loadedKeyRef.current = key
       return
     }
@@ -257,6 +260,7 @@ export default function CarEditPage({ mode }) {
       if (clientEmail) base.clientEmail = clientEmail
     }
     setDraft(base)
+    setCarLegalConsent(false)
     loadedKeyRef.current = key
   }, [mode, id, car, who, sp])
 
@@ -888,6 +892,20 @@ export default function CarEditPage({ mode }) {
           <p className="muted small carEditCoverBlock__photoHints">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
         </div>
 
+        {mode === 'create' ? (
+          <div className="topBorder carEditLegalConsent">
+            <AuthLegalConsent
+              inputId="car-create-legal-consent"
+              checked={carLegalConsent}
+              onChange={setCarLegalConsent}
+              className="carEditLegalConsent__checkbox"
+            />
+            <p className="muted small carEditLegalConsent__hint">
+              Согласие обязательно для сохранения новой карточки автомобиля и обработки данных авто.
+            </p>
+          </div>
+        ) : null}
+
         <div className="row spread gap topBorder carEditFormActions">
           <div className="row gap wrap carEditFormActions__buttons">
             <Button
@@ -897,6 +915,10 @@ export default function CarEditPage({ mode }) {
               aria-busy={saveBusy || undefined}
               onClick={async () => {
                 if (saveInFlightRef.current) return
+                if (mode === 'create' && !carLegalConsent) {
+                  alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
+                  return
+                }
                 const vinErr = describeVinValidationError(normVin(draft.vin))
                 const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
                 if (vinErr) {
@@ -998,7 +1020,10 @@ export default function CarEditPage({ mode }) {
                         /* ignore duplicate check */
                       }
                     }
-                    const created = await r.createCar(null, draft)
+                    const created = await r.createCar(null, {
+                      ...draft,
+                      legalConsentAccepted: true,
+                    })
                     if (!created?.id) {
                       alert('Ошибка')
                       return

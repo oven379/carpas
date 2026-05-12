@@ -181,6 +181,7 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
   const pendingPartners = Number(p.pendingVerification ?? 0)
   const pushTotal = Number(push.deviceTokensTotal ?? 0)
   const fcmOk = push.fcmConfigured === true
+  const expoOk = push.expoConfigured === true
 
   const sheetRows = [
     { label: 'Обращения за 7 дней', value: String(s.createdLast7Days ?? 0), hint: 'новых тикетов' },
@@ -218,7 +219,7 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
           <div className="adminStatDashHighlightVal">{pushTotal}</div>
           <div className="adminStatDashHighlightHint row gap wrap" style={{ alignItems: 'center' }}>
             <span className="muted small">токенов на устройствах</span>
-            {fcmOk ? <Pill>FCM настроен</Pill> : <Pill tone="accent">FCM не настроен</Pill>}
+            {fcmOk || expoOk ? <Pill>Push настроен</Pill> : <Pill tone="accent">Push не настроен</Pill>}
           </div>
         </Card>
       </div>
@@ -473,6 +474,9 @@ function PanelPush() {
   const [stats, setStats] = useState(null)
   const [statsLoading, setStatsLoading] = useState(true)
   const [statsErr, setStatsErr] = useState('')
+  const [settingsBusy, setSettingsBusy] = useState(false)
+  const [settingsErr, setSettingsErr] = useState('')
+  const [settingsOk, setSettingsOk] = useState('')
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState('all')
@@ -485,6 +489,28 @@ function PanelPush() {
     const s = await getApi().adminPushStats(getAdminApiToken())
     setStats(s && typeof s === 'object' ? s : null)
   }, [])
+
+  const updatePushSettings = useCallback(
+    async (patch) => {
+      if (!hasAdminApiToken()) return
+      setSettingsBusy(true)
+      setSettingsErr('')
+      setSettingsOk('')
+      try {
+        const res = await getApi().adminPushSettingsUpdate(getAdminApiToken(), patch)
+        const nextSettings = res?.settings && typeof res.settings === 'object' ? res.settings : null
+        if (nextSettings) {
+          setStats((prev) => ({ ...(prev || {}), settings: nextSettings }))
+        }
+        setSettingsOk('Настройки сохранены.')
+      } catch (e) {
+        setSettingsErr(formatHttpErrorMessage(e))
+      } finally {
+        setSettingsBusy(false)
+      }
+    },
+    [],
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -525,6 +551,13 @@ function PanelPush() {
   }
 
   const fcmOk = stats?.fcm_configured === true
+  const expoOk = stats?.expo_configured === true
+  const settings = stats?.settings || {}
+  const pushEnabled = settings.enabled !== false
+  const ownersEnabled = settings.owners_enabled !== false
+  const detailingsEnabled = settings.detailings_enabled !== false
+  const broadcastEnabled = settings.broadcast_enabled !== false
+  const canSendBroadcast = (fcmOk || expoOk) && pushEnabled && broadcastEnabled
 
   return (
     <div className="adminPreview__stack">
@@ -560,11 +593,10 @@ function PanelPush() {
             {statsErr}
           </p>
         ) : null}
-        {!fcmOk && !statsLoading ? (
+        {!fcmOk && !expoOk && !statsLoading ? (
           <p className="adminSupportErr small" role="alert" style={{ marginBottom: 12 }}>
-            FCM не настроен на сервере: задайте <code className="adminMono">FIREBASE_PROJECT_ID</code> и JSON сервисного
-            аккаунта (см. <code className="adminMono">backend/.env.example</code>). Рассылка вернёт ошибку 503, пока это не
-            сделано.
+            Push не настроен на сервере: задайте FCM для Firebase-токенов или включите{' '}
+            <code className="adminMono">EXPO_PUSH_ENABLED</code> для Expo-приложения.
           </p>
         ) : null}
         {statsLoading ? (
@@ -575,10 +607,74 @@ function PanelPush() {
           <ul className="muted small" style={{ margin: '0 0 16px', paddingLeft: 18, lineHeight: 1.6 }}>
             <li>Всего токенов: {stats.total ?? '—'}</li>
             <li>Владельцы: {stats.owners ?? '—'} · Партнёры (детейлинг): {stats.detailings ?? '—'}</li>
-            <li>Android: {stats.android ?? '—'} · iOS: {stats.ios ?? '—'}</li>
-            <li>FCM: {fcmOk ? 'настроен' : 'не настроен'}</li>
+            <li>Android: {stats.android ?? '—'} · iOS: {stats.ios ?? '—'} · Expo: {stats.expo ?? '—'}</li>
+            <li>FCM: {fcmOk ? 'настроен' : 'не настроен'} · Expo Push: {expoOk ? 'включён' : 'выключен'}</li>
           </ul>
         ) : null}
+
+        <div className="adminPushSettings">
+          <h3 className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '0 0 10px', fontWeight: 700 }}>
+            Настройки сервиса
+          </h3>
+          <label className="adminPushSettings__row">
+            <input
+              type="checkbox"
+              checked={pushEnabled}
+              disabled={settingsBusy || statsLoading}
+              onChange={(e) => void updatePushSettings({ enabled: e.target.checked })}
+            />
+            <span>
+              <strong>Push включены</strong>
+              <span className="muted small"> общий выключатель регистрации токенов и рассылки</span>
+            </span>
+          </label>
+          <label className="adminPushSettings__row">
+            <input
+              type="checkbox"
+              checked={ownersEnabled}
+              disabled={settingsBusy || statsLoading || !pushEnabled}
+              onChange={(e) => void updatePushSettings({ owners_enabled: e.target.checked })}
+            />
+            <span>
+              <strong>Владельцы</strong>
+              <span className="muted small"> приложение будет запрашивать разрешение у владельцев</span>
+            </span>
+          </label>
+          <label className="adminPushSettings__row">
+            <input
+              type="checkbox"
+              checked={detailingsEnabled}
+              disabled={settingsBusy || statsLoading || !pushEnabled}
+              onChange={(e) => void updatePushSettings({ detailings_enabled: e.target.checked })}
+            />
+            <span>
+              <strong>Партнёры</strong>
+              <span className="muted small"> приложение будет запрашивать разрешение у сервисов</span>
+            </span>
+          </label>
+          <label className="adminPushSettings__row">
+            <input
+              type="checkbox"
+              checked={broadcastEnabled}
+              disabled={settingsBusy || statsLoading || !pushEnabled}
+              onChange={(e) => void updatePushSettings({ broadcast_enabled: e.target.checked })}
+            />
+            <span>
+              <strong>Ручная рассылка из админки</strong>
+              <span className="muted small"> блокирует кнопку отправки, но не удаляет уже сохранённые токены</span>
+            </span>
+          </label>
+          {settingsErr ? (
+            <p className="adminSupportErr small" role="alert" style={{ margin: '10px 0 0' }}>
+              {settingsErr}
+            </p>
+          ) : null}
+          {settingsOk ? (
+            <p className="muted small" style={{ margin: '10px 0 0' }}>
+              {settingsOk}
+            </p>
+          ) : null}
+        </div>
 
         <Field label="Заголовок" className="field--full" hint="до 120 символов">
           <Input
@@ -625,7 +721,7 @@ function PanelPush() {
         <div style={{ marginTop: 14 }}>
           <Button
             variant="primary"
-            disabled={sendBusy || !String(title).trim() || !String(body).trim()}
+            disabled={sendBusy || !canSendBroadcast || !String(title).trim() || !String(body).trim()}
             onClick={() =>
               void (async () => {
                 setSendErr('')

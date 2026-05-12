@@ -1,4 +1,3 @@
-import { Capacitor } from '@capacitor/core'
 import { httpJson, httpFormData, HttpError } from './http.js'
 import {
   clearDetailingSession,
@@ -29,15 +28,6 @@ function isSameOriginApiHost(hostname) {
 export function getApiBaseUrl() {
   const raw = import.meta.env.VITE_API_BASE_URL
   const trimmed = raw && String(raw).trim() ? String(raw).replace(/\/+$/, '') : ''
-
-  /** Capacitor WebView: нет того же origin, что у API — нужен полный URL (см. .env.example). */
-  if (Capacitor.isNativePlatform()) {
-    if (trimmed) return trimmed
-    if (Capacitor.getPlatform() === 'android') {
-      return 'http://10.0.2.2:8088/api'
-    }
-    return 'http://127.0.0.1:8088/api'
-  }
 
   if (trimmed && import.meta.env.DEV) {
     try {
@@ -172,6 +162,10 @@ export function createApiClient() {
     async publicGarage(slug) {
       const t = dTok() || null
       return await req(`public/garages/${encodeURIComponent(slug)}`, { token: t })
+    },
+
+    async publicPushSettings() {
+      return await req('push/settings', { token: null })
     },
 
     async registerDetailing(body) {
@@ -628,6 +622,14 @@ export function createApiClient() {
 
     async adminPushStats(adminToken) {
       return await req('admin/support/push/stats', { token: adminToken })
+    },
+
+    async adminPushSettingsUpdate(adminToken, body) {
+      return await req('admin/support/push/settings', {
+        method: 'PATCH',
+        body,
+        token: adminToken,
+      })
     },
 
     async adminPushBroadcast(adminToken, body) {

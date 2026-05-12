@@ -356,6 +356,31 @@ export default function OwnerGaragePage() {
           className={`card pad garageDash${hasGarageBanner ? ' garageDash--belowBanner' : ''}`}
           style={{ marginBottom: 16 }}
         >
+          <div className="garageDashMobile">
+            <div className="garageDashMobile__top">
+              <div className="garageDashMobile__titleRow">
+                <h1 className="garageDashMobile__title">Гараж</h1>
+              </div>
+              <div className="garageDashMobile__actions">
+                {limits.canAddManual ? (
+                  <Link className="garageDashMobile__addBtn" to={createFromGarageHref}>
+                    + Добавить авто
+                  </Link>
+                ) : (
+                  <SupportButton
+                    type="button"
+                    className="garageDashMobile__addBtn"
+                    title={addCarPremiumBtnLabel}
+                    aria-label={addCarPremiumBtnLabel}
+                    openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
+                  >
+                    + Добавить авто
+                  </SupportButton>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="garageDash__hero row spread gap wrap align-start">
             <div className="garageDash__owner row gap wrap align-start">
               <Link
@@ -564,8 +589,8 @@ export default function OwnerGaragePage() {
         </Card>
       ) : null}
 
-      <div className={cars.length > 0 ? 'garagePage__listSection' : 'garagePage__onboarding'}>
-        {!cars.length ? (
+      {!cars.length ? (
+        <div className="garagePage__onboarding">
           <>
             <OwnerGarageAddCarHint
               canAddManual={limits.canAddManual}
@@ -579,15 +604,8 @@ export default function OwnerGaragePage() {
               </p>
             </div>
           </>
-        ) : pendingClaimsCount > 0 ? (
-          <OwnerGarageAddCarHint
-            canAddManual={limits.canAddManual}
-            fromPath="/garage"
-            pendingClaimsCount={pendingClaimsCount}
-            style={{ marginTop: 16 }}
-          />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
   )
 }

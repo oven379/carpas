@@ -4383,6 +4383,61 @@ a.backNav {
   gap: 0;
 }
 
+.garageDashMobile {
+  display: none;
+}
+
+.garageDashMobile__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.garageDashMobile__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.garageDashMobile__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.16;
+}
+
+.garageDashMobile__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.garageDashMobile__addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 18px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 650;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.garageDashMobile__addBtn {
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--accent) 70%, transparent);
+}
+
 /* Перекрываем .row { align-items: center } — аватар и текст сверху слева */
 .garageDash__hero.row {
   align-items: flex-start;
@@ -4613,7 +4668,6 @@ a.backNav {
 .garageCarTile {
   display: flex;
   flex-direction: column;
-  text-decoration: none;
   color: inherit;
   border-radius: 14px;
   overflow: hidden;
@@ -4627,9 +4681,17 @@ a.backNav {
   transform: translateY(-1px);
 }
 
-.garageCarTile:focus-visible {
+.garageCarTile__mediaLink:focus-visible,
+.garageCarTile__mainLink:focus-visible,
+.garageCarTile__addVisit:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
   outline-offset: 2px;
+}
+
+.garageCarTile__mediaLink {
+  display: block;
+  color: inherit;
+  text-decoration: none;
 }
 
 .garageCarTile__media {
@@ -4648,25 +4710,67 @@ a.backNav {
   border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   color: #0d1f14;
   background: linear-gradient(135deg, #5fd68a, #3ecf7a);
   box-shadow: 0 1px 4px color-mix(in oklab, #000 28%, transparent);
 }
 
 .garageCarTile__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   padding: 12px 14px 14px;
 }
 
+.garageCarTile__mainLink {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .garageCarTile__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 700;
   font-size: 1rem;
   line-height: 1.3;
   color: var(--text-h);
 }
 
-.garageCarTile__mileage {
-  margin-top: 6px;
+.garageCarTile__meta {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.garageCarTile__meta--mileage {
+  color: var(--text);
+  font-weight: 700;
+}
+
+a.btn.garageCarTile__addVisit[data-variant='outline'],
+a.btn.garageCarTile__addVisit[data-variant='outline']:visited {
+  width: 100%;
+  min-height: 44px;
+  justify-content: center;
+  box-sizing: border-box;
+  border-color: color-mix(in oklab, var(--accent) 72%, var(--border));
+  color: var(--accent);
+  font-weight: 700;
+  background: color-mix(in oklab, var(--surface-2) 90%, transparent);
+}
+
+a.btn.garageCarTile__addVisit[data-variant='outline']:hover {
+  border-color: var(--accent);
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
 }
 
 .garageDash__visitsList {
@@ -4710,14 +4814,58 @@ a.backNav {
 @media (max-width: 720px) {
   /* Гараж: меньше «воздуха» у краёв карточки и между блоками (мобилка) */
   .garagePage .garageDash.pad {
-    padding: 12px 12px;
+    padding: 0 0 12px;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .garageDashMobile {
+    display: block;
+    margin-bottom: 18px;
+  }
+
+  .garageDashMobile__top {
+    display: grid;
+    grid-template-columns: minmax(96px, 1fr) auto;
+    align-items: start;
+    column-gap: 12px;
+  }
+
+  .garageDashMobile__titleRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .garageDashMobile__title {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    font-size: 1.42rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .garageDashMobile__actions {
+    gap: 10px;
+    justify-self: end;
+  }
+
+  .garageDashMobile__addBtn {
+    min-height: 44px;
+    padding: 0 12px;
+    font-size: 0.9rem;
   }
 
   .garageDash__hero {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
-    margin-bottom: 12px;
+    display: none;
+  }
+
+  .garageDash__tabsBar {
+    display: none;
   }
 
   .garageDash__owner {
@@ -4734,13 +4882,6 @@ a.backNav {
 
   .garageDash__line {
     margin-top: 4px;
-  }
-
-  .garageDash__tabsBar {
-    flex-direction: column;
-    align-items: stretch;
-    padding-top: 10px;
-    margin-top: 0;
   }
 
   .garageDash .garageCarGrid {
@@ -6636,6 +6777,32 @@ button.garageSettings__thumb:focus-visible {
   max-width: none;
 }
 
+.ownerAuthBrand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.ownerAuthBrand__logo {
+  align-items: flex-start;
+  max-width: min(360px, 100%);
+}
+
+.ownerAuthBrand__logo .brandLogoLockup__tagline {
+  text-align: left;
+  color: color-mix(in oklab, var(--text) 82%, var(--text-h));
+}
+
+.ownerAuthBrand__caption {
+  margin: 0;
+  max-width: 34rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
 .authSplit__formCol {
   min-width: 0;
 }
@@ -8390,6 +8557,11 @@ a.btn.carPage__recsAddVisitFull,
     padding: 16px 0 max(32px, env(safe-area-inset-bottom, 0px));
   }
 
+  .main--nativeAuth {
+    padding-top: max(22px, env(safe-area-inset-top, 0px));
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  }
+
   .container {
     padding-left: max(12px, env(safe-area-inset-left, 0px));
     padding-right: max(12px, env(safe-area-inset-right, 0px));
@@ -8440,6 +8612,41 @@ a.btn.carPage__recsAddVisitFull,
   .authSplit__lede {
     margin-top: 12px;
     gap: 12px;
+  }
+
+  .ownerAuthBrand {
+    align-items: center;
+    gap: 10px;
+    margin: 0 auto 18px;
+    text-align: center;
+  }
+
+  .ownerAuthBrand__logo {
+    align-items: center;
+    max-width: min(312px, 100%);
+  }
+
+  .ownerAuthBrand__logo .brandLogoLockup__img {
+    height: clamp(52px, 15vw, 66px) !important;
+  }
+
+  .ownerAuthBrand__logo .brandLogoLockup__tagline {
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .ownerAuthBrand__caption {
+    max-width: 24rem;
+    font-size: 14px;
+  }
+
+  .authSplit__aside .authPage__head--splitAside > .row {
+    justify-content: center;
+  }
+
+  .ownerAuthSplit .authPage__head--splitAside > .row,
+  .ownerAuthSplit .authSplit__lede {
+    display: none;
   }
 
   .authSplit__tagline {
@@ -8515,7 +8722,7 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .garagePage .garageDash.pad {
-    padding: 14px 12px;
+    padding: 0 0 12px;
   }
 
   .h1 {
@@ -9071,7 +9278,7 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .garagePage .garageDash.pad {
-    padding: 10px 10px;
+    padding: 0 0 12px;
   }
 
   .btn,
@@ -9599,6 +9806,43 @@ a.btn.carPage__recsAddVisitFull,
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.adminPushSettings {
+  background: color-mix(in oklab, var(--code-bg) 18%, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0 0 18px;
+  padding: 14px;
+}
+
+.adminPushSettings__row {
+  align-items: flex-start;
+  display: flex;
+  gap: 10px;
+  line-height: 1.45;
+  margin: 10px 0;
+}
+
+.adminPushSettings__row input {
+  flex: 0 0 auto;
+  height: 18px;
+  margin-top: 2px;
+  width: 18px;
+}
+
+.carEditLegalConsent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.carEditLegalConsent__checkbox {
+  margin: 0;
+}
+
+.carEditLegalConsent__hint {
+  margin: 0;
 }
 
 .adminPreview__toggleList {

@@ -23,7 +23,7 @@ class DetailingAuthController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255'],
-            'password' => ['nullable', 'string', 'min:4', 'max:255'],
+            'password' => ['nullable', 'string', 'min:8', 'max:255'],
             'contactName' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:80'],
             'city' => ['required', 'string', 'max:255'],
@@ -171,7 +171,7 @@ class DetailingAuthController extends Controller
         if ($request->filled('newPassword')) {
             $pwdData = $request->validate([
                 'currentPassword' => ['required', 'string'],
-                'newPassword' => ['required', 'string', 'min:4', 'max:255'],
+                'newPassword' => ['required', 'string', 'min:8', 'max:255'],
             ]);
             if (!Hash::check($pwdData['currentPassword'], $d->password)) {
                 throw ValidationException::withMessages([

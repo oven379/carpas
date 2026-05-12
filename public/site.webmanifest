@@ -1,0 +1,30 @@
+{
+  "name": "КарПас — история обслуживания авто",
+  "short_name": "КарПас",
+  "description": "История обслуживания авто: визиты детейлинга и СТО, записи владельца, фото и документы.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#16171d",
+  "theme_color": "#0b0b0b",
+  "lang": "ru",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    }
+  ]
+}

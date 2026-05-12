@@ -1,5 +1,5 @@
 /**
- * Растеризует store-assets/source/logo-marketing.svg и создаёт PNG для магазинов, PWA и нативного splash.
+ * Растеризует основной src/assets/brand-wordmark.svg и создаёт PNG для магазинов, PWA и нативного splash.
  * Запуск: node scripts/generate-store-assets.mjs
  */
 import fs from 'node:fs'
@@ -9,10 +9,10 @@ import sharp from 'sharp'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
-const svgPath = path.join(root, 'store-assets', 'source', 'logo-marketing.svg')
-const faviconSvgPath = path.join(root, 'public', 'favicon.svg')
+const svgPath = path.join(root, 'src', 'assets', 'brand-wordmark.svg')
+const faviconSvgPath = svgPath
 const rasterSourcePng = path.join(root, 'store-assets', 'source', 'logo-master.png')
-const BG = { r: 10, g: 10, b: 11, alpha: 1 }
+const BG = { r: 11, g: 11, b: 11, alpha: 1 }
 /** Прозрачный фон для веб-фавиконов и apple-touch (из SVG в public/) */
 const BG_TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 }
 
@@ -23,16 +23,34 @@ function sourceInput() {
   return sharp(svgPath, { density: 450 })
 }
 
-function rasterSquare(size) {
-  return sourceInput()
-    .resize(size, size, { fit: 'contain', position: 'centre', background: BG })
+async function rasterOnCanvas(w, h, { scale = 0.84, background = BG } = {}) {
+  const innerW = Math.max(1, Math.round(w * scale))
+  const innerH = Math.max(1, Math.round(h * scale))
+  const logo = await sourceInput()
+    .resize(innerW, innerH, { fit: 'contain', position: 'centre', background: BG_TRANSPARENT })
+    .png()
+    .toBuffer()
+  const meta = await sharp(logo).metadata()
+  const left = Math.max(0, Math.round((w - (meta.width || innerW)) / 2))
+  const top = Math.max(0, Math.round((h - (meta.height || innerH)) / 2))
+  return sharp({
+    create: {
+      width: w,
+      height: h,
+      channels: 4,
+      background,
+    },
+  })
+    .composite([{ input: logo, left, top }])
     .png()
 }
 
+function rasterSquare(size) {
+  return rasterOnCanvas(size, size, { scale: 0.82, background: BG })
+}
+
 function rasterFeature(w, h) {
-  return sourceInput()
-    .resize(w, h, { fit: 'contain', position: 'centre', background: BG })
-    .png()
+  return rasterOnCanvas(w, h, { scale: 0.82, background: BG })
 }
 
 /**
@@ -91,7 +109,7 @@ async function main() {
     console.log('Using vector source:', path.relative(root, svgPath))
   }
 
-  const master1024 = await rasterSquare(1024).toBuffer()
+  const master1024 = await (await rasterSquare(1024)).toBuffer()
   const resize = (px) => sharp(master1024).resize(px, px, { kernel: sharp.kernel.lanczos3 }).png().toBuffer()
 
   const iosDir = path.join(root, 'store-assets', 'app-store', 'AppIcon.appiconset')
@@ -145,11 +163,11 @@ async function main() {
   const gpDir = path.join(root, 'store-assets', 'google-play')
   await writePng(await sharp(master1024).resize(512, 512).png().toBuffer(), path.join(gpDir, 'icon-512.png'))
   await writePng(
-    await rasterFeature(1024, 500).toBuffer(),
+    await (await rasterFeature(1024, 500)).toBuffer(),
     path.join(gpDir, 'feature-graphic-1024x500.png'),
   )
   await writePng(
-    await rasterFeature(180, 120).toBuffer(),
+    await (await rasterFeature(180, 120)).toBuffer(),
     path.join(gpDir, 'promo-graphic-180x120.png'),
   )
 
@@ -232,7 +250,7 @@ async function main() {
 
   const splashOut = path.join(root, 'store-assets', 'native-splash')
   for (const t of splashTargets) {
-    const buf = await rasterFeature(t.w, t.h).toBuffer()
+    const buf = await (await rasterFeature(t.w, t.h)).toBuffer()
     const archived = path.join(splashOut, 'android-res', t.rel)
     await writePng(buf, archived)
     const live = path.join(resRoot, t.rel)

@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, HashRouter } from 'react-router-dom'
 import { HelmetProvider } from 'react-helmet-async'
-import { Capacitor } from '@capacitor/core'
+import { isNativeApp } from './lib/nativePlatform.js'
 import './index.css'
 import './App.css'
 import App from './App.jsx'
@@ -16,7 +16,7 @@ if (!rootEl) {
   throw new Error('Элемент #root не найден в index.html')
 }
 
-/** В WebView Capacitor History API иногда ведёт себя иначе — HashRouter стабильнее. */
+/** В нативной WebView History API иногда ведёт себя иначе — HashRouter стабильнее. */
 const appInner = (
   <DetailingSessionProvider>
     <SupportProvider>
@@ -31,7 +31,7 @@ const appInner = (
 createRoot(rootEl).render(
   <StrictMode>
     <HelmetProvider>
-      {Capacitor.isNativePlatform() ? (
+      {isNativeApp() ? (
         <HashRouter>{appInner}</HashRouter>
       ) : (
         <BrowserRouter>{appInner}</BrowserRouter>

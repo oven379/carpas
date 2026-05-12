@@ -9,7 +9,8 @@ import FooterSupport from './ui/FooterSupport.jsx'
 import DevHud from './ui/DevHud.jsx'
 import { hasDetailingSession, hasOwnerSession, isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
-import { Capacitor } from '@capacitor/core'
+import { isNativeApp } from './lib/nativePlatform.js'
+import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
 
 /** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
@@ -24,7 +25,6 @@ const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
 const HistoryPage = lazy(() => import('./ui/pages/HistoryPage.jsx'))
 const DocsPage = lazy(() => import('./ui/pages/DocsPage.jsx'))
 const AuthPage = lazy(() => import('./ui/pages/AuthPage.jsx'))
-const OwnerAuthPage = lazy(() => import('./ui/pages/OwnerAuthPage.jsx'))
 const PartnerLoginPage = lazy(() => import('./ui/pages/PartnerLoginPage.jsx'))
 const PartnerApplyPage = lazy(() => import('./ui/pages/PartnerApplyPage.jsx'))
 const PublicCarPage = lazy(() => import('./ui/pages/PublicCarPage.jsx'))
@@ -59,7 +59,7 @@ function RequireAuth({ children }) {
   const loc = useLocation()
   if (!isAuthed()) {
     const from = `${loc.pathname}${loc.search}`
-    const authPath = Capacitor.isNativePlatform() ? '/auth/owner' : '/auth'
+    const authPath = isNativeApp() ? '/auth/owner' : '/auth'
     return <Navigate to={authPath} replace state={{ from }} />
   }
   return <DetailingOnboardingGate>{children}</DetailingOnboardingGate>
@@ -107,7 +107,8 @@ export default function App() {
   const adminSolo =
     loc.pathname === '/admin/379team' || loc.pathname === '/admin/panel'
   const guestMarketingChrome = guestMarketingSoloPath(loc.pathname)
-  const soloChrome = guestMarketingChrome || adminSolo
+  const nativeAuthChrome = isNativeApp() && loc.pathname.startsWith('/auth')
+  const soloChrome = guestMarketingChrome || adminSolo || nativeAuthChrome
 
   return (
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
@@ -115,13 +116,13 @@ export default function App() {
       <SyncClientDataOnTabReturn />
       {soloChrome ? null : <TopNav />}
       <main
-        className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}`}
+        className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${nativeAuthChrome ? ' main--nativeAuth' : ''}`}
       >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={Capacitor.isNativePlatform() ? <MobileHomeRedirect /> : <HomePage />} />
+            <Route path="/" element={isNativeApp() ? <MobileHomeRedirect /> : <HomePage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
             <Route path="/admin/379team" element={<AdminLoginPage />} />
@@ -228,7 +229,7 @@ export default function App() {
             <Route path="/share/:token" element={<PublicCarPage />} />
             <Route path="/policy" element={<PolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
-            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <AuthPage />} />
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
             <Route path="/auth/partner" element={<PartnerLoginPage />} />

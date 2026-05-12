@@ -71,7 +71,7 @@ export const PHOTO_UPLOAD_EMPTY_THUMB_HINT = 'Альбомная съёмка ·
 export const OWNER_DEMO_PASSWORD = '1111'
 
 /** Минимальная длина пароля владельца в локальном режиме. */
-export const OWNER_PASSWORD_MIN_LEN = 4
+export const OWNER_PASSWORD_MIN_LEN = 8
 
 /** Для поля ввода: только лимит длины; пробелы не удаляем (иначе нельзя набрать пробел между словами). */
 export function clampVisitTitleInput(raw) {

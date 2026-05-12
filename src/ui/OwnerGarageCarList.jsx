@@ -95,20 +95,33 @@ export function OwnerGarageCarList({
           const mileageKm = resolveEffectiveMileageKm(c, evts)
           const yearStr = c.year != null && c.year !== '' ? String(c.year) : ''
           const carHref = `/car/${c.id}${fromQ}`
+          const newVisitHref = buildCarSubRoutePath(c.id, 'history', fromPath, { new: '1' })
           const cover = String(c.hero || c.washPhoto || '').trim()
           const bgStyle = cover ? { backgroundImage: resolvedBackgroundImageUrl(cover) } : undefined
           return (
-            <Link key={c.id} className="garageCarTile" to={carHref} aria-label={`Открыть: ${c.make} ${c.model}`}>
-              <div className="garageCarTile__media" style={bgStyle}>
-                {yearStr ? <span className="garageCarTile__year">{yearStr} г</span> : null}
-              </div>
-              <div className="garageCarTile__body">
-                <div className="garageCarTile__title">
-                  {c.make} {c.model}
+            <article key={c.id} className="garageCarTile">
+              <Link className="garageCarTile__mediaLink" to={carHref} aria-label={`Открыть: ${c.make} ${c.model}`}>
+                <div className="garageCarTile__media" style={bgStyle}>
+                  {yearStr ? <span className="garageCarTile__year">{yearStr} г</span> : null}
                 </div>
-                <div className="garageCarTile__mileage muted small">Пробег: {fmtKm(mileageKm)}</div>
+              </Link>
+              <div className="garageCarTile__body">
+                <Link className="garageCarTile__mainLink" to={carHref}>
+                  <span className="garageCarTile__title">
+                    {c.make} {c.model}
+                  </span>
+                  <span className="garageCarTile__meta garageCarTile__meta--mileage">{fmtKm(mileageKm)}</span>
+                </Link>
+                <Link
+                  className="btn garageCarTile__addVisit"
+                  data-variant="outline"
+                  to={newVisitHref}
+                  aria-label={`Добавить визит: ${c.make} ${c.model}`}
+                >
+                  Добавить визит
+                </Link>
               </div>
-            </Link>
+            </article>
           )
         })}
       </div>

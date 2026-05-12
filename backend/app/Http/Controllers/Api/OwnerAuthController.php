@@ -38,7 +38,7 @@ class OwnerAuthController extends Controller
 
         $data = $request->validate([
             'email' => ['required', 'email', 'max:255'],
-            'password' => ['required', 'string', 'min:4', 'max:255'],
+            'password' => ['required', 'string', 'min:8', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:80'],
         ]);
@@ -164,7 +164,7 @@ class OwnerAuthController extends Controller
         if ($request->filled('newPassword')) {
             $pwdData = $request->validate([
                 'currentPassword' => ['required', 'string'],
-                'newPassword' => ['required', 'string', 'min:4', 'max:255'],
+                'newPassword' => ['required', 'string', 'min:8', 'max:255'],
             ]);
             if (!Hash::check($pwdData['currentPassword'], $o->password)) {
                 throw ValidationException::withMessages([

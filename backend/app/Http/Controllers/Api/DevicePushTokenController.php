@@ -6,14 +6,23 @@ use App\Http\Controllers\Controller;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
 use App\Models\Owner;
+use App\Services\PushSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class DevicePushTokenController extends Controller
 {
+    public function __construct(
+        private readonly PushSettings $pushSettings
+    ) {}
+
     public function storeOwner(Request $request)
     {
         $data = $this->validated($request);
+        if (! $this->pushSettings->isEnabledForAudience('owners')) {
+            return response()->json(['ok' => true, 'push_enabled' => false]);
+        }
+
         /** @var Owner $owner */
         $owner = $request->user();
         DevicePushToken::query()->updateOrCreate(
@@ -31,6 +40,10 @@ class DevicePushTokenController extends Controller
     public function storeDetailing(Request $request)
     {
         $data = $this->validated($request);
+        if (! $this->pushSettings->isEnabledForAudience('detailings')) {
+            return response()->json(['ok' => true, 'push_enabled' => false]);
+        }
+
         /** @var Detailing $detailing */
         $detailing = $request->user();
         DevicePushToken::query()->updateOrCreate(
@@ -79,7 +92,7 @@ class DevicePushTokenController extends Controller
     {
         return $request->validate([
             'token' => ['required', 'string', 'max:512'],
-            'platform' => ['required', 'string', Rule::in(['android', 'ios', 'web'])],
+            'platform' => ['required', 'string', Rule::in(['android', 'ios', 'web', 'expo'])],
         ]);
     }
 }

@@ -94,6 +94,7 @@ class OwnerCarController extends Controller
             'city' => ['nullable', 'string'],
             'hero' => ['nullable', 'string'],
             'segment' => ['nullable', 'string'],
+            'legalConsentAccepted' => ['accepted'],
         ]);
 
         $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));

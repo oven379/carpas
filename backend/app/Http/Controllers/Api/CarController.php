@@ -133,6 +133,7 @@ class CarController extends Controller
             'clientName' => ['nullable', 'string'],
             'clientPhone' => ['nullable', 'string'],
             'clientEmail' => ['nullable', 'string'],
+            'legalConsentAccepted' => ['accepted'],
         ]);
 
         $vin = VinPlateValidator::normalizeVin(trim((string) ($data['vin'] ?? '')));

@@ -17,4 +17,7 @@ return [
 
     /** Base64-кодированное содержимое JSON (удобно в Docker / секретах). */
     'credentials_b64' => env('FIREBASE_CREDENTIALS_B64', ''),
+
+    /** Expo Push API для приложения в папке expo/. */
+    'expo_push_enabled' => env('EXPO_PUSH_ENABLED', true),
 ];

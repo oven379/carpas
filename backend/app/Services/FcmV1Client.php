@@ -27,30 +27,70 @@ class FcmV1Client
             && isset($this->serviceAccount['private_key'], $this->serviceAccount['client_email']);
     }
 
+    public function isExpoConfigured(): bool
+    {
+        return (bool) config('firebase.expo_push_enabled', true);
+    }
+
+    public function canSendAny(): bool
+    {
+        return $this->isConfigured() || $this->isExpoConfigured();
+    }
+
     /**
      * @return array{sent: int, failed: int, errors: list<string>}
      */
     public function sendToTokens(array $tokens, string $title, string $body): array
     {
-        if (! $this->isConfigured()) {
-            return ['sent' => 0, 'failed' => count($tokens), 'errors' => ['fcm_not_configured']];
-        }
-
-        $accessToken = $this->fetchAccessToken();
-        if ($accessToken === '') {
-            return ['sent' => 0, 'failed' => count($tokens), 'errors' => ['fcm_auth_failed']];
-        }
-
-        $urlBase = 'https://fcm.googleapis.com/v1/projects/'.$this->projectId.'/messages:send';
-        $sent = 0;
-        $failed = 0;
-        $errors = [];
-
+        $expoTokens = [];
+        $fcmTokens = [];
         foreach (array_unique($tokens) as $token) {
             $token = trim((string) $token);
             if ($token === '') {
                 continue;
             }
+            if ($this->isExpoPushToken($token)) {
+                $expoTokens[] = $token;
+            } else {
+                $fcmTokens[] = $token;
+            }
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $errors = [];
+
+        if ($expoTokens !== []) {
+            $result = $this->sendExpoTokens($expoTokens, $title, $body);
+            $sent += $result['sent'];
+            $failed += $result['failed'];
+            $errors = array_merge($errors, $result['errors']);
+        }
+
+        if ($fcmTokens === []) {
+            return ['sent' => $sent, 'failed' => $failed, 'errors' => array_slice(array_unique($errors), 0, 10)];
+        }
+
+        if (! $this->isConfigured()) {
+            return [
+                'sent' => $sent,
+                'failed' => $failed + count($fcmTokens),
+                'errors' => array_slice(array_unique(array_merge($errors, ['fcm_not_configured'])), 0, 10),
+            ];
+        }
+
+        $accessToken = $this->fetchAccessToken();
+        if ($accessToken === '') {
+            return [
+                'sent' => $sent,
+                'failed' => $failed + count($fcmTokens),
+                'errors' => array_slice(array_unique(array_merge($errors, ['fcm_auth_failed'])), 0, 10),
+            ];
+        }
+
+        $urlBase = 'https://fcm.googleapis.com/v1/projects/'.$this->projectId.'/messages:send';
+
+        foreach ($fcmTokens as $token) {
             $payload = [
                 'message' => [
                     'token' => $token,
@@ -89,6 +129,69 @@ class FcmV1Client
                 $failed++;
                 $errors[] = $e->getMessage();
                 Log::warning('fcm_send_failed', ['token_prefix' => substr($token, 0, 12), 'e' => $e->getMessage()]);
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed, 'errors' => array_slice(array_unique($errors), 0, 10)];
+    }
+
+    private function isExpoPushToken(string $token): bool
+    {
+        return str_starts_with($token, 'ExponentPushToken[') || str_starts_with($token, 'ExpoPushToken[');
+    }
+
+    /**
+     * @return array{sent: int, failed: int, errors: list<string>}
+     */
+    private function sendExpoTokens(array $tokens, string $title, string $body): array
+    {
+        if (! $this->isExpoConfigured()) {
+            return ['sent' => 0, 'failed' => count($tokens), 'errors' => ['expo_push_not_configured']];
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach (array_chunk(array_values(array_unique($tokens)), 100) as $chunk) {
+            $messages = array_map(fn (string $token) => [
+                'to' => $token,
+                'title' => $title,
+                'body' => $body,
+                'sound' => 'default',
+            ], $chunk);
+
+            try {
+                $res = Http::timeout(20)
+                    ->withHeaders(['Accept' => 'application/json'])
+                    ->post('https://exp.host/--/api/v2/push/send', $messages);
+
+                if (! $res->successful()) {
+                    $failed += count($chunk);
+                    $errors[] = 'Expo HTTP '.$res->status().': '.substr($res->body(), 0, 200);
+                    continue;
+                }
+
+                $data = $res->json('data');
+                $rows = is_array($data) ? $data : [];
+                foreach ($rows as $idx => $row) {
+                    if (is_array($row) && ($row['status'] ?? '') === 'ok') {
+                        $sent++;
+                        continue;
+                    }
+                    $failed++;
+                    $token = $chunk[$idx] ?? '';
+                    $details = is_array($row['details'] ?? null) ? $row['details'] : [];
+                    $error = (string) ($details['error'] ?? $row['message'] ?? 'expo_push_failed');
+                    $errors[] = $error;
+                    if (in_array($error, ['DeviceNotRegistered', 'InvalidCredentials'], true) && $token !== '') {
+                        DevicePushToken::query()->where('token', $token)->delete();
+                    }
+                }
+            } catch (\Throwable $e) {
+                $failed += count($chunk);
+                $errors[] = $e->getMessage();
+                Log::warning('expo_push_send_failed', ['e' => $e->getMessage()]);
             }
         }
 

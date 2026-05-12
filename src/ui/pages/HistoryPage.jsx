@@ -321,7 +321,11 @@ export default function HistoryPage() {
       if (idChanged) setDataReady(false)
       try {
         const evOpts = mode === 'owner' ? { scope: 'owner' } : {}
-        const [cr, ev, dc] = await Promise.all([r.getCar(id), r.listEvents(id, evOpts), r.listDocs(id)])
+        const cr = await r.getCar(id)
+        const [ev, dc] = await Promise.all([
+          r.listEvents(id, evOpts).catch(() => []),
+          r.listDocs(id).catch(() => []),
+        ])
         if (cancelled) return
         setCar(cr)
         setEvents(Array.isArray(ev) ? ev.map(normalizeCarEventServices) : [])
@@ -548,6 +552,7 @@ export default function HistoryPage() {
   }
 
   const canEditAny = (e) => canEdit(e) || canEditOwner(e)
+  const [ownerVisitComposeUi, setOwnerVisitComposeUi] = useState(false)
 
   const openVisitEdit = useCallback(
     (e) => {
@@ -579,7 +584,7 @@ export default function HistoryPage() {
       if (mode === 'owner') next.set('t', 'owner')
       setSp(next, { replace: true })
     },
-    [canOpen, sp, setSp, mode],
+    [canOpen, sp, setSp, mode, setOwnerVisitComposeUi],
   )
 
   useEffect(() => {
@@ -672,7 +677,6 @@ export default function HistoryPage() {
     mode === 'detailing' &&
     showNew &&
     (detailingAwaitDraft || Boolean(editingEvent?.isDraft))
-  const [ownerVisitComposeUi, setOwnerVisitComposeUi] = useState(false)
   useEffect(() => {
     if (mode === 'detailing') {
       setOwnerVisitComposeUi(false)
