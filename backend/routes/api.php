@@ -79,6 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/me', [OwnerAuthController::class, 'me']);
     Route::patch('/owners/me', [OwnerAuthController::class, 'updateMe']);
+    Route::delete('/owners/me', [OwnerAuthController::class, 'destroyMe']);
     Route::post('/owners/me/device-push-token', [DevicePushTokenController::class, 'storeOwner']);
     Route::delete('/owners/me/device-push-token', [DevicePushTokenController::class, 'destroyOwner']);
 

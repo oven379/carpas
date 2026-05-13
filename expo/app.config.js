@@ -21,6 +21,11 @@ module.exports = {
       bundleIdentifier: 'ru.carpassport.app',
       buildNumber: APP_VERSION,
       supportsTablet: false,
+      infoPlist: {
+        NSCameraUsageDescription: 'КарПас использует камеру, чтобы вы могли добавить фото автомобиля, документов или профиля.',
+        NSPhotoLibraryUsageDescription: 'КарПас использует доступ к фото, чтобы вы могли выбрать изображения для автомобиля, документов или профиля.',
+        NSPhotoLibraryAddUsageDescription: 'КарПас может сохранять выбранные изображения в медиатеку, если вы разрешите это в системе.',
+      },
     },
     android: {
       package: 'ru.carpassport.app',

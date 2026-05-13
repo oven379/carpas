@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Car;
 use App\Models\Owner;
 use Illuminate\Support\Facades\Hash;
 
@@ -47,6 +48,52 @@ class OwnerAuthTest extends FeatureTestCase
         $response->assertJsonPath('owner.email', 'owner-new@example.test');
         $response->assertJsonPath('owner.garagePrivate', true);
         $this->assertNotEmpty($response->json('token'));
+    }
+
+    public function test_register_allows_empty_phone_for_app_store_privacy(): void
+    {
+        $response = $this->postJson('/api/owners/register', [
+            'email' => 'owner-no-phone@example.test',
+            'password' => 'pass1234',
+            'name' => 'Иван',
+        ]);
+
+        $response->assertOk();
+        $response->assertJsonPath('owner.email', 'owner-no-phone@example.test');
+        $response->assertJsonPath('owner.phone', '');
+
+        $this->assertDatabaseHas('owners', [
+            'email' => 'owner-no-phone@example.test',
+            'phone' => '',
+        ]);
+    }
+
+    public function test_owner_can_delete_account_from_app(): void
+    {
+        $owner = Owner::query()->create([
+            'email' => 'delete-owner@example.test',
+            'password' => Hash::make('secret123'),
+            'name' => 'Удалить',
+            'phone' => '+7 900 100-20-30',
+        ]);
+        $personalCar = Car::query()->create([
+            'owner_id' => $owner->id,
+            'vin' => 'DELETEOWNER0000001',
+            'make' => 'Acura',
+            'model' => 'RSX',
+        ]);
+        $token = $owner->createToken('owner')->plainTextToken;
+
+        $this->deleteJson('/api/owners/me', [], ['Authorization' => 'Bearer '.$token])
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertDatabaseMissing('owners', ['id' => $owner->id]);
+        $this->assertDatabaseMissing('cars', ['id' => $personalCar->id]);
+        $this->assertDatabaseMissing('personal_access_tokens', [
+            'tokenable_type' => Owner::class,
+            'tokenable_id' => $owner->id,
+        ]);
     }
 
     public function test_owner_patch_me_saves_garage_visit_self_advice(): void

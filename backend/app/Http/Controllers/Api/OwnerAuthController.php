@@ -12,6 +12,7 @@ use App\Http\Support\TextFormat;
 use App\Models\Owner;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -40,7 +41,7 @@ class OwnerAuthController extends Controller
             'email' => ['required', 'email', 'max:255'],
             'password' => ['required', 'string', 'min:8', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:80'],
+            'phone' => ['nullable', 'string', 'max:80'],
         ]);
 
         $email = mb_strtolower(trim($data['email']));
@@ -48,14 +49,14 @@ class OwnerAuthController extends Controller
             throw ValidationException::withMessages(['email' => self::DUPLICATE_OWNER_EMAIL]);
         }
 
-        AccountPhoneUniqueness::assertUniqueAcrossAccounts(trim((string) $data['phone']));
+        AccountPhoneUniqueness::assertUniqueAcrossAccounts(trim((string) ($data['phone'] ?? '')));
 
         try {
             $owner = Owner::query()->create([
                 'email' => $email,
                 'password' => Hash::make($data['password']),
                 'name' => TextFormat::mbUcfirst($data['name']),
-                'phone' => trim((string) $data['phone']),
+                'phone' => trim((string) ($data['phone'] ?? '')),
                 'garage_banner_enabled' => false,
                 'garage_private' => true,
             ]);
@@ -310,5 +311,35 @@ class OwnerAuthController extends Controller
         }
 
         return response()->json(['owner' => ApiResources::owner($o->fresh())]);
+    }
+
+    public function destroyMe(Request $request)
+    {
+        /** @var Owner $o */
+        $o = $request->user();
+        $ownerId = (int) $o->id;
+
+        DB::transaction(function () use ($o, $ownerId) {
+            $o->tokens()->delete();
+
+            $o->cars()
+                ->whereNull('detailing_id')
+                ->get()
+                ->each
+                ->delete();
+
+            $o->cars()
+                ->whereNotNull('detailing_id')
+                ->update([
+                    'owner_id' => null,
+                    'owner_phone' => '',
+                ]);
+
+            $o->delete();
+        });
+
+        MediaStorage::deleteOwnerMediaDirectory($ownerId);
+
+        return response()->json(['ok' => true]);
     }
 }

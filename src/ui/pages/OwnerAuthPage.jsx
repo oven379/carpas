@@ -34,7 +34,7 @@ export default function OwnerAuthPage() {
   const [ownPassword, setOwnPassword] = useState('')
   const [ownName, setOwnName] = useState('')
   const [ownPhone, setOwnPhone] = useState('')
-  /** Вход: почта/пароль и «В гараж». Регистрация: те же поля + имя/телефон и только «Зарегистрироваться» → настройки гаража. */
+  /** Вход: почта/пароль и «В гараж». Регистрация: те же поля + имя, телефон можно добавить позже. */
   const [authMode, setAuthMode] = useState(() =>
     spQuery.get('register') === '1' || spQuery.get('mode') === 'register' ? 'register' : 'login',
   )
@@ -102,15 +102,11 @@ export default function OwnerAuthPage() {
     return { em, pwd }
   }
 
-  function requireNamePhoneForRegister() {
+  function readRegisterProfile() {
     const name = String(ownName || '').trim()
     const phone = formatPhoneRuInput(ownPhone).trim()
     if (!name) {
       alert('Укажите имя — так мы обратимся к вам в сервисе.')
-      return null
-    }
-    if (!phone) {
-      alert('Укажите телефон для связи.')
       return null
     }
     return { name, phone }
@@ -153,7 +149,7 @@ export default function OwnerAuthPage() {
       }
       if (reason === 'not_found') {
         alert(
-          'Аккаунта с такой почтой нет. Переключитесь на «Регистрация», заполните имя и телефон и нажмите «Зарегистрироваться».',
+          'Аккаунта с такой почтой нет. Переключитесь на «Регистрация», заполните имя и нажмите «Зарегистрироваться».',
         )
         return
       }
@@ -168,7 +164,7 @@ export default function OwnerAuthPage() {
     if (!requireConsent()) return
     const creds = requireEmailPassword({ enforceMin: true })
     if (!creds) return
-    const extra = requireNamePhoneForRegister()
+    const extra = readRegisterProfile()
     if (!extra) return
     const { em, pwd } = creds
     const { name, phone } = extra
@@ -222,7 +218,7 @@ export default function OwnerAuthPage() {
                 </span>
                 <ServiceHint scopeId="owner-auth-intro-hint" variant="compact" label="Справка: мой гараж">
                   <p className="serviceHint__panelText">
-                    <strong>Вход</strong> — почта, пароль и «В гараж». <strong>Регистрация</strong> — те же поля плюс имя и телефон;
+                    <strong>Вход</strong> — почта, пароль и «В гараж». <strong>Регистрация</strong> — те же поля плюс имя;
                     на форме одна кнопка <strong>«Зарегистрироваться»</strong> — после создания аккаунта откроются настройки: сначала настройте публичную страницу гаража.
                     Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
                   </p>
@@ -289,9 +285,11 @@ export default function OwnerAuthPage() {
                   </div>
                   <div className="field field--full serviceHint__fieldWrap" id="owner-auth-phone">
                     <div className="field__top serviceHint__fieldTop">
-                      <span className="field__label">Телефон</span>
+                      <span className="field__label">Телефон <span className="muted small">(необязательно)</span></span>
                       <ServiceHint scopeId="owner-auth-phone" variant="compact" label="Справка: телефон при регистрации">
-                        <p className="serviceHint__panelText">Номер для связи. Обязателен при создании аккаунта.</p>
+                        <p className="serviceHint__panelText">
+                          Номер можно добавить сейчас или позже в настройках гаража. Для создания аккаунта он не обязателен.
+                        </p>
                       </ServiceHint>
                     </div>
                     <PhoneRuInput

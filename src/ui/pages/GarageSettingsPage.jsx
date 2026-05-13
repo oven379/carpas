@@ -15,6 +15,7 @@ export default function GarageSettingsPage() {
   const r = useRepo()
   const saveLock = useAsyncActionLock()
   const { owner, mode, loading } = useDetailing()
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const [draft, setDraft] = useState({
     name: '',
@@ -68,6 +69,33 @@ export default function GarageSettingsPage() {
   }
 
   const ownerEmail = String(owner?.email || '').trim()
+
+  async function deleteAccount() {
+    if (deleteBusy) return
+    const first = window.confirm(
+      'Удалить аккаунт КарПас? Будут удалены ваш профиль, личный гараж и данные входа. Это действие нельзя отменить.',
+    )
+    if (!first) return
+    const typed = window.prompt('Для подтверждения введите УДАЛИТЬ')
+    if (String(typed || '').trim().toUpperCase() !== 'УДАЛИТЬ') return
+
+    setDeleteBusy(true)
+    try {
+      await r.deleteOwnerAccount()
+      clearOwnerSession()
+      refreshAllClientData()
+      navigate('/auth/owner', { replace: true })
+    } catch (e) {
+      alert(formatHttpErrorMessage(e))
+      if (e instanceof HttpError && e.status === 401) {
+        clearOwnerSession()
+        refreshAllClientData()
+        navigate('/auth/owner', { replace: true })
+      }
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
 
   return (
     <div className="container">
@@ -220,6 +248,26 @@ export default function GarageSettingsPage() {
             navigate('/auth/owner', { replace: true })
           }}
         />
+
+        <div className="topBorder" style={{ marginTop: 22, paddingTop: 18 }}>
+          <h2 className="h2" style={{ margin: '0 0 8px' }}>
+            Удаление аккаунта
+          </h2>
+          <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.5, maxWidth: '62ch' }}>
+            Вы можете удалить аккаунт владельца прямо из приложения. После подтверждения будет удалён профиль, сессии входа,
+            push-токены и личный гараж.
+          </p>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={deleteBusy}
+            aria-busy={deleteBusy || undefined}
+            onClick={() => void deleteAccount()}
+          >
+            {deleteBusy ? 'Удаление…' : 'Удалить аккаунт'}
+          </button>
+        </div>
 
         <p className="muted small garageSettings__profileSaveHint" style={{ marginTop: 18, lineHeight: 1.5, maxWidth: '62ch' }}>
           Кнопки «Сохранить» и «Отменить» ниже относятся к профилю гаража (имя, телефон, город, фото). Пароль входа меняется в блоке

@@ -266,6 +266,11 @@ final class MediaStorage
         Storage::disk(self::DISK)->deleteDirectory(self::MEDIA_PREFIX.'/docs/car_'.$carId);
     }
 
+    public static function deleteOwnerMediaDirectory(int $ownerId): void
+    {
+        Storage::disk(self::DISK)->deleteDirectory(self::MEDIA_PREFIX.'/owners/'.$ownerId);
+    }
+
     /**
      * Сохранить бинарные данные по относительному пути под media/ (для команды миграции).
      */

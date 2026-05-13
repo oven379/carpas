@@ -228,6 +228,11 @@ export function createApiClient() {
       return await req('owners/me', { method: 'PATCH', body: patch, token: oTok() })
     },
 
+    async deleteOwnerAccount() {
+      flushCoalescedRequests()
+      return await req('owners/me', { method: 'DELETE', token: oTok() })
+    },
+
     async registerOwnerDevicePush(body) {
       return await req('owners/me/device-push-token', { method: 'POST', body, token: oTok() })
     },
