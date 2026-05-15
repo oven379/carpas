@@ -11,6 +11,7 @@ import { hasDetailingSession, hasOwnerSession, isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
 import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
+import CookieBanner from './ui/CookieBanner.jsx'
 
 /** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
@@ -242,6 +243,7 @@ export default function App() {
           <FooterSupport />
         </footer>
       )}
+      {isNativeApp() ? null : <CookieBanner />}
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
 import {
   BackNav,
-  AuthLegalConsent,
+  CarDataConsent,
   Button,
   Card,
   CityComboBox,
@@ -894,7 +894,7 @@ export default function CarEditPage({ mode }) {
 
         {mode === 'create' ? (
           <div className="topBorder carEditLegalConsent">
-            <AuthLegalConsent
+            <CarDataConsent
               inputId="car-create-legal-consent"
               checked={carLegalConsent}
               onChange={setCarLegalConsent}

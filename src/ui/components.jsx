@@ -191,15 +191,32 @@ export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onCh
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="authConsent__text">
-        Я соглашаюсь с{' '}
-        <Link className="authConsent__legalLink" to="/policy">
-          политикой конфиденциальности
+        Я принимаю условия{' '}
+        <Link className="authConsent__legalLink" to="/terms">
+          Пользовательского соглашения
         </Link>{' '}
         и{' '}
-        <Link className="authConsent__legalLink" to="/terms">
-          правилами использования сервиса
+        <Link className="authConsent__legalLink" to="/policy">
+          Политики конфиденциальности
         </Link>
-        .
+        , даю согласие на обработку моих персональных данных (имя, телефон, email) для регистрации и работы в сервисе «Карпас»
+      </span>
+    </label>
+  )
+}
+
+export function CarDataConsent({ inputId = 'car-data-consent', checked, onChange, className = '', style }) {
+  return (
+    <label className={`authConsent field--full ${className}`.trim()} htmlFor={inputId} style={style}>
+      <input
+        id={inputId}
+        type="checkbox"
+        className="authConsent__input"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+      />
+      <span className="authConsent__text">
+        Я даю отдельное согласие на обработку VIN-кода, государственного номера, фотографий автомобиля, пробега, марки, модели, цвета, года выпуска и города для формирования истории обслуживания и передачи выбранному мной детейлинговому центру
       </span>
     </label>
   )
