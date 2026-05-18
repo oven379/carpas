@@ -24,6 +24,29 @@ const SESSION_DETAILING_TOKEN_KEY = 'auth.detailingToken'
 const SESSION_OWNER_KEY = 'auth.owner'
 const SESSION_OWNER_TOKEN_KEY = 'auth.ownerToken'
 
+function postNativeSessionMessage(payload) {
+  try {
+    if (typeof window === 'undefined' || !window.ReactNativeWebView?.postMessage) return
+    window.ReactNativeWebView.postMessage(JSON.stringify(payload))
+  } catch {
+    // native bridge is optional
+  }
+}
+
+function notifyNativeSession() {
+  postNativeSessionMessage({
+    type: 'carpas-session',
+    owner: getSessionOwner(),
+    ownerToken: getOwnerToken() || '',
+    detailingId: getSessionDetailingId() || '',
+    detailingToken: getDetailingToken() || '',
+  })
+}
+
+function notifyNativeSessionClear() {
+  postNativeSessionMessage({ type: 'carpas-session-clear' })
+}
+
 function readPersistentSession(key, fallback = null) {
   const fromSession = readSS(key, null)
   if (fromSession != null) return fromSession
@@ -89,6 +112,7 @@ export function setSessionDetailingId(id, token = null) {
   else removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
   removePersistentSession(SESSION_OWNER_KEY)
   removePersistentSession(SESSION_OWNER_TOKEN_KEY)
+  notifyNativeSession()
   bumpSessionRefresh()
 }
 
@@ -98,6 +122,7 @@ export function setSessionOwner(owner, token = null) {
   else removePersistentSession(SESSION_OWNER_TOKEN_KEY)
   removePersistentSession(SESSION_DETAILING_KEY)
   removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
+  notifyNativeSession()
   bumpSessionRefresh()
 }
 
@@ -187,6 +212,7 @@ export function clearSession() {
   removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
   removePersistentSession(SESSION_OWNER_KEY)
   removePersistentSession(SESSION_OWNER_TOKEN_KEY)
+  notifyNativeSessionClear()
   bumpSessionRefresh()
 }
 
@@ -194,6 +220,7 @@ export function clearSession() {
 export function clearOwnerSession() {
   removePersistentSession(SESSION_OWNER_KEY)
   removePersistentSession(SESSION_OWNER_TOKEN_KEY)
+  notifyNativeSessionClear()
   bumpSessionRefresh()
 }
 
@@ -201,6 +228,7 @@ export function clearOwnerSession() {
 export function clearDetailingSession() {
   removePersistentSession(SESSION_DETAILING_KEY)
   removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
+  notifyNativeSessionClear()
   bumpSessionRefresh()
 }
 

@@ -198,6 +198,18 @@ export function createApiClient() {
       return await req('detailings/me/device-push-token', { method: 'DELETE', body, token: dTok() })
     },
 
+    async detailingCrmClients() {
+      return await req('detailings/crm/clients', { token: dTok() })
+    },
+
+    async sendDetailingClientPush(carId, body) {
+      return await req(`detailings/crm/clients/${encodeURIComponent(String(carId))}/push`, {
+        method: 'POST',
+        body,
+        token: dTok(),
+      })
+    },
+
     async registerOwner(body) {
       return await req('owners/register', { method: 'POST', body, token: null })
     },

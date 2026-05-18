@@ -190,7 +190,7 @@ a.nav__ownerGarageLink {
   width: 44px;
   height: 44px;
   flex: 0 0 auto;
-  border-radius: 50%;
+  border-radius: 12px;
   overflow: hidden;
   align-items: center;
   justify-content: center;
@@ -976,6 +976,14 @@ a.btn[data-variant='outline']:visited {
   font-family: var(--font-sans);
   background: var(--bg-surface);
   color: var(--text-primary);
+}
+
+html[data-native-app='1'] input,
+html[data-native-app='1'] textarea,
+html[data-native-app='1'] select,
+html[data-native-app='1'] .input,
+html[data-native-app='1'] .textarea {
+  font-size: 16px !important;
 }
 
 .input::placeholder,
@@ -3273,8 +3281,8 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 }
 
 .eventMeta__when {
-  color: var(--text-h);
-  font-weight: 600;
+  color: var(--muted);
+  font-weight: 400;
 }
 
 .eventMeta__km {
@@ -3865,7 +3873,7 @@ a.backNav {
   flex-shrink: 0;
   width: 56px;
   height: 56px;
-  border-radius: 50%;
+  border-radius: 16px;
   overflow: hidden;
   background: color-mix(in oklab, var(--surface-2) 70%, var(--border));
 }
@@ -4187,6 +4195,12 @@ a.backNav {
   bottom: 108px;
 }
 
+.detHero--detailingHero .detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
+  top: 16px;
+  right: 16px;
+  bottom: auto;
+}
+
 .detHero__logo img {
   position: absolute;
   inset: 0;
@@ -4197,6 +4211,12 @@ a.backNav {
   object-fit: cover;
   object-position: center;
   border-radius: inherit;
+}
+
+.detHero--detailingHero .detHero__logo img {
+  object-fit: contain;
+  padding: 6px;
+  box-sizing: border-box;
 }
 .detHero__logo .defaultAvatarImg {
   position: absolute;
@@ -4462,7 +4482,7 @@ a.backNav {
   flex: 0 0 auto;
   text-decoration: none;
   color: inherit;
-  border-radius: 50%;
+  border-radius: 18px;
 }
 
 .garageDash__avatarLink:focus-visible {
@@ -4473,7 +4493,7 @@ a.backNav {
 .garageDash__avatar {
   width: 88px;
   height: 88px;
-  border-radius: 50%;
+  border-radius: 18px;
   overflow: hidden;
   background: var(--surface-2, #1c1c1e);
   border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
@@ -6214,7 +6234,7 @@ button.garageSettings__thumb:focus-visible {
   width: 112px;
   height: 112px;
   flex-shrink: 0;
-  border-radius: 50%;
+  border-radius: 18px;
 }
 
 .garageSettings__thumb--banner {
@@ -10338,4 +10358,321 @@ a.btn.carPage__recsAddVisitFull,
   white-space: pre-wrap;
   line-height: 1.5;
   font-size: 14px;
+}
+
+/* CRM детейлинга */
+.detCrm {
+  padding-bottom: 32px;
+}
+
+.detCrm__head {
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.detCrm__stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.detCrmStat {
+  min-height: 44px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 9px;
+  border-radius: 8px;
+}
+
+.detCrmStat span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detCrmStat strong {
+  color: var(--text-h);
+  font-size: 18px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.detCrm__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.detCrm__search {
+  flex: 1 1 320px;
+  min-width: 220px;
+}
+
+.detCrm__filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.detCrmFilter {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--card) 86%, var(--bg));
+  color: var(--muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.detCrmFilter:hover,
+.detCrmFilter.is-active {
+  border-color: color-mix(in oklab, var(--accent) 68%, var(--border));
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--accent) 12%, var(--card));
+}
+
+.detCrm__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.detCrm__listCard {
+  overflow: hidden;
+}
+
+.detCrm__listHead,
+.detCrmRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.1fr) minmax(170px, 1fr) minmax(140px, 0.8fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.detCrm__listHead {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.detCrm__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.detCrmRow {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.detCrmRow:last-child {
+  border-bottom: 0;
+}
+
+.detCrmRow:hover,
+.detCrmRow.is-selected {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+}
+
+.detCrmRow.is-selected {
+  box-shadow: inset 3px 0 0 color-mix(in oklab, var(--accent) 82%, #fff);
+}
+
+.detCrmRow__client {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.detCrmRow__avatar,
+.detCrmProfile__avatar {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--accent) 10%, var(--card));
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+}
+
+.detCrmRow__avatar {
+  width: 42px;
+  height: 42px;
+}
+
+.detCrmRow__avatar img,
+.detCrmProfile__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detCrmRow__clientText,
+.detCrmRow__car,
+.detCrmRow__visit,
+.detCrmRow__reminder {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detCrmRow strong {
+  color: var(--text-h);
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detCrmRow small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detCrmRow__visitDate,
+.detCrmProfile__lastVisitDate {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 400;
+}
+
+.detCrmRow__visitTitle {
+  color: var(--text-h);
+  font-weight: 650;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detCrm__empty,
+.detCrm__error {
+  padding: 18px;
+}
+
+.detCrm__side {
+  position: sticky;
+  top: 92px;
+}
+
+.detCrmProfile {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detCrmProfile__top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.detCrmProfile__avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+}
+
+.detCrmProfile__title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.detCrmProfile__car,
+.detCrmProfile__block {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.detCrmProfile__carTitle,
+.detCrmProfile__blockTitle {
+  color: var(--text-h);
+  font-weight: 800;
+}
+
+.detCrmProfile__contacts,
+.detCrmProfile__actions,
+.detCrmProfile__chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detCrmProfile__contacts a {
+  color: var(--text-h);
+  font-weight: 700;
+}
+
+.detCrmProfile__actions .btn {
+  flex: 1 1 150px;
+}
+
+.detCrmProfile__block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+@media (max-width: 960px) {
+  .detCrm__stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .detCrm__toolbar,
+  .detCrm__head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .detCrm__layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .detCrm__side {
+    position: static;
+  }
+
+  .detCrm__listHead {
+    display: none;
+  }
+
+  .detCrmRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
 }

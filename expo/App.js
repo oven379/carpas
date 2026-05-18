@@ -1,12 +1,22 @@
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
-import { useCallback, useRef } from 'react'
-import { Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet } from 'react-native'
+import Constants from 'expo-constants'
+import * as LocalAuthentication from 'expo-local-authentication'
+import * as SecureStore from 'expo-secure-store'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ActivityIndicator, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { registerPushForSession } from './src/push'
 
 const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://carpasss.ru/auth/owner'
 const STORAGE_PREFIX = 'cp.mvp.v1.'
-const APP_BOOT_VERSION = '2026-05-12-garage-v2'
+const APP_BOOT_VERSION = [
+  Constants.nativeAppVersion || Constants.expoConfig?.version || '1.0.3',
+  Constants.nativeBuildVersion ||
+    Constants.expoConfig?.ios?.buildNumber ||
+    Constants.expoConfig?.android?.versionCode ||
+    'dev',
+].join('-')
+const SESSION_STORE_KEY = 'carpas-native-session-v1'
 
 function initialWebUrl() {
   try {
@@ -22,22 +32,105 @@ function initialWebUrl() {
   }
 }
 
-const NATIVE_BOOTSTRAP_JS = `
-  window.__CARPAS_NATIVE_APP__ = true;
-  true;
-`
+async function readNativeSession() {
+  try {
+    const raw = await SecureStore.getItemAsync(SESSION_STORE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (parsed?.appBootVersion !== APP_BOOT_VERSION) {
+      await SecureStore.deleteItemAsync(SESSION_STORE_KEY)
+      return null
+    }
+    const canUseBiometrics =
+      (await LocalAuthentication.hasHardwareAsync().catch(() => false)) &&
+      (await LocalAuthentication.isEnrolledAsync().catch(() => false))
+    if (canUseBiometrics) {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Войти в КарПас',
+        cancelLabel: 'Ввести пароль',
+        fallbackLabel: 'Код устройства',
+        disableDeviceFallback: false,
+      }).catch(() => ({ success: false }))
+      if (!result?.success) return null
+    }
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+async function writeNativeSession(session) {
+  try {
+    await SecureStore.setItemAsync(
+      SESSION_STORE_KEY,
+      JSON.stringify({ ...session, appBootVersion: APP_BOOT_VERSION }),
+    )
+  } catch {
+    // ignore
+  }
+}
+
+async function clearNativeSession() {
+  try {
+    await SecureStore.deleteItemAsync(SESSION_STORE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
+function nativeBootstrapJs(session) {
+  const sessionJson = JSON.stringify(session || null).replace(/</g, '\\u003c')
+  return `
+    (function () {
+      window.__CARPAS_NATIVE_APP__ = true;
+      try {
+        document.documentElement.setAttribute('data-native-app', '1');
+        var meta = document.querySelector('meta[name="viewport"]');
+        if (!meta) {
+          meta = document.createElement('meta');
+          meta.setAttribute('name', 'viewport');
+          document.head && document.head.appendChild(meta);
+        }
+        meta.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover');
+      } catch (e) {}
+      try {
+        var session = ${sessionJson};
+        var prefix = '${STORAGE_PREFIX}';
+        function put(key, value) {
+          if (value === undefined || value === null || value === '') return;
+          localStorage.setItem(prefix + key, JSON.stringify(value));
+          sessionStorage.setItem(prefix + key, JSON.stringify(value));
+        }
+        if (session && session.appBootVersion === '${APP_BOOT_VERSION}') {
+          put('auth.owner', session.owner || null);
+          put('auth.ownerToken', session.ownerToken || '');
+          put('auth.detailingId', session.detailingId || '');
+          put('auth.detailingToken', session.detailingToken || '');
+        }
+      } catch (e) {}
+    })();
+    true;
+  `
+}
 
 const SESSION_BRIDGE_JS = `
   (function () {
+    function readJson(key) {
+      try {
+        var raw = localStorage.getItem(key) || sessionStorage.getItem(key) || '';
+        return raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        return null;
+      }
+    }
     function sendSession() {
       try {
-        function stored(key) {
-          return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
-        }
         var payload = {
           type: 'carpas-session',
-          ownerToken: stored('${STORAGE_PREFIX}auth.ownerToken'),
-          detailingToken: stored('${STORAGE_PREFIX}auth.detailingToken')
+          owner: readJson('${STORAGE_PREFIX}auth.owner'),
+          ownerToken: readJson('${STORAGE_PREFIX}auth.ownerToken') || '',
+          detailingId: readJson('${STORAGE_PREFIX}auth.detailingId') || '',
+          detailingToken: readJson('${STORAGE_PREFIX}auth.detailingToken') || ''
         };
         window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify(payload));
       } catch (e) {}
@@ -49,7 +142,36 @@ const SESSION_BRIDGE_JS = `
 `
 
 export default function App() {
-  const lastSessionKey = useRef('')
+  const pushRegisteredKey = useRef('')
+  const [nativeSession, setNativeSession] = useState(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    readNativeSession().then((session) => {
+      if (cancelled) return
+      setNativeSession(session)
+      setReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!nativeSession?.ownerToken && !nativeSession?.detailingToken) return
+    const ownerToken = String(nativeSession.ownerToken || '')
+    const detailingToken = String(nativeSession.detailingToken || '')
+    const key = `${ownerToken}:${detailingToken}`
+    if (pushRegisteredKey.current === key) return
+    registerPushForSession({ ownerToken, detailingToken })
+      .then((res) => {
+        if (res?.ok) pushRegisteredKey.current = key
+      })
+      .catch(() => {})
+  }, [nativeSession])
+
+  const bootstrapJs = useMemo(() => nativeBootstrapJs(nativeSession), [nativeSession])
 
   const onMessage = useCallback((event) => {
     let data = null
@@ -58,17 +180,51 @@ export default function App() {
     } catch {
       return
     }
-    if (!data || data.type !== 'carpas-session') return
+    if (!data) return
+
+    if (data.type === 'carpas-session-clear') {
+      pushRegisteredKey.current = ''
+      setNativeSession(null)
+      clearNativeSession()
+      return
+    }
+
+    if (data.type !== 'carpas-session') return
 
     const ownerToken = String(data.ownerToken || '')
     const detailingToken = String(data.detailingToken || '')
     const key = `${ownerToken}:${detailingToken}`
     if (!ownerToken && !detailingToken) return
-    if (lastSessionKey.current === key) return
-    lastSessionKey.current = key
+    const nextSession = {
+      owner: data.owner || null,
+      ownerToken,
+      detailingId: String(data.detailingId || ''),
+      detailingToken,
+    }
+    setNativeSession((prev) => {
+      const prevKey = `${String(prev?.ownerToken || '')}:${String(prev?.detailingToken || '')}`
+      return prevKey === key ? prev : nextSession
+    })
+    writeNativeSession(nextSession)
 
-    registerPushForSession({ ownerToken, detailingToken }).catch(() => {})
+    if (pushRegisteredKey.current === key) return
+    registerPushForSession({ ownerToken, detailingToken })
+      .then((res) => {
+        if (res?.ok) pushRegisteredKey.current = key
+      })
+      .catch(() => {})
   }, [])
+
+  if (!ready) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <ExpoStatusBar style="light" backgroundColor="#0B0B0B" translucent={false} />
+        <View style={styles.loader}>
+          <ActivityIndicator color="#C7A45D" />
+        </View>
+      </SafeAreaView>
+    )
+  }
 
   return (
     <SafeAreaView style={styles.root}>
@@ -81,12 +237,15 @@ export default function App() {
             Pragma: 'no-cache',
           },
         }}
-        cacheEnabled={false}
-        cacheMode="LOAD_NO_CACHE"
+        cacheEnabled
+        cacheMode="LOAD_DEFAULT"
         javaScriptEnabled
         domStorageEnabled
         sharedCookiesEnabled
-        injectedJavaScriptBeforeContentLoaded={NATIVE_BOOTSTRAP_JS}
+        setBuiltInZoomControls={false}
+        textZoom={100}
+        scalesPageToFit={false}
+        injectedJavaScriptBeforeContentLoaded={bootstrapJs}
         injectedJavaScript={SESSION_BRIDGE_JS}
         onMessage={onMessage}
         style={styles.webview}
@@ -104,5 +263,11 @@ const styles = StyleSheet.create({
   webview: {
     backgroundColor: '#0B0B0B',
     flex: 1,
+  },
+  loader: {
+    alignItems: 'center',
+    backgroundColor: '#0B0B0B',
+    flex: 1,
+    justifyContent: 'center',
   },
 })

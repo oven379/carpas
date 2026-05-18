@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\CarEventController;
 use App\Http\Controllers\Api\CarSearchController;
 use App\Http\Controllers\Api\CarShareController;
 use App\Http\Controllers\Api\DetailingAuthController;
+use App\Http\Controllers\Api\DetailingCrmController;
 use App\Http\Controllers\Api\DetailingYandexOAuthController;
 use App\Http\Controllers\Api\OwnerAuthController;
 use App\Http\Controllers\Api\OwnerCarController;
@@ -121,6 +122,8 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::patch('/detailings/me', [DetailingAuthController::class, 'updateMe']);
     Route::post('/detailings/me/device-push-token', [DevicePushTokenController::class, 'storeDetailing']);
     Route::delete('/detailings/me/device-push-token', [DevicePushTokenController::class, 'destroyDetailing']);
+    Route::get('/detailings/crm/clients', [DetailingCrmController::class, 'clients']);
+    Route::post('/detailings/crm/clients/{carId}/push', [DetailingCrmController::class, 'sendOwnerPush']);
 
     Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
     Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);

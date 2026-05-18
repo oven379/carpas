@@ -18,6 +18,39 @@ use Illuminate\Validation\ValidationException;
 
 class DetailingAuthController extends Controller
 {
+    private const LOCAL_DEMO_EMAIL = 'studio@demo.car';
+    private const LOCAL_DEMO_PASSWORD = '1111';
+
+    private function isLocalDemoLogin(string $email, string $password): bool
+    {
+        return ! app()->environment('production')
+            && $email === self::LOCAL_DEMO_EMAIL
+            && $password === self::LOCAL_DEMO_PASSWORD;
+    }
+
+    private function ensureLocalDemoDetailing(): Detailing
+    {
+        return Detailing::query()->updateOrCreate(
+            ['email' => self::LOCAL_DEMO_EMAIL],
+            [
+                'name' => 'Демо Студия Детейлинга',
+                'password' => Hash::make(self::LOCAL_DEMO_PASSWORD),
+                'phone' => '+79991234567',
+                'contact_name' => 'Алексей',
+                'city' => 'Москва',
+                'address' => 'ул. Примерная, д. 1',
+                'description' => 'Демо-аккаунт партнёра: авто, визиты, заявки на привязку, витрина для маркета.',
+                'website' => 'https://example.com',
+                'telegram' => '@demo_detailing',
+                'instagram' => '@demo_detailing',
+                'services_offered' => ['Керамика', 'Мойка', 'Полировка', 'Химчистка', 'PPF'],
+                'maintenance_services_offered' => [],
+                'profile_completed' => true,
+                'verification_approved_at' => now(),
+            ],
+        );
+    }
+
     public function register(Request $request)
     {
         $data = $request->validate([
@@ -80,6 +113,16 @@ class DetailingAuthController extends Controller
         ]);
 
         $email = mb_strtolower(trim($data['email']));
+        if ($this->isLocalDemoLogin($email, (string) $data['password'])) {
+            $d = $this->ensureLocalDemoDetailing();
+
+            return response()->json([
+                'ok' => true,
+                'detailing' => ApiResources::detailing($d->fresh()),
+                'token' => $d->createToken('detailing')->plainTextToken,
+            ]);
+        }
+
         $d = Detailing::query()
             ->where('email', $email)
             ->where('email', '!=', PendingOwnerPool::DETAILING_EMAIL)

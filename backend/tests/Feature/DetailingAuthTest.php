@@ -139,6 +139,26 @@ class DetailingAuthTest extends FeatureTestCase
             ->assertJsonPath('reason', 'not_found');
     }
 
+    public function test_local_demo_login_creates_and_approves_studio_account(): void
+    {
+        Detailing::query()->where('email', 'studio@demo.car')->delete();
+
+        $response = $this->postJson('/api/detailings/login', [
+            'email' => 'studio@demo.car',
+            'password' => '1111',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('ok', true)
+            ->assertJsonPath('detailing.email', 'studio@demo.car')
+            ->assertJsonPath('detailing.profileCompleted', true);
+        $this->assertNotEmpty($response->json('token'));
+
+        $demo = Detailing::query()->where('email', 'studio@demo.car')->first();
+        $this->assertNotNull($demo);
+        $this->assertNotNull($demo->verification_approved_at);
+    }
+
     public function test_login_returns_401_for_wrong_password(): void
     {
         $this->detailing(['email' => 'u@example.test', 'password' => bcrypt('right')]);

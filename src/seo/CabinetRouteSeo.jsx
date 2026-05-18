@@ -27,6 +27,7 @@ export function CabinetRouteSeo() {
   else if (pathname.includes('/history')) title = 'История автомобиля · КарПас'
   else if (pathname.includes('/docs')) title = 'Документы · КарПас'
   else if (pathname.includes('/edit')) title = 'Редактирование автомобиля · КарПас'
+  else if (pathname.startsWith('/detailing/clients')) title = 'Клиенты и автомобили · КарПас'
   else if (pathname.startsWith('/detailing/landing')) title = 'Настройки лендинга · КарПас'
   else if (pathname.startsWith('/detailing')) title = 'Кабинет сервиса · КарПас'
   else if (pathname.startsWith('/requests')) title = 'Заявки · КарПас'

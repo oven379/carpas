@@ -486,9 +486,17 @@ export function TopNav() {
             {isDetailingCabinet ? (
               <>
                 {!detailingOnboarding ? (
-                  <NavLink to="/requests" className={linkClass}>
-                    Заявки ({pendingClaims})
-                  </NavLink>
+                  <>
+                    <NavLink to="/detailing/clients" className={linkClass}>
+                      Клиенты
+                    </NavLink>
+                    <NavLink to="/detailing/landing" className={linkClass}>
+                      Лендинг
+                    </NavLink>
+                    <NavLink to="/requests" className={linkClass}>
+                      Заявки ({pendingClaims})
+                    </NavLink>
+                  </>
                 ) : null}
                 <button type="button" className="nav__action" onClick={logout}>
                   Выйти

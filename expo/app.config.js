@@ -25,6 +25,7 @@ module.exports = {
         NSCameraUsageDescription: 'КарПас использует камеру, чтобы вы могли добавить фото автомобиля, документов или профиля.',
         NSPhotoLibraryUsageDescription: 'КарПас использует доступ к фото, чтобы вы могли выбрать изображения для автомобиля, документов или профиля.',
         NSPhotoLibraryAddUsageDescription: 'КарПас может сохранять выбранные изображения в медиатеку, если вы разрешите это в системе.',
+        NSFaceIDUsageDescription: 'КарПас использует Face ID, чтобы быстро и безопасно открыть сохранённый вход.',
       },
     },
     android: {
@@ -47,6 +48,12 @@ module.exports = {
         {
           color: '#C7A45D',
           defaultChannel: 'default',
+        },
+      ],
+      [
+        'expo-local-authentication',
+        {
+          faceIDPermission: 'КарПас использует Face ID, чтобы быстро и безопасно открыть сохранённый вход.',
         },
       ],
       'expo-asset',

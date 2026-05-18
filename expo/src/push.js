@@ -1,6 +1,7 @@
 import Constants from 'expo-constants'
 import * as Device from 'expo-device'
 import * as Notifications from 'expo-notifications'
+import { Platform } from 'react-native'
 import { pushSettings, registerDetailingPushToken, registerOwnerPushToken } from './api'
 
 Notifications.setNotificationHandler({
@@ -21,7 +22,7 @@ function easProjectId() {
 }
 
 export async function registerPushForSession(session) {
-  if (!Device.isDevice) return { ok: false, reason: 'device_required' }
+  if (!Device.isDevice && Platform.OS !== 'android') return { ok: false, reason: 'device_required' }
 
   const ownerToken = String(session?.ownerToken || '').trim()
   const detailingToken = String(session?.detailingToken || '').trim()
@@ -31,6 +32,15 @@ export async function registerPushForSession(session) {
   if (settings?.enabled === false) return { ok: false, reason: 'disabled' }
   if (ownerToken && settings?.owners_enabled === false) return { ok: false, reason: 'owners_disabled' }
   if (detailingToken && settings?.detailings_enabled === false) return { ok: false, reason: 'detailings_disabled' }
+
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'Основные уведомления',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#C7A45D',
+    }).catch(() => {})
+  }
 
   let permissions = await Notifications.getPermissionsAsync()
   if (permissions.status !== 'granted') {

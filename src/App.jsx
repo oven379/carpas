@@ -31,7 +31,7 @@ const PartnerApplyPage = lazy(() => import('./ui/pages/PartnerApplyPage.jsx'))
 const PublicCarPage = lazy(() => import('./ui/pages/PublicCarPage.jsx'))
 const RequestsPage = lazy(() => import('./ui/pages/RequestsPage.jsx'))
 const DetailingSettingsPage = lazy(() => import('./ui/pages/DetailingSettingsPage.jsx'))
-const DetailingDashboardPage = lazy(() => import('./ui/pages/DetailingDashboardPage.jsx'))
+const DetailingClientsPage = lazy(() => import('./ui/pages/DetailingClientsPage.jsx'))
 const PublicDetailingPage = lazy(() => import('./ui/pages/PublicDetailingPage.jsx'))
 const OwnerGaragePage = lazy(() => import('./ui/pages/OwnerGaragePage.jsx'))
 const GarageSettingsPage = lazy(() => import('./ui/pages/GarageSettingsPage.jsx'))
@@ -219,9 +219,13 @@ export default function App() {
             <Route path="/detailing/settings" element={<Navigate to="/detailing/landing" replace />} />
             <Route
               path="/detailing"
+              element={<Navigate to="/detailing/clients" replace />}
+            />
+            <Route
+              path="/detailing/clients"
               element={
                 <RequireAuth>
-                  <DetailingDashboardPage />
+                  <DetailingClientsPage />
                 </RequireAuth>
               }
             />

@@ -237,6 +237,15 @@ export default function PublicDetailingPage() {
         style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}
       >
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
+          {det.logo ? (
+            <div className="detHero__logo detHero__logo--card">
+              <img alt="" src={resolvePublicMediaUrl(det.logo)} decoding="async" />
+            </div>
+          ) : (
+            <div className="detHero__logo detHero__logo--card">
+              <span aria-hidden="true">{detInitials}</span>
+            </div>
+          )}
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
               <HeroCoverStat

@@ -209,6 +209,9 @@ class CarEventController extends Controller
         }
 
         if ($wasDraft && ! $evt->is_draft) {
+            if (! $evt->at) {
+                $evt->at = now();
+            }
             $this->assertFinalizeDraftPayload($evt);
         }
 

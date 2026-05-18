@@ -1,15 +1,12 @@
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AuthChangePasswordSection } from '../AuthChangePasswordSection.jsx'
 import {
   BackNav,
   Button,
   Card,
   CityComboBox,
   ComboBox,
-  DropdownCaretIcon,
   Field,
-  HeroCoverStat,
   Input,
   PhoneRuInput,
   PageLoadSpinner,
@@ -17,9 +14,9 @@ import {
   ServiceHint,
   Textarea,
 } from '../components.jsx'
-import { clearDetailingSession } from '../auth.js'
 import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
+import { publicDetailingPath } from '../serviceLinkUi.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import {
   DETAILING_ITEM_SET,
@@ -35,11 +32,9 @@ import {
   CITY_FIELD_DD_HINT,
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
   DETAILING_WORKING_HOURS_MAX_LEN,
-  displayRuPhone,
   formatPhoneRuInput,
   PHOTO_UPLOAD_HINTS_PARAGRAPH,
 } from '../../lib/format.js'
-import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 
 /** Локальное превью до сохранения: не подменять значением с сервера при фоновом GET /me. */
 function isPendingLocalMediaDraft(s) {
@@ -84,8 +79,6 @@ export default function DetailingSettingsPage() {
   const nav = useNavigate()
   const r = useRepo()
   const { detailingId, mode, detailing, loading, applyDetailingSnapshot } = useDetailing()
-  const [carsCount, setCarsCount] = useState(0)
-  const [previewServicesExpanded, setPreviewServicesExpanded] = useState(false)
   const [customOfferInput, setCustomOfferInput] = useState('')
 
   const [draft, setDraft] = useState(() => ({
@@ -136,22 +129,6 @@ export default function DetailingSettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- достаточно id и строк URL; весь `detailing` лишние циклы
   }, [detailingHydrateId, detailing?.cover, detailing?.logo])
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      if (mode !== 'detailing' || !detailingId) return
-      try {
-        const list = await r.listCars()
-        if (!cancelled) setCarsCount(Array.isArray(list) ? list.length : 0)
-      } catch {
-        if (!cancelled) setCarsCount(0)
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [mode, detailingId, r, r._version])
-
   const catalogOfferSet = useMemo(() => new Set([...DETAILING_ITEM_SET, ...MAINTENANCE_ITEM_SET]), [])
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
@@ -163,10 +140,7 @@ export default function DetailingSettingsPage() {
     )
   }
   if (!detailing) return <Navigate to="/cars" replace />
-  const initials = String(draft.name || detailing.name || 'Д').trim().slice(0, 2).toUpperCase()
-  const addressText = [draft.city, draft.address].filter(Boolean).join(', ')
-  const { telHref: phonePreviewTel } = displayRuPhone(draft.phone)
-  const previewCoverBg = resolvedBackgroundImageUrl(draft.cover)
+  const publicPath = publicDetailingPath(detailing ? { ...detailing, id: detailingId } : { id: detailingId })
 
   function toggleService(item) {
     const v = String(item || '').trim()
@@ -236,103 +210,12 @@ export default function DetailingSettingsPage() {
             </ServiceHint>
           </div>
         </div>
+        <div className="row gap wrap" style={{ alignItems: 'center' }}>
+          <Link className="btn" data-variant="outline" to={publicPath}>
+            Посмотреть лендинг
+          </Link>
+        </div>
       </div>
-
-      <Card className="card pad" style={{ marginTop: 12 }}>
-        <div className="cardTitle" style={{ marginBottom: 10 }}>
-          Предпросмотр лендинга (как увидят клиенты)
-        </div>
-        <div
-          className="detHero detHero--card detHero--detailingHero"
-          style={previewCoverBg ? { backgroundImage: previewCoverBg } : undefined}
-        >
-          <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
-            {draft.logo ? (
-              <div className="detHero__logo detHero__logo--card">
-                <img alt="Логотип" src={resolvePublicMediaUrl(draft.logo)} />
-              </div>
-            ) : (
-              <div className="detHero__logo detHero__logo--card">
-                <span aria-hidden="true">{initials}</span>
-              </div>
-            )}
-            <div className="detHero__bottomRow">
-              <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
-                <HeroCoverStat
-                  kind="car"
-                  variant="overlay"
-                  value={carsCount}
-                  title={`${carsCount} автомобилей на обслуживании`}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="topBorder">
-          <div className="row spread gap" style={{ alignItems: 'flex-start' }}>
-            <div style={{ minWidth: 0 }}>
-              <div className="h2" style={{ margin: 0 }}>
-                {draft.name || 'Название студии / СТО'}
-              </div>
-              <p className="muted" style={{ marginTop: 8 }}>
-                {addressText || 'Город и адрес'}
-              </p>
-              {String(draft.workingHours || '').trim() ? (
-                <p className="muted small" style={{ marginTop: 8, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
-                  {String(draft.workingHours).trim()}
-                </p>
-              ) : null}
-              {draft.description ? (
-                <p className="muted small" style={{ marginTop: 8, lineHeight: 1.55 }}>
-                  {draft.description}
-                </p>
-              ) : (
-                <p className="muted small" style={{ marginTop: 8 }}>
-                  Добавьте описание — чем вы занимаетесь, режим работы, гарантия, подход.
-                </p>
-              )}
-            </div>
-            {phonePreviewTel ? (
-              <a className="btn" data-variant="primary" href={phonePreviewTel} style={{ whiteSpace: 'nowrap' }}>
-                Позвонить
-              </a>
-            ) : null}
-          </div>
-          {Array.isArray(draft.servicesOffered) && draft.servicesOffered.length ? (
-            draft.servicesOffered.length > 3 ? (
-              <div className="detailingSettings__servicesPreview detPublicServicesCard" style={{ marginTop: 10 }}>
-                <button
-                  type="button"
-                  className="dropdownCaretBtn dropdownCaretBtn--floating detPublicServicesCard__expand"
-                  aria-expanded={previewServicesExpanded ? 'true' : 'false'}
-                  onClick={() => setPreviewServicesExpanded((v) => !v)}
-                  title={previewServicesExpanded ? 'Свернуть' : 'Показать все услуги'}
-                  aria-label={previewServicesExpanded ? 'Свернуть список услуг' : 'Развернуть список услуг'}
-                >
-                  <DropdownCaretIcon open={previewServicesExpanded} />
-                </button>
-                <div className="cardTitle detPublicServicesCard__title detPublicServicesCard__title--withExpand" style={{ margin: 0 }}>
-                  Услуги
-                </div>
-                <div className="row gap wrap" style={{ marginTop: 8 }}>
-                  {(previewServicesExpanded ? draft.servicesOffered : draft.servicesOffered.slice(0, 3)).map(
-                    (s, i) => (
-                      <Pill key={`${i}-${String(s)}`}>{s}</Pill>
-                    ),
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="row gap wrap" style={{ marginTop: 10 }}>
-                {draft.servicesOffered.map((s, i) => (
-                  <Pill key={`${i}-${String(s)}`}>{s}</Pill>
-                ))}
-              </div>
-            )
-          ) : null}
-        </div>
-      </Card>
 
       <Card className="card pad" style={{ marginTop: 12 }}>
         <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
@@ -617,21 +500,6 @@ export default function DetailingSettingsPage() {
             />
           </Field>
         </div>
-
-        <AuthChangePasswordSection
-          variant="detailing"
-          r={r}
-          onPasswordChanged={() => {
-            alert('Пароль обновлён. Войдите снова, указав почту партнёра и новый пароль.')
-            clearDetailingSession()
-            refreshAllClientData()
-            nav('/auth/partner', { replace: true })
-          }}
-        />
-
-        <p className="muted small" style={{ marginTop: 18, lineHeight: 1.5, maxWidth: '62ch' }}>
-          Кнопка «Сохранить» ниже сохраняет только профиль кабинета. Пароль партнёра меняется отдельно — в блоке выше.
-        </p>
 
         <div className="row gap wrap topBorder historyFormActions">
           <Button
