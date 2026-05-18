@@ -1196,10 +1196,11 @@ export default function HistoryPage() {
                       </div>
                     )
                   }
+                  const displayPhotos = visitExpanded ? photos.slice(0, 6) : photos.slice(0, 2)
                   const galleryItems = docsToPhotoItems(photos)
                   return (
                     <div className="thumbs" style={{ marginTop: 10 }}>
-                      {photos.slice(0, 6).map((d) => {
+                      {displayPhotos.map((d) => {
                         const gi = galleryItems.findIndex((g) => g.id === d.id)
                         return (
                           <HistoryEventDocThumb

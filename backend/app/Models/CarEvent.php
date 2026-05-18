@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CarEvent extends Model
 {
@@ -42,5 +43,10 @@ class CarEvent extends Model
     public function detailing(): BelongsTo
     {
         return $this->belongsTo(Detailing::class, 'detailing_id');
+    }
+
+    public function docs(): HasMany
+    {
+        return $this->hasMany(CarDoc::class, 'event_id');
     }
 }

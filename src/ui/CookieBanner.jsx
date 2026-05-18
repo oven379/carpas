@@ -17,7 +17,9 @@ export default function CookieBanner() {
   function accept() {
     try {
       localStorage.setItem(STORAGE_KEY, '1')
-    } catch {}
+    } catch {
+      // localStorage can be blocked; the banner can still close for this session.
+    }
     setVisible(false)
   }
 

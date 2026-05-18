@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Car;
+use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\DevicePushToken;
 use App\Models\Owner;
@@ -59,7 +60,7 @@ class DetailingCrmApiTest extends FeatureTestCase
             'client_email' => 'foreign@example.test',
         ]);
 
-        CarEvent::query()->create([
+        $visit = CarEvent::query()->create([
             'detailing_id' => $d->id,
             'car_id' => $car->id,
             'owner_id' => $owner->id,
@@ -72,6 +73,17 @@ class DetailingCrmApiTest extends FeatureTestCase
             'services' => ['Керамика'],
             'maintenance_services' => [],
             'note' => null,
+        ]);
+        CarDoc::query()->create([
+            'detailing_id' => $d->id,
+            'car_id' => $car->id,
+            'owner_id' => $owner->id,
+            'source' => 'service',
+            'event_id' => $visit->id,
+            'title' => 'Фото после',
+            'kind' => 'photo',
+            'url' => 'crm/visit-after.jpg',
+            'created_at' => now(),
         ]);
         CarEvent::query()->create([
             'detailing_id' => $other->id,
@@ -100,6 +112,7 @@ class DetailingCrmApiTest extends FeatureTestCase
             ->assertJsonPath('items.0.client.name', 'Иван')
             ->assertJsonPath('items.0.client.isRegisteredOwner', true)
             ->assertJsonPath('items.0.lastVisit.title', 'Керамика')
+            ->assertJsonPath('items.0.lastVisit.photos.0.title', 'Фото после')
             ->assertJsonPath('items.0.flags.needsReminder', true);
     }
 

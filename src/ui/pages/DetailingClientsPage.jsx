@@ -13,7 +13,9 @@ import {
 } from '../../lib/format.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
+import { PhotoLightbox } from '../PhotoLightbox.jsx'
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
@@ -80,6 +82,31 @@ function ClientAvatar({ row }) {
   return <DefaultAvatar email={cl.email || c.clientEmail || ''} fallback={clientName(row)} alt="" />
 }
 
+function LastVisitPhotoStrip({ photos, onOpen }) {
+  const galleryItems = docsToPhotoItems(photos)
+  if (!galleryItems.length) return null
+  const visible = galleryItems.slice(0, 2)
+  const extra = Math.max(0, galleryItems.length - visible.length)
+
+  return (
+    <div className="detCrmVisitPhotos" aria-label="Фото последнего визита">
+      {visible.map((photo, idx) => (
+        <button
+          key={photo.id || `${photo.url}-${idx}`}
+          type="button"
+          className="detCrmVisitPhotos__item"
+          onClick={() => onOpen(idx)}
+        >
+          <img src={photo.url} alt={photo.title || 'Фото последнего визита'} />
+          {idx === visible.length - 1 && extra > 0 ? (
+            <span className="detCrmVisitPhotos__more">+{extra}</span>
+          ) : null}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export default function DetailingClientsPage() {
   const r = useRepo()
   const nav = useNavigate()
@@ -89,6 +116,7 @@ export default function DetailingClientsPage() {
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
   const [pushBusy, setPushBusy] = useState('')
+  const [photoLb, setPhotoLb] = useState(null)
   const query = sp.get('q') || ''
   const filter = sp.get('filter') || 'all'
   const selectedId = sp.get('id') || ''
@@ -164,6 +192,12 @@ export default function DetailingClientsPage() {
     } finally {
       setPushBusy('')
     }
+  }
+
+  function openLastVisitPhotos(photos, startIndex = 0) {
+    const items = docsToPhotoItems(photos).map((x) => ({ url: x.url, title: x.title }))
+    if (!items.length) return
+    setPhotoLb({ items, startIndex })
   }
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
@@ -363,6 +397,10 @@ export default function DetailingClientsPage() {
                         {selected.lastVisit.services.slice(0, 4).map((s) => <Pill key={s} tone="neutral">{s}</Pill>)}
                       </div>
                     ) : null}
+                    <LastVisitPhotoStrip
+                      photos={selected.lastVisit.photos}
+                      onOpen={(startIndex) => openLastVisitPhotos(selected.lastVisit.photos, startIndex)}
+                    />
                   </>
                 ) : (
                   <div className="muted small">Истории визитов пока нет.</div>
@@ -375,6 +413,12 @@ export default function DetailingClientsPage() {
           )}
         </aside>
       </div>
+      <PhotoLightbox
+        open={Boolean(photoLb)}
+        items={photoLb?.items ?? []}
+        startIndex={photoLb?.startIndex ?? 0}
+        onClose={() => setPhotoLb(null)}
+      />
     </div>
   )
 }

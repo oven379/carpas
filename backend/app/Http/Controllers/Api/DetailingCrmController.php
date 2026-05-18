@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\DetailingCarAccess;
 use App\Models\Car;
+use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
@@ -57,7 +58,15 @@ class DetailingCrmController extends Controller
             ->groupBy('car_id')
             ->map(fn ($group) => $group->first());
 
-        $rows = $cars->map(function (Car $car) use ($lastEvents) {
+        $docsByEvent = CarDoc::query()
+            ->whereIn('event_id', $lastEvents->pluck('id')->filter()->values())
+            ->whereNotNull('url')
+            ->where('url', '!=', '')
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('event_id');
+
+        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent) {
             $last = $lastEvents->get($car->id);
             $lastAt = $last?->at ? Carbon::parse($last->at) : ($last?->created_at ? Carbon::parse($last->created_at) : null);
             $nextAt = $lastAt ? $lastAt->copy()->addDays(30) : null;
@@ -85,6 +94,12 @@ class DetailingCrmController extends Controller
                         is_array($last->services) ? $last->services : [],
                         is_array($last->maintenance_services) ? $last->maintenance_services : [],
                     ))),
+                    'photos' => $docsByEvent
+                        ->get($last->id, collect())
+                        ->take(8)
+                        ->map(fn (CarDoc $doc) => ApiResources::doc($doc))
+                        ->values()
+                        ->all(),
                 ] : null,
                 'nextReminder' => $nextAt ? [
                     'at' => $nextAt->toISOString(),

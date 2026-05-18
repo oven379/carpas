@@ -9871,14 +9871,16 @@ a.btn.carPage__recsAddVisitFull,
   left: 0;
   right: 0;
   z-index: 900;
-  background: var(--card-bg, #fff);
-  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--code-bg) 92%, var(--bg));
+  border-top: 1px solid color-mix(in oklab, var(--accent) 34%, var(--border));
+  color: var(--text);
   padding: 14px 24px;
   display: flex;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -12px 34px color-mix(in oklab, black 34%, transparent);
+  backdrop-filter: blur(10px);
 }
 
 .cookieBanner__text {
@@ -9898,6 +9900,14 @@ a.btn.carPage__recsAddVisitFull,
 .cookieBanner__btn {
   white-space: nowrap;
   flex-shrink: 0;
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  border-color: color-mix(in oklab, var(--accent) 70%, var(--border));
+  color: var(--accent);
+}
+
+.cookieBanner__btn:hover {
+  background: color-mix(in oklab, var(--accent) 18%, var(--bg));
+  color: var(--text-h);
 }
 
 .adminPreview__toggleList {
@@ -10646,6 +10656,50 @@ a.btn.carPage__recsAddVisitFull,
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.detCrmVisitPhotos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.detCrmVisitPhotos__item {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 0;
+  cursor: pointer;
+}
+
+.detCrmVisitPhotos__item img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.detCrmVisitPhotos__item:hover {
+  border-color: color-mix(in oklab, var(--accent) 72%, var(--border));
+}
+
+.detCrmVisitPhotos__more {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, black 56%, transparent);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
 }
 
 @media (max-width: 960px) {
