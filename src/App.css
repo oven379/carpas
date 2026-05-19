@@ -1232,6 +1232,44 @@ input.input:-webkit-autofill {
   margin-top: 28px;
 }
 
+.infoPage {
+  padding-top: 34px;
+  padding-bottom: 64px;
+}
+
+.infoHero {
+  max-width: 820px;
+  padding: 28px 0 20px;
+}
+
+.infoHero__lead {
+  max-width: 760px;
+  margin: 14px 0 22px;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.55;
+}
+
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 22px;
+}
+
+.infoGrid > article {
+  min-width: 0;
+  padding: 18px;
+  border: 0.5px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--code-bg) 72%, var(--bg));
+}
+
+.infoGrid > article p {
+  margin: 0;
+  line-height: 1.55;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -8573,6 +8611,23 @@ a.btn.carPage__recsAddVisitFull,
 
 /* Телефоны и узкие экраны */
 @media (max-width: 768px) {
+  .infoPage {
+    padding-top: 22px;
+    padding-bottom: 46px;
+  }
+
+  .infoHero {
+    padding-top: 14px;
+  }
+
+  .infoHero__lead {
+    font-size: 16px;
+  }
+
+  .infoGrid {
+    grid-template-columns: 1fr;
+  }
+
   .main {
     padding: 16px 0 max(32px, env(safe-area-inset-bottom, 0px));
   }

@@ -1,6 +1,3 @@
-# Продакшен: раскомментируйте и подставьте основной домен (https, без www или с www — как в каноникале).
-# Sitemap: https://ВАШ-ДОМЕН.ru/sitemap.xml
-
 User-agent: *
 Allow: /
 Allow: /d/
@@ -15,3 +12,5 @@ Disallow: /detailing
 Disallow: /requests
 Disallow: /create
 Disallow: /market
+
+Sitemap: https://www.carpass.ru/sitemap.xml

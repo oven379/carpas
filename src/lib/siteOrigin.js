@@ -1,13 +1,14 @@
 /**
  * Абсолютные URL для canonical и Open Graph.
- * В браузере — текущий origin; при сборке/preview без window — VITE_SITE_ORIGIN из .env.
+ * В продакшене VITE_SITE_ORIGIN имеет приоритет, чтобы canonical и Open Graph
+ * оставались едиными даже при заходе через http или домен без www.
  */
 export function getSiteOrigin() {
+  const env = import.meta.env.VITE_SITE_ORIGIN
+  if (env && String(env).trim()) return String(env).trim().replace(/\/+$/, '')
   if (typeof window !== 'undefined' && window.location?.origin) {
     return String(window.location.origin).replace(/\/+$/, '')
   }
-  const env = import.meta.env.VITE_SITE_ORIGIN
-  if (env && String(env).trim()) return String(env).trim().replace(/\/+$/, '')
   return ''
 }
 

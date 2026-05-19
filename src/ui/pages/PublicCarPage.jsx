@@ -82,6 +82,7 @@ export default function PublicCarPage() {
             title="Публичная история авто · КарПас"
             description="Публичная страница истории обслуживания автомобиля в сервисе КарПас."
             canonicalPath={`/share/${token}`}
+            noindex
           />
         ) : null}
         <PageLoadSpinner />
@@ -101,7 +102,7 @@ export default function PublicCarPage() {
 
   return (
     <div className="container">
-      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} />
+      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} noindex />
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">

@@ -67,6 +67,7 @@ export default function PublicGaragePage() {
           title="Публичный гараж · КарПас"
           description="Публичная витрина гаража в сервисе КарПас: список автомобилей по настройкам владельца."
           canonicalPath={`/g/${slugNorm}`}
+          noindex
         />
         <PageLoadSpinner />
       </div>
@@ -168,7 +169,7 @@ export default function PublicGaragePage() {
 
   return (
     <div className="container">
-      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} />
+      <Seo title={seoTitle} description={seoDesc} canonicalPath={canonicalPath} ogImage={ogImage} noindex />
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
