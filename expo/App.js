@@ -1,6 +1,7 @@
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar'
 import Constants from 'expo-constants'
 import * as LocalAuthentication from 'expo-local-authentication'
+import * as Notifications from 'expo-notifications'
 import * as SecureStore from 'expo-secure-store'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, View } from 'react-native'
@@ -143,6 +144,7 @@ const SESSION_BRIDGE_JS = `
 
 export default function App() {
   const pushRegisteredKey = useRef('')
+  const webViewRef = useRef(null)
   const [nativeSession, setNativeSession] = useState(null)
   const [ready, setReady] = useState(false)
 
@@ -171,6 +173,28 @@ export default function App() {
       .catch(() => {})
   }, [nativeSession])
 
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(() => {
+      try {
+        webViewRef.current?.injectJavaScript(`
+          try { window.location.href = '/notifications'; } catch (e) {}
+          true;
+        `)
+      } catch {
+        // ignore
+      }
+    })
+    const receivedSub = Notifications.addNotificationReceivedListener(() => {
+      Notifications.getBadgeCountAsync()
+        .then((count) => Notifications.setBadgeCountAsync(Math.max(1, Number(count || 0) + 1)))
+        .catch(() => {})
+    })
+    return () => {
+      sub.remove()
+      receivedSub.remove()
+    }
+  }, [])
+
   const bootstrapJs = useMemo(() => nativeBootstrapJs(nativeSession), [nativeSession])
 
   const onMessage = useCallback((event) => {
@@ -186,6 +210,12 @@ export default function App() {
       pushRegisteredKey.current = ''
       setNativeSession(null)
       clearNativeSession()
+      Notifications.setBadgeCountAsync(0).catch(() => {})
+      return
+    }
+
+    if (data.type === 'carpas-notification-badge') {
+      Notifications.setBadgeCountAsync(Math.max(0, Number(data.count || 0))).catch(() => {})
       return
     }
 
@@ -230,6 +260,7 @@ export default function App() {
     <SafeAreaView style={styles.root}>
       <ExpoStatusBar style="light" backgroundColor="#0B0B0B" translucent={false} />
       <WebView
+        ref={webViewRef}
         source={{
           uri: initialWebUrl(),
           headers: {

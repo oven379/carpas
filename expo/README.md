@@ -32,6 +32,18 @@ Expo-приложение отправляет на backend `ExpoPushToken[...]`
 `EXPO_PUSH_ENABLED=true`. Для сборок магазинов настройте EAS project id и push credentials в Expo/EAS.
 Production-адреса сервиса заданы в `eas.json`; локальный `.env` нужен только для разработки.
 
+Минимальная production-настройка:
+
+1. `eas login`
+2. `eas project:init` или привязка существующего проекта.
+3. `eas project:info` → скопировать Project ID в `EXPO_PUBLIC_EAS_PROJECT_ID`.
+4. `eas credentials` → настроить Android FCM и iOS APNs для проекта.
+5. На backend оставить `EXPO_PUSH_ENABLED=true`.
+
+Прямой Firebase FCM для backend не обязателен, пока приложение отправляет `ExpoPushToken[...]`.
+Если появятся нативные FCM-токены, заполните `FIREBASE_PROJECT_ID` и `FIREBASE_CREDENTIALS_B64`
+или `FIREBASE_CREDENTIALS_PATH` в `backend/.env`.
+
 ## Команды
 
 ```bash

@@ -5,7 +5,12 @@ import { useDetailing } from './useDetailing.js'
 import { useRepo, invalidateRepo } from './useRepo.js'
 import { clearSession, getSessionOwner, hasOwnerSession } from './auth.js'
 import DefaultAvatar from './DefaultAvatar.jsx'
+import { PageLoadSpinner } from './PageLoadSpinner.jsx'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
+import { getApi } from '../api/index.js'
+import { formatHttpErrorMessage } from '../api/http.js'
+import { fmtDateTime } from '../lib/format.js'
+import { isNativeApp } from '../lib/nativePlatform.js'
 import { ComboBox } from './ComboBox.jsx'
 import {
   formatPhoneRuInput,
@@ -14,7 +19,7 @@ import {
 } from '../lib/format.js'
 
 export { default as ServiceHint } from './ServiceHint.jsx'
-export { PageLoadSpinner } from './PageLoadSpinner.jsx'
+export { PageLoadSpinner }
 
 export function Button({ variant = 'primary', onClick, disabled, type = 'button', className, ...props }) {
   const lockRef = useRef(false)
@@ -432,6 +437,201 @@ export function BackNav({ className = '', title = 'Назад', to, fallbackTo, 
   )
 }
 
+function postNativeBadgeCount(count) {
+  try {
+    if (typeof window === 'undefined' || !window.ReactNativeWebView?.postMessage) return
+    window.ReactNativeWebView.postMessage(
+      JSON.stringify({ type: 'carpas-notification-badge', count: Math.max(0, Number(count || 0)) }),
+    )
+  } catch {
+    // Native badge sync is optional for the web build.
+  }
+}
+
+function notificationKindLabel(kind) {
+  if (kind === 'car_ready') return 'Авто'
+  if (kind === 'service_reminder') return 'Напоминание'
+  if (kind === 'admin_broadcast') return 'Сервис'
+  if (kind === 'admin_test') return 'Тест'
+  return 'Уведомление'
+}
+
+function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout, onUnreadChange }) {
+  const nav = useNavigate()
+  const [payload, setPayload] = useState({ items: [], unread_count: unreadCount || 0 })
+  const [loading, setLoading] = useState(false)
+  const [err, setErr] = useState('')
+
+  const load = useCallback(async () => {
+    if (!open) return
+    setLoading(true)
+    setErr('')
+    try {
+      const data = await getApi().notifications()
+      const next = data && typeof data === 'object' ? data : { items: [], unread_count: 0 }
+      const count = Number(next.unread_count || 0)
+      setPayload(next)
+      onUnreadChange(count)
+      postNativeBadgeCount(count)
+    } catch (e) {
+      setErr(formatHttpErrorMessage(e, 'Не удалось загрузить уведомления'))
+    } finally {
+      setLoading(false)
+    }
+  }, [onUnreadChange, open])
+
+  useEffect(() => {
+    if (!open) return
+    void load()
+  }, [load, open])
+
+  useEffect(() => {
+    if (!open) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, open])
+
+  if (!open) return null
+
+  const items = Array.isArray(payload.items) ? payload.items : []
+  const unread = Number(payload.unread_count || 0)
+  const sessionOwner = owner || getSessionOwner() || {}
+  const displayName = String(sessionOwner.name || '').trim() || 'Личный гараж'
+
+  const updateUnread = (count, itemsPatch) => {
+    const nextCount = Math.max(0, Number(count || 0))
+    setPayload((p) => ({
+      ...p,
+      unread_count: nextCount,
+      items: typeof itemsPatch === 'function' ? itemsPatch(Array.isArray(p.items) ? p.items : []) : p.items,
+    }))
+    onUnreadChange(nextCount)
+    postNativeBadgeCount(nextCount)
+  }
+
+  const markRead = async (n) => {
+    const wasUnread = !n.readAt
+    if (wasUnread) {
+      updateUnread(unread - 1, (list) =>
+        list.map((x) => (String(x.id) === String(n.id) ? { ...x, readAt: x.readAt || new Date().toISOString() } : x)),
+      )
+    }
+    await getApi().notificationMarkRead(n.id).catch(() => {})
+  }
+
+  const openNotification = async (n) => {
+    await markRead(n)
+    const detailingId = String(n?.data?.detailingId || '').trim()
+    onClose()
+    if (detailingId && !isNativeApp()) {
+      nav(`/d/${encodeURIComponent(detailingId)}`)
+      return
+    }
+    if (detailingId && isNativeApp()) {
+      nav('/garage')
+    }
+  }
+
+  const clearAll = async () => {
+    await getApi().notificationsClear()
+    setPayload({ items: [], unread_count: 0 })
+    onUnreadChange(0)
+    postNativeBadgeCount(0)
+  }
+
+  const goSettings = () => {
+    onClose()
+    nav('/garage/settings')
+  }
+
+  const logout = () => {
+    onClose()
+    onLogout()
+  }
+
+  return (
+    <div className="profileCenter" role="dialog" aria-modal="true" aria-label="Центр уведомлений и профиля">
+      <div className="profileCenter__sheet">
+        <div className="profileCenter__head">
+          <div className="profileCenter__profile">
+            <span className="profileCenter__avatar" aria-hidden="true">
+              {sessionOwner.garageAvatar ? (
+                <img alt="" src={resolvePublicMediaUrl(sessionOwner.garageAvatar)} />
+              ) : (
+                <DefaultAvatar
+                  email={String(sessionOwner.email || '').trim()}
+                  fallback={displayName}
+                  alt=""
+                  className="profileCenter__avatarDefault"
+                />
+              )}
+            </span>
+            <div>
+              <h2 className="profileCenter__title">Центр уведомлений</h2>
+              <p className="profileCenter__subtitle">{unread > 0 ? `Новых: ${unread}` : displayName}</p>
+            </div>
+          </div>
+          <button type="button" className="profileCenter__close" onClick={onClose} aria-label="Закрыть">
+            ×
+          </button>
+        </div>
+
+        <div className="profileCenter__actions">
+          <button type="button" className="btn" data-variant="outline" onClick={goSettings}>
+            Настройки гаража
+          </button>
+          <button type="button" className="btn" data-variant="ghost" disabled={items.length === 0 || loading} onClick={clearAll}>
+            Очистить уведомления
+          </button>
+        </div>
+
+        <div className="profileCenter__list" aria-live="polite">
+          {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
+          {err ? <Card className="pad profileCenter__state"><p className="adminSupportErr">{err}</p></Card> : null}
+          {!loading && !err && items.length === 0 ? (
+            <Card className="pad profileCenter__state">
+              <h3 className="h2">Пока пусто</h3>
+              <p className="muted">Здесь появятся сообщения от сервиса и детейлинга.</p>
+            </Card>
+          ) : null}
+          {items.map((n) => {
+            const unreadItem = !n.readAt
+            const canOpen = String(n?.data?.detailingId || '').trim() !== ''
+            return (
+              <button
+                key={n.id}
+                type="button"
+                className={`profileCenter__item${unreadItem ? ' profileCenter__item--unread' : ''}`}
+                onClick={() => void openNotification(n)}
+              >
+                <span className="profileCenter__itemTop">
+                  <span className="notificationsItem__kind">{notificationKindLabel(n.kind)}</span>
+                  <span className="muted small">{fmtDateTime(n.createdAt)}</span>
+                </span>
+                <span className="profileCenter__itemTitle">{n.title || 'Уведомление'}</span>
+                <span className="profileCenter__itemBody">{n.body}</span>
+                {canOpen ? <span className="profileCenter__itemHint">Открыть</span> : null}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="profileCenter__footer">
+          <button type="button" className="btn profileCenter__cancel" data-variant="outline" onClick={onClose}>
+            Отмена
+          </button>
+          <button type="button" className="btn profileCenter__logout" data-variant="ghost" onClick={logout}>
+            Выйти
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function TopNav() {
   const nav = useNavigate()
   const loc = useLocation()
@@ -446,6 +646,8 @@ export function TopNav() {
   const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
   const isDetailingCabinet = mode === 'detailing' && !isPublicDetailingPage
   const [pendingClaims, setPendingClaims] = useState(0)
+  const [notificationsUnread, setNotificationsUnread] = useState(0)
+  const [profileCenterOpen, setProfileCenterOpen] = useState(false)
   useEffect(() => {
     if (!isDetailingCabinet || !detailingId) {
       setPendingClaims(0)
@@ -466,6 +668,29 @@ export function TopNav() {
       c = true
     }
   }, [isDetailingCabinet, detailingId, r, r._version])
+  useEffect(() => {
+    const canLoad = hasOwnerSession() || mode === 'detailing'
+    if (!canLoad || isPublicShowcasePage) {
+      setNotificationsUnread(0)
+      return
+    }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await getApi().notificationsUnreadCount()
+        if (!cancelled) {
+          const count = Number(res?.unread_count || 0)
+          setNotificationsUnread(count)
+          postNativeBadgeCount(count)
+        }
+      } catch {
+        if (!cancelled) setNotificationsUnread(0)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [loc.pathname, mode, isPublicShowcasePage])
   const logout = () => {
     clearSession()
     invalidateRepo()
@@ -496,6 +721,9 @@ export function TopNav() {
                     <NavLink to="/requests" className={linkClass}>
                       Заявки ({pendingClaims})
                     </NavLink>
+                    <NavLink to="/notifications" className={linkClass}>
+                      Уведомления{notificationsUnread ? ` (${notificationsUnread})` : ''}
+                    </NavLink>
                   </>
                 ) : null}
                 <button type="button" className="nav__action" onClick={logout}>
@@ -516,11 +744,12 @@ export function TopNav() {
                 {hasOwnerSession() ? (
                   <>
                     {mode === 'owner' ? (
-                      <Link
+                      <button
+                        type="button"
                         className="nav__ownerGarageLink"
-                        to="/garage/settings"
-                        aria-label="Настройки гаража: аватар, баннер, контакты"
-                        title="Настройки гаража"
+                        onClick={() => setProfileCenterOpen(true)}
+                        aria-label="Центр уведомлений и профиля"
+                        title="Центр уведомлений"
                       >
                         {owner?.garageAvatar ? (
                           <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
@@ -532,11 +761,9 @@ export function TopNav() {
                             className="nav__ownerGarageDefaultImg"
                           />
                         )}
-                      </Link>
+                        {notificationsUnread ? <span className="nav__notifyBadge">{notificationsUnread}</span> : null}
+                      </button>
                     ) : null}
-                    <button type="button" className="nav__action" onClick={logout}>
-                      Выйти
-                    </button>
                   </>
                 ) : null}
               </>
@@ -544,6 +771,16 @@ export function TopNav() {
           </div>
         </nav>
       </div>
+      {mode === 'owner' ? (
+        <NotificationCenterOverlay
+          open={profileCenterOpen}
+          owner={owner}
+          unreadCount={notificationsUnread}
+          onClose={() => setProfileCenterOpen(false)}
+          onLogout={logout}
+          onUnreadChange={setNotificationsUnread}
+        />
+      ) : null}
     </header>
   )
 }

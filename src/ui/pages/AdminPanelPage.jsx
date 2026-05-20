@@ -480,9 +480,14 @@ function PanelPush() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [audience, setAudience] = useState('all')
+  const [testAudience, setTestAudience] = useState('owner')
+  const [testEmail, setTestEmail] = useState('')
   const [sendBusy, setSendBusy] = useState(false)
   const [sendErr, setSendErr] = useState('')
   const [sendOk, setSendOk] = useState('')
+  const [testBusy, setTestBusy] = useState(false)
+  const [testErr, setTestErr] = useState('')
+  const [testOk, setTestOk] = useState('')
 
   const loadStats = useCallback(async () => {
     if (!hasAdminApiToken()) return
@@ -558,6 +563,7 @@ function PanelPush() {
   const detailingsEnabled = settings.detailings_enabled !== false
   const broadcastEnabled = settings.broadcast_enabled !== false
   const canSendBroadcast = (fcmOk || expoOk) && pushEnabled && broadcastEnabled
+  const lastResult = stats?.last_result && typeof stats.last_result === 'object' ? stats.last_result : null
 
   return (
     <div className="adminPreview__stack">
@@ -609,6 +615,13 @@ function PanelPush() {
             <li>Владельцы: {stats.owners ?? '—'} · Партнёры (детейлинг): {stats.detailings ?? '—'}</li>
             <li>Android: {stats.android ?? '—'} · iOS: {stats.ios ?? '—'} · Expo: {stats.expo ?? '—'}</li>
             <li>FCM: {fcmOk ? 'настроен' : 'не настроен'} · Expo Push: {expoOk ? 'включён' : 'выключен'}</li>
+            <li>Последняя регистрация устройства: {stats.last_registered_at || 'нет устройств'}</li>
+            {lastResult?.at ? (
+              <li>
+                Последняя отправка: {lastResult.at} · отправлено {lastResult.sent ?? 0} · ошибок {lastResult.failed ?? 0} ·
+                внутри сервиса {lastResult.internal_created ?? 0}
+              </li>
+            ) : null}
           </ul>
         ) : null}
 
@@ -740,6 +753,7 @@ function PanelPush() {
                   if (res?.sent != null) {
                     setSendOk(
                       `Отправлено: ${res.sent}, ошибок: ${res.failed ?? 0}` +
+                        (res.internal_created != null ? `, внутренних уведомлений: ${res.internal_created}` : '') +
                         (res.message ? `. ${res.message}` : ''),
                     )
                   } else {
@@ -756,6 +770,80 @@ function PanelPush() {
             }
           >
             {sendBusy ? 'Отправка…' : 'Отправить push'}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Тестовая отправка
+        </h2>
+        <p className="muted small" style={{ marginTop: 0, lineHeight: 1.55 }}>
+          Создаёт внутреннее уведомление для конкретного аккаунта и пробует отправить системный push, если у аккаунта есть
+          зарегистрированное устройство.
+        </p>
+        <div className="formGrid">
+          <Field label="Тип аккаунта">
+            <select className="input" value={testAudience} onChange={(e) => setTestAudience(e.target.value)}>
+              <option value="owner">Владелец</option>
+              <option value="detailing">Партнёр</option>
+            </select>
+          </Field>
+          <Field label="Email аккаунта">
+            <Input
+              className="input"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="user@example.com"
+            />
+          </Field>
+        </div>
+        {testErr ? (
+          <p className="adminSupportErr small" role="alert" style={{ marginTop: 12 }}>
+            {testErr}
+          </p>
+        ) : null}
+        {testOk ? (
+          <p className="muted small" style={{ marginTop: 12 }}>
+            {testOk}
+          </p>
+        ) : null}
+        <div style={{ marginTop: 14 }}>
+          <Button
+            variant="outline"
+            disabled={testBusy || !canSendBroadcast || !String(testEmail).trim() || !String(title).trim() || !String(body).trim()}
+            onClick={() =>
+              void (async () => {
+                setTestErr('')
+                setTestOk('')
+                setTestBusy(true)
+                try {
+                  const res = await getApi().adminPushTest(getAdminApiToken(), {
+                    audience: testAudience,
+                    email: String(testEmail).trim(),
+                    title: String(title).trim(),
+                    body: String(body).trim(),
+                  })
+                  if (res && res.ok === false) {
+                    setTestErr(String(res.message || 'Тестовая отправка не выполнена.'))
+                    return
+                  }
+                  setTestOk(
+                    `Тест выполнен: push ${res?.sent ?? 0}, ошибок ${res?.failed ?? 0}, внутренних уведомлений ${
+                      res?.internal_created ?? 0
+                    }${res?.message ? `. ${res.message}` : ''}`,
+                  )
+                  await loadStats()
+                } catch (e) {
+                  setTestOk('')
+                  setTestErr(formatHttpErrorMessage(e))
+                } finally {
+                  setTestBusy(false)
+                }
+              })()
+            }
+          >
+            {testBusy ? 'Проверка…' : 'Отправить тест'}
           </Button>
         </div>
       </Card>

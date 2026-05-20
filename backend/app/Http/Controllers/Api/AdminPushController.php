@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\DevicePushToken;
+use App\Models\Detailing;
+use App\Models\Owner;
 use App\Services\FcmV1Client;
+use App\Services\InternalNotificationService;
 use App\Services\PushSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,7 +16,8 @@ class AdminPushController extends Controller
 {
     public function __construct(
         private readonly FcmV1Client $fcm,
-        private readonly PushSettings $pushSettings
+        private readonly PushSettings $pushSettings,
+        private readonly InternalNotificationService $notifications,
     ) {}
 
     public function stats()
@@ -27,9 +31,11 @@ class AdminPushController extends Controller
             'android' => DevicePushToken::query()->where('platform', 'android')->count(),
             'ios' => DevicePushToken::query()->where('platform', 'ios')->count(),
             'expo' => DevicePushToken::query()->where('platform', 'expo')->count(),
+            'last_registered_at' => DevicePushToken::query()->max('updated_at'),
             'fcm_configured' => $this->fcm->isConfigured(),
             'expo_configured' => $this->fcm->isExpoConfigured(),
             'settings' => $settings,
+            'last_result' => $this->pushSettings->lastResult(),
         ]);
     }
 
@@ -108,22 +114,125 @@ class AdminPushController extends Controller
         }
 
         $tokens = $q->pluck('token')->filter()->unique()->values()->all();
+        $internal = $this->notifications->broadcast($data['audience'], $data['title'], $data['body'], 'admin_broadcast');
 
         if ($tokens === []) {
+            $result = [
+                'type' => 'broadcast',
+                'audience' => $data['audience'],
+                'sent' => 0,
+                'failed' => 0,
+                'internal_created' => $internal['created'],
+                'errors' => [],
+                'message' => 'Нет зарегистрированных устройств.',
+            ];
+            $this->pushSettings->rememberResult($result);
+
             return response()->json([
                 'ok' => true,
                 'sent' => 0,
                 'failed' => 0,
+                'internal_created' => $internal['created'],
                 'message' => 'Нет зарегистрированных устройств.',
             ]);
         }
 
         $result = $this->fcm->sendToTokens($tokens, $data['title'], $data['body']);
+        $payload = [
+            'type' => 'broadcast',
+            'audience' => $data['audience'],
+            'sent' => $result['sent'],
+            'failed' => $result['failed'],
+            'internal_created' => $internal['created'],
+            'errors' => $result['errors'],
+        ];
+        $this->pushSettings->rememberResult($payload);
 
         return response()->json([
             'ok' => true,
             'sent' => $result['sent'],
             'failed' => $result['failed'],
+            'internal_created' => $internal['created'],
+            'errors' => $result['errors'],
+        ]);
+    }
+
+    public function sendTest(Request $request)
+    {
+        $data = $request->validate([
+            'audience' => ['required', 'string', Rule::in(['owner', 'detailing'])],
+            'email' => ['required', 'email', 'max:255'],
+            'title' => ['required', 'string', 'max:120'],
+            'body' => ['required', 'string', 'max:2000'],
+        ]);
+
+        if (! $this->pushSettings->isEnabledForAudience($data['audience'] === 'owner' ? 'owners' : 'detailings')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Для выбранной аудитории push-уведомления выключены в настройках.',
+            ], 409);
+        }
+
+        $owner = null;
+        $detailing = null;
+        if ($data['audience'] === 'owner') {
+            $owner = Owner::query()->where('email', $data['email'])->first();
+        } else {
+            $detailing = Detailing::query()->where('email', $data['email'])->first();
+        }
+
+        if (! $owner && ! $detailing) {
+            return response()->json(['ok' => false, 'message' => 'Аккаунт с такой почтой не найден.'], 404);
+        }
+
+        $tokenQuery = DevicePushToken::query()->select('token');
+        if ($owner) {
+            $tokenQuery->where('owner_id', $owner->id);
+            $this->notifications->createForOwner($owner, $data['title'], $data['body'], 'admin_test', [], true);
+        } else {
+            $tokenQuery->where('detailing_id', $detailing->id);
+            $this->notifications->createForDetailing($detailing, $data['title'], $data['body'], 'admin_test', [], true);
+        }
+
+        $tokens = $tokenQuery->pluck('token')->filter()->unique()->values()->all();
+        if ($tokens === []) {
+            $payload = [
+                'type' => 'test',
+                'audience' => $data['audience'],
+                'email' => $data['email'],
+                'sent' => 0,
+                'failed' => 0,
+                'internal_created' => 1,
+                'errors' => [],
+                'message' => 'У аккаунта нет зарегистрированных устройств.',
+            ];
+            $this->pushSettings->rememberResult($payload);
+
+            return response()->json([
+                'ok' => true,
+                'sent' => 0,
+                'failed' => 0,
+                'internal_created' => 1,
+                'message' => 'Внутреннее уведомление создано, но устройства с push-токеном нет.',
+            ]);
+        }
+
+        $result = $this->fcm->sendToTokens($tokens, $data['title'], $data['body']);
+        $this->pushSettings->rememberResult([
+            'type' => 'test',
+            'audience' => $data['audience'],
+            'email' => $data['email'],
+            'sent' => $result['sent'],
+            'failed' => $result['failed'],
+            'internal_created' => 1,
+            'errors' => $result['errors'],
+        ]);
+
+        return response()->json([
+            'ok' => true,
+            'sent' => $result['sent'],
+            'failed' => $result['failed'],
+            'internal_created' => 1,
             'errors' => $result['errors'],
         ]);
     }

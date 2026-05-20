@@ -57,4 +57,9 @@ class Owner extends Authenticatable
     {
         return $this->hasMany(SupportTicket::class, 'owner_id');
     }
+
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'owner_id');
+    }
 }

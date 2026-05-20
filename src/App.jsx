@@ -22,6 +22,7 @@ const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
 const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const OwnersSeoPage = lazy(() => import('./ui/pages/OwnersSeoPage.jsx'))
 const BusinessSeoPage = lazy(() => import('./ui/pages/BusinessSeoPage.jsx'))
+const NotificationsPage = lazy(() => import('./ui/pages/NotificationsPage.jsx'))
 const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
 const CarPage = lazy(() => import('./ui/pages/CarPage.jsx'))
 const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
@@ -129,6 +130,7 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/owners" element={<OwnersSeoPage />} />
             <Route path="/business" element={<BusinessSeoPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
             <Route path="/admin/379team" element={<AdminLoginPage />} />
             <Route

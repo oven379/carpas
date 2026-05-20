@@ -11,6 +11,7 @@ use App\Models\CarEvent;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
 use App\Services\FcmV1Client;
+use App\Services\InternalNotificationService;
 use App\Services\PushSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -20,7 +21,8 @@ class DetailingCrmController extends Controller
 {
     public function __construct(
         private readonly FcmV1Client $fcm,
-        private readonly PushSettings $pushSettings
+        private readonly PushSettings $pushSettings,
+        private readonly InternalNotificationService $notifications,
     ) {}
 
     public function clients(Request $request)
@@ -171,23 +173,6 @@ class DetailingCrmController extends Controller
             ], 422);
         }
 
-        $tokens = DevicePushToken::query()
-            ->where('owner_id', $car->owner_id)
-            ->pluck('token')
-            ->filter()
-            ->unique()
-            ->values()
-            ->all();
-
-        if ($tokens === []) {
-            return response()->json([
-                'ok' => true,
-                'sent' => 0,
-                'failed' => 0,
-                'message' => 'У владельца пока нет устройства с разрешёнными push-уведомлениями.',
-            ]);
-        }
-
         $carName = trim(implode(' ', array_filter([(string) $car->make, (string) $car->model]))) ?: 'Ваш автомобиль';
         $serviceName = trim((string) $d->name) ?: 'КарПас';
         $kind = (string) $data['kind'];
@@ -198,12 +183,52 @@ class DetailingCrmController extends Controller
             : $serviceName.' напоминает: пора проверить состояние '.$carName.' после визита.';
         $body = trim((string) ($data['body'] ?? '')) ?: $defaultBody;
 
+        $tokens = DevicePushToken::query()
+            ->where('owner_id', $car->owner_id)
+            ->pluck('token')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($tokens === []) {
+            $this->notifications->createForOwner(
+                (int) $car->owner_id,
+                $title,
+                $body,
+                $isReady ? 'car_ready' : 'service_reminder',
+                ['carId' => (string) $car->id, 'detailingId' => (string) $d->id],
+                false,
+                false,
+                false,
+            );
+
+            return response()->json([
+                'ok' => true,
+                'sent' => 0,
+                'failed' => 0,
+                'internal_created' => 1,
+                'message' => 'Внутреннее уведомление создано. У владельца пока нет устройства с разрешёнными push-уведомлениями.',
+            ]);
+        }
+
         $result = $this->fcm->sendToTokens($tokens, $title, $body);
+        $this->notifications->createForOwner(
+            (int) $car->owner_id,
+            $title,
+            $body,
+            $isReady ? 'car_ready' : 'service_reminder',
+            ['carId' => (string) $car->id, 'detailingId' => (string) $d->id],
+            false,
+            $result['sent'] > 0,
+            $result['failed'] > 0,
+        );
 
         return response()->json([
             'ok' => true,
             'sent' => $result['sent'],
             'failed' => $result['failed'],
+            'internal_created' => 1,
             'errors' => $result['errors'],
             'message' => $result['sent'] > 0 ? 'Push отправлен.' : 'Push не доставлен.',
         ]);

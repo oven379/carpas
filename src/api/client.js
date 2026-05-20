@@ -573,6 +573,36 @@ export function createApiClient() {
       return await req('support/unread-count', { token })
     },
 
+    async notifications() {
+      const token = oTok() || dTok()
+      if (!token) return { items: [], unread_count: 0 }
+      return await req('notifications', { token })
+    },
+
+    async notificationsUnreadCount() {
+      const token = oTok() || dTok()
+      if (!token) return { unread_count: 0 }
+      return await req('notifications/unread-count', { token })
+    },
+
+    async notificationMarkRead(id) {
+      const token = oTok() || dTok()
+      if (!token) return { ok: false }
+      return await req(`notifications/${encodeURIComponent(String(id))}/read`, { method: 'PATCH', token })
+    },
+
+    async notificationsMarkAllRead() {
+      const token = oTok() || dTok()
+      if (!token) return { ok: false }
+      return await req('notifications/read-all', { method: 'PATCH', token })
+    },
+
+    async notificationsClear() {
+      const token = oTok() || dTok()
+      if (!token) return { ok: false }
+      return await req('notifications', { method: 'DELETE', token })
+    },
+
     async supportMarkRead(ticketId) {
       const token = oTok() || dTok()
       return await req(`support/tickets/${encodeURIComponent(String(ticketId))}/read`, {
@@ -651,6 +681,14 @@ export function createApiClient() {
 
     async adminPushBroadcast(adminToken, body) {
       return await req('admin/support/push/broadcast', {
+        method: 'POST',
+        body,
+        token: adminToken,
+      })
+    },
+
+    async adminPushTest(adminToken, body) {
+      return await req('admin/support/push/test', {
         method: 'POST',
         body,
         token: adminToken,

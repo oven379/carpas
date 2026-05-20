@@ -8,6 +8,8 @@ class PushSettings
 {
     public const KEY = 'push';
 
+    public const LAST_RESULT_KEY = 'push_last_result';
+
     private const DEFAULTS = [
         'enabled' => true,
         'owners_enabled' => true,
@@ -75,6 +77,21 @@ class PushSettings
         $settings = $this->get();
 
         return $settings['enabled'] && $settings['broadcast_enabled'];
+    }
+
+    public function lastResult(): array
+    {
+        $row = AppSetting::query()->where('key', self::LAST_RESULT_KEY)->first();
+
+        return is_array($row?->value) ? $row->value : [];
+    }
+
+    public function rememberResult(array $result): void
+    {
+        AppSetting::query()->updateOrCreate(
+            ['key' => self::LAST_RESULT_KEY],
+            ['value' => array_merge($result, ['at' => now()->toIso8601String()])]
+        );
     }
 
     private function bool(mixed $value): bool

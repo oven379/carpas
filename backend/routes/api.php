@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\OwnerCarController;
 use App\Http\Controllers\Api\OwnerCarDocController;
 use App\Http\Controllers\Api\OwnerCarEventController;
 use App\Http\Controllers\Api\OwnerCarShareController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\AdminPushController;
 use App\Http\Controllers\Api\AdminRegistryController;
 use App\Http\Controllers\Api\AdminSupportController;
@@ -49,6 +50,8 @@ Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
     Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);
     Route::patch('/admin/support/push/settings', [AdminPushController::class, 'updateSettings']);
+    Route::post('/admin/support/push/test', [AdminPushController::class, 'sendTest'])
+        ->middleware('throttle:20,1');
     Route::post('/admin/support/push/broadcast', [AdminPushController::class, 'broadcast'])
         ->middleware('throttle:12,1');
 });
@@ -75,6 +78,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/support/inbox', [SupportTicketController::class, 'inbox']);
     Route::get('/support/unread-count', [SupportTicketController::class, 'unreadCount']);
     Route::patch('/support/tickets/{id}/read', [SupportTicketController::class, 'markRead']);
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::delete('/notifications', [NotificationController::class, 'clear']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
 });
 
 Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {

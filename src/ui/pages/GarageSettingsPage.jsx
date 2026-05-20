@@ -58,6 +58,12 @@ export default function GarageSettingsPage() {
     navigate('/garage', { replace: true })
   }, [navigate])
 
+  const logoutAndGoAuth = useCallback(() => {
+    clearOwnerSession()
+    refreshAllClientData()
+    navigate('/auth/owner', { replace: true })
+  }, [navigate])
+
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
   if (mode === 'owner' && loading) {
@@ -274,7 +280,7 @@ export default function GarageSettingsPage() {
           выше.
         </p>
 
-        <div className="row gap wrap historyFormActions garageSettings__actionsRow">
+        <div className="garageSettings__actionsStack">
           <button
             type="button"
             className="btn"
@@ -319,6 +325,9 @@ export default function GarageSettingsPage() {
           </button>
           <button type="button" className="btn" data-variant="ghost" onClick={cancelAndGoBack}>
             Отменить
+          </button>
+          <button type="button" className="btn garageSettings__logoutBtn" data-variant="outline" onClick={logoutAndGoAuth}>
+            Выйти
           </button>
         </div>
       </Card>

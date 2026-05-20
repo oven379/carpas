@@ -105,6 +105,7 @@ class FcmV1Client
                         'payload' => [
                             'aps' => [
                                 'sound' => 'default',
+                                'badge' => 1,
                             ],
                         ],
                     ],
@@ -159,6 +160,7 @@ class FcmV1Client
                 'title' => $title,
                 'body' => $body,
                 'sound' => 'default',
+                'badge' => 1,
             ], $chunk);
 
             try {

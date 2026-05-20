@@ -53,6 +53,11 @@ class Detailing extends Authenticatable
         return $this->hasMany(Car::class, 'detailing_id');
     }
 
+    public function notifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class, 'detailing_id');
+    }
+
     protected static function booted(): void
     {
         static::created(function (Detailing $d) {

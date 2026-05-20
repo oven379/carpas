@@ -184,8 +184,12 @@
   flex: 0 0 auto;
 }
 
-/* Владелец: аватар в шапке → настройки гаража */
-a.nav__ownerGarageLink {
+/* Владелец: аватар в шапке → центр уведомлений и профиля */
+.nav__ownerGarageLink {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
   display: inline-flex;
   width: 44px;
   height: 44px;
@@ -197,16 +201,17 @@ a.nav__ownerGarageLink {
   text-decoration: none;
   border: 1px solid color-mix(in oklab, var(--border) 88%, var(--text-h));
   background: color-mix(in oklab, var(--bg) 70%, var(--code-bg));
+  cursor: pointer;
   transition:
     border-color 0.15s ease,
     background 0.15s ease,
     box-shadow 0.15s ease;
 }
-a.nav__ownerGarageLink:hover {
+.nav__ownerGarageLink:hover {
   border-color: color-mix(in oklab, var(--accent) 55%, var(--border));
   background: color-mix(in oklab, var(--accent) 12%, var(--bg));
 }
-a.nav__ownerGarageLink:focus-visible {
+.nav__ownerGarageLink:focus-visible {
   outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
   outline-offset: 2px;
 }
@@ -1230,6 +1235,307 @@ input.input:-webkit-autofill {
 /* После шапки страницы (breadcrumbs + заголовок + подзаголовок) — больше воздуха до первой карточки */
 .container > .row.spread.gap + .card.pad {
   margin-top: 28px;
+}
+
+.nav__notifyLink {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0.5px solid var(--border-default);
+  border-radius: 14px;
+  color: var(--text-h);
+  background: color-mix(in oklab, var(--code-bg) 74%, transparent);
+  text-decoration: none;
+}
+
+.nav__notifyLink:hover {
+  border-color: color-mix(in oklab, var(--accent) 65%, var(--border));
+  color: var(--accent);
+}
+
+.nav__notifySvg {
+  display: block;
+}
+
+.nav__notifyBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #0b0b0b;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.profileCenter {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
+  background: color-mix(in oklab, var(--bg) 82%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.profileCenter__sheet {
+  width: min(760px, 100%);
+  min-height: 100%;
+  max-height: 100%;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+}
+
+.profileCenter__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profileCenter__profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.profileCenter__avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, var(--text-h));
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in oklab, var(--code-bg) 78%, transparent);
+  flex: 0 0 auto;
+}
+
+.profileCenter__avatar img,
+.profileCenter__avatarDefault {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profileCenter__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 1.15rem;
+  line-height: 1.2;
+  font-weight: 760;
+}
+
+.profileCenter__subtitle {
+  margin: 4px 0 0;
+  color: var(--text);
+  font-size: 0.92rem;
+  line-height: 1.35;
+}
+
+.profileCenter__close {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.profileCenter__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+}
+
+.profileCenter__list {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.profileCenter__state {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profileCenter__item {
+  appearance: none;
+  width: 100%;
+  margin: 0;
+  padding: 14px;
+  border: 0.5px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  color: var(--text);
+  text-align: left;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.profileCenter__item:hover {
+  border-color: color-mix(in oklab, var(--accent) 54%, var(--border));
+  background: color-mix(in oklab, var(--accent) 6%, var(--bg-surface));
+}
+
+.profileCenter__item--unread {
+  border-color: color-mix(in oklab, var(--accent) 58%, var(--border));
+  background: color-mix(in oklab, var(--accent) 8%, var(--code-bg));
+}
+
+.profileCenter__itemTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.profileCenter__itemTitle {
+  color: var(--text-h);
+  font-weight: 720;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+.profileCenter__itemBody {
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.profileCenter__itemHint {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.profileCenter__footer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding: 14px 18px max(18px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 96%, var(--code-bg));
+}
+
+.profileCenter__cancel,
+.profileCenter__logout {
+  width: 100%;
+}
+
+.profileCenter__logout {
+  color: color-mix(in oklab, #ff5b5b 78%, var(--text-h));
+  border-color: color-mix(in oklab, #ff5b5b 42%, var(--border));
+}
+
+@media (max-width: 560px) {
+  .profileCenter__sheet {
+    border-left: 0;
+    border-right: 0;
+  }
+
+  .profileCenter__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.notificationsPage {
+  padding-top: 28px;
+  padding-bottom: 64px;
+}
+
+.notificationsPage__head {
+  margin-bottom: 18px;
+}
+
+.notificationsPage__state {
+  margin-top: 16px;
+}
+
+.notificationsList {
+  display: grid;
+  gap: 12px;
+}
+
+.notificationsItem {
+  padding: 16px;
+  cursor: pointer;
+}
+
+.notificationsItem--unread {
+  border-color: color-mix(in oklab, var(--accent) 54%, var(--border));
+  background: color-mix(in oklab, var(--accent) 7%, var(--code-bg));
+}
+
+.notificationsItem__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.notificationsItem__kind {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 0.5px solid color-mix(in oklab, var(--accent) 38%, var(--border));
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notificationsItem__title {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 18px;
+  line-height: 1.25;
+}
+
+.notificationsItem__body {
+  margin: 8px 0 0;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.notificationsItem__readBtn {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .infoPage {
@@ -6424,9 +6730,30 @@ button.garageSettings__thumb:focus-visible {
   margin-top: 14px;
 }
 
+.garageSettings__actionsStack {
+  margin-top: 14px;
+  display: grid;
+  gap: 10px;
+  max-width: 360px;
+}
+
+.garageSettings__actionsStack .btn {
+  width: 100%;
+}
+
+.garageSettings__logoutBtn {
+  color: color-mix(in oklab, #ff5b5b 78%, var(--text-h));
+  border-color: color-mix(in oklab, #ff5b5b 42%, var(--border));
+}
+
 @media (max-width: 768px) {
   .garageSettings__actionsRow {
     margin-top: 10px;
+  }
+
+  .garageSettings__actionsStack {
+    margin-top: 10px;
+    max-width: none;
   }
 }
 
