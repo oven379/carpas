@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
@@ -11,6 +12,7 @@ import { getApi } from '../api/index.js'
 import { formatHttpErrorMessage } from '../api/http.js'
 import { fmtDateTime } from '../lib/format.js'
 import { isNativeApp } from '../lib/nativePlatform.js'
+import { syncNotificationBadge } from '../lib/notificationBadge.js'
 import { ComboBox } from './ComboBox.jsx'
 import {
   formatPhoneRuInput,
@@ -437,17 +439,6 @@ export function BackNav({ className = '', title = 'Назад', to, fallbackTo, 
   )
 }
 
-function postNativeBadgeCount(count) {
-  try {
-    if (typeof window === 'undefined' || !window.ReactNativeWebView?.postMessage) return
-    window.ReactNativeWebView.postMessage(
-      JSON.stringify({ type: 'carpas-notification-badge', count: Math.max(0, Number(count || 0)) }),
-    )
-  } catch {
-    // Native badge sync is optional for the web build.
-  }
-}
-
 function notificationKindLabel(kind) {
   if (kind === 'car_ready') return 'Авто'
   if (kind === 'service_reminder') return 'Напоминание'
@@ -472,7 +463,7 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
       const count = Number(next.unread_count || 0)
       setPayload(next)
       onUnreadChange(count)
-      postNativeBadgeCount(count)
+      syncNotificationBadge(count)
     } catch (e) {
       setErr(formatHttpErrorMessage(e, 'Не удалось загрузить уведомления'))
     } finally {
@@ -487,11 +478,16 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
 
   useEffect(() => {
     if (!open) return undefined
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
     const onKey = (e) => {
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+    }
   }, [onClose, open])
 
   if (!open) return null
@@ -509,7 +505,7 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
       items: typeof itemsPatch === 'function' ? itemsPatch(Array.isArray(p.items) ? p.items : []) : p.items,
     }))
     onUnreadChange(nextCount)
-    postNativeBadgeCount(nextCount)
+    syncNotificationBadge(nextCount)
   }
 
   const markRead = async (n) => {
@@ -539,7 +535,7 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
     await getApi().notificationsClear()
     setPayload({ items: [], unread_count: 0 })
     onUnreadChange(0)
-    postNativeBadgeCount(0)
+    syncNotificationBadge(0)
   }
 
   const goSettings = () => {
@@ -552,7 +548,7 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
     onLogout()
   }
 
-  return (
+  const content = (
     <div className="profileCenter" role="dialog" aria-modal="true" aria-label="Центр уведомлений и профиля">
       <div className="profileCenter__sheet">
         <div className="profileCenter__head">
@@ -630,6 +626,8 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
       </div>
     </div>
   )
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : content
 }
 
 export function TopNav() {
@@ -681,7 +679,7 @@ export function TopNav() {
         if (!cancelled) {
           const count = Number(res?.unread_count || 0)
           setNotificationsUnread(count)
-          postNativeBadgeCount(count)
+          syncNotificationBadge(count)
         }
       } catch {
         if (!cancelled) setNotificationsUnread(0)
@@ -761,7 +759,9 @@ export function TopNav() {
                             className="nav__ownerGarageDefaultImg"
                           />
                         )}
-                        {notificationsUnread ? <span className="nav__notifyBadge">{notificationsUnread}</span> : null}
+                        {notificationsUnread ? (
+                          <span className="nav__notifyBadge nav__notifyBadge--avatar">{notificationsUnread}</span>
+                        ) : null}
                       </button>
                     ) : null}
                   </>

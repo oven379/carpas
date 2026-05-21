@@ -5,6 +5,7 @@ import { getApi } from '../../api/index.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { fmtDateTime } from '../../lib/format.js'
 import { isNativeApp } from '../../lib/nativePlatform.js'
+import { syncNotificationBadge } from '../../lib/notificationBadge.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { BackNav, Button, Card, PageLoadSpinner } from '../components.jsx'
 
@@ -14,17 +15,6 @@ function kindLabel(kind) {
   if (kind === 'admin_broadcast') return 'Сервис'
   if (kind === 'admin_test') return 'Тест'
   return 'Уведомление'
-}
-
-function postNativeBadgeCount(count) {
-  try {
-    if (typeof window === 'undefined' || !window.ReactNativeWebView?.postMessage) return
-    window.ReactNativeWebView.postMessage(
-      JSON.stringify({ type: 'carpas-notification-badge', count: Math.max(0, Number(count || 0)) }),
-    )
-  } catch {
-    // Native badge sync is optional.
-  }
 }
 
 export default function NotificationsPage() {
@@ -44,7 +34,7 @@ export default function NotificationsPage() {
         if (!cancelled) {
           const next = data && typeof data === 'object' ? data : { items: [], unread_count: 0 }
           setPayload(next)
-          postNativeBadgeCount(Number(next.unread_count || 0))
+          syncNotificationBadge(Number(next.unread_count || 0))
         }
       } catch (e) {
         if (!cancelled) setErr(formatHttpErrorMessage(e, 'Не удалось загрузить уведомления'))
@@ -64,7 +54,7 @@ export default function NotificationsPage() {
 
   const markAll = async () => {
     await getApi().notificationsMarkAllRead()
-    postNativeBadgeCount(0)
+    syncNotificationBadge(0)
     setPayload((p) => ({
       ...p,
       unread_count: 0,
@@ -80,14 +70,14 @@ export default function NotificationsPage() {
         String(x.id) === String(id) ? { ...x, readAt: x.readAt || new Date().toISOString() } : x,
       ),
     }))
-    postNativeBadgeCount(Math.max(0, Number(payload.unread_count || 0) - 1))
+    syncNotificationBadge(Math.max(0, Number(payload.unread_count || 0) - 1))
     await getApi().notificationMarkRead(id).catch(() => {})
   }
 
   const clearAll = async () => {
     await getApi().notificationsClear()
     setPayload({ items: [], unread_count: 0 })
-    postNativeBadgeCount(0)
+    syncNotificationBadge(0)
   }
 
   const openNotification = async (n) => {

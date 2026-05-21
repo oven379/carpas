@@ -220,6 +220,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  border-radius: 11px;
 }
 .nav__ownerGarageLetter {
   font-size: 1.1rem;
@@ -233,6 +234,7 @@
   height: 100%;
   opacity: 0.95;
   font-size: 1.05rem;
+  border-radius: 11px;
 }
 
 /* Единый вид: ссылки и кнопки в шапке (без «серой» нативной кнопки) */
@@ -1277,29 +1279,44 @@ input.input:-webkit-autofill {
   box-shadow: 0 0 0 2px var(--bg);
 }
 
+.nav__notifyBadge--avatar {
+  top: -7px;
+  right: -7px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  line-height: 20px;
+  font-size: 11px;
+  background: #58e089;
+  color: #0b0b0b;
+  box-shadow: 0 0 0 2px var(--bg), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
 .profileCenter {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 10000;
   display: flex;
   justify-content: center;
   align-items: stretch;
   padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
     env(safe-area-inset-left, 0px);
-  background: color-mix(in oklab, var(--bg) 82%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--bg);
+  isolation: isolate;
 }
 
 .profileCenter__sheet {
   width: min(760px, 100%);
-  min-height: 100%;
-  max-height: 100%;
+  min-height: 100svh;
+  min-height: 100dvh;
+  max-height: 100svh;
+  max-height: 100dvh;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   background: var(--bg);
-  border-left: 1px solid var(--border);
-  border-right: 1px solid var(--border);
-  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.48);
+  border-left: 0;
+  border-right: 0;
+  box-shadow: none;
 }
 
 .profileCenter__head {
@@ -1323,7 +1340,7 @@ input.input:-webkit-autofill {
   height: 50px;
   border-radius: 14px;
   border: 1px solid color-mix(in oklab, var(--border) 82%, var(--text-h));
-  overflow: hidden;
+  overflow: visible;
   display: inline-flex;
   align-items: center;
   justify-content: center;
