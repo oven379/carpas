@@ -6,11 +6,11 @@ export function getPathAfterCarRemovedFromScope(carsList, { mode, owner, detaili
   const list = Array.isArray(carsList) ? carsList : []
   if (mode === 'owner' && owner?.email) {
     if (list.length >= 1) return `/car/${list[0].id}`
-    return '/cars'
+    return '/garage'
   }
   if (mode === 'detailing' && detailingId) {
     if (list.length >= 1) return `/car/${list[0].id}`
     return '/detailing'
   }
-  return '/cars'
+  return '/garage'
 }

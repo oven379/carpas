@@ -1,10 +1,10 @@
 /**
- * Подпись крошки «назад к списку» для владельца: /garage — профиль и улица, /cars — список машин.
+ * Подпись крошки «назад к списку» для владельца.
  */
 export function ownerGarageListCrumbLabel(listReturnPath) {
   const p = String(listReturnPath || '')
-  if (p === '/garage' || p.startsWith('/garage?')) return 'В гараж'
-  return 'Мой гараж'
+  if (p === '/garage' || p.startsWith('/garage?') || p === '/cars' || p.startsWith('/cars?')) return 'Гараж'
+  return 'Гараж'
 }
 
 /**
@@ -29,7 +29,7 @@ export function resolveCarListReturnPath(mode, fromParam) {
     return garage
   }
   if (decoded === '/garage' || decoded.startsWith('/garage?')) return decoded
-  if (decoded === '/cars' || decoded.startsWith('/cars?')) return decoded
+  if (decoded === '/cars' || decoded.startsWith('/cars?')) return '/garage'
   return garage
 }
 

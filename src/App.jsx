@@ -23,7 +23,6 @@ const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const OwnersSeoPage = lazy(() => import('./ui/pages/OwnersSeoPage.jsx'))
 const BusinessSeoPage = lazy(() => import('./ui/pages/BusinessSeoPage.jsx'))
 const NotificationsPage = lazy(() => import('./ui/pages/NotificationsPage.jsx'))
-const MarketPage = lazy(() => import('./ui/pages/MarketPage.jsx'))
 const CarPage = lazy(() => import('./ui/pages/CarPage.jsx'))
 const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
 const HistoryPage = lazy(() => import('./ui/pages/HistoryPage.jsx'))
@@ -141,14 +140,7 @@ export default function App() {
                 </AdminPanelGuard>
               }
             />
-            <Route
-              path="/cars"
-              element={
-                <RequireAuth>
-                  <MarketPage />
-                </RequireAuth>
-              }
-            />
+            <Route path="/cars" element={<Navigate to="/garage" replace />} />
             <Route
               path="/garage"
               element={
@@ -165,7 +157,7 @@ export default function App() {
                 </RequireAuth>
               }
             />
-            <Route path="/market" element={<Navigate to="/cars" replace />} />
+            <Route path="/market" element={<Navigate to="/garage" replace />} />
             <Route
               path="/create"
               element={

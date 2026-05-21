@@ -8,10 +8,10 @@ import { buildCarFromQuery, buildCarSubRoutePath } from './carNav.js'
 import { resolvedBackgroundImageUrl } from '../lib/mediaUrl.js'
 import { resolveEffectiveMileageKm } from '../lib/carMileage.js'
 
-/** Список авто владельца на `/cars` или `/garage`, с единым `from` для возврата из карточки. */
+/** Список авто владельца в гараже, с единым `from` для возврата из карточки. */
 export function OwnerGarageCarList({
   ownerEmail,
-  fromPath = '/cars',
+  fromPath = '/garage',
   cars: carsProp,
   enrichedRows: enrichedFromParent,
   layout = 'list',

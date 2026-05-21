@@ -508,7 +508,7 @@ export default function OwnerGaragePage() {
                 className={`garageDash__tab${garageMainTab === 'cars' ? ' garageDash__tab--active' : ''}`}
                 onClick={() => setGarageMainTab('cars')}
               >
-                Мой гараж ({cars.length})
+                Авто ({cars.length})
               </button>
               <button
                 type="button"

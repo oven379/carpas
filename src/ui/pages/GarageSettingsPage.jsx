@@ -108,7 +108,7 @@ export default function GarageSettingsPage() {
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <Link to="/garage">Мой гараж</Link>
+            <Link to="/garage">Гараж</Link>
             <span> / </span>
             <span>Настройки кабинета</span>
           </div>
@@ -220,7 +220,7 @@ export default function GarageSettingsPage() {
               </div>
               <ServiceHint scopeId="garage-settings-banner" variant="compact" label="Справка: баннер гаража">
                 <p className="serviceHint__panelText">
-                  Широкое фото сверху страницы «Мой гараж». То же изображение может использоваться как фон на публичной странице
+                  Широкое фото сверху страницы «Гараж». То же изображение может использоваться как фон на публичной странице
                   гаража, если она у вас включена.
                 </p>
                 <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
