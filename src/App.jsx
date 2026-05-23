@@ -15,7 +15,7 @@ import CookieBanner from './ui/CookieBanner.jsx'
 
 /** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return (pathname === '/' && !isAuthed()) || pathname === '/about'
+  return (pathname === '/' && !isAuthed()) || pathname === '/about' || pathname === '/for-detailing'
 }
 
 const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
@@ -42,6 +42,7 @@ const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
 const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
 const PolicyPage = lazy(() => import('./ui/pages/PolicyPage.jsx'))
 const TermsPage = lazy(() => import('./ui/pages/TermsPage.jsx'))
+const DetOfferPage = lazy(() => import('./ui/pages/DetOfferPage.jsx'))
 
 function RouteFallback() {
   return (
@@ -230,6 +231,7 @@ export default function App() {
             <Route path="/d/:id" element={<PublicDetailingPage />} />
             <Route path="/g/:slug" element={<PublicGaragePage />} />
             <Route path="/share/:token" element={<PublicCarPage />} />
+            <Route path="/for-detailing" element={<DetOfferPage />} />
             <Route path="/policy" element={<PolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/auth" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <AuthPage />} />
