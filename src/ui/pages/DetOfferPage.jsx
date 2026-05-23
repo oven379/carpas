@@ -113,7 +113,7 @@ export default function DetOfferPage() {
               <div className="do-pricing__col">
                 <div className="do-pricing__colLabel">После запуска</div>
                 <div className="do-pricing__price">
-                  5 000 <small>₽ / мес</small>
+                  3 000 <small>₽ / мес</small>
                 </div>
                 <p className="do-pricing__note">
                   Фиксированная стоимость для участников пилота — без повышений.
