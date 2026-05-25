@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Http\Support\MediaStorage;
 use App\Models\Car;
+use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
@@ -41,11 +43,31 @@ class DemoCrmOwnersSeeder extends Seeder
             ['Химчистка', 'Озонация'],
             ['Детейлинг кузова', 'PPF'],
         ];
+        $assetRoot = base_path('store-assets');
+        if (! is_dir($assetRoot)) {
+            $assetRoot = base_path('database/seeders/demo-assets');
+        }
+        $avatarsRoot = $assetRoot.DIRECTORY_SEPARATOR.'demo-crm-avatars';
+        $carsRoot = $assetRoot.DIRECTORY_SEPARATOR.'demo-car-photos';
+        $visitPhotos = [
+            'visit-01-wash-foam.png' => 'Фото визита: мойка и активная пена',
+            'visit-02-polishing.png' => 'Фото визита: полировка кузова',
+            'visit-03-interior-cleaning.png' => 'Фото визита: химчистка салона',
+            'visit-04-wheels-tires.png' => 'Фото визита: диски и резина',
+            'visit-05-paint-inspection.png' => 'Фото визита: осмотр ЛКП',
+            'visit-06-microfiber-drying.png' => 'Фото визита: сушка кузова',
+            'visit-07-interior-aftercare.png' => 'Фото визита: уход за салоном',
+            'visit-08-final-delivery.png' => 'Фото визита: выдача автомобиля',
+        ];
 
         $demoCarNo = 1;
         foreach ($demoOwners as $ownerIndex => $demoOwner) {
             $n = $ownerIndex + 1;
             $phone = '+7999000'.str_pad((string) $n, 4, '0', STR_PAD_LEFT);
+            $avatar = $this->storeDemoAsset(
+                $avatarsRoot.DIRECTORY_SEPARATOR.sprintf('owner%02d-avatar.png', $n),
+                sprintf('demo-crm/owners/owner%02d/avatar.png', $n),
+            );
             $crmOwner = Owner::query()->updateOrCreate(
                 ['email' => $demoOwner['email']],
                 [
@@ -60,12 +82,24 @@ class DemoCrmOwnersSeeder extends Seeder
                     'show_phone_public' => false,
                     'is_premium' => $n <= 3,
                     'garage_private' => true,
+                    'garage_avatar' => $avatar,
                 ],
             );
 
-            foreach ($demoOwner['cars'] as $carData) {
+            foreach ($demoOwner['cars'] as $carIndex => $carData) {
                 [$make, $model, $year, $mileage, $plate, $region] = $carData;
                 $vin = 'DEMOCRM'.str_pad((string) $demoCarNo, 10, '0', STR_PAD_LEFT);
+                $carFolder = sprintf(
+                    'owner%02d-car%02d-%s',
+                    $n,
+                    $carIndex + 1,
+                    $this->demoSlug($make.'-'.$model.'-'.$year),
+                );
+                $carAssetRoot = $carsRoot.DIRECTORY_SEPARATOR.$carFolder;
+                $hero = $this->storeDemoAsset(
+                    $carAssetRoot.DIRECTORY_SEPARATOR.'garage.png',
+                    'demo-crm/cars/'.$vin.'/garage.png',
+                );
                 $crmCar = Car::query()->updateOrCreate(
                     ['detailing_id' => $studio->id, 'vin' => $vin],
                     [
@@ -79,6 +113,7 @@ class DemoCrmOwnersSeeder extends Seeder
                         'price_rub' => 0,
                         'color' => ['Черный', 'Белый', 'Серый', 'Синий'][$demoCarNo % 4],
                         'city' => 'Москва',
+                        'hero' => $hero,
                         'segment' => 'mass',
                         'client_name' => $demoOwner['name'],
                         'client_phone' => $phone,
@@ -89,7 +124,7 @@ class DemoCrmOwnersSeeder extends Seeder
                 $daysAgo = $demoCarNo % 6 === 0 ? 0 : (3 + ($demoCarNo * 4) % 42);
                 $visitAt = Carbon::now($tz)->subDays($daysAgo)->setTime(10 + ($demoCarNo % 8), 0, 0);
                 $services = $visitServices[$demoCarNo % count($visitServices)];
-                CarEvent::query()->firstOrCreate(
+                $visit = CarEvent::query()->firstOrCreate(
                     [
                         'car_id' => $crmCar->id,
                         'title' => 'Демо визит CRM #'.$demoCarNo,
@@ -109,6 +144,33 @@ class DemoCrmOwnersSeeder extends Seeder
                     ],
                 );
 
+                foreach ($visitPhotos as $fileName => $title) {
+                    $stored = $this->storeDemoAsset(
+                        $carAssetRoot.DIRECTORY_SEPARATOR.$fileName,
+                        'demo-crm/cars/'.$vin.'/'.$fileName,
+                    );
+                    if ($stored === null) {
+                        continue;
+                    }
+
+                    CarDoc::query()->updateOrCreate(
+                        [
+                            'car_id' => $crmCar->id,
+                            'event_id' => $visit->id,
+                            'title' => $title,
+                        ],
+                        [
+                            'detailing_id' => $studio->id,
+                            'owner_id' => $crmOwner->id,
+                            'source' => 'service',
+                            'kind' => 'photo',
+                            'url' => $stored,
+                            'created_at' => $visitAt,
+                            'updated_at' => $visitAt,
+                        ],
+                    );
+                }
+
                 $demoCarNo++;
             }
         }
@@ -116,5 +178,22 @@ class DemoCrmOwnersSeeder extends Seeder
         if ($this->command) {
             $this->command->info('CRM-демо готово: owner1@demo.car … owner15@demo.car, пароль 1111.');
         }
+    }
+
+    private function storeDemoAsset(string $sourcePath, string $targetPath): ?string
+    {
+        if (! is_file($sourcePath)) {
+            return null;
+        }
+
+        return MediaStorage::storeBinaryAt($targetPath, (string) file_get_contents($sourcePath));
+    }
+
+    private function demoSlug(string $value): string
+    {
+        $slug = strtolower(trim($value));
+        $slug = preg_replace('/[^a-z0-9]+/', '-', $slug) ?: '';
+
+        return trim($slug, '-');
     }
 }
