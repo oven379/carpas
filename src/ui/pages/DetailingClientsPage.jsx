@@ -19,9 +19,11 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 
 const FILTERS = [
   { id: 'all', label: 'Все' },
-  { id: 'new', label: 'Новые' },
-  { id: 'visited', label: 'С визитами' },
+  { id: 'today', label: 'Сегодня' },
+  { id: 'stale', label: 'Давно не были' },
 ]
+
+const STALE_VISIT_DAYS = 15
 
 function carTitle(row) {
   const c = row?.car || {}
@@ -68,9 +70,40 @@ function matchesQuery(row, query) {
   return false
 }
 
+function lastVisitTime(row) {
+  const t = Date.parse(row?.lastVisit?.at || '')
+  return Number.isFinite(t) ? t : 0
+}
+
+function rowUpdatedTime(row) {
+  const t = Date.parse(row?.updatedAt || '')
+  return Number.isFinite(t) ? t : 0
+}
+
+function startOfLocalDay(d = new Date()) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+}
+
+function isLastVisitToday(row) {
+  const t = lastVisitTime(row)
+  if (!t) return false
+  const dayStart = startOfLocalDay()
+  return t >= dayStart && t < dayStart + 24 * 60 * 60 * 1000
+}
+
+function isLastVisitStale(row) {
+  const t = lastVisitTime(row)
+  if (!t) return false
+  return t < startOfLocalDay() - STALE_VISIT_DAYS * 24 * 60 * 60 * 1000
+}
+
+function sortByLastVisitDesc(a, b) {
+  return lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
+}
+
 function matchesFilter(row, filter) {
-  if (filter === 'new') return row?.flags?.isNew === true
-  if (filter === 'visited') return row?.flags?.hasVisits === true
+  if (filter === 'today') return isLastVisitToday(row)
+  if (filter === 'stale') return isLastVisitStale(row)
   return true
 }
 
@@ -153,7 +186,10 @@ export default function DetailingClientsPage() {
   }, [r, r._version, detailingId, mode])
 
   const rows = useMemo(() => {
-    return (data.items || []).filter((row) => matchesFilter(row, filter)).filter((row) => matchesQuery(row, query))
+    return (data.items || [])
+      .filter((row) => matchesFilter(row, filter))
+      .filter((row) => matchesQuery(row, query))
+      .sort(sortByLastVisitDesc)
   }, [data.items, filter, query])
   const selected = useMemo(() => {
     return rows.find((row) => String(row.id) === String(selectedId)) || rows[0] || null
@@ -231,8 +267,8 @@ export default function DetailingClientsPage() {
             </h1>
             <ServiceHint scopeId="det-crm-head" variant="compact" label="Справка: CRM">
               <p className="serviceHint__panelText">
-                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Напоминание пока рассчитывается автоматически:
-                30 дней после последнего сервисного визита.
+                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Давно не были» показывает клиентов,
+                которые приезжали больше {STALE_VISIT_DAYS} дней назад.
               </p>
             </ServiceHint>
           </div>
