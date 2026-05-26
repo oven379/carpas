@@ -123,7 +123,20 @@ class DetailingCrmController extends Controller
                 ],
                 'updatedAt' => optional($car->updated_at)->toISOString(),
             ];
-        })->values();
+        })
+            ->sort(function (array $a, array $b) {
+                $aVisit = ! empty($a['lastVisit']['at']);
+                $bVisit = ! empty($b['lastVisit']['at']);
+                if ($aVisit !== $bVisit) {
+                    return $aVisit ? -1 : 1;
+                }
+
+                $aTime = (string) ($a['lastVisit']['at'] ?? $a['updatedAt'] ?? '');
+                $bTime = (string) ($b['lastVisit']['at'] ?? $b['updatedAt'] ?? '');
+
+                return strcmp($bTime, $aTime);
+            })
+            ->values();
 
         return response()->json([
             'items' => $rows,

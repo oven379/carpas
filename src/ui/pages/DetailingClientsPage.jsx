@@ -194,7 +194,6 @@ export default function DetailingClientsPage() {
   const selected = useMemo(() => {
     return rows.find((row) => String(row.id) === String(selectedId)) || rows[0] || null
   }, [rows, selectedId])
-
   function setFilter(next) {
     const n = new URLSearchParams(sp)
     if (next === 'all') n.delete('filter')
@@ -344,8 +343,8 @@ export default function DetailingClientsPage() {
                   <span className="detCrmRow__visit">
                     {row.lastVisit ? (
                       <>
-                        <span className="detCrmRow__visitDate">{fmtDate(row.lastVisit.at) || 'Дата не указана'}</span>
                         <span className="detCrmRow__visitTitle">{row.lastVisit.title || 'Визит'}</span>
+                        <span className="detCrmRow__visitDate">{fmtDate(row.lastVisit.at) || 'Дата не указана'}</span>
                         <small>{row.lastVisit.mileageKm ? fmtKm(row.lastVisit.mileageKm) : 'Пробег не указан'}</small>
                       </>
                     ) : (
@@ -364,17 +363,24 @@ export default function DetailingClientsPage() {
           </div>
         </Card>
 
-        <aside className="detCrm__side">
+        <aside className={`detCrm__side${selected ? '' : ' detCrm__side--empty'}`}>
           {selected ? (
             <Card className="card pad detCrmProfile">
               <div className="detCrmProfile__top">
                 <div className="detCrmProfile__avatar"><ClientAvatar row={selected} /></div>
-                <div>
+                <div className="detCrmProfile__identity">
                   <h2 className="h2 detCrmProfile__title">{clientName(selected)}</h2>
                   <p className="muted small" style={{ margin: '4px 0 0' }}>
                     {selectedClient.isRegisteredOwner ? 'Владелец с аккаунтом КарПас' : 'Клиент из карточки авто'}
                   </p>
                 </div>
+                <button
+                  type="button"
+                  className="detCrmProfile__quickVisit"
+                  onClick={() => nav(`/car/${selected.id}/history?new=1&from=${encodeURIComponent(from)}`)}
+                >
+                  Визит
+                </button>
               </div>
 
               <div className="detCrmProfile__car">
@@ -391,14 +397,6 @@ export default function DetailingClientsPage() {
               </div>
 
               <div className="detCrmProfile__actions">
-                <button
-                  type="button"
-                  className="btn"
-                  data-variant="primary"
-                  onClick={() => nav(`/car/${selected.id}/history?new=1&from=${encodeURIComponent(from)}`)}
-                >
-                  Добавить визит
-                </button>
                 <button
                   type="button"
                   className="btn"

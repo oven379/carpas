@@ -427,6 +427,14 @@ export default function HistoryPage() {
     return fin[0] || null
   }, [events, mode])
 
+  const activeVisitDraft = useMemo(() => {
+    const draftSource = mode === 'detailing' ? 'service' : mode === 'owner' ? 'owner' : ''
+    if (!draftSource) return null
+    const drafts = events.filter((e) => e.source === draftSource && e.isDraft)
+    drafts.sort((a, b) => String(b.updatedAt || b.at || '').localeCompare(String(a.updatedAt || a.at || '')))
+    return drafts[0] || null
+  }, [events, mode])
+
   const visibleEvents = useMemo(() => {
     const byDateDesc = (a, b) => String(b.at || '').localeCompare(String(a.at || ''))
     const withDraftsFirst = (list) =>
@@ -445,7 +453,17 @@ export default function HistoryPage() {
   }, [mode, tab, ownerEvents, serviceEvents, events])
 
   useEffect(() => {
-    if (mode !== 'detailing' || !wantNew || editParam || !dataReady || !id) return
+    if ((mode !== 'detailing' && mode !== 'owner') || !wantNew || editParam || !dataReady || !id) return
+    if (activeVisitDraft?.id) {
+      setSp((prev) => {
+        const next = new URLSearchParams(prev)
+        next.set('new', '1')
+        next.set('edit', String(activeVisitDraft.id))
+        if (mode === 'owner') next.set('t', 'owner')
+        return next
+      }, { replace: true })
+      return
+    }
     let cancelled = false
     ;(async () => {
       try {
@@ -477,7 +495,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true
     }
-  }, [mode, wantNew, editParam, dataReady, id, minMileageForNewVisit, r, scope, setSp, setEvents])
+  }, [mode, wantNew, editParam, dataReady, id, activeVisitDraft, minMileageForNewVisit, r, scope, setSp, setEvents])
 
   const [draft, setDraft] = useState({
     title: '',
@@ -548,6 +566,7 @@ export default function HistoryPage() {
     if (!e) return false
     if (mode !== 'owner') return false
     if (e.source !== 'owner') return false
+    if (e.isDraft) return true
     return isWithinEditWindow(e)
   }
 
@@ -670,13 +689,19 @@ export default function HistoryPage() {
   const isEditing = Boolean(editingId)
   const formLocked = isEditing && !editAllowed
   const readonlyFormNotice = editingId && !editAllowed && editingEvent ? visitReadonlyFormNotice(mode, editingEvent) : ''
-  const detailingAwaitDraft = mode === 'detailing' && wantNew && !editParam
+  const awaitingVisitDraft = (mode === 'detailing' || mode === 'owner') && wantNew && !editParam
+  const detailingAwaitDraft = mode === 'detailing' && awaitingVisitDraft
+  const ownerAwaitDraft = mode === 'owner' && awaitingVisitDraft
 
   /** При создании визита — только форма: без списка истории и без плашек-подсказок. */
   const detailingVisitComposeLayout =
     mode === 'detailing' &&
     showNew &&
     (detailingAwaitDraft || Boolean(editingEvent?.isDraft))
+  const ownerVisitDraftComposeLayout =
+    mode === 'owner' &&
+    showNew &&
+    (ownerAwaitDraft || Boolean(editingEvent?.isDraft))
   useEffect(() => {
     if (mode === 'detailing') {
       setOwnerVisitComposeUi(false)
@@ -689,19 +714,19 @@ export default function HistoryPage() {
     }
     if (!editParam) setOwnerVisitComposeUi(true)
   }, [mode, wantNew, editParam])
-  const visitComposeOnlyUi = detailingVisitComposeLayout || ownerVisitComposeUi
+  const visitComposeOnlyUi = detailingVisitComposeLayout || ownerVisitComposeUi || ownerVisitDraftComposeLayout
 
   /* Не зависеть от edit=: после выбора фото URL получает edit=<id> — повторная прокрутка к заголовку срывает блок загрузки. */
   useLayoutEffect(() => {
     if (!showNew) return
     const target =
-      !detailingAwaitDraft && formTopRef.current ? formTopRef.current : formRef.current
+      !awaitingVisitDraft && formTopRef.current ? formTopRef.current : formRef.current
     if (!target) return
     const run = () => target.scrollIntoView({ behavior: 'auto', block: 'start' })
     run()
     const idRaf = window.requestAnimationFrame(() => window.requestAnimationFrame(run))
     return () => window.cancelAnimationFrame(idRaf)
-  }, [showNew, detailingAwaitDraft, wantNew, id])
+  }, [showNew, awaitingVisitDraft, wantNew, id])
 
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
@@ -785,12 +810,8 @@ export default function HistoryPage() {
     setSp(next, { replace: true })
   }
 
-  const saveDetailingDraftAndGoBack = async () => {
+  const saveVisitDraftAndGoBack = async () => {
     if (!editingId) return
-    if (isIncompleteDetailingDraft(draft, minMileageKmForVisitForm)) {
-      const ok = confirm('Карточка заполнена не полностью. Сохранить как черновик?')
-      if (!ok) return
-    }
     try {
       await r.updateEvent(id, editingId, { ...buildVisitPayload(), isDraft: true })
       invalidateRepo()
@@ -802,7 +823,7 @@ export default function HistoryPage() {
   }
 
   const ingestPickedVisitPhotos = async (picked) => {
-    if (detailingAwaitDraft || formLocked || visitPhotoBusy || !picked.length) return
+    if (awaitingVisitDraft || formLocked || visitPhotoBusy || !picked.length) return
     let room = VISIT_MAX_PHOTOS
     if (editingId && editAllowed) {
       room = Math.max(0, VISIT_MAX_PHOTOS - docsForEvent(editingId).length)
@@ -1335,7 +1356,7 @@ export default function HistoryPage() {
               <div className="historyFormDivider topBorder" />
             </>
           ) : null}
-          {detailingAwaitDraft ? (
+          {awaitingVisitDraft ? (
             <div className="muted" style={{ padding: '10px 0' }}>
               Создаём черновик визита…
             </div>
@@ -1442,7 +1463,7 @@ export default function HistoryPage() {
             ) : null}
             {mode === 'owner' &&
             showNew &&
-            !detailingAwaitDraft &&
+            !awaitingVisitDraft &&
             (!editingId || editingEvent?.source === 'owner') ? (
               <div className="historyCareTips historyCareTipsForCarCard topBorder">
                 <p className="muted small historyCareTipsForCarCard__intro">
@@ -1538,14 +1559,14 @@ export default function HistoryPage() {
                         e.target.value = ''
                         void ingestPickedVisitPhotos(picked)
                       }}
-                      disabled={visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                      disabled={visitPhotosAddBlocked || visitPhotoBusy || awaitingVisitDraft}
                     />
                     <button
                       type="button"
                       className="btn filePick__btn"
                       data-variant="outline"
                       onClick={() => visitPhotosInputRef.current?.click?.()}
-                      disabled={visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                      disabled={visitPhotosAddBlocked || visitPhotoBusy || awaitingVisitDraft}
                     >
                       Добавить фото
                     </button>
@@ -1591,14 +1612,14 @@ export default function HistoryPage() {
                       e.target.value = ''
                       void ingestPickedVisitPhotos(picked)
                     }}
-                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || awaitingVisitDraft}
                   />
                   <button
                     type="button"
                     className="btn filePick__btn"
                     data-variant="outline"
                     onClick={() => visitPhotosInputRef.current?.click?.()}
-                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || detailingAwaitDraft}
+                    disabled={formLocked || visitPhotosAddBlocked || visitPhotoBusy || awaitingVisitDraft}
                   >
                     Добавить фото
                   </button>
@@ -1692,7 +1713,7 @@ export default function HistoryPage() {
             <Button
               className="btn"
               variant="primary"
-              disabled={formLocked || detailingAwaitDraft}
+              disabled={formLocked || awaitingVisitDraft}
               onClick={async () => {
                 try {
                   if (editingId && !editAllowed) {
@@ -1712,7 +1733,7 @@ export default function HistoryPage() {
                   }
                   const payloadBase = buildVisitPayload()
                   const payload =
-                    mode === 'detailing' && editingEvent?.isDraft
+                    (mode === 'detailing' || mode === 'owner') && editingEvent?.isDraft
                       ? { ...payloadBase, isDraft: false }
                       : payloadBase
 
@@ -1796,8 +1817,8 @@ export default function HistoryPage() {
                 Удалить
               </Button>
             ) : null}
-            {mode === 'detailing' && editingEvent?.isDraft && !formLocked ? (
-              <Button type="button" className="btn" variant="outline" onClick={saveDetailingDraftAndGoBack}>
+            {(mode === 'detailing' || mode === 'owner') && editingEvent?.isDraft && !formLocked ? (
+              <Button type="button" className="btn" variant="outline" onClick={saveVisitDraftAndGoBack}>
                 Назад
               </Button>
             ) : null}
@@ -1842,7 +1863,7 @@ export default function HistoryPage() {
                 Сохранить и назад
               </Button>
             ) : null}
-            {!(mode === 'detailing' && editingEvent?.isDraft && !formLocked) ? (
+            {!((mode === 'detailing' || mode === 'owner') && editingEvent?.isDraft && !formLocked) ? (
               <button
                 className="btn"
                 data-variant="ghost"

@@ -54,7 +54,15 @@ class OwnerCarEventController extends Controller
         $events = CarEvent::query()
             ->with('detailing')
             ->where('car_id', $car->id)
-            ->where('is_draft', false)
+            ->where(function ($q) use ($owner) {
+                $q->where('is_draft', false)
+                    ->orWhere(function ($draft) use ($owner) {
+                        $draft->where('source', 'owner')
+                            ->where('owner_id', $owner->id)
+                            ->where('is_draft', true);
+                    });
+            })
+            ->orderByDesc('is_draft')
             ->orderByDesc('at')
             ->get();
 
@@ -76,17 +84,32 @@ class OwnerCarEventController extends Controller
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
             'careTips' => ['nullable', 'array'],
+            'isDraft' => ['nullable'],
         ]);
 
         $care = CareTips::normalize($data['careTips'] ?? null);
         self::assertOwnerVisitCareTipsNonSpaceLimit($care);
 
+        $isDraft = $request->boolean('isDraft');
         $incomingKm = isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0;
         $min = CarMileageSync::minAllowedMileageForVisit($car, null);
-        if ($incomingKm < $min) {
+        if (! $isDraft && $incomingKm < $min) {
             throw ValidationException::withMessages([
                 'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
             ]);
+        }
+
+        if ($isDraft) {
+            $existing = CarEvent::query()
+                ->where('owner_id', $owner->id)
+                ->where('car_id', $car->id)
+                ->where('source', 'owner')
+                ->where('is_draft', true)
+                ->orderByDesc('updated_at')
+                ->first();
+            if ($existing) {
+                return response()->json(ApiResources::event($existing));
+            }
         }
 
         $evt = CarEvent::query()->create([
@@ -94,6 +117,7 @@ class OwnerCarEventController extends Controller
             'car_id' => $car->id,
             'owner_id' => $owner->id,
             'source' => 'owner',
+            'is_draft' => $isDraft,
             'at' => $data['at'] ?? now()->toISOString(),
             'type' => $data['type'] ?? 'visit',
             'title' => trim((string) ($data['title'] ?? '')),
@@ -104,7 +128,9 @@ class OwnerCarEventController extends Controller
             'care_tips' => $care,
         ]);
 
-        CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+        if (! $isDraft) {
+            CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+        }
 
         return response()->json(ApiResources::event($evt));
     }
@@ -146,9 +172,12 @@ class OwnerCarEventController extends Controller
             self::assertOwnerVisitCareTipsNonSpaceLimit($care);
             $evt->care_tips = $care;
         }
+        if (array_key_exists('isDraft', $data)) {
+            $evt->is_draft = $request->boolean('isDraft');
+        }
 
         $min = CarMileageSync::minAllowedMileageForVisit($car, (int) $evt->id);
-        if ((int) $evt->mileage_km < $min) {
+        if (! $evt->is_draft && (int) $evt->mileage_km < $min) {
             throw ValidationException::withMessages([
                 'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
             ]);
@@ -156,7 +185,9 @@ class OwnerCarEventController extends Controller
 
         $evt->save();
 
-        CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+        if (! $evt->is_draft) {
+            CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+        }
 
         return response()->json(ApiResources::event($evt->fresh()));
     }

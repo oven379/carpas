@@ -1251,11 +1251,24 @@ input.input:-webkit-autofill {
   color: var(--text-h);
   background: color-mix(in oklab, var(--code-bg) 74%, transparent);
   text-decoration: none;
+  overflow: visible;
 }
 
-.nav__notifyLink:hover {
+.nav__notifyLink:hover,
+.nav__notifyLink.is-active {
   border-color: color-mix(in oklab, var(--accent) 65%, var(--border));
   color: var(--accent);
+}
+
+button.nav__notifyLink {
+  appearance: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.nav__activityButton {
+  flex: 0 0 auto;
 }
 
 .nav__notifySvg {
@@ -1473,6 +1486,40 @@ input.input:-webkit-autofill {
 .profileCenter__logout {
   color: color-mix(in oklab, #ff5b5b 78%, var(--text-h));
   border-color: color-mix(in oklab, #ff5b5b 42%, var(--border));
+}
+
+.partnerActivity__sheet {
+  width: min(560px, 100%);
+}
+
+.partnerActivity__bell {
+  width: 50px;
+  height: 50px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in oklab, var(--accent) 35%, var(--border));
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, var(--code-bg));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.partnerActivity__list {
+  padding-top: 18px;
+}
+
+.partnerActivity__item {
+  min-height: 132px;
+}
+
+.partnerActivity__rowBadge {
+  position: static;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 @media (max-width: 560px) {
@@ -9342,6 +9389,10 @@ a.btn.carPage__recsAddVisitFull,
   .nav__linksScroll--partnerTools {
     flex-wrap: nowrap;
     overflow-x: auto;
+    justify-content: flex-end;
+    gap: 6px;
+    padding: 3px 4px;
+    margin-right: -4px;
   }
 
   .nav__linksPersist {
@@ -9356,6 +9407,34 @@ a.btn.carPage__recsAddVisitFull,
   .nav__action {
     min-height: 44px;
     padding: 10px 14px;
+  }
+
+  .nav__linksScroll--partnerTools .nav__action {
+    min-height: 40px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .nav__linksScroll--partnerTools .nav__notifyLink {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+  }
+
+  .nav__linksScroll--partnerTools .nav__notifyBadge {
+    top: 0;
+    right: 0;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 18px;
+    box-shadow: 0 0 0 1px var(--bg);
+  }
+
+  .nav__partnerLogout {
+    display: none;
   }
 
   .carHero {
@@ -9709,10 +9788,17 @@ a.btn.carPage__recsAddVisitFull,
 
   .filePick {
     flex-wrap: wrap;
+    gap: 8px;
   }
 
   .filePick__btn {
+    width: 100%;
     min-height: 44px;
+  }
+
+  .filePick__status {
+    flex-basis: 100%;
+    white-space: normal;
   }
 }
 
@@ -10963,8 +11049,9 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .detCrmRow small {
-  color: var(--muted);
+  color: color-mix(in oklab, var(--text) 78%, var(--muted));
   font-size: 13px;
+  font-weight: 600;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -10973,15 +11060,21 @@ a.btn.carPage__recsAddVisitFull,
 
 .detCrmRow__visitDate,
 .detCrmProfile__lastVisitDate {
-  color: var(--muted);
-  font-size: 13px;
+  color: color-mix(in oklab, var(--text-h) 88%, var(--accent));
+  font-size: 14px;
   line-height: 1.25;
-  font-weight: 400;
+  font-weight: 800;
+}
+
+.detCrmRow__visitDate {
+  align-self: stretch;
+  text-align: left;
 }
 
 .detCrmRow__visitTitle {
-  color: var(--text-h);
-  font-weight: 650;
+  color: color-mix(in oklab, var(--text) 78%, var(--muted));
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -11010,6 +11103,11 @@ a.btn.carPage__recsAddVisitFull,
   align-items: center;
 }
 
+.detCrmProfile__identity {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .detCrmProfile__avatar {
   width: 58px;
   height: 58px;
@@ -11020,6 +11118,24 @@ a.btn.carPage__recsAddVisitFull,
   margin: 0;
   font-size: 24px;
   line-height: 1.1;
+}
+
+.detCrmProfile__quickVisit {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0.5px solid var(--border-default);
+  border-radius: 10px;
+  color: var(--accent);
+  background: color-mix(in oklab, var(--code-bg) 72%, transparent);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detCrmProfile__quickVisit:hover {
+  border-color: color-mix(in oklab, var(--accent) 65%, var(--border));
 }
 
 .detCrmProfile__car,
@@ -11102,6 +11218,10 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 @media (max-width: 960px) {
+  .detCrm {
+    padding-bottom: 18px;
+  }
+
   .detCrm__stats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -11112,20 +11232,136 @@ a.btn.carPage__recsAddVisitFull,
     align-items: stretch;
   }
 
+  .detCrm__head .btn {
+    width: 100%;
+  }
+
+  .detCrm__toolbar {
+    gap: 10px;
+  }
+
+  .detCrm__search {
+    flex-basis: auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .detCrm__filters {
+    margin: 0 -2px;
+    padding: 0 2px 2px;
+  }
+
   .detCrm__layout {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .detCrm__side {
     position: static;
+    order: -1;
+  }
+
+  .detCrm__side--empty {
+    display: none;
   }
 
   .detCrm__listHead {
     display: none;
   }
 
+  .detCrm__listCard {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  .detCrm__rows {
+    gap: 10px;
+  }
+
   .detCrmRow {
     grid-template-columns: minmax(0, 1fr);
-    gap: 10px;
+    gap: 9px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in oklab, var(--card) 88%, var(--bg));
+  }
+
+  .detCrmRow:last-child {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .detCrmRow.is-selected {
+    box-shadow: inset 3px 0 0 color-mix(in oklab, var(--accent) 82%, #fff);
+  }
+
+  .detCrmRow__client {
+    align-items: flex-start;
+  }
+
+  .detCrmRow__avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .detCrmRow__car,
+  .detCrmRow__visit {
+    padding-left: 48px;
+  }
+
+  .detCrmProfile {
+    gap: 14px;
+  }
+
+  .detCrmProfile__top {
+    align-items: flex-start;
+  }
+
+  .detCrmProfile__title {
+    font-size: 21px;
+  }
+
+  .detCrmProfile__quickVisit {
+    margin-left: auto;
+  }
+
+  .detCrmProfile__contacts,
+  .detCrmProfile__actions {
+    flex-direction: column;
+  }
+
+  .detCrmProfile__actions .btn {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .detCrmVisitPhotos {
+    gap: 6px;
+  }
+}
+
+@media (max-width: 520px) {
+  .detCrm__stats {
+    display: none;
+  }
+
+  .detCrmFilter {
+    min-height: 36px;
+    padding: 0 11px;
+    font-size: 13px;
+  }
+
+  .detCrmRow small,
+  .detCrmRow__visitDate {
+    white-space: normal;
+  }
+
+  .detCrmRow__visitTitle {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 }

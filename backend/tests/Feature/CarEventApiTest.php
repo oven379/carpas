@@ -91,6 +91,54 @@ class CarEventApiTest extends FeatureTestCase
             ->assertJsonPath('0.careTips.important', 'Первые сутки не мойте под давлением');
     }
 
+    public function test_reuses_existing_detailing_draft_for_car(): void
+    {
+        $d = $this->detailing();
+        $car = $this->carForDetailing($d->id);
+        Sanctum::actingAs($d);
+
+        $first = $this->postJson("/api/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 1000,
+        ]);
+
+        $first->assertOk()->assertJsonPath('isDraft', true);
+        $draftId = $first->json('id');
+
+        $second = $this->postJson("/api/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 2000,
+        ]);
+
+        $second->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('mileageKm', 1000);
+
+        $this->patchJson("/api/events/{$draftId}", [
+            'title' => 'Черновик с данными',
+            'mileageKm' => 1300,
+            'note' => 'Клиент оставил комментарий',
+            'services' => ['wash'],
+            'isDraft' => true,
+        ])->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('title', 'Черновик с данными')
+            ->assertJsonPath('isDraft', true);
+
+        $this->postJson("/api/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 2000,
+        ])->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('title', 'Черновик с данными')
+            ->assertJsonPath('note', 'Клиент оставил комментарий');
+
+        $this->assertDatabaseCount('car_events', 1);
+    }
+
     public function test_cannot_update_or_delete_service_visit_after_visit_calendar_day(): void
     {
         $d = $this->detailing();

@@ -630,6 +630,109 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
   return typeof document !== 'undefined' ? createPortal(content, document.body) : content
 }
 
+function BellIcon({ className = 'nav__notifySvg' }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M10 21h4"
+      />
+    </svg>
+  )
+}
+
+function PartnerActivityOverlay({ open, pendingClaims, unreadNotifications, onClose }) {
+  const nav = useNavigate()
+
+  useEffect(() => {
+    if (!open) return undefined
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [onClose, open])
+
+  if (!open) return null
+
+  const go = (to) => {
+    onClose()
+    nav(to)
+  }
+
+  const content = (
+    <div className="profileCenter partnerActivity" role="dialog" aria-modal="true" aria-label="Центр активности">
+      <div className="profileCenter__sheet partnerActivity__sheet">
+        <div className="profileCenter__head">
+          <div className="profileCenter__profile">
+            <span className="partnerActivity__bell" aria-hidden="true">
+              <BellIcon />
+            </span>
+            <div>
+              <h2 className="profileCenter__title">Центр активности</h2>
+              <p className="profileCenter__subtitle">
+                {pendingClaims || unreadNotifications
+                  ? `Заявки: ${pendingClaims || 0} · уведомления: ${unreadNotifications || 0}`
+                  : 'Новых событий нет'}
+              </p>
+            </div>
+          </div>
+          <button type="button" className="profileCenter__close" onClick={onClose} aria-label="Закрыть">
+            ×
+          </button>
+        </div>
+
+        <div className="profileCenter__list partnerActivity__list" aria-live="polite">
+          <button type="button" className="profileCenter__item partnerActivity__item" onClick={() => go('/requests')}>
+            <span className="profileCenter__itemTop">
+              <span className="notificationsItem__kind">Заявки</span>
+              {pendingClaims ? <span className="nav__notifyBadge partnerActivity__rowBadge">{pendingClaims}</span> : null}
+            </span>
+            <span className="profileCenter__itemTitle">Заявки на привязку авто</span>
+            <span className="profileCenter__itemBody">
+              Новые запросы владельцев на привязку автомобиля к вашему кабинету.
+            </span>
+            <span className="profileCenter__itemHint">Открыть заявки</span>
+          </button>
+
+          <button type="button" className="profileCenter__item partnerActivity__item" onClick={() => go('/notifications')}>
+            <span className="profileCenter__itemTop">
+              <span className="notificationsItem__kind">Уведомления</span>
+              {unreadNotifications ? (
+                <span className="nav__notifyBadge partnerActivity__rowBadge">{unreadNotifications}</span>
+              ) : null}
+            </span>
+            <span className="profileCenter__itemTitle">Уведомления сервиса</span>
+            <span className="profileCenter__itemBody">
+              Сообщения от админки, статусы отправки пушей и сервисные события.
+            </span>
+            <span className="profileCenter__itemHint">Открыть уведомления</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : content
+}
+
 export function TopNav() {
   const nav = useNavigate()
   const loc = useLocation()
@@ -646,6 +749,7 @@ export function TopNav() {
   const [pendingClaims, setPendingClaims] = useState(0)
   const [notificationsUnread, setNotificationsUnread] = useState(0)
   const [profileCenterOpen, setProfileCenterOpen] = useState(false)
+  const [partnerActivityOpen, setPartnerActivityOpen] = useState(false)
   useEffect(() => {
     if (!isDetailingCabinet || !detailingId) {
       setPendingClaims(0)
@@ -694,6 +798,8 @@ export function TopNav() {
     invalidateRepo()
     nav('/auth', { replace: true })
   }
+  const partnerActivityCount = Math.max(0, Number(pendingClaims || 0) + Number(notificationsUnread || 0))
+  const partnerActivityActive = loc.pathname.startsWith('/requests') || loc.pathname.startsWith('/notifications')
   return (
     <header className="nav">
       <div className="nav__inner">
@@ -716,17 +822,18 @@ export function TopNav() {
                     <NavLink to="/detailing/landing" className={linkClass}>
                       Лендинг
                     </NavLink>
-                    <NavLink to="/requests" className={linkClass}>
-                      Заявки ({pendingClaims})
-                    </NavLink>
-                    <NavLink to="/notifications" className={linkClass}>
-                      Уведомления{notificationsUnread ? ` (${notificationsUnread})` : ''}
-                    </NavLink>
+                    <button
+                      type="button"
+                      className={`nav__notifyLink nav__activityButton${partnerActivityActive ? ' is-active' : ''}`}
+                      onClick={() => setPartnerActivityOpen(true)}
+                      aria-label={`Центр активности${partnerActivityCount ? `: ${partnerActivityCount}` : ''}`}
+                      title="Центр активности"
+                    >
+                      <BellIcon />
+                      {partnerActivityCount ? <span className="nav__notifyBadge">{partnerActivityCount}</span> : null}
+                    </button>
                   </>
                 ) : null}
-                <button type="button" className="nav__action" onClick={logout}>
-                  Выйти
-                </button>
               </>
             ) : null}
           </div>
@@ -779,6 +886,14 @@ export function TopNav() {
           onClose={() => setProfileCenterOpen(false)}
           onLogout={logout}
           onUnreadChange={setNotificationsUnread}
+        />
+      ) : null}
+      {mode === 'detailing' ? (
+        <PartnerActivityOverlay
+          open={partnerActivityOpen}
+          pendingClaims={pendingClaims}
+          unreadNotifications={notificationsUnread}
+          onClose={() => setPartnerActivityOpen(false)}
         />
       ) : null}
     </header>

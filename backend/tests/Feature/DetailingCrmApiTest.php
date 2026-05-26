@@ -54,12 +54,44 @@ class DetailingCrmApiTest extends FeatureTestCase
             'garage_slug' => 'owner-garage',
         ]);
 
-        $car = $this->carForDetailing($d->id, ['owner_id' => $owner->id]);
+        $olderCar = $this->carForDetailing($d->id, [
+            'vin' => 'WVWZZZ1KZAW000003',
+            'make' => 'BMW',
+            'model' => '320i',
+            'owner_id' => $owner->id,
+            'updated_at' => now(),
+        ]);
+        $car = $this->carForDetailing($d->id, [
+            'owner_id' => $owner->id,
+            'updated_at' => now()->subDays(5),
+        ]);
+        $noVisitCar = $this->carForDetailing($d->id, [
+            'vin' => 'WVWZZZ1KZAW000004',
+            'make' => 'Volkswagen',
+            'model' => 'Polo',
+            'owner_id' => null,
+            'client_email' => 'no-visit@example.test',
+            'updated_at' => now(),
+        ]);
         $foreign = $this->carForDetailing($other->id, [
             'vin' => 'WVWZZZ1KZAW000002',
             'client_email' => 'foreign@example.test',
         ]);
 
+        CarEvent::query()->create([
+            'detailing_id' => $d->id,
+            'car_id' => $olderCar->id,
+            'owner_id' => $owner->id,
+            'source' => 'service',
+            'is_draft' => false,
+            'at' => now()->subDays(60),
+            'type' => 'visit',
+            'title' => 'Старый визит',
+            'mileage_km' => 40000,
+            'services' => [],
+            'maintenance_services' => [],
+            'note' => null,
+        ]);
         $visit = CarEvent::query()->create([
             'detailing_id' => $d->id,
             'car_id' => $car->id,
@@ -104,15 +136,18 @@ class DetailingCrmApiTest extends FeatureTestCase
 
         $this->getJson('/api/detailings/crm/clients')
             ->assertOk()
-            ->assertJsonCount(1, 'items')
-            ->assertJsonPath('stats.cars', 1)
-            ->assertJsonPath('stats.clients', 1)
-            ->assertJsonPath('stats.remindersDue', 1)
+            ->assertJsonCount(3, 'items')
+            ->assertJsonPath('stats.cars', 3)
+            ->assertJsonPath('stats.clients', 2)
+            ->assertJsonPath('stats.remindersDue', 2)
             ->assertJsonPath('items.0.car.make', 'Acura')
             ->assertJsonPath('items.0.client.name', 'Иван')
             ->assertJsonPath('items.0.client.isRegisteredOwner', true)
             ->assertJsonPath('items.0.lastVisit.title', 'Керамика')
             ->assertJsonPath('items.0.lastVisit.photos.0.title', 'Фото после')
+            ->assertJsonPath('items.1.lastVisit.title', 'Старый визит')
+            ->assertJsonPath('items.2.id', (string) $noVisitCar->id)
+            ->assertJsonPath('items.2.lastVisit', null)
             ->assertJsonPath('items.0.flags.needsReminder', true);
     }
 

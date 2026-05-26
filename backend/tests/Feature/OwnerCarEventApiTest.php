@@ -77,4 +77,75 @@ class OwnerCarEventApiTest extends FeatureTestCase
         ])
             ->assertStatus(422);
     }
+
+    public function test_owner_reuses_existing_draft_and_can_finalize_it(): void
+    {
+        [$owner, $car] = $this->ownerWithGarageCar();
+        Sanctum::actingAs($owner);
+
+        $first = $this->postJson("/api/owners/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 1000,
+        ]);
+
+        $first->assertOk()
+            ->assertJsonPath('source', 'owner')
+            ->assertJsonPath('isDraft', true);
+        $draftId = $first->json('id');
+
+        $second = $this->postJson("/api/owners/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 1400,
+        ]);
+
+        $second->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('mileageKm', 1000);
+
+        $this->getJson("/api/owners/cars/{$car->id}/events")
+            ->assertOk()
+            ->assertJsonCount(1)
+            ->assertJsonPath('0.id', $draftId)
+            ->assertJsonPath('0.isDraft', true);
+
+        $this->patchJson("/api/owners/cars/{$car->id}/events/{$draftId}", [
+            'title' => 'Черновик владельца',
+            'mileageKm' => 1250,
+            'note' => 'Записал заметку',
+            'careTips' => [
+                'important' => 'Проверить через неделю',
+                'tips' => [],
+            ],
+            'isDraft' => true,
+        ])
+            ->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('title', 'Черновик владельца')
+            ->assertJsonPath('isDraft', true);
+
+        $this->postJson("/api/owners/cars/{$car->id}/events", [
+            'type' => 'visit',
+            'isDraft' => true,
+            'mileageKm' => 1400,
+        ])->assertOk()
+            ->assertJsonPath('id', $draftId)
+            ->assertJsonPath('title', 'Черновик владельца')
+            ->assertJsonPath('note', 'Записал заметку');
+
+        $this->patchJson("/api/owners/cars/{$car->id}/events/{$draftId}", [
+            'title' => 'Самостоятельный визит',
+            'mileageKm' => 1500,
+            'isDraft' => false,
+        ])
+            ->assertOk()
+            ->assertJsonPath('isDraft', false);
+
+        $this->assertDatabaseCount('car_events', 1);
+        $this->assertDatabaseHas('cars', [
+            'id' => $car->id,
+            'mileage_km' => 1500,
+        ]);
+    }
 }

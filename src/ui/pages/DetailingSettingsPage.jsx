@@ -14,8 +14,9 @@ import {
   ServiceHint,
   Textarea,
 } from '../components.jsx'
-import { useRepo, refreshAllClientData } from '../useRepo.js'
+import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
+import { clearSession } from '../auth.js'
 import { publicDetailingPath } from '../serviceLinkUi.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import {
@@ -178,6 +179,12 @@ export default function DetailingSettingsPage() {
     (s) => !catalogOfferSet.has(s),
   )
 
+  function logoutAndGoAuth() {
+    clearSession()
+    invalidateRepo()
+    nav('/auth/partner', { replace: true })
+  }
+
   return (
     <div className="container">
       <div className="row spread gap">
@@ -214,6 +221,9 @@ export default function DetailingSettingsPage() {
           <Link className="btn" data-variant="outline" to={publicPath}>
             Посмотреть лендинг
           </Link>
+          <button type="button" className="btn" data-variant="ghost" onClick={logoutAndGoAuth}>
+            Выйти
+          </button>
         </div>
       </div>
 
