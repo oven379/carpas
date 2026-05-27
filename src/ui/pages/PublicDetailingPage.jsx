@@ -2,7 +2,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } 
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 import { displayRuPhone } from '../../lib/format.js'
@@ -195,7 +195,7 @@ export default function PublicDetailingPage() {
   ].filter(Boolean)
 
   return (
-    <div className="container">
+    <div className="container publicDetailingPage">
       <Seo
         title={seoTitle}
         description={seoDesc}
@@ -354,16 +354,10 @@ export default function PublicDetailingPage() {
           </div>
 
           <div className="topBorder">
-            <div id="det-public-work-photos-hint" className="row gap wrap" style={{ alignItems: 'center' }}>
+            <div className="row gap wrap" style={{ alignItems: 'center' }}>
               <div className="cardTitle" style={{ margin: 0 }}>
                 Фото работ
               </div>
-              <ServiceHint scopeId="det-public-work-photos" variant="compact" label="Справка: фото работ">
-                <p className="serviceHint__panelText">
-                  До 10 снимков из работ сервиса: показываем только те визиты и фото после мойки, которые сервис разрешил
-                  показывать гостям; по дате берутся самые свежие.
-                </p>
-              </ServiceHint>
             </div>
             {workGalleryItems.length ? (
               <div className="thumbs" style={{ marginTop: 12 }}>

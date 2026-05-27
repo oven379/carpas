@@ -2631,6 +2631,21 @@ summary.carPage__recsSelect::-webkit-details-marker {
 }
 
 /* Публичный лендинг детейлинга: блок «Информация» + логотип справа (без ссылки — клик не перезагружает страницу) */
+.publicDetailingPage a:not(.btn) {
+  color: var(--accent);
+  text-decoration-color: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+.publicDetailingPage a:not(.btn):hover {
+  color: color-mix(in oklab, var(--accent) 86%, white);
+  text-decoration-color: var(--accent);
+}
+
+.publicDetailingPage a:not(.btn):focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, white);
+  outline-offset: 3px;
+}
+
 .detPublicInfoCard__headRow {
   display: flex;
   gap: 20px;
