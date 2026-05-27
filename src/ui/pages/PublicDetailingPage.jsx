@@ -50,12 +50,12 @@ export default function PublicDetailingPage() {
   const { detailingId: sessionDetailingId, mode } = useDetailing()
   const [photoLb, setPhotoLb] = useState(null)
   const [payload, setPayload] = useState(undefined)
-  const [servicesExpanded, setServicesExpanded] = useState(false)
+  const [servicesExpanded, setServicesExpanded] = useState(true)
 
   const idNorm = String(id || '').trim()
 
   useEffect(() => {
-    setServicesExpanded(false)
+    setServicesExpanded(true)
   }, [idNorm])
 
   useEffect(() => {
