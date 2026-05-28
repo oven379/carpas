@@ -17,13 +17,8 @@ import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 
-const FILTERS = [
-  { id: 'all', label: 'Все' },
-  { id: 'today', label: 'Сегодня' },
-  { id: 'stale', label: 'Давно не были' },
-]
-
 const STALE_VISIT_DAYS = 15
+const TASK_DUE_DAYS = 2
 
 function carTitle(row) {
   const c = row?.car || {}
@@ -97,11 +92,35 @@ function isLastVisitStale(row) {
   return t < startOfLocalDay() - STALE_VISIT_DAYS * 24 * 60 * 60 * 1000
 }
 
+function hasOpenBookingRequest(row) {
+  return Number(row?.bookingRequestsCount || 0) > 0
+}
+
+function isNextContactDueSoon(row) {
+  const days = Number(row?.nextReminder?.daysLeft)
+  return Number.isFinite(days) && days <= TASK_DUE_DAYS
+}
+
+function hasCrmTask(row) {
+  return hasOpenBookingRequest(row) || isNextContactDueSoon(row)
+}
+
+function taskPriority(row) {
+  if (hasOpenBookingRequest(row)) return 0
+  if (isNextContactDueSoon(row)) return 1
+  return 2
+}
+
+function sortTasksFirst(a, b) {
+  return taskPriority(a) - taskPriority(b) || lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
+}
+
 function sortByLastVisitDesc(a, b) {
   return lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
 }
 
 function matchesFilter(row, filter) {
+  if (filter === 'tasks') return hasCrmTask(row)
   if (filter === 'today') return isLastVisitToday(row)
   if (filter === 'stale') return isLastVisitStale(row)
   return true
@@ -189,11 +208,17 @@ export default function DetailingClientsPage() {
     return (data.items || [])
       .filter((row) => matchesFilter(row, filter))
       .filter((row) => matchesQuery(row, query))
-      .sort(sortByLastVisitDesc)
+      .sort(filter === 'tasks' ? sortTasksFirst : sortByLastVisitDesc)
   }, [data.items, filter, query])
   const selected = useMemo(() => {
     return rows.find((row) => String(row.id) === String(selectedId)) || rows[0] || null
   }, [rows, selectedId])
+  const taskCount = useMemo(() => (data.items || []).filter(hasCrmTask).length, [data.items])
+  const filters = useMemo(() => [
+    { id: 'all', label: 'Все' },
+    { id: 'today', label: 'Сегодня' },
+    { id: 'tasks', label: 'Запись', count: taskCount },
+  ], [taskCount])
   function setFilter(next) {
     const n = new URLSearchParams(sp)
     if (next === 'all') n.delete('filter')
@@ -226,6 +251,35 @@ export default function DetailingClientsPage() {
       alert(formatHttpErrorMessage(e))
     } finally {
       setPushBusy('')
+    }
+  }
+
+  async function closeBookingRequest(requestId) {
+    if (!requestId) return
+    try {
+      await r.updateServiceBookingRequest(requestId, { status: 'closed' })
+      const res = await r.detailingCrmClients()
+      setData({
+        items: Array.isArray(res?.items) ? res.items : [],
+        stats: res?.stats && typeof res.stats === 'object' ? res.stats : {},
+      })
+    } catch (e) {
+      alert(formatHttpErrorMessage(e))
+    }
+  }
+
+  async function closeNextContactTask(row) {
+    const eventId = row?.lastVisit?.id
+    if (!row?.id || !eventId) return
+    try {
+      await r.updateEvent(row.id, eventId, { nextContactAt: null })
+      const res = await r.detailingCrmClients()
+      setData({
+        items: Array.isArray(res?.items) ? res.items : [],
+        stats: res?.stats && typeof res.stats === 'object' ? res.stats : {},
+      })
+    } catch (e) {
+      alert(formatHttpErrorMessage(e))
     }
   }
 
@@ -266,8 +320,8 @@ export default function DetailingClientsPage() {
             </h1>
             <ServiceHint scopeId="det-crm-head" variant="compact" label="Справка: CRM">
               <p className="serviceHint__panelText">
-                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Давно не были» показывает клиентов,
-                которые приезжали больше {STALE_VISIT_DAYS} дней назад.
+                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Запись» показывает заявки
+                владельцев и клиентов, с которыми пора связаться по дате следующего контакта.
               </p>
             </ServiceHint>
           </div>
@@ -294,14 +348,15 @@ export default function DetailingClientsPage() {
           onChange={(e) => setQuery(e.target.value)}
         />
         <div className="detCrm__filters">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f.id}
               type="button"
               className={`detCrmFilter${filter === f.id ? ' is-active' : ''}`}
               onClick={() => setFilter(f.id)}
             >
-              {f.label}
+              <span>{f.label}</span>
+              {f.count > 0 ? <span className="detCrmFilter__badge">{f.count > 9 ? '9+' : f.count}</span> : null}
             </button>
           ))}
         </div>
@@ -341,6 +396,11 @@ export default function DetailingClientsPage() {
                     <small>{[c.year ? `${c.year} г` : '', fmtPlateFull(c.plate, c.plateRegion)].filter(Boolean).join(' · ') || c.vin || '—'}</small>
                   </span>
                   <span className="detCrmRow__visit">
+                    {hasOpenBookingRequest(row) ? (
+                      <span className="detCrmRow__taskBadge">Хочет записаться</span>
+                    ) : filter === 'tasks' && isNextContactDueSoon(row) ? (
+                      <span className="detCrmRow__taskBadge detCrmRow__taskBadge--soft">Связаться</span>
+                    ) : null}
                     {row.lastVisit ? (
                       <>
                         <span className="detCrmRow__visitTitle">{row.lastVisit.title || 'Визит'}</span>
@@ -396,6 +456,59 @@ export default function DetailingClientsPage() {
                 {selectedClient.email ? <a href={`mailto:${selectedClient.email}`}>{selectedClient.email}</a> : null}
               </div>
 
+              {selected.latestBookingRequest ? (
+                <div className="detCrmProfile__bookingRequest">
+                  <div className="detCrmProfile__bookingRequestTop">
+                    <span className="detCrmProfile__bookingRequestBadge">Новая заявка</span>
+                    <span className="muted small">{fmtDate(selected.latestBookingRequest.createdAt)}</span>
+                  </div>
+                  <div className="detCrmProfile__bookingRequestTitle">Клиент хочет записаться</div>
+                  <p className="muted small">
+                    Хочу записаться на повторный уход, подберите удобное время.
+                  </p>
+                  <div className="detCrmProfile__bookingRequestActions">
+                    {phone.telHref ? (
+                      <a className="btn" data-variant="primary" href={phone.telHref}>
+                        Позвонить
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn"
+                      data-variant="ghost"
+                      onClick={() => void closeBookingRequest(selected.latestBookingRequest.id)}
+                    >
+                      Закрыть заявку
+                    </button>
+                  </div>
+                </div>
+              ) : isNextContactDueSoon(selected) ? (
+                <div className="detCrmProfile__bookingRequest">
+                  <div className="detCrmProfile__bookingRequestTop">
+                    <span className="detCrmProfile__bookingRequestBadge">Рекомендованное время</span>
+                    <span className="muted small">{fmtDate(selected.nextReminder?.at)}</span>
+                  </div>
+                  <p className="muted small">
+                    Подошло рекомендованное время повторного ухода, подберите удобное время.
+                  </p>
+                  <div className="detCrmProfile__bookingRequestActions">
+                    {phone.telHref ? (
+                      <a className="btn" data-variant="primary" href={phone.telHref}>
+                        Позвонить
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn"
+                      data-variant="ghost"
+                      onClick={() => void closeNextContactTask(selected)}
+                    >
+                      Закрыть задачу
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
               <div className="detCrmProfile__actions">
                 <button
                   type="button"
@@ -426,6 +539,16 @@ export default function DetailingClientsPage() {
                     <div className="muted small">
                       {selected.lastVisit.mileageKm ? fmtKm(selected.lastVisit.mileageKm) : 'Пробег не указан'}
                     </div>
+                    {selected.lastVisit.nextContactAt ? (
+                      <div className="detCrmProfile__privateLine">
+                        <span>Следующий контакт:</span> {fmtDate(selected.lastVisit.nextContactAt)}
+                      </div>
+                    ) : null}
+                    {String(selected.lastVisit.internalNote || '').trim() ? (
+                      <div className="detCrmProfile__privateNote">
+                        <span>Внутренняя заметка:</span> {selected.lastVisit.internalNote}
+                      </div>
+                    ) : null}
                     {selected.lastVisit.services?.length ? (
                       <div className="detCrmProfile__chips">
                         {selected.lastVisit.services.slice(0, 4).map((s) => <Pill key={s} tone="neutral">{s}</Pill>)}

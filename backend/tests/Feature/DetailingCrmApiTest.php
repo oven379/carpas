@@ -91,6 +91,7 @@ class DetailingCrmApiTest extends FeatureTestCase
             'services' => [],
             'maintenance_services' => [],
             'note' => null,
+            'next_contact_at' => now()->subDay(),
         ]);
         $visit = CarEvent::query()->create([
             'detailing_id' => $d->id,
@@ -105,6 +106,7 @@ class DetailingCrmApiTest extends FeatureTestCase
             'services' => ['Керамика'],
             'maintenance_services' => [],
             'note' => null,
+            'next_contact_at' => now()->addDays(2),
         ]);
         CarDoc::query()->create([
             'detailing_id' => $d->id,

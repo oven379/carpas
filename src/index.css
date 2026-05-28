@@ -16,7 +16,7 @@
   /* text */
   --text-primary: #f0f0f0;
   --text-secondary: #888888;
-  --text-muted: #444444;
+  --text-muted: #888888;
 
   /* accent — warm gold, use ONLY for: active state dots, key dates, gradient lines, focus rings */
   --accent: #c8a96e;
@@ -103,13 +103,13 @@ h3 {
 h1 {
   font-size: 28px;
   font-weight: 300;
-  letter-spacing: -0.5px;
+  letter-spacing: 0;
 }
 
 h2 {
   font-size: 20px;
   font-weight: 400;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
 }
 
 h3 {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import { getApi } from '../../api/index.js'
@@ -12,9 +12,51 @@ import { BackNav, Button, Card, PageLoadSpinner } from '../components.jsx'
 function kindLabel(kind) {
   if (kind === 'car_ready') return 'Авто'
   if (kind === 'service_reminder') return 'Напоминание'
+  if (kind === 'crm_next_contact') return 'CRM'
+  if (kind === 'owner_booking_request') return 'Заявка'
+  if (kind === 'owner_booking_request_sent') return 'Запись'
   if (kind === 'admin_broadcast') return 'Сервис'
   if (kind === 'admin_test') return 'Тест'
   return 'Уведомление'
+}
+
+function notificationPriority(kind) {
+  if (kind === 'owner_booking_request') return 1
+  if (kind === 'crm_next_contact') return 2
+  return 3
+}
+
+function ts(value) {
+  const d = value ? new Date(value) : null
+  const n = d?.getTime()
+  return Number.isFinite(n) ? n : 0
+}
+
+function isToday(value) {
+  const d = value ? new Date(value) : null
+  if (!d || !Number.isFinite(d.getTime())) return false
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+
+function notificationMetaItems(n) {
+  const data = n?.data && typeof n.data === 'object' ? n.data : {}
+  const items = []
+  const requestTypeLabel = String(data.requestTypeLabel || '').trim()
+  const ownerName = String(data.ownerName || '').trim()
+  const carName = String(data.carName || '').trim()
+  const ownerPhone = String(data.ownerPhone || '').trim()
+  const nextContactAt = String(data.nextContactAt || '').trim()
+
+  if (requestTypeLabel) items.push({ label: 'Тип', value: requestTypeLabel })
+  if (ownerName) items.push({ label: 'Клиент', value: ownerName })
+  if (carName) items.push({ label: 'Авто', value: carName })
+  if (ownerPhone) items.push({ label: 'Телефон', value: ownerPhone })
+  if (n?.kind === 'crm_next_contact' && nextContactAt) {
+    items.push({ label: 'Дата контакта', value: fmtDateTime(nextContactAt) })
+  }
+
+  return items
 }
 
 export default function NotificationsPage() {
@@ -23,8 +65,13 @@ export default function NotificationsPage() {
   const [payload, setPayload] = useState({ items: [], unread_count: 0 })
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [tab, setTab] = useState('new')
 
   useEffect(() => {
+    if (!authed) {
+      setLoading(false)
+      return undefined
+    }
     let cancelled = false
     ;(async () => {
       setLoading(true)
@@ -45,12 +92,34 @@ export default function NotificationsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [authed])
+
+  const items = useMemo(() => (Array.isArray(payload.items) ? payload.items : []), [payload.items])
+  const unread = Number(payload.unread_count || 0)
+  const isDetailing = hasDetailingSession()
+  const sortedItems = useMemo(() => {
+    return [...items].sort((a, b) => ts(b.createdAt) - ts(a.createdAt))
+  }, [items])
+  const newItems = useMemo(() => {
+    return sortedItems
+      .filter((n) => !n.readAt)
+      .sort((a, b) => {
+        const p = notificationPriority(a.kind) - notificationPriority(b.kind)
+        return p || ts(b.createdAt) - ts(a.createdAt)
+      })
+  }, [sortedItems])
+  const readTodayItems = useMemo(() => {
+    return sortedItems.filter((n) => n.readAt && isToday(n.readAt))
+  }, [sortedItems])
+  const archiveItems = sortedItems
+  const visibleItems = tab === 'archive' ? archiveItems : tab === 'read' ? readTodayItems : newItems
+  const tabs = [
+    { id: 'new', label: 'Новые', count: newItems.length },
+    { id: 'read', label: 'Прочитанные', count: readTodayItems.length },
+    { id: 'archive', label: 'Архив', count: archiveItems.length },
+  ]
 
   if (!authed) return <Navigate to="/auth" replace />
-
-  const items = Array.isArray(payload.items) ? payload.items : []
-  const unread = Number(payload.unread_count || 0)
 
   const markAll = async () => {
     await getApi().notificationsMarkAllRead()
@@ -63,14 +132,16 @@ export default function NotificationsPage() {
   }
 
   const markRead = async (id) => {
+    const wasUnread = items.some((x) => String(x.id) === String(id) && !x.readAt)
+    const nextUnread = wasUnread ? Math.max(0, unread - 1) : unread
     setPayload((p) => ({
       ...p,
-      unread_count: Math.max(0, Number(p.unread_count || 0) - 1),
+      unread_count: wasUnread ? Math.max(0, Number(p.unread_count || 0) - 1) : Number(p.unread_count || 0),
       items: (Array.isArray(p.items) ? p.items : []).map((x) =>
         String(x.id) === String(id) ? { ...x, readAt: x.readAt || new Date().toISOString() } : x,
       ),
     }))
-    syncNotificationBadge(Math.max(0, Number(payload.unread_count || 0) - 1))
+    syncNotificationBadge(nextUnread)
     await getApi().notificationMarkRead(id).catch(() => {})
   }
 
@@ -82,6 +153,25 @@ export default function NotificationsPage() {
 
   const openNotification = async (n) => {
     await markRead(n.id)
+    if ((n?.kind === 'crm_next_contact' || n?.kind === 'owner_booking_request') && hasDetailingSession()) {
+      const carId = String(n?.data?.carId || '').trim()
+      const filter = n?.readAt ? 'all' : 'tasks'
+      if (carId) {
+        nav(`/detailing/clients?filter=${filter}&id=${encodeURIComponent(carId)}`)
+      } else {
+        nav(`/detailing/clients?filter=${filter}`)
+      }
+      return
+    }
+    if (n?.kind === 'owner_booking_request_sent' && hasOwnerSession()) {
+      const carId = String(n?.data?.carId || '').trim()
+      const eventId = String(n?.data?.eventId || '').trim()
+      if (carId) {
+        const suffix = eventId ? `?visit=${encodeURIComponent(eventId)}` : ''
+        nav(`/car/${encodeURIComponent(carId)}/history${suffix}`)
+      }
+      return
+    }
     const detailingId = String(n?.data?.detailingId || '').trim()
     if (!detailingId) return
     if (isNativeApp()) {
@@ -108,24 +198,49 @@ export default function NotificationsPage() {
           <Button variant="outline" className="btn" disabled={!unread || loading} onClick={markAll}>
             Прочитать все
           </Button>
-          <Button variant="ghost" className="btn" disabled={items.length === 0 || loading} onClick={clearAll}>
-            Очистить уведомления
-          </Button>
+          {!isDetailing ? (
+            <Button variant="ghost" className="btn" disabled={items.length === 0 || loading} onClick={clearAll}>
+              Очистить уведомления
+            </Button>
+          ) : null}
         </div>
+      </div>
+
+      <div className="notificationsTabs" role="tablist" aria-label="Фильтр уведомлений">
+        {tabs.map((x) => (
+          <button
+            key={x.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === x.id}
+            className={`notificationsTab${tab === x.id ? ' is-active' : ''}`}
+            onClick={() => setTab(x.id)}
+          >
+            <span>{x.label}</span>
+            <span className="notificationsTab__count">{x.count}</span>
+          </button>
+        ))}
       </div>
 
       {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
       {err ? <Card className="pad notificationsPage__state"><p className="adminSupportErr">{err}</p></Card> : null}
-      {!loading && !err && items.length === 0 ? (
+      {!loading && !err && visibleItems.length === 0 ? (
         <Card className="pad notificationsPage__state">
-          <h2 className="h2">Пока пусто</h2>
-          <p className="muted">Здесь появятся сообщения от сервиса, напоминания и уведомления от детейлинга.</p>
+          <h2 className="h2">{tab === 'new' ? 'Новых нет' : tab === 'read' ? 'Сегодня пока пусто' : 'Архив пуст'}</h2>
+          <p className="muted">
+            {tab === 'new'
+              ? 'Здесь появятся новые заявки владельцев, рекомендованное время контакта и сервисные уведомления.'
+              : tab === 'read'
+                ? 'Здесь будут заявки и уведомления, которые менеджер открыл или закрыл сегодня.'
+                : 'Здесь будет история заявок и уведомлений от последних к более ранним.'}
+          </p>
         </Card>
       ) : null}
 
       <div className="notificationsList">
-        {items.map((n) => {
+        {visibleItems.map((n) => {
           const unreadItem = !n.readAt
+          const metaItems = notificationMetaItems(n)
           return (
             <Card
               key={n.id}
@@ -146,6 +261,15 @@ export default function NotificationsPage() {
               </div>
               <h2 className="notificationsItem__title">{n.title || 'Уведомление'}</h2>
               <p className="notificationsItem__body">{n.body}</p>
+              {metaItems.length ? (
+                <div className="notificationsItem__meta" aria-label="Детали уведомления">
+                  {metaItems.map((item) => (
+                    <span key={`${item.label}-${item.value}`} className="notificationsItem__metaItem">
+                      <span>{item.label}:</span> {item.value}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
               {unreadItem ? (
                 <button
                   type="button"

@@ -82,7 +82,7 @@ function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
           </div>
         ) : null}
         <div className="rowItem__lastEvtLine">
-          <span className="eventLabel">Комментарий:</span>{' '}
+          <span className="eventLabel">{lastEvt.source === 'service' ? 'Рекомендации мастера:' : 'Комментарий:'}</span>{' '}
           {note ? note : <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>}
         </div>
       </div>

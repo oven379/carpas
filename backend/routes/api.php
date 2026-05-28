@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\AdminRegistryController;
 use App\Http\Controllers\Api\AdminSupportController;
 use App\Http\Controllers\Api\DevicePushTokenController;
 use App\Http\Controllers\Api\PublicShowcaseController;
+use App\Http\Controllers\Api\ServiceBookingRequestController;
 use App\Http\Controllers\Api\SupportTicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -121,6 +122,9 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'index']);
     Route::delete('/owners/shares/{token}', [OwnerCarShareController::class, 'revoke']);
 
+    Route::post('/owners/service-booking-requests', [ServiceBookingRequestController::class, 'storeOwner'])
+        ->middleware('throttle:20,1');
+
     Route::post('/owners/claims', [CarClaimController::class, 'store']);
     Route::get('/owners/claims', [CarClaimController::class, 'mine']);
 });
@@ -132,6 +136,7 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::delete('/detailings/me/device-push-token', [DevicePushTokenController::class, 'destroyDetailing']);
     Route::get('/detailings/crm/clients', [DetailingCrmController::class, 'clients']);
     Route::post('/detailings/crm/clients/{carId}/push', [DetailingCrmController::class, 'sendOwnerPush']);
+    Route::patch('/detailings/service-booking-requests/{id}', [ServiceBookingRequestController::class, 'updateDetailing']);
 
     Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
     Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);

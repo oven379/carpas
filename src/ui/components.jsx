@@ -442,6 +442,7 @@ export function BackNav({ className = '', title = 'Назад', to, fallbackTo, 
 function notificationKindLabel(kind) {
   if (kind === 'car_ready') return 'Авто'
   if (kind === 'service_reminder') return 'Напоминание'
+  if (kind === 'owner_booking_request_sent') return 'Запись'
   if (kind === 'admin_broadcast') return 'Сервис'
   if (kind === 'admin_test') return 'Тест'
   return 'Уведомление'
@@ -520,8 +521,15 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
 
   const openNotification = async (n) => {
     await markRead(n)
+    const carId = String(n?.data?.carId || '').trim()
+    const eventId = String(n?.data?.eventId || '').trim()
     const detailingId = String(n?.data?.detailingId || '').trim()
     onClose()
+    if (n?.kind === 'owner_booking_request_sent' && carId) {
+      const suffix = eventId ? `?visit=${encodeURIComponent(eventId)}` : ''
+      nav(`/car/${encodeURIComponent(carId)}/history${suffix}`)
+      return
+    }
     if (detailingId && !isNativeApp()) {
       nav(`/d/${encodeURIComponent(detailingId)}`)
       return
@@ -825,7 +833,7 @@ export function TopNav() {
                     <button
                       type="button"
                       className={`nav__notifyLink nav__activityButton${partnerActivityActive ? ' is-active' : ''}`}
-                      onClick={() => setPartnerActivityOpen(true)}
+                      onClick={() => nav('/notifications')}
                       aria-label={`Центр активности${partnerActivityCount ? `: ${partnerActivityCount}` : ''}`}
                       title="Центр активности"
                     >

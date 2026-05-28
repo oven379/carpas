@@ -133,6 +133,11 @@ export function VisitFormServicesBlock({
     if (!qn) return []
     return searchable.all.filter((s) => String(s).toLowerCase().includes(qn)).slice(0, 50)
   }, [searchable.all, qn])
+  const normalizedSearch = useMemo(
+    () => dedupeOfferedStrings([searchQ], OFFERED_SERVICE_MAX_LEN)[0] || '',
+    [searchQ],
+  )
+  const canSubmitSearch = Boolean(normalizedSearch)
 
   const otherServices = useMemo(() => svc.filter((s) => !bodyKnownSet.has(s)), [svc, bodyKnownSet])
 
@@ -174,9 +179,8 @@ export function VisitFormServicesBlock({
   }
 
   const submitSearch = () => {
-    const raw = searchQ.trim()
-    if (!raw) return
-    const low = raw.toLowerCase()
+    if (!normalizedSearch) return
+    const low = normalizedSearch.toLowerCase()
     const exact = searchable.all.find((s) => String(s).toLowerCase() === low)
     if (exact) {
       addCanonical(exact)
@@ -191,15 +195,9 @@ export function VisitFormServicesBlock({
       setSugOpen(false)
       return
     }
-    if (useFullCatalogFallback) {
-      addCanonical(raw)
-      setSearchQ('')
-      setSugOpen(false)
-      return
-    }
-    alert(
-      'Этой услуги нет в списке вашего лендинга. Добавьте её в настройках лендинга и сохраните — тогда она появится в визите.',
-    )
+    addCanonical(normalizedSearch)
+    setSearchQ('')
+    setSugOpen(false)
   }
 
   const selectedAll = useMemo(() => [...svc, ...maint], [svc, maint])
@@ -243,7 +241,7 @@ export function VisitFormServicesBlock({
               if (e.key === 'Escape') setSugOpen(false)
             }}
           />
-          {sugOpen && qn && suggestions.length ? (
+          {sugOpen && qn && (suggestions.length || canSubmitSearch) ? (
             <ul className="visitFormSvc__suggest" role="listbox">
               {suggestions.map((s) => (
                 <li key={s}>
@@ -262,6 +260,19 @@ export function VisitFormServicesBlock({
                   </button>
                 </li>
               ))}
+              {canSubmitSearch ? (
+                <li>
+                  <button
+                    type="button"
+                    className="visitFormSvc__suggestBtn visitFormSvc__suggestBtn--custom"
+                    disabled={disabled}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={submitSearch}
+                  >
+                    Добавить услугу «{normalizedSearch}»
+                  </button>
+                </li>
+              ) : null}
             </ul>
           ) : null}
         </div>
@@ -398,17 +409,8 @@ export function VisitFormServicesBlock({
         </summary>
         <div className="visitFormSvc__detailsBody">
           <p className="muted small" style={{ margin: '0 0 10px' }}>
-            {useFullCatalogFallback ? (
-              <>
-                Если названия нет в подсказках поиска, введите свой текст и нажмите «Добавить» — услуга сохранится в
-                визите и отображается здесь и в общем списке выше.
-              </>
-            ) : (
-              <>
-                Произвольную строку через поиск добавить нельзя — только услуги из настроек лендинга. Ниже — позиции,
-                уже сохранённые в этом визите, которых нет в текущем списке кузова (например, после смены профиля).
-              </>
-            )}
+            Если названия нет в подсказках поиска, введите свой текст и нажмите «Добавить» — услуга сохранится в
+            визите и отображается здесь и в общем списке выше.
           </p>
           {otherServices.length ? (
             <div className="svcdd__grid visitFormSvc__grid">
@@ -432,7 +434,7 @@ export function VisitFormServicesBlock({
             </div>
           ) : (
             <p className="muted small visitFormSvc__empty">
-              {useFullCatalogFallback ? 'Пока нет услуг вне списка кузова.' : 'Нет позиций вне списка лендинга.'}
+              Пока нет услуг вне списка кузова.
             </p>
           )}
         </div>

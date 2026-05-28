@@ -198,7 +198,7 @@ class OwnerCarController extends Controller
         }
         if (array_key_exists('mileageKm', $data)) {
             $next = (int) ($data['mileageKm'] ?? 0);
-            $floor = CarMileageSync::maxMileageAmongFinalizedEvents((int) $car->id);
+            $floor = max((int) ($car->mileage_km ?? 0), CarMileageSync::maxMileageAmongFinalizedEvents((int) $car->id));
             if ($next < $floor) {
                 throw ValidationException::withMessages([
                     'mileageKm' => ['Не меньше '.$floor.' км — по сохранённым визитам в истории.'],

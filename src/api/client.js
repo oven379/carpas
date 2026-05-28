@@ -210,6 +210,15 @@ export function createApiClient() {
       })
     },
 
+    async updateServiceBookingRequest(id, body) {
+      flushCoalescedRequests()
+      return await req(`detailings/service-booking-requests/${encodeURIComponent(String(id))}`, {
+        method: 'PATCH',
+        body,
+        token: dTok(),
+      })
+    },
+
     async registerOwner(body) {
       return await req('owners/register', { method: 'POST', body, token: null })
     },
@@ -525,6 +534,15 @@ export function createApiClient() {
     async reviewClaim(id, { status }) {
       flushCoalescedRequests()
       return await req(`claims/${id}`, { method: 'PATCH', body: { status }, token: dTok() })
+    },
+
+    async createOwnerServiceBookingRequest(body) {
+      flushCoalescedRequests()
+      return await req('owners/service-booking-requests', {
+        method: 'POST',
+        body,
+        token: oTok(),
+      })
     },
 
     /** Партнёр: перенести карточку из личного гаража владельца в свой кабинет (проверка года/города). */

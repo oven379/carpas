@@ -27,6 +27,8 @@ class CarEvent extends Model
         'services',
         'maintenance_services',
         'note',
+        'internal_note',
+        'next_contact_at',
         'care_tips',
     ];
 
@@ -37,6 +39,7 @@ class CarEvent extends Model
         'allow_public_photos' => 'boolean',
         'services' => 'array',
         'maintenance_services' => 'array',
+        'next_contact_at' => 'datetime',
         'care_tips' => 'array',
     ];
 

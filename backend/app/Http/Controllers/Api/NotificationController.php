@@ -13,7 +13,7 @@ class NotificationController extends Controller
     public function index(Request $request)
     {
         $q = $this->scopeForUser($request);
-        $items = $q->latest('created_at')->limit(50)->get();
+        $items = $q->latest('created_at')->limit(500)->get();
 
         return response()->json([
             'items' => $items->map(fn (AppNotification $n) => $this->serialize($n))->values(),

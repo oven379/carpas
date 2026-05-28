@@ -91,7 +91,7 @@ class CarEventController extends Controller
             ->orderByDesc('at')
             ->get();
 
-        return response()->json($events->map(fn ($e) => ApiResources::event($e))->values());
+        return response()->json($events->map(fn ($e) => ApiResources::event($e, true))->values());
     }
 
     public function store(Request $request, $carId)
@@ -107,6 +107,8 @@ class CarEventController extends Controller
             'services' => ['nullable', 'array'],
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
+            'internalNote' => ['nullable', 'string', 'max:1000'],
+            'nextContactAt' => ['nullable', 'string'],
             'careTips' => ['nullable', 'array'],
             'isDraft' => ['nullable'],
             'allowPublicPhotos' => ['nullable'],
@@ -120,10 +122,22 @@ class CarEventController extends Controller
         $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
         $incomingKm = isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0;
         if (! $isDraft) {
+            if (trim((string) ($data['title'] ?? '')) === '') {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Укажите заголовок визита перед сохранением.',
+                ], 422));
+            }
+            $serviceCount = count(is_array($data['services'] ?? null) ? $data['services'] : [])
+                + count(is_array($data['maintenanceServices'] ?? null) ? $data['maintenanceServices'] : []);
+            if ($serviceCount < 1) {
+                throw new HttpResponseException(response()->json([
+                    'message' => 'Выберите хотя бы одну услугу (детейлинг или ТО) перед сохранением.',
+                ], 422));
+            }
             $min = CarMileageSync::minAllowedMileageForVisit($car, null);
-            if ($incomingKm < $min) {
+            if ($incomingKm <= $min) {
                 throw ValidationException::withMessages([
-                    'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
+                    'mileageKm' => ['Пробег визита должен быть больше текущего по карточке и истории ('.$min.' км).'],
                 ]);
             }
         }
@@ -137,7 +151,7 @@ class CarEventController extends Controller
                 ->orderByDesc('updated_at')
                 ->first();
             if ($existing) {
-                return response()->json(ApiResources::event($existing));
+                return response()->json(ApiResources::event($existing, true));
             }
         }
 
@@ -155,6 +169,8 @@ class CarEventController extends Controller
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
+            'internal_note' => $data['internalNote'] ?? null,
+            'next_contact_at' => $data['nextContactAt'] ?? null,
             'care_tips' => CareTips::normalize($data['careTips'] ?? null),
         ]);
 
@@ -162,7 +178,7 @@ class CarEventController extends Controller
             CarMileageSync::bumpCarMileageFromEvents($car->fresh());
         }
 
-        return response()->json(ApiResources::event($evt));
+        return response()->json(ApiResources::event($evt, true));
     }
 
     public function update(Request $request, $id)
@@ -198,6 +214,12 @@ class CarEventController extends Controller
         if (array_key_exists('note', $data)) {
             $evt->note = $data['note'];
         }
+        if (array_key_exists('internalNote', $data)) {
+            $evt->internal_note = $data['internalNote'];
+        }
+        if (array_key_exists('nextContactAt', $data)) {
+            $evt->next_contact_at = $data['nextContactAt'];
+        }
         if (array_key_exists('careTips', $data)) {
             $evt->care_tips = CareTips::normalize($data['careTips']);
         }
@@ -217,11 +239,11 @@ class CarEventController extends Controller
 
         $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $evt->car_id);
         $willBeFinalized = ! $evt->is_draft;
-        if ($willBeFinalized) {
+        if ($willBeFinalized && ($wasDraft || array_key_exists('mileageKm', $data))) {
             $min = CarMileageSync::minAllowedMileageForVisit($car, (int) $evt->id);
-            if ((int) $evt->mileage_km < $min) {
+            if ((int) $evt->mileage_km <= $min) {
                 throw ValidationException::withMessages([
-                    'mileageKm' => ['Пробег не может быть меньше текущего по карточке и истории ('.$min.' км).'],
+                    'mileageKm' => ['Пробег визита должен быть больше текущего по карточке и истории ('.$min.' км).'],
                 ]);
             }
         }
@@ -232,7 +254,7 @@ class CarEventController extends Controller
             CarMileageSync::bumpCarMileageFromEvents($car->fresh());
         }
 
-        return response()->json(ApiResources::event($evt->fresh()));
+        return response()->json(ApiResources::event($evt->fresh(), true));
     }
 
     public function destroy(Request $request, $id)

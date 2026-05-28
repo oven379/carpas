@@ -14,6 +14,8 @@ import {
 import {
   clampVisitTitle,
   clampVisitTitleInput,
+  displayRuPhone,
+  fmtDate,
   fmtDateTime,
   fmtInt,
   fmtKm,
@@ -65,14 +67,18 @@ import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
 import { resolveMinMileageKmForVisitForm } from '../../lib/carMileage.js'
 
 const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
+const VISIT_INTERNAL_NOTE_MAX_LEN = 1000
 
 /** Не хватает данных для «завершённого» визита — при «Назад» спрашиваем про черновик. */
 function isIncompleteDetailingDraft(draft, minAllowedKm) {
   const title = String(draft.title || '').trim()
   const km = Number(String(draft.mileageKm || '0')) || 0
+  const serviceCount = (Array.isArray(draft.services) ? draft.services.length : 0)
+    + (Array.isArray(draft.maintenanceServices) ? draft.maintenanceServices.length : 0)
   if (!title) return true
   if (!km) return true
-  if (minAllowedKm && km < minAllowedKm) return true
+  if (!serviceCount) return true
+  if (minAllowedKm && km <= minAllowedKm) return true
   return false
 }
 
@@ -193,7 +199,7 @@ function DetailingLastVisitPreview({ event, docsForEvent, setPhotoLb }) {
         </div>
       ) : null}
       <div className="note">
-        <span className="eventLabel">Комментарий:</span>{' '}
+        <span className="eventLabel">Рекомендации мастера:</span>{' '}
         {String(e.note || '').trim() ? e.note : <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>}
       </div>
     </div>
@@ -256,6 +262,30 @@ function clampVisitNoteInput(raw) {
   return String(raw ?? '').slice(0, VISIT_NOTE_MAX_LEN)
 }
 
+function clampVisitInternalNoteInput(raw) {
+  return String(raw ?? '').slice(0, VISIT_INTERNAL_NOTE_MAX_LEN)
+}
+
+function dateInputFromIso(raw) {
+  const s = String(raw || '').trim()
+  if (!s) return ''
+  const d = new Date(s)
+  if (Number.isNaN(d.getTime())) return /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : ''
+  return d.toISOString().slice(0, 10)
+}
+
+function isoFromDateInput(raw) {
+  const s = String(raw || '').trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null
+  return `${s}T12:00:00.000Z`
+}
+
+function dateInputAfterDays(days) {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 /** Комментарий в форме: если в записи уже есть note — он; иначе одна строка из бывших полей услуг (при открытии старого визита). */
 function visitFormNoteFromEvent(ne) {
   const base = String(ne.note || '').trim()
@@ -298,6 +328,7 @@ export default function HistoryPage() {
   const [events, setEvents] = useState([])
   const [allDocs, setAllDocs] = useState([])
   const [dataReady, setDataReady] = useState(false)
+  const [bookingBusyId, setBookingBusyId] = useState('')
   const minMileageForNewVisit = useMemo(
     () => (car ? resolveMinMileageKmForVisitForm(car, events, null) : 0),
     [car, events],
@@ -501,6 +532,8 @@ export default function HistoryPage() {
     title: '',
     mileageKm: '',
     note: '',
+    internalNote: '',
+    nextContactAt: '',
     services: [],
     maintenanceServices: [],
     type: 'visit',
@@ -521,6 +554,7 @@ export default function HistoryPage() {
   const visitPhotosSectionRef = useRef(null)
   const historyListTopRef = useRef(null)
   const initFormKeyRef = useRef('')
+  const autosaveVisitDraftKeyRef = useRef('')
   const visitPhotosInputId = useId()
   const visitPublicConsentId = useId()
   const visitPhotosInputRef = useRef(null)
@@ -573,6 +607,23 @@ export default function HistoryPage() {
   const canEditAny = (e) => canEdit(e) || canEditOwner(e)
   const [ownerVisitComposeUi, setOwnerVisitComposeUi] = useState(false)
 
+  async function sendServiceBookingRequest(event) {
+    if (!event?.id || !id) return
+    setBookingBusyId(String(event.id))
+    try {
+      const res = await r.createOwnerServiceBookingRequest({
+        carId: String(id),
+        eventId: String(event.id),
+      })
+      alert(res?.message || 'Заявка отправлена. Менеджер сервиса свяжется с вами.')
+      invalidateRepo()
+    } catch (err) {
+      alert(formatHttpErrorMessage(err))
+    } finally {
+      setBookingBusyId('')
+    }
+  }
+
   const openVisitEdit = useCallback(
     (e) => {
       if (!canOpen(e)) return
@@ -587,6 +638,8 @@ export default function HistoryPage() {
           mode === 'detailing'
             ? clampVisitNoteInput(String(ne.note || ''))
             : visitFormNoteFromEvent(ne),
+        internalNote: mode === 'detailing' ? clampVisitInternalNoteInput(ne.internalNote || '') : '',
+        nextContactAt: mode === 'detailing' ? dateInputFromIso(ne.nextContactAt) : '',
         services:
           (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.services) ? [...ne.services] : [],
         maintenanceServices:
@@ -631,6 +684,8 @@ export default function HistoryPage() {
               mode === 'detailing'
                 ? clampVisitNoteInput(String(ne.note || ''))
                 : visitFormNoteFromEvent(ne),
+            internalNote: mode === 'detailing' ? clampVisitInternalNoteInput(ne.internalNote || '') : '',
+            nextContactAt: mode === 'detailing' ? dateInputFromIso(ne.nextContactAt) : '',
             services:
               (mode === 'detailing' || mode === 'owner') && Array.isArray(ne.services) ? [...ne.services] : [],
             maintenanceServices:
@@ -655,6 +710,8 @@ export default function HistoryPage() {
           title: '',
           mileageKm: '',
           note: '',
+          internalNote: '',
+          nextContactAt: '',
           services: [],
           maintenanceServices: [],
           type: 'visit',
@@ -674,12 +731,15 @@ export default function HistoryPage() {
     const logoFromCar = String(car?.detailingLogo || '').trim()
     const slugFromSession = idMatch && detailing?.publicSlug ? String(detailing.publicSlug).trim() : ''
     const slugFromCar = String(car?.detailingPublicSlug || '').trim()
+    const phoneFromSession = idMatch && detailing?.phone ? String(detailing.phone).trim() : ''
+    const phoneFromCar = String(car?.detailingPhone || '').trim()
     return {
       id: detId,
       publicSlug: slugFromSession || slugFromCar || '',
       name: String(car.detailingName || car.seller?.name || 'Сервис').trim() || 'Сервис',
       logo: logoFromSession || logoFromCar || null,
       website: car.detailingWebsite || '',
+      phone: phoneFromSession || phoneFromCar,
     }
   }, [car, detailingId, detailing])
   const detBadgeLabel = detForBadge?.name ? String(detForBadge.name) : 'Детейлинг'
@@ -747,26 +807,7 @@ export default function HistoryPage() {
   const visitPhotosRoom =
     editingId && editAllowed ? Math.max(0, VISIT_MAX_PHOTOS - editingPhotos.length) : VISIT_MAX_PHOTOS
 
-  if ((mode === 'owner' || mode === 'detailing') && loading) {
-    return (
-      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
-        <PageLoadSpinner />
-      </div>
-    )
-  }
-
-  if (!dataReady) {
-    return (
-      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
-        <PageLoadSpinner />
-      </div>
-    )
-  }
-  if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
-
-  const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
-
-  const buildVisitPayload = () => {
+  const buildVisitPayload = useCallback(() => {
     const visitServicesPayload =
       mode === 'detailing' || mode === 'owner'
         ? {
@@ -787,6 +828,8 @@ export default function HistoryPage() {
                 .slice(0, VISIT_CARE_ADVICE_MAX_LEN),
               tips: [],
             },
+            internalNote: String(draft.internalNote || '').trim().slice(0, VISIT_INTERNAL_NOTE_MAX_LEN) || null,
+            nextContactAt: isoFromDateInput(draft.nextContactAt),
             allowPublicPhotos: Boolean(draft.allowPublicPhotos),
           }
         : mode === 'owner'
@@ -798,7 +841,18 @@ export default function HistoryPage() {
             }
           : {}),
     }
-  }
+  }, [
+    mode,
+    draft.services,
+    draft.maintenanceServices,
+    draft.title,
+    draft.mileageKm,
+    draft.note,
+    draft.careAdviceText,
+    draft.internalNote,
+    draft.nextContactAt,
+    draft.allowPublicPhotos,
+  ])
 
   const closeVisitFormInUrl = () => {
     setOwnerVisitComposeUi(false)
@@ -813,7 +867,10 @@ export default function HistoryPage() {
   const saveVisitDraftAndGoBack = async () => {
     if (!editingId) return
     try {
-      await r.updateEvent(id, editingId, { ...buildVisitPayload(), isDraft: true })
+      const evt = await r.updateEvent(id, editingId, { ...buildVisitPayload(), isDraft: true })
+      if (evt?.id) {
+        setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
+      }
       invalidateRepo()
       closeVisitFormInUrl()
       if (from) nav(from)
@@ -821,6 +878,67 @@ export default function HistoryPage() {
       alert(formatHttpErrorMessage(e))
     }
   }
+
+  useEffect(() => {
+    if (!showNew || !editingId || !editingEvent?.isDraft || formLocked) return undefined
+    if (mode !== 'owner' && mode !== 'detailing') return undefined
+
+    const payload = { ...buildVisitPayload(), isDraft: true }
+    const key = JSON.stringify({ id: editingId, payload })
+    if (autosaveVisitDraftKeyRef.current === key) return undefined
+
+    const timer = window.setTimeout(() => {
+      autosaveVisitDraftKeyRef.current = key
+      r.updateEvent(id, editingId, payload)
+        .then((evt) => {
+          if (!evt?.id) return
+          setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
+        })
+        .catch(() => {
+          autosaveVisitDraftKeyRef.current = ''
+        })
+    }, 700)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    showNew,
+    editingId,
+    editingEvent?.isDraft,
+    formLocked,
+    mode,
+    id,
+    draft.title,
+    draft.mileageKm,
+    draft.note,
+    draft.internalNote,
+    draft.nextContactAt,
+    draft.allowPublicPhotos,
+    draft.careAdviceText,
+    draft.services,
+    draft.maintenanceServices,
+    buildVisitPayload,
+    r,
+    setEvents,
+  ])
+
+  if ((mode === 'owner' || mode === 'detailing') && loading) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+
+  if (!dataReady) {
+    return (
+      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+        <PageLoadSpinner />
+      </div>
+    )
+  }
+  if (!car) return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
+
+  const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 
   const ingestPickedVisitPhotos = async (picked) => {
     if (awaitingVisitDraft || formLocked || visitPhotoBusy || !picked.length) return
@@ -846,9 +964,9 @@ export default function HistoryPage() {
       let eventId = editingId
       if (!eventId) {
         const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-        if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
+        if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
           alert(
-            `Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км). Укажите корректный пробег и попробуйте снова.`,
+            `Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км). Укажите корректный пробег и попробуйте снова.`,
           )
           return
         }
@@ -984,6 +1102,8 @@ export default function HistoryPage() {
                   title: '',
                   mileageKm: '',
                   note: '',
+                  internalNote: '',
+                  nextContactAt: '',
                   services: [],
                   maintenanceServices: [],
                   type: 'visit',
@@ -1067,6 +1187,7 @@ export default function HistoryPage() {
           const cardInnerLink = Boolean(showDetFooter && detBrandTarget)
           const visitReadonlyCard = Boolean(canOpen(e) && !canEditAny(e))
           const visitExpanded = visitCardIsExpanded(e)
+          const canBookServiceVisit = mode === 'owner' && e.source === 'service' && !e.isDraft && e.detailingId
           return (
           <Card
             key={e.id}
@@ -1164,11 +1285,9 @@ export default function HistoryPage() {
                   <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
                     Черновик визита · нажмите «Сохранить» в форме, чтобы запись стала частью истории
                   </div>
-                ) : visitExpanded && e.source === 'service' ? (
+                ) : visitExpanded && e.source === 'service' && mode !== 'owner' ? (
                   <div className="muted small visitCardServiceNote" style={{ marginTop: 6 }}>
-                    {mode === 'owner' ? (
-                      <>Запись сервиса</>
-                    ) : visitReadonlyCard ? (
+                    {visitReadonlyCard ? (
                       <>Запись сохранена · день визита прошёл, правки недоступны</>
                     ) : (
                       <>Запись из кабинета детейлинга</>
@@ -1246,12 +1365,26 @@ export default function HistoryPage() {
                 })()}
                 {visitExpanded ? (
                   <div className="note">
-                    <span className="eventLabel">Комментарий:</span>{' '}
+                    <span className="eventLabel">{e.source === 'service' ? 'Рекомендации мастера:' : 'Комментарий:'}</span>{' '}
                     {String(e.note || '').trim() ? (
                       e.note
                     ) : (
                       <span className="muted">{VISIT_COMMENT_EMPTY_HINT}</span>
                     )}
+                  </div>
+                ) : null}
+                {visitExpanded && mode === 'detailing' && e.source === 'service' ? (
+                  <div className="historyCrmPrivate">
+                    {e.nextContactAt ? (
+                      <div>
+                        <span className="eventLabel">Следующий контакт:</span> {fmtDate(e.nextContactAt)}
+                      </div>
+                    ) : null}
+                    {String(e.internalNote || '').trim() ? (
+                      <div>
+                        <span className="eventLabel">Внутренняя заметка:</span> {e.internalNote}
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -1278,7 +1411,7 @@ export default function HistoryPage() {
                 </div>
               ) : null}
             </div>
-            {showDetFooter && visitExpanded ? (
+            {showDetFooter ? (
               <div className="eventCardDetBadgeRow">
                 {(() => {
                   const detBadgeInner = detForBadge?.logo ? (
@@ -1314,11 +1447,39 @@ export default function HistoryPage() {
                     )
                   return (
                     <>
-                      {detBadgeNode}
-                      <div className="eventCardDetBadgeRow__text">
-                        <div className="eventCardDetBadgeRow__name">{detBadgeLabel}</div>
-                        <div className="eventCardDetBadgeRow__visit muted small">Визит: {fmtDateTime(e.at)}</div>
+                      <div className="eventCardDetBadgeRow__service">
+                        {detBadgeNode}
+                        <div className="eventCardDetBadgeRow__text">
+                          <div className="eventCardDetBadgeRow__name">{detBadgeLabel}</div>
+                          {(() => {
+                            const phone = displayRuPhone(e.detailingPhone || detForBadge?.phone || '')
+                            return (
+                              <div className="eventCardDetBadgeRow__visit muted small">
+                                {phone.display ? (
+                                  phone.telHref ? <a href={phone.telHref} onClick={(ev) => ev.stopPropagation()}>{phone.display}</a> : phone.display
+                                ) : (
+                                  'Телефон не указан'
+                                )}
+                              </div>
+                            )
+                          })()}
+                        </div>
                       </div>
+                      {canBookServiceVisit ? (
+                        <button
+                          type="button"
+                          className="btn eventCardDetBadgeRow__bookBtn"
+                          data-variant="primary"
+                          disabled={bookingBusyId === String(e.id)}
+                          onClick={(ev) => {
+                            ev.preventDefault()
+                            ev.stopPropagation()
+                            void sendServiceBookingRequest(e)
+                          }}
+                        >
+                          {bookingBusyId === String(e.id) ? 'Отправляем...' : 'Записаться'}
+                        </button>
+                      ) : null}
                     </>
                   )
                 })()}
@@ -1418,7 +1579,7 @@ export default function HistoryPage() {
             </div>
             <div className="field field--full serviceHint__fieldWrap" id={FORM_COMMENT_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
-                <span className="field__label">Комментарий</span>
+                <span className="field__label">{mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}</span>
                 <ServiceHint scopeId={FORM_COMMENT_HINT.scopeId} variant="compact" label={FORM_COMMENT_HINT.label}>
                   <p className="serviceHint__panelText">{FORM_COMMENT_HINT.text}</p>
                 </ServiceHint>
@@ -1432,10 +1593,67 @@ export default function HistoryPage() {
                 onBlur={createBlurFixRuFreeText((next) =>
                   setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
                 )}
-                placeholder="Напишите здесь, что делали в этом визите, или выберите услуги из предложенных ниже. Так формируется история Вашего авто."
+                placeholder={
+                  mode === 'detailing'
+                    ? 'Напишите рекомендации для владельца: когда приехать повторно, что проверить, на что обратить внимание.'
+                    : 'Напишите здесь, что делали в этом визите, или выберите услуги из предложенных ниже. Так формируется история Вашего авто.'
+                }
                 disabled={formLocked}
               />
             </div>
+            {mode === 'detailing' ? (
+              <>
+                <div className="field field--full">
+                  <span className="field__label">Дата следующего контакта</span>
+                  <div className="visitReminderField">
+                    <Input
+                      className="input"
+                      type="date"
+                      value={draft.nextContactAt}
+                      disabled={formLocked}
+                      onChange={(e) => setDraft((d) => ({ ...d, nextContactAt: e.target.value }))}
+                    />
+                    <div className="visitReminderField__quick" aria-label="Быстрый выбор даты напоминания">
+                      {[7, 15, 30, 90].map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          className="btn"
+                          data-variant="ghost"
+                          disabled={formLocked}
+                          onClick={() => setDraft((d) => ({ ...d, nextContactAt: dateInputAfterDays(days) }))}
+                        >
+                          {days} дн.
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="muted small visitReminderField__hint">
+                    Дата видна только в CRM и помогает понять, когда пора напомнить клиенту о повторном визите.
+                  </p>
+                </div>
+                <div className="field field--full">
+                  <span className="field__label">Внутренняя заметка</span>
+                  <Textarea
+                    className="textarea"
+                    rows={3}
+                    maxLength={VISIT_INTERNAL_NOTE_MAX_LEN}
+                    value={draft.internalNote}
+                    onChange={(e) =>
+                      setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(e.target.value) }))
+                    }
+                    onBlur={createBlurFixRuFreeText((next) =>
+                      setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(next) })),
+                    )}
+                    placeholder="Только для сотрудников: как лучше связаться, особенности клиента, что предложить в следующий раз."
+                    disabled={formLocked}
+                  />
+                  <div className="muted small historyCareTips__charCount" aria-live="polite">
+                    {String(draft.internalNote || '').length} / {VISIT_INTERNAL_NOTE_MAX_LEN}
+                  </div>
+                </div>
+              </>
+            ) : null}
             {mode === 'detailing' || mode === 'owner' ? (
               <VisitFormServicesBlock
                 scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
@@ -1721,13 +1939,13 @@ export default function HistoryPage() {
                     return
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                  if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
-                    alert(`Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
+                  if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
+                    alert(`Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                     return
                   }
                   if (mode === 'detailing' && editingEvent?.isDraft && isIncompleteDetailingDraft(draft, minMileageKmForVisitForm)) {
                     alert(
-                      'Чтобы сохранить визит в истории, укажите заголовок и пробег не ниже текущего по авто.',
+                      'Чтобы сохранить визит в истории, укажите заголовок, услугу и пробег больше текущего по авто.',
                     )
                     return
                   }
@@ -1754,6 +1972,8 @@ export default function HistoryPage() {
                     title: '',
                     mileageKm: '',
                     note: '',
+                    internalNote: '',
+                    nextContactAt: '',
                     services: [],
                     maintenanceServices: [],
                     type: 'visit',
@@ -1834,8 +2054,8 @@ export default function HistoryPage() {
                       return
                     }
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                    if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
-                      alert(`Пробег не может быть меньше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
+                    if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
+                      alert(`Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                       return
                     }
                     const payload = buildVisitPayload()

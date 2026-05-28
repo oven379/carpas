@@ -55,15 +55,20 @@ final class CarGarageMerge
                 continue;
             }
             DB::transaction(function () use ($dup, $target) {
-                CarEvent::query()->where('car_id', $dup->id)->update([
-                    'car_id' => $target->id,
-                    'detailing_id' => $target->detailing_id,
-                ]);
-                CarDoc::query()->where('car_id', $dup->id)->update([
-                    'car_id' => $target->id,
-                    'detailing_id' => $target->detailing_id,
-                ]);
+                CarEvent::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
+                CarEvent::query()
+                    ->where('car_id', $target->id)
+                    ->where('source', 'service')
+                    ->whereNull('detailing_id')
+                    ->update(['detailing_id' => $target->detailing_id]);
+                CarDoc::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
+                CarDoc::query()
+                    ->where('car_id', $target->id)
+                    ->where('source', 'service')
+                    ->whereNull('detailing_id')
+                    ->update(['detailing_id' => $target->detailing_id]);
                 self::fillEmptyScalars($target, $dup);
+                CarMileageSync::bumpCarMileageFromEvents($target->fresh());
                 Car::withoutEvents(static fn () => $dup->delete());
             });
             $target->refresh();
@@ -81,9 +86,7 @@ final class CarGarageMerge
         if (trim((string) $into->hero) === '' && trim((string) $from->hero) !== '') {
             $into->hero = $from->hero;
         }
-        if ((int) $into->mileage_km <= 0 && (int) $from->mileage_km > 0) {
-            $into->mileage_km = $from->mileage_km;
-        }
+        $into->mileage_km = max((int) ($into->mileage_km ?? 0), (int) ($from->mileage_km ?? 0));
         if ($into->year === null && $from->year !== null) {
             $into->year = $from->year;
         }
@@ -98,8 +101,16 @@ final class CarGarageMerge
         DB::transaction(function () use ($car, $studioDetailingId) {
             $car->detailing_id = $studioDetailingId;
             $car->save();
-            CarEvent::query()->where('car_id', $car->id)->update(['detailing_id' => $studioDetailingId]);
-            CarDoc::query()->where('car_id', $car->id)->update(['detailing_id' => $studioDetailingId]);
+            CarEvent::query()
+                ->where('car_id', $car->id)
+                ->where('source', 'service')
+                ->whereNull('detailing_id')
+                ->update(['detailing_id' => $studioDetailingId]);
+            CarDoc::query()
+                ->where('car_id', $car->id)
+                ->where('source', 'service')
+                ->whereNull('detailing_id')
+                ->update(['detailing_id' => $studioDetailingId]);
         });
     }
 
@@ -128,6 +139,7 @@ final class CarGarageMerge
                 CarEvent::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
                 CarDoc::query()->where('car_id', $dup->id)->update(['car_id' => $target->id]);
                 self::fillEmptyScalars($target, $dup);
+                CarMileageSync::bumpCarMileageFromEvents($target->fresh());
                 Car::withoutEvents(static fn () => $dup->delete());
             });
             $target->refresh();

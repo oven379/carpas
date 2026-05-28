@@ -3,11 +3,13 @@
 namespace Database\Seeders;
 
 use App\Http\Support\MediaStorage;
+use App\Models\AppNotification;
 use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
+use App\Models\ServiceBookingRequest;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -173,6 +175,146 @@ class DemoCrmOwnersSeeder extends Seeder
 
                 $demoCarNo++;
             }
+        }
+
+        $demoOwner = Owner::query()->where('email', 'owner3@demo.car')->first();
+        $demoCar = $demoOwner
+            ? Car::query()
+                ->where('detailing_id', $studio->id)
+                ->where('owner_id', $demoOwner->id)
+                ->orderBy('id')
+                ->first()
+            : null;
+        $demoVisit = $demoCar
+            ? CarEvent::query()
+                ->where('detailing_id', $studio->id)
+                ->where('car_id', $demoCar->id)
+                ->where('source', 'service')
+                ->where('is_draft', false)
+                ->orderByDesc('at')
+                ->first()
+            : null;
+
+        if ($demoOwner && $demoCar && $demoVisit) {
+            $bookingRequest = ServiceBookingRequest::query()->updateOrCreate(
+                [
+                    'owner_id' => $demoOwner->id,
+                    'detailing_id' => $studio->id,
+                    'car_id' => $demoCar->id,
+                    'car_event_id' => $demoVisit->id,
+                    'status' => ServiceBookingRequest::STATUS_NEW,
+                ],
+                [
+                    'message' => 'Хочу записаться на повторный уход, подберите удобное время.',
+                    'closed_at' => null,
+                ],
+            );
+
+            $carName = trim(implode(' ', array_filter([(string) $demoCar->make, (string) $demoCar->model]))) ?: 'автомобиль';
+            AppNotification::query()->updateOrCreate(
+                [
+                    'owner_id' => $demoOwner->id,
+                    'detailing_id' => null,
+                    'kind' => 'owner_booking_request_sent',
+                    'title' => 'Заявка отправлена',
+                    'body' => 'Мы передали заявку в сервис. Менеджер свяжется с вами и подберёт время для '.$carName.'.',
+                ],
+                [
+                    'data' => [
+                        'bookingRequestId' => (string) $bookingRequest->id,
+                        'carId' => (string) $demoCar->id,
+                        'eventId' => (string) $demoVisit->id,
+                        'detailingId' => (string) $studio->id,
+                        'ownerName' => (string) $demoOwner->name,
+                        'carName' => $carName,
+                        'requestType' => 'owner_booking',
+                        'requestTypeLabel' => 'Запись от владельца',
+                    ],
+                    'sent_by_admin' => false,
+                    'push_sent' => false,
+                    'push_failed' => false,
+                    'read_at' => null,
+                ],
+            );
+            AppNotification::query()->updateOrCreate(
+                [
+                    'detailing_id' => $studio->id,
+                    'owner_id' => null,
+                    'kind' => 'owner_booking_request',
+                    'title' => 'Клиент хочет записаться',
+                    'body' => $demoOwner->name.' хочет записать '.$carName.' на повторный визит. Свяжитесь с клиентом для выбора времени.',
+                ],
+                [
+                    'data' => [
+                        'bookingRequestId' => (string) $bookingRequest->id,
+                        'ownerId' => (string) $demoOwner->id,
+                        'carId' => (string) $demoCar->id,
+                        'eventId' => (string) $demoVisit->id,
+                        'detailingId' => (string) $studio->id,
+                        'ownerName' => (string) $demoOwner->name,
+                        'ownerPhone' => (string) $demoOwner->phone,
+                        'carName' => $carName,
+                        'requestType' => 'owner_booking',
+                        'requestTypeLabel' => 'Запись от владельца',
+                    ],
+                    'sent_by_admin' => false,
+                    'push_sent' => false,
+                    'push_failed' => false,
+                    'read_at' => null,
+                ],
+            );
+        }
+
+        $reminderOwner = Owner::query()->where('email', 'owner5@demo.car')->first();
+        $reminderCar = $reminderOwner
+            ? Car::query()
+                ->where('detailing_id', $studio->id)
+                ->where('owner_id', $reminderOwner->id)
+                ->orderBy('id')
+                ->first()
+            : null;
+        $reminderVisit = $reminderCar
+            ? CarEvent::query()
+                ->where('detailing_id', $studio->id)
+                ->where('car_id', $reminderCar->id)
+                ->where('source', 'service')
+                ->where('is_draft', false)
+                ->orderByDesc('at')
+                ->first()
+            : null;
+
+        if ($reminderOwner && $reminderCar && $reminderVisit) {
+            $reminderAt = Carbon::now($tz)->subDay()->setTime(11, 0, 0);
+            $reminderVisit->forceFill(['next_contact_at' => $reminderAt])->save();
+            $reminderCarName = trim(implode(' ', array_filter([(string) $reminderCar->make, (string) $reminderCar->model]))) ?: 'автомобиль';
+
+            AppNotification::query()->updateOrCreate(
+                [
+                    'detailing_id' => $studio->id,
+                    'owner_id' => null,
+                    'kind' => 'crm_next_contact',
+                    'title' => 'Рекомендованное время контакта',
+                ],
+                [
+                    'body' => $reminderOwner->name.': '.$reminderCarName.'. Подошло время повторного ухода, свяжитесь с клиентом.',
+                    'data' => [
+                        'ownerId' => (string) $reminderOwner->id,
+                        'carId' => (string) $reminderCar->id,
+                        'eventId' => (string) $reminderVisit->id,
+                        'detailingId' => (string) $studio->id,
+                        'nextContactAt' => $reminderAt->toISOString(),
+                        'ownerName' => (string) $reminderOwner->name,
+                        'ownerPhone' => (string) $reminderOwner->phone,
+                        'carName' => $reminderCarName,
+                        'requestType' => 'next_contact',
+                        'requestTypeLabel' => 'Время от мастера',
+                    ],
+                    'sent_by_admin' => false,
+                    'push_sent' => false,
+                    'push_failed' => false,
+                    'read_at' => null,
+                ],
+            );
         }
 
         if ($this->command) {

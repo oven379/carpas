@@ -22,6 +22,7 @@ class CarDocController extends Controller
         $docs = CarDoc::query()
             ->where('detailing_id', $d->id)
             ->where('car_id', $carId)
+            ->where('source', 'service')
             ->orderByDesc('created_at')
             ->get();
 
@@ -70,7 +71,10 @@ class CarDocController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $doc = CarDoc::query()->where('detailing_id', $d->id)->findOrFail($id);
+        $doc = CarDoc::query()
+            ->where('detailing_id', $d->id)
+            ->where('source', 'service')
+            ->findOrFail($id);
         MediaStorage::deleteStoredFileIfManaged($doc->url);
         $doc->delete();
 

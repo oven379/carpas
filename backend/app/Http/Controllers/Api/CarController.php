@@ -208,6 +208,7 @@ class CarController extends Controller
         $car = DetailingCarAccess::findCarForDetailingEditableOrFail($d, (int) $id);
 
         $data = $request->all();
+        $ownerLinked = $car->owner_id !== null;
 
         $nextVin = array_key_exists('vin', $data)
             ? VinPlateValidator::normalizeVin(is_string($data['vin'] ?? null) ? trim((string) $data['vin']) : '')
@@ -229,13 +230,13 @@ class CarController extends Controller
             throw ValidationException::withMessages(['plate' => [$msg]]);
         }
 
-        if (array_key_exists('vin', $data)) {
+        if (array_key_exists('vin', $data) && (! $ownerLinked || trim((string) ($car->vin ?? '')) === '')) {
             $car->vin = $nextVin;
         }
-        if (array_key_exists('plate', $data)) {
+        if (array_key_exists('plate', $data) && (! $ownerLinked || trim((string) ($car->plate ?? '')) === '')) {
             $car->plate = $nextPlate;
         }
-        if (array_key_exists('plateRegion', $data)) {
+        if (array_key_exists('plateRegion', $data) && (! $ownerLinked || trim((string) ($car->plate_region ?? '')) === '')) {
             $car->plate_region = $nextRegion;
         }
 
@@ -248,15 +249,18 @@ class CarController extends Controller
         ];
         foreach ($map as $json => $col) {
             if (array_key_exists($json, $data)) {
+                if ($ownerLinked && trim((string) ($car->{$col} ?? '')) !== '') {
+                    continue;
+                }
                 $car->{$col} = is_string($data[$json]) ? trim($data[$json]) : $data[$json];
             }
         }
-        if (array_key_exists('year', $data)) {
+        if (array_key_exists('year', $data) && (! $ownerLinked || $car->year === null)) {
             $car->year = VinPlateValidator::normalizeOptionalYear($data['year']);
         }
         if (array_key_exists('mileageKm', $data)) {
             $next = (int) ($data['mileageKm'] ?? 0);
-            $floor = CarMileageSync::maxMileageAmongFinalizedEvents((int) $car->id);
+            $floor = max((int) ($car->mileage_km ?? 0), CarMileageSync::maxMileageAmongFinalizedEvents((int) $car->id));
             if ($next < $floor) {
                 throw ValidationException::withMessages([
                     'mileageKm' => ['Не меньше '.$floor.' км — по сохранённым визитам в истории.'],
@@ -282,7 +286,7 @@ class CarController extends Controller
         if (array_key_exists('clientEmail', $data)) {
             $car->client_email = trim((string) $data['clientEmail']);
         }
-        if (array_key_exists('hero', $data)) {
+        if (array_key_exists('hero', $data) && (! $ownerLinked || trim((string) ($car->hero ?? '')) === '')) {
             $raw = is_string($data['hero'] ?? null) ? trim((string) $data['hero']) : '';
             $car->hero = MediaStorage::ingestScalar(
                 $raw === '' ? null : $raw,

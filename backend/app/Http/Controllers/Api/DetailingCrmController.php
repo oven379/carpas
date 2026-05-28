@@ -10,6 +10,7 @@ use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
+use App\Models\ServiceBookingRequest;
 use App\Services\FcmV1Client;
 use App\Services\InternalNotificationService;
 use App\Services\PushSettings;
@@ -68,10 +69,26 @@ class DetailingCrmController extends Controller
             ->get()
             ->groupBy('event_id');
 
-        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent) {
+        $bookingRequests = ServiceBookingRequest::query()
+            ->with(['owner', 'car', 'event'])
+            ->where('detailing_id', $d->id)
+            ->whereIn('car_id', $ids)
+            ->whereIn('status', [ServiceBookingRequest::STATUS_NEW, ServiceBookingRequest::STATUS_IN_WORK])
+            ->orderByDesc('created_at')
+            ->get()
+            ->groupBy('car_id');
+
+        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent, $bookingRequests) {
             $last = $lastEvents->get($car->id);
+            $requests = $bookingRequests
+                ->get($car->id, collect())
+                ->map(fn (ServiceBookingRequest $request) => ServiceBookingRequestController::resource($request))
+                ->values()
+                ->all();
             $lastAt = $last?->at ? Carbon::parse($last->at) : ($last?->created_at ? Carbon::parse($last->created_at) : null);
-            $nextAt = $lastAt ? $lastAt->copy()->addDays(30) : null;
+            $nextAt = $last?->next_contact_at
+                ? Carbon::parse($last->next_contact_at)
+                : null;
             $daysUntilNext = $nextAt ? now()->startOfDay()->diffInDays($nextAt->copy()->startOfDay(), false) : null;
             $needsReminder = $daysUntilNext !== null && $daysUntilNext <= 5;
             $isNew = (int) ($car->service_visits_count ?? 0) === 0;
@@ -92,6 +109,8 @@ class DetailingCrmController extends Controller
                     'title' => trim((string) ($last->title ?: 'Визит')),
                     'at' => optional($lastAt)->toISOString(),
                     'mileageKm' => $last->mileage_km,
+                    'internalNote' => $last->internal_note ?? '',
+                    'nextContactAt' => optional($last->next_contact_at)->toISOString(),
                     'services' => array_values(array_filter(array_merge(
                         is_array($last->services) ? $last->services : [],
                         is_array($last->maintenance_services) ? $last->maintenance_services : [],
@@ -115,6 +134,9 @@ class DetailingCrmController extends Controller
                     'visitsCount' => (int) ($car->service_visits_count ?? 0),
                     'docsCount' => (int) ($car->docs_count ?? 0),
                 ],
+                'bookingRequests' => $requests,
+                'bookingRequestsCount' => count($requests),
+                'latestBookingRequest' => $requests[0] ?? null,
                 'flags' => [
                     'needsReminder' => $needsReminder,
                     'isNew' => $isNew,

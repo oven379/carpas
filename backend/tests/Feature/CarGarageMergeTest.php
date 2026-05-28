@@ -96,7 +96,8 @@ class CarGarageMergeTest extends FeatureTestCase
         $this->assertDatabaseHas('car_events', [
             'id' => $ev->id,
             'car_id' => $serviceCar->id,
-            'detailing_id' => $studio->id,
+            'detailing_id' => null,
+            'source' => 'owner',
         ]);
     }
 
@@ -144,5 +145,30 @@ class CarGarageMergeTest extends FeatureTestCase
             'detailing_id' => $studio->id,
             'owner_id' => $owner->id,
         ]);
+
+        $this->patchJson("/api/cars/{$car->id}", [
+            'make' => 'Audi',
+            'model' => 'A6',
+            'year' => 2024,
+            'city' => 'Москва',
+            'color' => 'синий',
+            'mileageKm' => 11000,
+        ])->assertStatus(422);
+
+        $this->patchJson("/api/cars/{$car->id}", [
+            'make' => 'Audi',
+            'model' => 'A6',
+            'year' => 2024,
+            'city' => 'Москва',
+            'color' => 'синий',
+            'mileageKm' => 13000,
+        ])
+            ->assertOk()
+            ->assertJsonPath('make', 'VW')
+            ->assertJsonPath('model', 'Polo')
+            ->assertJsonPath('year', 2018)
+            ->assertJsonPath('city', 'Казань')
+            ->assertJsonPath('color', 'синий')
+            ->assertJsonPath('mileageKm', 13000);
     }
 }

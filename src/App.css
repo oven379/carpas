@@ -53,7 +53,7 @@
   text-decoration: none;
   color: var(--text-h);
   font-weight: 650;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -227,7 +227,7 @@
   font-weight: 650;
   line-height: 1;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 .nav__ownerGarageDefaultImg {
   width: 100%;
@@ -547,7 +547,7 @@ button.nav__action {
 
 .h1 {
   font-size: 40px;
-  letter-spacing: -1px;
+  letter-spacing: 0;
   margin: 0 0 6px;
 }
 
@@ -1546,6 +1546,54 @@ button.nav__notifyLink {
   margin-top: 16px;
 }
 
+.notificationsTabs {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.notificationsTab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--card) 86%, var(--bg));
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.notificationsTab.is-active {
+  border-color: color-mix(in oklab, var(--accent) 64%, var(--border));
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, var(--code-bg));
+}
+
+.notificationsTab__count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--text) 10%, transparent);
+  color: var(--text-h);
+  font-size: 12px;
+  line-height: 22px;
+  text-align: center;
+}
+
+.notificationsTab.is-active .notificationsTab__count {
+  background: var(--accent);
+  color: #0b0b0b;
+}
+
 .notificationsList {
   display: grid;
   gap: 12px;
@@ -1592,6 +1640,35 @@ button.nav__notifyLink {
   margin: 8px 0 0;
   color: var(--text);
   line-height: 1.55;
+}
+
+.notificationsItem__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.notificationsItem__metaItem {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 28px;
+  padding: 4px 9px;
+  border: 1px solid color-mix(in oklab, var(--accent) 24%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  color: color-mix(in oklab, var(--text) 92%, var(--text-h));
+  font-size: 13px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.notificationsItem__metaItem span {
+  flex: 0 0 auto;
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .notificationsItem__readBtn {
@@ -1658,7 +1735,7 @@ button.nav__notifyLink {
   color: var(--text-h);
   font-size: 14px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 
 span.field__label::after {
@@ -1667,9 +1744,9 @@ span.field__label::after {
 
 /* Блок выбора услуг: заголовок заметнее подписей групп и строк справочника */
 .field__label.field__label--servicesLead {
-  font-size: clamp(17px, 4.2vw, 20px);
+  font-size: 17px;
   font-weight: 650;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1.25;
 }
 
@@ -1893,7 +1970,7 @@ a.heroCoverStat--link:focus-visible {
   font-size: 22px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1;
 }
 
@@ -2075,7 +2152,7 @@ a.heroCoverStat--link:focus-visible {
 }
 
 .homeLandingBanner__heroTagline {
-  font-size: clamp(11px, 2.4vw, 14px);
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: color-mix(in oklab, var(--text) 80%, var(--text-h));
@@ -2158,7 +2235,7 @@ a.heroCoverStat--link:focus-visible {
 }
 
 .homeLandingBanner__mark .brandLogoLockup__tagline {
-  font-size: clamp(12px, 2.5vw, 15px);
+  font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
   color: color-mix(in oklab, var(--text) 78%, var(--text-h));
@@ -2222,7 +2299,7 @@ a.heroCoverStat--link:focus-visible {
   font-size: 21px;
   font-weight: 700;
   line-height: 1.28;
-  letter-spacing: -0.22px;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
@@ -2299,7 +2376,7 @@ a.heroCoverStat--link:focus-visible {
   font-family: var(--heading);
   font-size: 17px;
   font-weight: 650;
-  letter-spacing: -0.15px;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
@@ -2614,7 +2691,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
 .cardTitle {
   font-family: var(--heading);
   font-size: 20px;
-  letter-spacing: -0.2px;
+  letter-spacing: 0;
   line-height: 1.25;
   color: var(--text-h);
   font-weight: 650;
@@ -2705,7 +2782,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
   justify-content: center;
   font-weight: 800;
   font-size: 22px;
-  letter-spacing: -0.4px;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
@@ -2989,7 +3066,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
   font-size: 13px;
   font-weight: 650;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .eventActions {
@@ -3094,6 +3171,17 @@ summary.carPage__recsSelect::-webkit-details-marker {
   flex: 1;
   min-width: 0;
   padding-right: 48px;
+}
+
+.eventCard__head .rowItem__title {
+  font-weight: 560;
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.eventCard__head .eventMeta__km,
+.eventCard__head .eventMeta__when {
+  font-weight: 430;
 }
 
 .eventCard__expandBtn {
@@ -3304,7 +3392,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
 .rowItem__ownerPeekFallback {
   font-weight: 800;
   font-size: 14px;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   line-height: 1;
   color: var(--text-h);
 }
@@ -3375,7 +3463,7 @@ summary.carPage__recsSelect::-webkit-details-marker {
 .rowItem__ownerSummaryFallback {
   font-weight: 800;
   font-size: 15px;
-  letter-spacing: -0.35px;
+  letter-spacing: 0;
   line-height: 1;
   color: var(--text-h);
 }
@@ -3514,9 +3602,9 @@ a.rowItem__ownerGarageMainTap {
 
 .requestsCard__carTitle {
   font-weight: 650;
-  font-size: clamp(1.05rem, 2.8vw, 1.2rem);
+  font-size: 1.05rem;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   line-height: 1.2;
 }
 
@@ -3661,7 +3749,7 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 .requestsCard__ownerAvatarFallback {
   font-weight: 800;
   font-size: 17px;
-  letter-spacing: -0.35px;
+  letter-spacing: 0;
   line-height: 1;
   color: var(--text-h);
 }
@@ -3895,7 +3983,7 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   font-weight: 700;
   font-size: 0.9375rem;
   color: var(--text-h);
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   margin: 0 0 8px;
   line-height: 1.35;
 }
@@ -4659,9 +4747,9 @@ a.backNav {
   width: 100%;
   height: 100%;
   font-weight: 800;
-  font-size: clamp(0.72rem, 26%, 1.65rem);
+  font-size: 0.72rem;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: 0;
   color: var(--text-h);
   background: color-mix(in oklab, var(--bg) 62%, var(--code-bg));
 }
@@ -4669,7 +4757,7 @@ a.backNav {
 .detHero__logo span {
   color: var(--text-h);
   font-weight: 800;
-  letter-spacing: -0.4px;
+  letter-spacing: 0;
 }
 
 .garageHero__avatarFallback {
@@ -4678,7 +4766,7 @@ a.backNav {
   justify-content: center;
   font-weight: 800;
   font-size: 22px;
-  letter-spacing: -0.4px;
+  letter-spacing: 0;
   color: var(--text-h);
   background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
 }
@@ -4693,11 +4781,11 @@ a.backNav {
 /* Гараж владельца: заголовок страницы + имя поменьше */
 .garagePage__ownerName {
   margin: 8px 0 0;
-  font-size: clamp(1rem, 2.4vw, 1.2rem);
+  font-size: 1rem;
   font-weight: 650;
   line-height: 1.35;
   color: var(--text-h);
-  letter-spacing: -0.2px;
+  letter-spacing: 0;
   max-width: 52ch;
 }
 
@@ -4744,7 +4832,7 @@ a.backNav {
 }
 .garagePage__emptyCtaText {
   margin: 0 0 20px;
-  font-size: clamp(1rem, 2.4vw, 1.12rem);
+  font-size: 1rem;
   line-height: 1.55;
   color: color-mix(in oklab, var(--text-m) 92%, var(--text-h));
   text-align: center;
@@ -4809,7 +4897,7 @@ a.backNav {
 
 .garagePage--hasBanner .garageDash__name,
 .garagePage--hasBanner .garageDash__nameBtn {
-  font-size: clamp(1.32rem, 3.4vw, 1.88rem);
+  font-size: 1.32rem;
   margin-bottom: 4px;
 }
 
@@ -4946,11 +5034,11 @@ a.backNav {
 .garageDash__name,
 .garageDash__nameBtn {
   margin: 0 0 6px;
-  font-size: clamp(1.25rem, 3vw, 1.55rem);
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.2;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .garageDash__nameBtn {
@@ -5472,7 +5560,7 @@ a.btn.btn--asDisabled {
 .garageProfileCard__detAvatarFallback {
   font-weight: 800;
   font-size: 17px;
-  letter-spacing: -0.35px;
+  letter-spacing: 0;
   line-height: 1;
 }
 
@@ -5560,15 +5648,15 @@ a.garageProfileCard__avatarLink:focus-visible {
   justify-content: center;
   font-weight: 800;
   font-size: 22px;
-  letter-spacing: -0.4px;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
 .garageProfileCard__h1 {
   margin: 0;
   font-family: var(--heading);
-  font-size: clamp(1.35rem, 3.2vw, 1.75rem);
-  letter-spacing: -0.45px;
+  font-size: 1.35rem;
+  letter-spacing: 0;
   line-height: 1.2;
   color: var(--text-h);
   font-weight: 650;
@@ -5578,10 +5666,10 @@ a.garageProfileCard__avatarLink:focus-visible {
 .garageProfileCard__displayName {
   margin: 0;
   font-family: var(--heading);
-  font-size: clamp(1.5rem, 5vw, 2.45rem);
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.12;
-  letter-spacing: -0.65px;
+  letter-spacing: 0;
   color: var(--text-h);
   overflow-wrap: anywhere;
 }
@@ -5840,7 +5928,7 @@ a.garageProfileCard__linkChip:focus-visible {
   font-size: 13px;
   font-weight: 550;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.12px;
+  letter-spacing: 0;
   line-height: 1.35;
   overflow-wrap: anywhere;
   word-break: break-word;
@@ -6060,7 +6148,7 @@ a.garageProfileCard__linkChip:focus-visible {
   gap: 0 6px;
   font-size: 1.0625rem;
   line-height: 1.45;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   margin: 0 0 8px;
 }
 
@@ -6124,13 +6212,13 @@ a.garageProfileCard__linkChip:focus-visible {
 
   .garageProfileCard__h1 {
     font-size: 1.35rem;
-    letter-spacing: -0.35px;
+    letter-spacing: 0;
   }
 
   .garageProfileCard__displayName,
   .garageProfileCard__displayName--action {
-    font-size: clamp(1.35rem, 6vw, 1.85rem);
-    letter-spacing: -0.45px;
+    font-size: 1.35rem;
+    letter-spacing: 0;
   }
 
   .garageProfileCard__linkChips {
@@ -6454,7 +6542,7 @@ a.garageProfileCard__linkChip:focus-visible {
 .garageSettings__mediaHeading {
   font-size: 15px;
   font-weight: 650;
-  letter-spacing: -0.2px;
+  letter-spacing: 0;
   color: var(--text-h);
   margin: 0;
 }
@@ -6535,7 +6623,7 @@ a.garageProfileCard__linkChip:focus-visible {
   margin: 0;
   font-size: 14px;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
@@ -6636,7 +6724,7 @@ button.garageSettings__thumb:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: clamp(1.35rem, 22%, 2.25rem);
+  font-size: 1.35rem;
   opacity: 0.9;
 }
 
@@ -7305,11 +7393,11 @@ button.garageSettings__thumb:focus-visible {
 
 .authSplit__tagline {
   margin: 0;
-  font-size: clamp(1.05rem, 2.4vw, 1.2rem);
+  font-size: 1.05rem;
   font-weight: 650;
   line-height: 1.35;
   color: var(--text-h);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .authSplit__benefits {
@@ -7735,12 +7823,19 @@ button.thumb.thumb--lb:focus-visible {
 /* Значок детейлинга: нижняя строка карточки истории (владелец, записи сервиса) */
 .eventCardDetBadgeRow {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+}
+
+.eventCardDetBadgeRow__service {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
 .eventCardDetBadgeRow__text {
@@ -7762,6 +7857,13 @@ button.thumb.thumb--lb:focus-visible {
 
 .eventCardDetBadgeRow__visit {
   line-height: 1.35;
+}
+
+.eventCardDetBadgeRow__bookBtn {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding-inline: 14px;
+  white-space: nowrap;
 }
 
 .detBadge {
@@ -7821,7 +7923,7 @@ a.detBadge.detBadge--btn:active {
 .detBadge span {
   font-weight: 800;
   font-size: 12px;
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
   color: var(--text-h);
 }
 
@@ -7842,7 +7944,11 @@ a.detBadge.detBadge--btn:active {
     margin-top: 14px;
     padding-top: 14px;
     gap: 10px;
-    align-items: flex-start;
+    align-items: center;
+  }
+
+  .eventCardDetBadgeRow__service {
+    gap: 10px;
   }
 
   .eventCardDetBadgeRow__name {
@@ -8332,6 +8438,12 @@ a.thumbCard__fileDoc {
   background: color-mix(in oklab, var(--accent) 12%, var(--bg));
 }
 
+.visitFormSvc__suggestBtn--custom {
+  border-top: 1px solid var(--border);
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .visitFormSvc--disabled .visitFormSvc__suggestBtn {
   cursor: not-allowed;
   opacity: 0.55;
@@ -8339,6 +8451,48 @@ a.thumbCard__fileDoc {
 
 .visitFormSvc__chips {
   margin-top: 10px;
+}
+
+.visitReminderField {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.visitReminderField > .input {
+  flex: 1 1 180px;
+}
+
+.visitReminderField__quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.visitReminderField__quick .btn {
+  min-height: 38px;
+  padding-inline: 10px;
+}
+
+.visitReminderField__hint {
+  margin: 8px 0 0;
+  line-height: 1.45;
+}
+
+.historyCrmPrivate {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.historyCrmPrivate > * + * {
+  margin-top: 6px;
 }
 
 .visitFormSvc__meta {
@@ -9208,7 +9362,7 @@ a.btn.carPage__recsAddVisitFull,
 
   .h1 {
     font-size: 26px;
-    letter-spacing: -0.6px;
+    letter-spacing: 0;
   }
 
   .h2 {
@@ -9438,8 +9592,8 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .nav__linksScroll--partnerTools .nav__notifyBadge {
-    top: 0;
-    right: 0;
+    top: -3px;
+    right: -3px;
     min-width: 18px;
     height: 18px;
     padding: 0 4px;
@@ -9783,7 +9937,7 @@ a.btn.carPage__recsAddVisitFull,
 @media (max-width: 480px) {
   .h1 {
     font-size: 22px;
-    letter-spacing: -0.4px;
+    letter-spacing: 0;
   }
 
   .pad {
@@ -10074,7 +10228,7 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .adminPreview__h1 {
-  font-size: clamp(22px, 3vw, 28px);
+  font-size: 22px;
   margin: 0;
 }
 
@@ -10093,7 +10247,7 @@ a.btn.carPage__recsAddVisitFull,
 .adminPreview__kpiVal {
   font-size: 22px;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
   color: var(--text-h);
   margin: 6px 0 4px;
 }
@@ -10158,9 +10312,9 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .adminStatDashHighlightVal {
-  font-size: clamp(28px, 5vw, 36px);
+  font-size: 28px;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
   line-height: 1.1;
   color: var(--text-h);
   margin-bottom: 6px;
@@ -10523,7 +10677,7 @@ a.btn.carPage__recsAddVisitFull,
 
 .adminLoginPage__tagline {
   margin: 0 0 22px;
-  font-size: clamp(17px, 2.8vw, 20px);
+  font-size: 17px;
   font-weight: 650;
   line-height: 1.35;
   color: var(--text-h);
@@ -10935,6 +11089,10 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .detCrmFilter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid var(--border);
@@ -10953,6 +11111,21 @@ a.btn.carPage__recsAddVisitFull,
   border-color: color-mix(in oklab, var(--accent) 68%, var(--border));
   color: var(--text-h);
   background: color-mix(in oklab, var(--accent) 12%, var(--card));
+}
+
+.detCrmFilter__badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #15120a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .detCrm__layout {
@@ -11023,6 +11196,7 @@ a.btn.carPage__recsAddVisitFull,
 
 .detCrmRow__avatar,
 .detCrmProfile__avatar {
+  position: relative;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -11042,6 +11216,7 @@ a.btn.carPage__recsAddVisitFull,
 .detCrmProfile__avatar img {
   width: 100%;
   height: 100%;
+  border-radius: inherit;
   object-fit: cover;
 }
 
@@ -11075,10 +11250,10 @@ a.btn.carPage__recsAddVisitFull,
 
 .detCrmRow__visitDate,
 .detCrmProfile__lastVisitDate {
-  color: color-mix(in oklab, var(--text-h) 88%, var(--accent));
+  color: color-mix(in oklab, var(--text) 90%, var(--text-h));
   font-size: 14px;
   line-height: 1.25;
-  font-weight: 800;
+  font-weight: 560;
 }
 
 .detCrmRow__visitDate {
@@ -11094,6 +11269,26 @@ a.btn.carPage__recsAddVisitFull,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.detCrmRow__taskBadge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #15120a;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.detCrmRow__taskBadge--soft {
+  background: color-mix(in oklab, var(--accent) 18%, var(--card));
+  color: color-mix(in oklab, var(--text-h) 90%, var(--accent));
+  border: 1px solid color-mix(in oklab, var(--accent) 36%, var(--border));
 }
 
 .detCrm__empty,
@@ -11159,10 +11354,16 @@ a.btn.carPage__recsAddVisitFull,
   border-top: 1px solid var(--border);
 }
 
-.detCrmProfile__carTitle,
-.detCrmProfile__blockTitle {
+.detCrmProfile__carTitle {
   color: var(--text-h);
   font-weight: 800;
+}
+
+.detCrmProfile__blockTitle {
+  color: color-mix(in oklab, var(--text) 86%, var(--text-h));
+  font-size: 13px;
+  font-weight: 560;
+  line-height: 1.35;
 }
 
 .detCrmProfile__contacts,
@@ -11178,6 +11379,54 @@ a.btn.carPage__recsAddVisitFull,
   font-weight: 700;
 }
 
+.detCrmProfile__bookingRequest {
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--accent) 9%, var(--card));
+}
+
+.detCrmProfile__bookingRequestTop,
+.detCrmProfile__bookingRequestActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.detCrmProfile__bookingRequestTop {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.detCrmProfile__bookingRequestBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #15120a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.detCrmProfile__bookingRequestTitle {
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+  font-weight: 560;
+  line-height: 1.35;
+}
+
+.detCrmProfile__bookingRequestMessage {
+  margin: 8px 0 0;
+  color: var(--text-h);
+  line-height: 1.4;
+}
+
+.detCrmProfile__bookingRequestActions {
+  margin-top: 10px;
+}
+
 .detCrmProfile__actions .btn {
   flex: 1 1 150px;
 }
@@ -11186,6 +11435,23 @@ a.btn.carPage__recsAddVisitFull,
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.detCrmProfile__privateLine,
+.detCrmProfile__privateNote {
+  padding: 8px 10px;
+  border: 1px solid color-mix(in oklab, var(--accent) 26%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--accent) 7%, var(--bg));
+  color: color-mix(in oklab, var(--text) 92%, var(--text-h));
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.detCrmProfile__privateLine span,
+.detCrmProfile__privateNote span {
+  color: color-mix(in oklab, var(--text) 88%, var(--text-h));
+  font-weight: 560;
 }
 
 .detCrmVisitPhotos {
@@ -11358,6 +11624,12 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 @media (max-width: 520px) {
+  .eventCardDetBadgeRow__bookBtn {
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: 13px;
+  }
+
   .detCrm__stats {
     display: none;
   }

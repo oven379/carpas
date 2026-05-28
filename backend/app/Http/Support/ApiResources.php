@@ -109,6 +109,7 @@ class ApiResources
             'detailingName' => $c->detailing?->name ?? '',
             'detailingLogo' => MediaStorage::publicUrl($c->detailing?->logo ?? null),
             'detailingWebsite' => $c->detailing?->website ?? '',
+            'detailingPhone' => trim((string) ($c->detailing?->phone ?? '')),
             'ownerEmail' => $c->owner?->email ?? '',
             'ownerName' => trim((string) ($c->owner?->name ?? '')),
             'ownerAccountPhone' => trim((string) ($c->owner?->phone ?? '')),
@@ -140,7 +141,7 @@ class ApiResources
         ];
     }
 
-    public static function event(CarEvent $e): array
+    public static function event(CarEvent $e, bool $includePrivateCrmFields = false): array
     {
         $e->loadMissing(['detailing']);
         $svc = $e->services ?? [];
@@ -172,7 +173,7 @@ class ApiResources
         $partnerName = trim((string) ($e->service_partner_name ?? ''));
         $partnerLogo = trim((string) ($e->service_partner_logo ?? ''));
 
-        return [
+        $payload = [
             'id' => (string) $e->id,
             'detailingId' => $e->detailing_id ? (string) $e->detailing_id : '',
             'carId' => (string) $e->car_id,
@@ -196,7 +197,17 @@ class ApiResources
             'detailingLogo' => $isService
                 ? MediaStorage::publicUrl($e->detailing?->logo ?? ($partnerLogo !== '' ? $partnerLogo : null))
                 : '',
+            'detailingPhone' => $isService
+                ? trim((string) ($e->detailing?->phone ?? ''))
+                : '',
         ];
+
+        if ($includePrivateCrmFields) {
+            $payload['internalNote'] = $e->internal_note ?? '';
+            $payload['nextContactAt'] = optional($e->next_contact_at)->toISOString();
+        }
+
+        return $payload;
     }
 
     public static function doc(CarDoc $d): array
