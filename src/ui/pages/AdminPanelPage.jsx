@@ -11,6 +11,7 @@ import { publicDetailingPath } from '../serviceLinkUi.js'
 
 const NAV = [
   { id: 'dash', label: 'Статистика' },
+  { id: 'operations', label: 'Заявки и события', badgeTone: 'urgent', badgeFrom: (o) => o?.operations?.adminNotificationsUnread ?? 0 },
   { id: 'support', label: 'Поддержка', badgeTone: 'urgent', badgeFrom: (o) => o?.support?.awaitingAdminReply ?? 0 },
   { id: 'partners', label: 'Партнёры и заявки', badgeTone: 'pending', badgeFrom: (o) => o?.partners?.pendingVerification ?? 0 },
   { id: 'users', label: 'Пользователи' },
@@ -162,6 +163,7 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
   const p = overview.partners || {}
   const r = overview.registry || {}
   const push = overview.push || {}
+  const ops = overview.operations || {}
   const months = Array.isArray(overview.chart?.months) ? overview.chart.months : []
   const monthLabels = months.map((m) => m.label || m.key || '—')
   const chartSeries = [
@@ -191,6 +193,8 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
     { label: 'Автомобилей в базе', value: String(r.carsTotal ?? 0), hint: '' },
     { label: 'Событий в истории за 30 дн.', value: String(r.carEventsLast30Days ?? 0), hint: 'визиты и др.' },
     { label: 'Push: устройств', value: String(pushTotal), hint: `владельцы ${push.deviceTokensOwners ?? 0} · партнёры ${push.deviceTokensDetailings ?? 0}` },
+    { label: 'Открытых заявок на запись', value: String(ops.bookingOpen ?? 0), hint: `новых ${ops.bookingNew ?? 0}` },
+    { label: 'CRM-напоминаний без прочтения', value: String(ops.nextContactUnread ?? 0), hint: '' },
   ]
 
   return (
@@ -221,6 +225,11 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
             <span className="muted small">токенов на устройствах</span>
             {fcmOk || expoOk ? <Pill>Push настроен</Pill> : <Pill tone="accent">Push не настроен</Pill>}
           </div>
+        </Card>
+        <Card className={`card pad adminStatDashHighlight${Number(ops.adminNotificationsUnread ?? 0) > 0 ? ' adminStatDashHighlight--attention' : ''}`}>
+          <div className="adminStatDashHighlightLabel">События CRM</div>
+          <div className="adminStatDashHighlightVal">{ops.adminNotificationsUnread ?? 0}</div>
+          <div className="muted small adminStatDashHighlightHint">заявки и напоминания</div>
         </Card>
       </div>
 
@@ -472,6 +481,7 @@ function PanelSupport({ onTicketPipelineChanged }) {
 function PanelPush() {
   const token = getAdminApiToken()
   const [stats, setStats] = useState(null)
+  const [devices, setDevices] = useState([])
   const [statsLoading, setStatsLoading] = useState(true)
   const [statsErr, setStatsErr] = useState('')
   const [settingsBusy, setSettingsBusy] = useState(false)
@@ -493,6 +503,8 @@ function PanelPush() {
     if (!hasAdminApiToken()) return
     const s = await getApi().adminPushStats(getAdminApiToken())
     setStats(s && typeof s === 'object' ? s : null)
+    const deviceRes = await getApi().adminPushDevices(getAdminApiToken())
+    setDevices(deviceRes && typeof deviceRes === 'object' && Array.isArray(deviceRes.items) ? deviceRes.items : [])
   }, [])
 
   const updatePushSettings = useCallback(
@@ -846,6 +858,305 @@ function PanelPush() {
             {testBusy ? 'Проверка…' : 'Отправить тест'}
           </Button>
         </div>
+      </Card>
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Устройства
+        </h2>
+        <p className="muted small" style={{ marginTop: 0, lineHeight: 1.55 }}>
+          Последние зарегистрированные устройства приложения. Старые токены можно удалить вручную, если пользователь давно не
+          открывал приложение или push возвращает ошибку.
+        </p>
+        {devices.length === 0 ? <p className="muted small">Устройств пока нет.</p> : null}
+        {devices.length > 0 ? (
+          <div className="adminPreview__tableWrap">
+            <table className="adminPreview__table">
+              <thead>
+                <tr>
+                  <th>Аккаунт</th>
+                  <th>Тип</th>
+                  <th>Платформа</th>
+                  <th>Токен</th>
+                  <th>Обновлён</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {devices.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <div>{row.account?.name || row.account?.email || '—'}</div>
+                      <div className="muted small">{row.account?.phone || row.account?.city || row.account?.email || '—'}</div>
+                    </td>
+                    <td>{row.audience === 'owner' ? 'Владелец' : 'Детейлинг'}</td>
+                    <td>{row.platform || '—'}</td>
+                    <td>
+                      <code className="adminMono">{row.tokenPreview || '—'}</code>
+                    </td>
+                    <td className="muted small">
+                      {formatAdminDate(row.updatedAt)}
+                      {row.isStale ? <Pill tone="accent">старый</Pill> : null}
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="outline"
+                        onClick={() =>
+                          void (async () => {
+                            setStatsErr('')
+                            try {
+                              await getApi().adminPushDeviceDelete(getAdminApiToken(), row.id)
+                              await loadStats()
+                            } catch (e) {
+                              setStatsErr(formatHttpErrorMessage(e))
+                            }
+                          })()
+                        }
+                      >
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+    </div>
+  )
+}
+
+function formatAdminDate(value) {
+  if (!value) return '—'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return date.toLocaleString('ru-RU')
+}
+
+function adminNotificationKindLabel(kind, data) {
+  if (data?.requestTypeLabel) return String(data.requestTypeLabel)
+  if (kind === 'owner_booking_request') return 'Запись от владельца'
+  if (kind === 'crm_next_contact') return 'Время от мастера'
+  if (kind === 'admin_broadcast') return 'Рассылка'
+  if (kind === 'admin_test') return 'Тест push'
+  return kind || 'Событие'
+}
+
+function PanelOperations() {
+  const token = getAdminApiToken()
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+
+  const reload = useCallback(async () => {
+    if (!hasAdminApiToken()) return
+    const res = await getApi().adminOperations(getAdminApiToken())
+    setData(res && typeof res === 'object' ? res : null)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    if (!hasAdminApiToken()) {
+      setLoading(false)
+      setData(null)
+      return undefined
+    }
+    setLoading(true)
+    setErr('')
+    ;(async () => {
+      try {
+        await reload()
+      } catch (e) {
+        if (!cancelled) setErr(formatHttpErrorMessage(e))
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [token, reload])
+
+  if (!hasAdminApiToken()) {
+    return (
+      <Card className="card pad adminExplainCard">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 10 }}>
+          Заявки и события
+        </h2>
+        <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+          Здесь будет общий операционный экран: заявки владельцев на запись, CRM-напоминания, диагностика планировщика и журнал действий администратора.
+        </p>
+      </Card>
+    )
+  }
+
+  const summary = data?.summary || {}
+  const bookings = Array.isArray(data?.bookings) ? data.bookings : []
+  const notifications = Array.isArray(data?.notifications) ? data.notifications : []
+  const logs = Array.isArray(data?.logs) ? data.logs : []
+  const scheduler = data?.scheduler || {}
+
+  return (
+    <div className="adminPreview__stack">
+      <Card className="card pad adminExplainCard">
+        <div className="row spread gap wrap" style={{ alignItems: 'flex-start' }}>
+          <div>
+            <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 8 }}>
+              Операционный контроль
+            </h2>
+            <p className="muted small" style={{ margin: 0, lineHeight: 1.55 }}>
+              Один экран для входящих событий: запись от владельца, рекомендованное время контакта, системные push-события и журнал действий админки.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            data-variant="outline"
+            disabled={loading}
+            onClick={() =>
+              void (async () => {
+                setErr('')
+                setLoading(true)
+                try {
+                  await reload()
+                } catch (e) {
+                  setErr(formatHttpErrorMessage(e))
+                } finally {
+                  setLoading(false)
+                }
+              })()
+            }
+          >
+            Обновить
+          </button>
+        </div>
+      </Card>
+
+      <div className="adminOpsGrid">
+        {[
+          ['Открытые заявки', summary.bookingOpen ?? 0, `новых ${summary.bookingNew ?? 0}`],
+          ['Напоминания CRM', summary.nextContactUnread ?? 0, 'не прочитаны'],
+          ['Без уведомления', summary.dueWithoutNotification ?? 0, 'просроченные контакты'],
+          ['Push-токены', summary.pushTokens ?? 0, `старше 30 дней: ${summary.pushTokensStale30d ?? 0}`],
+        ].map(([label, value, hint]) => (
+          <Card key={label} className="card pad adminOpsMetric">
+            <span className="adminOpsMetric__label">{label}</span>
+            <strong>{value}</strong>
+            <span className="muted small">{hint}</span>
+          </Card>
+        ))}
+      </div>
+
+      {err ? (
+        <p className="adminSupportErr small" role="alert">
+          {err}
+        </p>
+      ) : null}
+      {loading ? <p className="muted small">Загрузка…</p> : null}
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Планировщик напоминаний
+        </h2>
+        <div className="adminOpsScheduler">
+          <span>Последний запуск: {formatAdminDate(scheduler.lastRunAt)}</span>
+          <span>Создано уведомлений: {scheduler.lastCreated ?? '—'}</span>
+          <span>Просрочено без уведомления: {scheduler.dueWithoutNotification ?? 0}</span>
+        </div>
+      </Card>
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Заявки на запись
+        </h2>
+        {bookings.length === 0 ? <p className="muted small">Заявок пока нет.</p> : null}
+        {bookings.length > 0 ? (
+          <div className="adminPreview__tableWrap">
+            <table className="adminPreview__table">
+              <thead>
+                <tr>
+                  <th>Статус</th>
+                  <th>Клиент</th>
+                  <th>Авто</th>
+                  <th>Детейлинг</th>
+                  <th>Создана</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bookings.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <Pill tone={row.status === 'closed' ? undefined : 'accent'}>{row.status}</Pill>
+                    </td>
+                    <td>
+                      <div>{row.owner?.name || row.owner?.email || '—'}</div>
+                      <div className="muted small">{row.owner?.phone || row.owner?.email || '—'}</div>
+                    </td>
+                    <td>
+                      <div>{row.car?.name || '—'}</div>
+                      <div className="muted small">{row.car?.plate || row.car?.vin || '—'}</div>
+                    </td>
+                    <td>
+                      <div>{row.detailing?.name || '—'}</div>
+                      <div className="muted small">{row.detailing?.city || row.detailing?.email || '—'}</div>
+                    </td>
+                    <td className="muted small">{formatAdminDate(row.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+      </Card>
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Последние уведомления
+        </h2>
+        {notifications.length === 0 ? <p className="muted small">Уведомлений пока нет.</p> : null}
+        <ul className="adminOpsList">
+          {notifications.map((row) => {
+            const dataRow = row.data && typeof row.data === 'object' ? row.data : {}
+            return (
+              <li key={row.id} className="adminOpsItem">
+                <div className="adminOpsItem__top">
+                  <Pill tone={row.readAt ? undefined : 'accent'}>{adminNotificationKindLabel(row.kind, dataRow)}</Pill>
+                  <span className="muted small">{formatAdminDate(row.createdAt)}</span>
+                </div>
+                <strong>{row.title}</strong>
+                <p className="muted small">{row.body}</p>
+                <div className="adminOpsMeta">
+                  <span>Клиент: {dataRow.ownerName || row.owner?.name || row.owner?.email || '—'}</span>
+                  <span>Авто: {dataRow.carName || '—'}</span>
+                  <span>Телефон: {dataRow.ownerPhone || row.owner?.phone || '—'}</span>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      </Card>
+
+      <Card className="card pad">
+        <h2 className="h2 adminPreview__panelTitle" style={{ marginBottom: 12 }}>
+          Журнал действий администратора
+        </h2>
+        {logs.length === 0 ? <p className="muted small">Пока нет действий.</p> : null}
+        <ul className="adminOpsList">
+          {logs.map((row) => (
+            <li key={row.id} className="adminOpsItem adminOpsItem--compact">
+              <div className="row spread gap wrap">
+                <strong>{row.action}</strong>
+                <span className="muted small">{formatAdminDate(row.createdAt)}</span>
+              </div>
+              <div className="muted small">
+                {row.targetType || '—'} · {row.targetId || '—'}
+              </div>
+            </li>
+          ))}
+        </ul>
       </Card>
     </div>
   )
@@ -1585,6 +1896,7 @@ export default function AdminPanelPage() {
       />
     )
   } else if (tab === 'support') body = <PanelSupport onTicketPipelineChanged={reloadOverview} />
+  else if (tab === 'operations') body = <PanelOperations />
   else if (tab === 'partners') body = <PanelPartners onPartnersPipelineChanged={reloadOverview} />
   else if (tab === 'users') body = <PanelUsers />
   else if (tab === 'cars') body = <PanelCars />

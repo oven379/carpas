@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AppNotification;
+use App\Models\AppSetting;
 use App\Models\CarEvent;
 use App\Services\InternalNotificationService;
 use Illuminate\Console\Command;
@@ -73,6 +74,16 @@ class SendDueNextContactNotifications extends Command
             });
 
         $this->info(($dryRun ? 'Due notifications: ' : 'Created notifications: ').$created);
+        AppSetting::query()->updateOrCreate(
+            ['key' => 'next_contact_scheduler'],
+            [
+                'value' => [
+                    'last_run_at' => now()->toIso8601String(),
+                    'created' => $created,
+                    'dry_run' => $dryRun,
+                ],
+            ],
+        );
 
         return self::SUCCESS;
     }

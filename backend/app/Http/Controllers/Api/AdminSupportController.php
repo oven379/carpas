@@ -7,6 +7,7 @@ use App\Application\Admin\AdminPartnersDirectory;
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
 use App\Http\Support\PendingOwnerPool;
+use App\Models\AdminActionLog;
 use App\Models\Detailing;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
@@ -73,6 +74,16 @@ class AdminSupportController extends Controller
         $ticket->update([
             'admin_reply' => trim((string) $data['message']),
             'admin_replied_at' => now(),
+        ]);
+        AdminActionLog::query()->create([
+            'action' => 'support_ticket_replied',
+            'target_type' => 'support_ticket',
+            'target_id' => (string) $ticket->id,
+            'payload' => [
+                'author_role' => $ticket->author_role,
+                'owner_id' => $ticket->owner_id,
+                'detailing_id' => $ticket->detailing_id,
+            ],
         ]);
 
         return response()->json($this->serializeAdmin($ticket->fresh(['owner:id,email,garage_slug,is_premium', 'detailing:id,name,email'])));
@@ -185,6 +196,15 @@ class AdminSupportController extends Controller
         $d->save();
         $d->tokens()->delete();
         $d->refresh();
+        AdminActionLog::query()->create([
+            'action' => 'partner_registration_approved',
+            'target_type' => 'detailing',
+            'target_id' => (string) $d->id,
+            'payload' => [
+                'email' => $email,
+                'name' => $d->name,
+            ],
+        ]);
 
         return response()->json([
             'ok' => true,

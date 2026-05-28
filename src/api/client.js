@@ -685,6 +685,21 @@ export function createApiClient() {
       })
     },
 
+    async adminOperations(adminToken) {
+      return await req('admin/support/operations', { token: adminToken })
+    },
+
+    async adminPushDevices(adminToken) {
+      return await req('admin/support/push/devices', { token: adminToken })
+    },
+
+    async adminPushDeviceDelete(adminToken, deviceId) {
+      return await req(`admin/support/push/devices/${encodeURIComponent(String(deviceId))}`, {
+        method: 'DELETE',
+        token: adminToken,
+      })
+    },
+
     async adminPushStats(adminToken) {
       return await req('admin/support/push/stats', { token: adminToken })
     },

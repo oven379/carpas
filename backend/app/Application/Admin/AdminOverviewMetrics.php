@@ -7,7 +7,9 @@ use App\Models\Car;
 use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\DevicePushToken;
+use App\Models\AppNotification;
 use App\Models\Owner;
+use App\Models\ServiceBookingRequest;
 use App\Models\SupportTicket;
 use App\Services\FcmV1Client;
 use App\Services\PushSettings;
@@ -102,6 +104,20 @@ final class AdminOverviewMetrics
                 'fcmConfigured' => $this->fcm->isConfigured(),
                 'expoConfigured' => $this->fcm->isExpoConfigured(),
                 'settings' => $this->pushSettings->get(),
+            ],
+            'operations' => [
+                'bookingOpen' => ServiceBookingRequest::query()
+                    ->whereIn('status', [ServiceBookingRequest::STATUS_NEW, ServiceBookingRequest::STATUS_IN_WORK])
+                    ->count(),
+                'bookingNew' => ServiceBookingRequest::query()->where('status', ServiceBookingRequest::STATUS_NEW)->count(),
+                'nextContactUnread' => AppNotification::query()
+                    ->where('kind', 'crm_next_contact')
+                    ->whereNull('read_at')
+                    ->count(),
+                'adminNotificationsUnread' => AppNotification::query()
+                    ->whereIn('kind', ['owner_booking_request', 'crm_next_contact'])
+                    ->whereNull('read_at')
+                    ->count(),
             ],
             'chart' => [
                 'months' => $chartMonths,

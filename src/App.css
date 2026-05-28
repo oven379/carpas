@@ -10260,7 +10260,7 @@ a.btn.carPage__recsAddVisitFull,
 
 .adminStatDashHighlights {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -10480,6 +10480,95 @@ a.btn.carPage__recsAddVisitFull,
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.adminOpsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.adminOpsMetric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 104px;
+}
+
+.adminOpsMetric__label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.adminOpsMetric strong {
+  color: var(--text-h);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.adminOpsScheduler,
+.adminOpsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adminOpsScheduler span,
+.adminOpsMeta span {
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--border));
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.25;
+  padding: 7px 10px;
+}
+
+.adminOpsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.adminOpsItem {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--code-bg) 20%, var(--bg));
+  padding: 12px;
+}
+
+.adminOpsItem--compact {
+  padding: 10px 12px;
+}
+
+.adminOpsItem__top {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.adminOpsItem p {
+  margin: 6px 0 10px;
+}
+
+@media (max-width: 960px) {
+  .adminOpsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .adminOpsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .adminPushSettings {

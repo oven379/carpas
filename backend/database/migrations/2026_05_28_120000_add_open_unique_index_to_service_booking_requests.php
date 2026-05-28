@@ -14,7 +14,7 @@ return new class extends Migration
             "order by created_at desc, id desc".
             ") as rn from service_booking_requests where status in ('new', 'in_work')".
             ") update service_booking_requests set status = 'closed', ".
-            "closed_at = coalesce(closed_at, now()), updated_at = now() ".
+            "closed_at = coalesce(closed_at, CURRENT_TIMESTAMP), updated_at = CURRENT_TIMESTAMP ".
             "where id in (select id from ranked where rn > 1)"
         );
 

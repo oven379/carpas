@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminActionLog;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
 use App\Models\Owner;
@@ -59,9 +60,17 @@ class AdminPushController extends Controller
             'broadcast_enabled' => ['sometimes', 'boolean'],
         ]);
 
+        $settings = $this->pushSettings->update($data);
+        AdminActionLog::query()->create([
+            'action' => 'push_settings_updated',
+            'target_type' => 'push_settings',
+            'target_id' => 'push',
+            'payload' => $data,
+        ]);
+
         return response()->json([
             'ok' => true,
-            'settings' => $this->pushSettings->update($data),
+            'settings' => $settings,
         ]);
     }
 
@@ -127,6 +136,12 @@ class AdminPushController extends Controller
                 'message' => 'Нет зарегистрированных устройств.',
             ];
             $this->pushSettings->rememberResult($result);
+            AdminActionLog::query()->create([
+                'action' => 'push_broadcast_sent',
+                'target_type' => 'push_broadcast',
+                'target_id' => $data['audience'],
+                'payload' => $result,
+            ]);
 
             return response()->json([
                 'ok' => true,
@@ -147,6 +162,12 @@ class AdminPushController extends Controller
             'errors' => $result['errors'],
         ];
         $this->pushSettings->rememberResult($payload);
+        AdminActionLog::query()->create([
+            'action' => 'push_broadcast_sent',
+            'target_type' => 'push_broadcast',
+            'target_id' => $data['audience'],
+            'payload' => $payload,
+        ]);
 
         return response()->json([
             'ok' => true,
@@ -207,6 +228,12 @@ class AdminPushController extends Controller
                 'message' => 'У аккаунта нет зарегистрированных устройств.',
             ];
             $this->pushSettings->rememberResult($payload);
+            AdminActionLog::query()->create([
+                'action' => 'push_test_sent',
+                'target_type' => $data['audience'],
+                'target_id' => $data['email'],
+                'payload' => $payload,
+            ]);
 
             return response()->json([
                 'ok' => true,
@@ -226,6 +253,20 @@ class AdminPushController extends Controller
             'failed' => $result['failed'],
             'internal_created' => 1,
             'errors' => $result['errors'],
+        ]);
+        AdminActionLog::query()->create([
+            'action' => 'push_test_sent',
+            'target_type' => $data['audience'],
+            'target_id' => $data['email'],
+            'payload' => [
+                'type' => 'test',
+                'audience' => $data['audience'],
+                'email' => $data['email'],
+                'sent' => $result['sent'],
+                'failed' => $result['failed'],
+                'internal_created' => 1,
+                'errors' => $result['errors'],
+            ],
         ]);
 
         return response()->json([

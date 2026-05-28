@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\OwnerCarDocController;
 use App\Http\Controllers\Api\OwnerCarEventController;
 use App\Http\Controllers\Api\OwnerCarShareController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\AdminOperationsController;
 use App\Http\Controllers\Api\AdminPushController;
 use App\Http\Controllers\Api\AdminRegistryController;
 use App\Http\Controllers\Api\AdminSupportController;
@@ -49,6 +50,10 @@ Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
         ->middleware('throttle:60,1');
     Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
+    Route::get('/admin/support/operations', [AdminOperationsController::class, 'index']);
+    Route::get('/admin/support/push/devices', [AdminOperationsController::class, 'pushDevices']);
+    Route::delete('/admin/support/push/devices/{id}', [AdminOperationsController::class, 'deletePushDevice'])
+        ->middleware('throttle:60,1');
     Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);
     Route::patch('/admin/support/push/settings', [AdminPushController::class, 'updateSettings']);
     Route::post('/admin/support/push/test', [AdminPushController::class, 'sendTest'])
