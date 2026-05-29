@@ -4,7 +4,7 @@ import { CABINET_META_DESCRIPTION } from './seoConstants.js'
 
 /**
  * Мета по умолчанию для кабинета, авторизации и служебных маршрутов (noindex).
- * Публичные /, /d/*, /g/*, /share/* задают свой <Seo> на странице.
+ * Публичные /, /d/*, /share/* задают свой <Seo> на странице.
  */
 export function CabinetRouteSeo() {
   const { pathname } = useLocation()

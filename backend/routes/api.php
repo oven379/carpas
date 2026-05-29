@@ -140,6 +140,7 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::post('/detailings/me/device-push-token', [DevicePushTokenController::class, 'storeDetailing']);
     Route::delete('/detailings/me/device-push-token', [DevicePushTokenController::class, 'destroyDetailing']);
     Route::get('/detailings/crm/clients', [DetailingCrmController::class, 'clients']);
+    Route::patch('/detailings/crm/clients/{carId}/note', [DetailingCrmController::class, 'updateClientNote']);
     Route::post('/detailings/crm/clients/{carId}/push', [DetailingCrmController::class, 'sendOwnerPush']);
     Route::patch('/detailings/service-booking-requests/{id}', [ServiceBookingRequestController::class, 'updateDetailing']);
 
@@ -161,10 +162,6 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::get('/cars/{carId}/docs', [CarDocController::class, 'index']);
     Route::post('/cars/{carId}/docs', [CarDocController::class, 'store']);
     Route::delete('/docs/{id}', [CarDocController::class, 'destroy']);
-
-    Route::post('/cars/{carId}/shares', [CarShareController::class, 'store']);
-    Route::get('/cars/{carId}/shares', [CarShareController::class, 'index']);
-    Route::delete('/shares/{token}', [CarShareController::class, 'revoke']);
 
     Route::get('/claims/inbox', [CarClaimController::class, 'inbox']);
     Route::patch('/claims/{id}', [CarClaimController::class, 'review']);

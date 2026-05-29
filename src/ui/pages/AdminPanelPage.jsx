@@ -264,7 +264,7 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
 function formatSupportFrom(f) {
   if (!f || typeof f !== 'object') return '—'
   if (f.role === 'owner') {
-    return `Владелец · ${f.email || '—'}${f.garage_slug ? ` · публичный гараж: ${f.garage_slug}` : ''}${f.is_premium ? ' · в аккаунте: Premium' : ''}`
+    return `Владелец · ${f.email || '—'}${f.is_premium ? ' · в аккаунте: Premium' : ''}`
   }
   if (f.role === 'detailing') {
     return `Партнёр · ${f.name || '—'} · ${f.email || '—'}`
@@ -1338,13 +1338,6 @@ function PanelUsers() {
               <li>Обращений в поддержку: {st.supportTicketsTotal ?? 0}</li>
               <li>Без ответа администратора: {st.supportTicketsAwaitingAdminReply ?? 0}</li>
             </ul>
-            {detail.owner.garageSlug ? (
-              <div style={{ marginTop: 14 }}>
-                <Link className="btn" data-variant="ghost" to={`/g/${encodeURIComponent(detail.owner.garageSlug)}`}>
-                  Публичный гараж
-                </Link>
-              </div>
-            ) : null}
           </div>
         ) : null}
       </AdminDetailModal>

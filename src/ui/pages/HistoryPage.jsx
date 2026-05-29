@@ -543,6 +543,7 @@ export default function HistoryPage() {
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  const [draftSaveNotice, setDraftSaveNotice] = useState('')
   const minMileageKmForVisitForm = useMemo(
     () => (car ? resolveMinMileageKmForVisitForm(car, events, editingId) : 0),
     [car, events, editingId],
@@ -555,6 +556,7 @@ export default function HistoryPage() {
   const historyListTopRef = useRef(null)
   const initFormKeyRef = useRef('')
   const autosaveVisitDraftKeyRef = useRef('')
+  const draftSaveNoticeTimerRef = useRef(null)
   const visitPhotosInputId = useId()
   const visitPublicConsentId = useId()
   const visitPhotosInputRef = useRef(null)
@@ -570,6 +572,19 @@ export default function HistoryPage() {
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
+  }, [])
+  const showDraftSavedNotice = useCallback((message = 'Черновик сохранён') => {
+    if (draftSaveNoticeTimerRef.current) window.clearTimeout(draftSaveNoticeTimerRef.current)
+    setDraftSaveNotice(message)
+    draftSaveNoticeTimerRef.current = window.setTimeout(() => {
+      setDraftSaveNotice('')
+      draftSaveNoticeTimerRef.current = null
+    }, 3200)
+  }, [])
+  useEffect(() => {
+    return () => {
+      if (draftSaveNoticeTimerRef.current) window.clearTimeout(draftSaveNoticeTimerRef.current)
+    }
   }, [])
   const isWithinEditWindow = useCallback(
     (e) => {
@@ -872,6 +887,7 @@ export default function HistoryPage() {
         setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
       }
       invalidateRepo()
+      showDraftSavedNotice('Черновик сохранён. Можно продолжить позже.')
       closeVisitFormInUrl()
       if (from) nav(from)
     } catch (e) {
@@ -893,6 +909,7 @@ export default function HistoryPage() {
         .then((evt) => {
           if (!evt?.id) return
           setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
+          showDraftSavedNotice()
         })
         .catch(() => {
           autosaveVisitDraftKeyRef.current = ''
@@ -919,6 +936,7 @@ export default function HistoryPage() {
     buildVisitPayload,
     r,
     setEvents,
+    showDraftSavedNotice,
   ])
 
   if ((mode === 'owner' || mode === 'detailing') && loading) {
@@ -1529,6 +1547,15 @@ export default function HistoryPage() {
               {readonlyFormNotice ? (
                 <div className="visitFormReadonlyNotice muted small" style={{ marginTop: 6 }}>
                   {readonlyFormNotice}
+                </div>
+              ) : null}
+              {(mode === 'owner' || mode === 'detailing') && editingEvent?.isDraft && !formLocked ? (
+                <div
+                  className={`visitDraftSaveNotice${draftSaveNotice ? ' visitDraftSaveNotice--visible' : ''}`}
+                  role="status"
+                  aria-live="polite"
+                >
+                  {draftSaveNotice || 'Черновик сохраняется автоматически'}
                 </div>
               ) : null}
               <div className="formGrid historyFormGrid">

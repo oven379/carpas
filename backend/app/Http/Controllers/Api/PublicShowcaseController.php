@@ -268,57 +268,8 @@ class PublicShowcaseController extends Controller
         ]);
     }
 
-    /**
-     * Партнёрский детейлинг, у которого в кабинете есть авто этого владельца, видит полный ответ
-     * даже если garage_private — для анонимов страница закрыта.
-     */
-    private function partnerDetailingLinkedToOwnerFromBearer(Request $request, Owner $owner): ?Detailing
-    {
-        $raw = $request->bearerToken();
-        if (! is_string($raw) || trim($raw) === '') {
-            return null;
-        }
-        $pat = PersonalAccessToken::findToken($raw);
-        if (! $pat || ! $pat->tokenable instanceof Detailing) {
-            return null;
-        }
-        $d = $pat->tokenable;
-        $linked = Car::query()
-            ->where('detailing_id', $d->id)
-            ->where('owner_id', $owner->id)
-            ->exists();
-
-        return $linked ? $d : null;
-    }
-
     public function ownerGarage(Request $request, $slug)
     {
-        $s = mb_strtolower(trim((string) $slug));
-        $owner = Owner::query()->whereRaw('lower(trim(garage_slug)) = ?', [$s])->firstOrFail();
-        $carsCount = Car::query()->where('owner_id', $owner->id)->count();
-
-        $ownerPayload = ApiResources::owner($owner);
-        unset($ownerPayload['email']);
-
-        $linkedPartner = $this->partnerDetailingLinkedToOwnerFromBearer($request, $owner);
-        $hideFromPublic = (bool) $owner->garage_private && $linkedPartner === null;
-
-        if ($hideFromPublic) {
-            return response()->json([
-                'owner' => $ownerPayload,
-                'garagePrivate' => true,
-                'carsCount' => $carsCount,
-                'cars' => [],
-            ]);
-        }
-
-        $cars = Car::query()->where('owner_id', $owner->id)->with('owner')->orderByDesc('updated_at')->get();
-
-        return response()->json([
-            'owner' => $ownerPayload,
-            'garagePrivate' => false,
-            'carsCount' => $cars->count(),
-            'cars' => $cars->map(fn ($c) => ApiResources::car($c))->values(),
-        ]);
+        abort(404);
     }
 }

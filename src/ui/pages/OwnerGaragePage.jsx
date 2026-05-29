@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
@@ -96,27 +96,8 @@ export default function OwnerGaragePage() {
   const [ownerClaims, setOwnerClaims] = useState([])
   /** События по авто — одна загрузка на страницу (вкладка визитов и сетка), без второго listEvents */
   const [enrichedRows, setEnrichedRows] = useState(null)
-  const [copyHint, setCopyHint] = useState('')
   const [garageMainTab, setGarageMainTab] = useState('cars')
   const [primaryServicePhone, setPrimaryServicePhone] = useState('')
-
-  const slug = String(owner?.garageSlug || '').trim()
-  const publicUrl = useMemo(() => {
-    if (typeof window === 'undefined' || !slug) return ''
-    return `${window.location.origin}/g/${slug}`
-  }, [slug])
-
-  const copyPublicUrl = useCallback(async () => {
-    if (!publicUrl) return
-    try {
-      await navigator.clipboard.writeText(publicUrl)
-      setCopyHint('Ссылка скопирована')
-      window.setTimeout(() => setCopyHint(''), 2200)
-    } catch {
-      setCopyHint('Не удалось скопировать')
-      window.setTimeout(() => setCopyHint(''), 2500)
-    }
-  }, [publicUrl])
 
   const ownerEmail = String(owner?.email || '').trim()
 
@@ -303,8 +284,8 @@ export default function OwnerGaragePage() {
                 Настройки гаража сохранены
               </div>
               <p className="muted small" style={{ margin: '8px 0 0', maxWidth: '58ch', lineHeight: 1.5 }}>
-                Публичная витрина гаража управляется в настройках: режим «Выйти на улицу» показывает
-                заполненные контакты и авто; «Остаться в гараже» закрывает страницу для гостей.
+                Профиль гаража обновлён. Гараж остаётся личным кабинетом владельца; публично можно открыть только отдельную
+                историю авто по ссылке, которую вы создаёте вручную.
               </p>
             </div>
             <div className="row gap wrap detPublicSetupBanner__actions">
@@ -318,7 +299,7 @@ export default function OwnerGaragePage() {
                 </SupportButton>
               )}
               <Link className="btn" data-variant="outline" to="/garage/settings">
-                Изменить улицу
+                Изменить кабинет
               </Link>
               <button
                 type="button"
@@ -401,52 +382,18 @@ export default function OwnerGaragePage() {
                 {hasGarageBanner ? (
                   <h1 className="visuallyHidden">Гараж</h1>
                 ) : (
-                  <div id="owner-garage-public-hint" className="row gap wrap align-center" style={{ marginBottom: 6 }}>
-                    <h1 className="garageDash__garageTitle h2" style={{ margin: 0 }}>
-                      Гараж
-                    </h1>
-                    {publicUrl ? (
-                      <ServiceHint scopeId="owner-garage-public-hint" variant="compact" label="Справка: публичная ссылка">
-                        <p className="serviceHint__panelText">
-                          Нажмите на имя ниже, чтобы скопировать ссылку на улицу гостям.
-                        </p>
-                      </ServiceHint>
-                    ) : null}
-                  </div>
+                  <h1 className="garageDash__garageTitle h2" style={{ margin: '0 0 6px' }}>
+                    Гараж
+                  </h1>
                 )}
                 <div
-                  id={hasGarageBanner && publicUrl ? 'owner-garage-public-hint' : undefined}
                   className={`row gap wrap align-center${hasGarageBanner ? ' garageDash__nameRow' : ''}`}
                   style={hasGarageBanner ? { marginBottom: 8 } : undefined}
                 >
-                  {publicUrl ? (
-                    <button
-                      type="button"
-                      className="garageDash__nameBtn"
-                      onClick={() => copyPublicUrl()}
-                      title={`Скопировать ссылку: ${publicUrl}`}
-                      aria-label="Скопировать ссылку на публичную улицу"
-                    >
-                      {displayName}
-                    </button>
-                  ) : (
-                    <h2 className="garageDash__name" style={{ margin: hasGarageBanner ? 0 : undefined }}>
-                      {displayName}
-                    </h2>
-                  )}
-                  {hasGarageBanner && publicUrl ? (
-                    <ServiceHint scopeId="owner-garage-public-hint" variant="compact" label="Справка: публичная ссылка">
-                      <p className="serviceHint__panelText">
-                        Нажмите на имя, чтобы скопировать ссылку на улицу гостям.
-                      </p>
-                    </ServiceHint>
-                  ) : null}
+                  <h2 className="garageDash__name" style={{ margin: hasGarageBanner ? 0 : undefined }}>
+                    {displayName}
+                  </h2>
                 </div>
-                {copyHint ? (
-                  <p className="muted small garageDash__copyHint" role="status">
-                    {copyHint}
-                  </p>
-                ) : null}
                 <div className="garageDash__line garageDash__line--muted">
                   <GarageDashPinIcon />
                   <span>{cityLine || 'Город не указан'}</span>

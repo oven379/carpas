@@ -4,14 +4,27 @@ namespace Tests\Feature;
 
 use App\Models\Car;
 use App\Models\CarShare;
+use App\Models\Owner;
+use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
 
 class CarShareApiTest extends FeatureTestCase
 {
-    private function carForDetailing(int $detailingId): Car
+    private function owner(): Owner
+    {
+        return Owner::query()->create([
+            'email' => 'share-owner-'.uniqid('', true).'@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Владелец',
+            'garage_private' => true,
+        ]);
+    }
+
+    private function carForOwner(int $ownerId, ?int $detailingId = null): Car
     {
         return Car::query()->create([
             'detailing_id' => $detailingId,
+            'owner_id' => $ownerId,
             'vin' => 'VIN123',
             'plate' => 'B777BB',
             'make' => 'BMW',
@@ -29,18 +42,18 @@ class CarShareApiTest extends FeatureTestCase
 
     public function test_share_lifecycle_and_public_by_token(): void
     {
-        $d = $this->detailing();
-        $car = $this->carForDetailing($d->id);
-        Sanctum::actingAs($d);
+        $owner = $this->owner();
+        $car = $this->carForOwner($owner->id, $this->detailing()->id);
+        Sanctum::actingAs($owner);
 
-        $this->getJson("/api/cars/{$car->id}/shares")->assertOk()->assertJsonCount(0);
+        $this->getJson("/api/owners/cars/{$car->id}/shares")->assertOk()->assertJsonCount(0);
 
-        $created = $this->postJson("/api/cars/{$car->id}/shares");
+        $created = $this->postJson("/api/owners/cars/{$car->id}/shares");
         $created->assertOk();
         $token = $created->json('token');
         $this->assertNotEmpty($token);
 
-        $this->getJson("/api/cars/{$car->id}/shares")->assertOk()->assertJsonCount(1);
+        $this->getJson("/api/owners/cars/{$car->id}/shares")->assertOk()->assertJsonCount(1);
 
         $public = $this->getJson("/api/share/{$token}");
         $public->assertOk();
@@ -48,7 +61,7 @@ class CarShareApiTest extends FeatureTestCase
         $public->assertJsonPath('car.vin', '');
         $public->assertJsonPath('car.plate', 'B777BB');
 
-        $this->deleteJson("/api/shares/{$token}")
+        $this->deleteJson("/api/owners/shares/{$token}")
             ->assertOk()
             ->assertJsonPath('ok', true);
 
@@ -57,7 +70,8 @@ class CarShareApiTest extends FeatureTestCase
 
     public function test_revoked_share_not_accessible_publicly(): void
     {
-        $car = $this->carForDetailing($this->detailing()->id);
+        $owner = $this->owner();
+        $car = $this->carForOwner($owner->id, $this->detailing()->id);
         $share = CarShare::query()->create([
             'car_id' => $car->id,
             'token' => 'fixedtokentestshare123456789012',
@@ -66,5 +80,16 @@ class CarShareApiTest extends FeatureTestCase
         ]);
 
         $this->getJson('/api/share/'.$share->token)->assertNotFound();
+    }
+
+    public function test_detailing_cannot_create_public_history_share(): void
+    {
+        $owner = $this->owner();
+        $d = $this->detailing();
+        $car = $this->carForOwner($owner->id, $d->id);
+        Sanctum::actingAs($d);
+
+        $this->postJson("/api/cars/{$car->id}/shares")->assertNotFound();
+        $this->getJson("/api/cars/{$car->id}/shares")->assertNotFound();
     }
 }

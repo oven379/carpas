@@ -608,7 +608,6 @@ export default function DetailingDashboardPage() {
           const linkedOwner = detailingCarHasLinkedOwner(c)
           const ownerPeekLabel = String(c.ownerName || '').trim() || 'Владелец'
           const ownerPeekInitials = ownerPeekLabel.slice(0, 2).toUpperCase() || '?'
-          const ownerSlug = String(c.ownerGarageSlug || '').trim()
           const ownerAvatarRaw = String(c.ownerGarageAvatar || '').trim()
           const ownerAvatar = ownerAvatarRaw ? resolvePublicMediaUrl(ownerAvatarRaw) : ''
           /* Телефон в полосе владельца — из ЛК/гаража (поле владельца), не «клиентский» номер в карточке авто */
@@ -688,35 +687,17 @@ export default function DetailingDashboardPage() {
                       <span className="muted small">Телефон в гараже не указан</span>
                     )}
                   </div>
-                  {ownerSlug ? (
-                    <Link
-                      className="rowItem__ownerSummaryAvatar"
-                      to={`/g/${encodeURIComponent(ownerSlug)}`}
-                      state={{ from: fromDash }}
-                      title={`Открыть страницу владельца: ${ownerPeekLabel}`}
-                      aria-label={`Публичная страница владельца ${ownerPeekLabel}`}
-                    >
-                      {ownerAvatar ? (
-                        <img src={ownerAvatar} alt="" />
-                      ) : (
-                        <span className="rowItem__ownerSummaryFallback" aria-hidden="true">
-                          {ownerPeekInitials}
-                        </span>
-                      )}
-                    </Link>
-                  ) : (
-                    <span
-                      className="rowItem__ownerSummaryAvatar rowItem__ownerSummaryAvatar--disabled"
-                      title="Публичная улица не задана"
-                      aria-label="Публичная улица не задана"
-                    >
-                      {ownerAvatar ? (
-                        <img src={ownerAvatar} alt="" />
-                      ) : (
-                        <span className="rowItem__ownerSummaryFallback">{ownerPeekInitials}</span>
-                      )}
-                    </span>
-                  )}
+                  <span
+                    className="rowItem__ownerSummaryAvatar rowItem__ownerSummaryAvatar--disabled"
+                    title="Гараж владельца приватный"
+                    aria-label={`Аватар владельца ${ownerPeekLabel}`}
+                  >
+                    {ownerAvatar ? (
+                      <img src={ownerAvatar} alt="" />
+                    ) : (
+                      <span className="rowItem__ownerSummaryFallback">{ownerPeekInitials}</span>
+                    )}
+                  </span>
                 </div>
               ) : (
                 <div className="rowItem__ownerSummary">
@@ -746,37 +727,19 @@ export default function DetailingDashboardPage() {
               )}
               {linkedOwner ? (
                 <div className="rowItem__ownerPeek">
-                  {ownerSlug ? (
-                    <Link
-                      className="rowItem__ownerPeekLink"
-                      to={`/g/${encodeURIComponent(ownerSlug)}`}
-                      state={{ from: fromDash }}
-                      title={`Публичная страница: ${ownerPeekLabel}`}
-                      aria-label={`Открыть страницу владельца: ${ownerPeekLabel}`}
-                    >
-                      {ownerAvatar ? (
-                        <img src={ownerAvatar} alt="" />
-                      ) : (
-                        <span className="rowItem__ownerPeekFallback" aria-hidden="true">
-                          {ownerPeekInitials}
-                        </span>
-                      )}
-                    </Link>
-                  ) : (
-                    <span
-                      className="rowItem__ownerPeekLink rowItem__ownerPeekLink--disabled"
-                      title="У владельца не задан адрес публичной страницы гаража"
-                      aria-label="Публичная страница владельца не задана"
-                    >
-                      {ownerAvatar ? (
-                        <img src={ownerAvatar} alt="" />
-                      ) : (
-                        <span className="rowItem__ownerPeekFallback" aria-hidden="true">
-                          {ownerPeekInitials}
-                        </span>
-                      )}
-                    </span>
-                  )}
+                  <span
+                    className="rowItem__ownerPeekLink rowItem__ownerPeekLink--disabled"
+                    title="Гараж владельца приватный"
+                    aria-label={`Аватар владельца ${ownerPeekLabel}`}
+                  >
+                    {ownerAvatar ? (
+                      <img src={ownerAvatar} alt="" />
+                    ) : (
+                      <span className="rowItem__ownerPeekFallback" aria-hidden="true">
+                        {ownerPeekInitials}
+                      </span>
+                    )}
+                  </span>
                 </div>
               ) : (
                 <div className="rowItem__ownerPeek">

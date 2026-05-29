@@ -8,6 +8,7 @@ use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\Detailing;
+use App\Models\DetailingClientNote;
 use App\Models\Owner;
 use App\Models\ServiceBookingRequest;
 use Carbon\Carbon;
@@ -44,6 +45,12 @@ class DemoCrmOwnersSeeder extends Seeder
             ['Полировка', 'Керамика'],
             ['Химчистка', 'Озонация'],
             ['Детейлинг кузова', 'PPF'],
+        ];
+        $clientNotes = [
+            1 => 'Звонить после 18:00. Просит всегда присылать фото до/после.',
+            2 => 'Предпочитает запись на будние дни утром, сообщения читает редко.',
+            3 => 'Любит подробные рекомендации мастера и просит напоминать о повторном уходе.',
+            5 => 'Перед визитом уточнять состояние салона и наличие детского кресла.',
         ];
         $assetRoot = base_path('store-assets');
         if (! is_dir($assetRoot)) {
@@ -87,6 +94,18 @@ class DemoCrmOwnersSeeder extends Seeder
                     'garage_avatar' => $avatar,
                 ],
             );
+            if (isset($clientNotes[$n])) {
+                DetailingClientNote::query()->updateOrCreate(
+                    [
+                        'detailing_id' => $studio->id,
+                        'client_key' => 'owner:'.$crmOwner->id,
+                    ],
+                    [
+                        'owner_id' => $crmOwner->id,
+                        'note' => $clientNotes[$n],
+                    ],
+                );
+            }
 
             foreach ($demoOwner['cars'] as $carIndex => $carData) {
                 [$make, $model, $year, $mileage, $plate, $region] = $carData;

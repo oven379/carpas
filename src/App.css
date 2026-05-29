@@ -488,7 +488,7 @@ button.nav__action {
   }
 }
 
-/* «Войти» на публичных страницах /g/ /d/ (на улице): явно прозрачный фон, серая обводка */
+/* «Войти» на публичной странице детейлинга: явно прозрачный фон, серая обводка */
 .nav__action.nav__action--showcaseLogin {
   background: transparent;
   border-color: color-mix(in oklab, var(--muted) 55%, var(--border));
@@ -547,6 +547,7 @@ button.nav__action {
 
 .h1 {
   font-size: 40px;
+  color: color-mix(in oklab, var(--text-h) 92%, var(--text) 8%);
   letter-spacing: 0;
   margin: 0 0 6px;
 }
@@ -558,6 +559,7 @@ button.nav__action {
 
 .h2 {
   font-size: 20px;
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
   margin: 0 0 10px;
 }
 
@@ -621,7 +623,7 @@ button.nav__action {
   height: 44px;
   border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   flex-shrink: 0;
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg) 8%);
 }
@@ -848,6 +850,7 @@ button.nav__action {
 .row {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .wrap {
@@ -886,6 +889,7 @@ button[data-variant] {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  max-width: 100%;
   transition:
     background-color 150ms ease,
     border-color 150ms ease,
@@ -973,9 +977,10 @@ a.btn[data-variant='outline']:visited {
 .input,
 .textarea {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   box-sizing: border-box;
-  border: 0.5px solid var(--border-default);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 78%, var(--accent) 10%);
   border-radius: var(--radius-md);
   padding: 10px 14px;
   font-size: 14px;
@@ -983,6 +988,14 @@ a.btn[data-variant='outline']:visited {
   font-family: var(--font-sans);
   background: var(--bg-surface);
   color: var(--text-primary);
+}
+
+form input:not([type='checkbox']):not([type='radio']):not([type='file']),
+form textarea,
+form select {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 html[data-native-app='1'] input,
@@ -993,9 +1006,30 @@ html[data-native-app='1'] .textarea {
   font-size: 16px !important;
 }
 
+@media (max-width: 520px) {
+  input,
+  textarea,
+  select,
+  .input,
+  .textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .field__top {
+    min-width: 0;
+  }
+
+  .field__label,
+  .field__hint {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
 .input::placeholder,
 .textarea::placeholder {
-  color: var(--text-muted);
+  color: color-mix(in oklab, var(--text-muted) 62%, var(--bg-base));
   opacity: 1;
 }
 
@@ -1100,7 +1134,7 @@ html[data-native-app='1'] .textarea {
 }
 
 .phoneRuField__input::placeholder {
-  color: var(--text-muted);
+  color: color-mix(in oklab, var(--text-muted) 62%, var(--bg-base));
   opacity: 1;
 }
 
@@ -1246,9 +1280,9 @@ input.input:-webkit-autofill {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: 0.5px solid var(--border-default);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 78%, var(--accent) 10%);
   border-radius: 14px;
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
   background: color-mix(in oklab, var(--code-bg) 74%, transparent);
   text-decoration: none;
   overflow: visible;
@@ -1387,7 +1421,7 @@ button.nav__notifyLink {
   width: 42px;
   height: 42px;
   border-radius: 12px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   background: transparent;
   color: var(--text-h);
   font-size: 28px;
@@ -1423,7 +1457,7 @@ button.nav__notifyLink {
   width: 100%;
   margin: 0;
   padding: 14px;
-  border: 0.5px solid var(--border-default);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 78%, var(--accent) 10%);
   border-radius: 14px;
   background: var(--bg-surface);
   color: var(--text);
@@ -1561,7 +1595,7 @@ button.nav__notifyLink {
   gap: 8px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 8px;
   background: color-mix(in oklab, var(--card) 86%, var(--bg));
   color: var(--text);
@@ -1569,6 +1603,10 @@ button.nav__notifyLink {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.notificationsTab--markAll {
+  display: none;
 }
 
 .notificationsTab.is-active {
@@ -1642,6 +1680,34 @@ button.nav__notifyLink {
   line-height: 1.55;
 }
 
+.notificationsItem__clientLine {
+  margin: 8px 0 0;
+  color: var(--text-h);
+  font-size: 1rem;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.notificationsItem__details {
+  display: grid;
+  gap: 5px;
+  margin-top: 9px;
+}
+
+.notificationsItem__detailRow {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 14px;
+  line-height: 1.38;
+  overflow-wrap: anywhere;
+}
+
+.notificationsItem__detailRow span {
+  color: var(--text);
+  font-weight: 650;
+}
+
 .notificationsItem__meta {
   display: flex;
   flex-wrap: wrap;
@@ -1673,10 +1739,131 @@ button.nav__notifyLink {
 
 .notificationsItem__readBtn {
   margin-top: 10px;
+  justify-content: center;
+  width: min(100%, 180px);
+}
+
+.notificationsItem__callBtn {
+  display: inline-flex;
+  align-self: flex-end;
+  justify-content: flex-end;
+  margin: 12px 0 0 auto;
   padding: 0;
   border: 0;
   background: transparent;
   cursor: pointer;
+  width: fit-content;
+}
+
+@media (max-width: 520px) {
+  .notificationsPage {
+    padding-top: 18px;
+  }
+
+  .notificationsPage__head {
+    gap: 12px;
+  }
+
+  .notificationsPage__head > .row {
+    min-width: 0;
+  }
+
+  .notificationsPage__head .h1 {
+    font-size: 26px;
+  }
+
+  .notificationsPage__markAllTop {
+    display: none;
+  }
+
+  .notificationsTabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+    overflow: visible;
+  }
+
+  .notificationsTab {
+    min-width: 0;
+    min-height: 34px;
+    gap: 5px;
+    padding: 0 8px;
+    font-size: 12px;
+    white-space: normal;
+  }
+
+  .notificationsTab--markAll {
+    display: inline-flex;
+  }
+
+  .notificationsTab__count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    font-size: 10px;
+    line-height: 18px;
+  }
+
+  .notificationsList {
+    gap: 9px;
+  }
+
+  .notificationsItem {
+    padding: 12px;
+  }
+
+  .notificationsItem__top {
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .notificationsItem__kind {
+    min-height: 20px;
+    padding: 0 7px;
+    font-size: 11px;
+  }
+
+  .notificationsItem__title {
+    font-size: 16px;
+  }
+
+  .notificationsItem__body,
+  .notificationsItem__clientLine,
+  .notificationsItem__detailRow {
+    margin-top: 6px;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  .notificationsItem__details {
+    gap: 4px;
+    margin-top: 7px;
+  }
+
+  .notificationsItem__meta {
+    gap: 5px;
+    margin-top: 9px;
+  }
+
+  .notificationsItem__metaItem {
+    min-height: 22px;
+    padding: 2px 7px;
+    font-size: 11px;
+    line-height: 1.15;
+  }
+
+  .notificationsItem__callBtn {
+    align-self: flex-end;
+    margin: 8px 0 0 auto;
+    width: fit-content;
+  }
+
+  .notificationsItem__readBtn {
+    min-height: 34px;
+    margin-top: 8px;
+    padding-inline: 12px;
+    width: auto;
+  }
 }
 
 .infoPage {
@@ -1707,7 +1894,7 @@ button.nav__notifyLink {
 .infoGrid > article {
   min-width: 0;
   padding: 18px;
-  border: 0.5px solid var(--border-default);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 78%, var(--accent) 10%);
   border-radius: var(--radius-lg);
   background: color-mix(in oklab, var(--code-bg) 72%, var(--bg));
 }
@@ -1732,9 +1919,9 @@ button.nav__notifyLink {
 }
 
 .field__label {
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
 }
 
@@ -1745,14 +1932,15 @@ span.field__label::after {
 /* Блок выбора услуг: заголовок заметнее подписей групп и строк справочника */
 .field__label.field__label--servicesLead {
   font-size: 17px;
-  font-weight: 650;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.25;
 }
 
 .field__hint {
-  color: var(--text);
+  color: color-mix(in oklab, var(--text-muted) 58%, var(--bg-base));
   font-size: 12px;
+  font-weight: 400;
 }
 
 .field__top--solo {
@@ -1783,7 +1971,7 @@ span.field__label::after {
   right: 0;
   top: calc(100% + 8px);
   z-index: 40;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 14px;
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg));
   box-shadow: var(--shadow);
@@ -2885,15 +3073,15 @@ summary.carPage__recsSelect::-webkit-details-marker {
 }
 
 .svc__group {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 16px;
   padding: 12px;
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg));
 }
 
 .svc__title {
-  color: var(--text-h);
-  font-weight: 650;
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
+  font-weight: 600;
   margin-bottom: 10px;
   cursor: pointer;
   display: flex;
@@ -2924,10 +3112,10 @@ summary.carPage__recsSelect::-webkit-details-marker {
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 14px;
   background: var(--bg);
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
   user-select: none;
 }
 
@@ -3122,6 +3310,33 @@ summary.carPage__recsSelect::-webkit-details-marker {
   border-radius: 12px;
   border: 1px solid color-mix(in oklab, var(--border) 85%, var(--text) 8%);
   background: color-mix(in oklab, var(--bg) 94%, var(--code-bg) 6%);
+}
+
+.visitDraftSaveNotice {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  margin-top: 8px;
+  padding: 7px 11px;
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--accent) 8%, var(--bg));
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+  opacity: 0.72;
+  transition:
+    opacity 140ms ease,
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.visitDraftSaveNotice--visible {
+  border-color: color-mix(in oklab, var(--accent) 48%, var(--border));
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  color: var(--text-h);
+  opacity: 1;
 }
 
 .historyLastVisitPreviewHead {
@@ -3573,7 +3788,7 @@ a.rowItem__ownerGarageMainTap {
   overflow-wrap: break-word;
 }
 
-/* Заявки на привязку: аватар владельца — правый верх карточки, ссылка на /g/… */
+/* Заявки на привязку: аватар владельца — правый верх карточки */
 .requestsCard__shell {
   position: relative;
   padding-right: 68px;
@@ -4771,7 +4986,7 @@ a.backNav {
   background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
 }
 
-/* Публичный гараж /g/…: тот же угол, что и у детейлинга (логотип внизу справа на баннере) */
+/* Герой гаража: тот же угол, что и у детейлинга (логотип внизу справа на баннере) */
 .garageHero .detHero__logo {
   right: 16px;
   left: auto;
@@ -5276,7 +5491,7 @@ a.backNav {
 
 .garageCarTile__meta {
   flex: 0 0 auto;
-  color: var(--text-muted);
+  color: color-mix(in oklab, var(--text-muted) 62%, var(--bg-base));
   font-size: 0.9rem;
   line-height: 1.35;
 }
@@ -7048,7 +7263,7 @@ button.garageSettings__thumb:focus-visible {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
-  color: color-mix(in oklab, var(--text) 78%, var(--text-h));
+  color: color-mix(in oklab, var(--text-muted) 70%, var(--bg-base));
 }
 
 .serviceHint__panelText + .serviceHint__panelText {
@@ -7108,7 +7323,7 @@ button.garageSettings__thumb:focus-visible {
   line-height: 1.45;
 }
 
-/* Одно поле: префикс origin/g/ + редактируемый slug + копирование полного URL */
+/* Одно поле для slug и копирования полного URL */
 .garageSettings__urlComposer {
   display: flex;
   flex-wrap: wrap;
@@ -8232,7 +8447,7 @@ a.thumbCard__fileDoc {
   right: 0;
   top: calc(100% + 8px);
   z-index: 30;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 16px;
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg));
   box-shadow: var(--shadow);
@@ -8281,15 +8496,15 @@ a.thumbCard__fileDoc {
 }
 
 .svcdd__group {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 14px;
   padding: 10px;
   background: color-mix(in oklab, var(--bg) 92%, var(--code-bg));
 }
 
 .svcdd__title {
-  color: var(--text-h);
-  font-weight: 650;
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
+  font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -8317,10 +8532,10 @@ a.thumbCard__fileDoc {
 
 .svcdd__item {
   appearance: none;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 12px;
   background: var(--bg);
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
   padding: 8px 10px;
   cursor: pointer;
   font: 14px/1.25 var(--sans);
@@ -8344,7 +8559,7 @@ a.thumbCard__fileDoc {
   width: 18px;
   height: 18px;
   border-radius: 6px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -8368,10 +8583,10 @@ a.thumbCard__fileDoc {
 
 .svcdd__chip {
   appearance: none;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 999px;
   background: color-mix(in oklab, var(--accent) 10%, var(--bg));
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
   padding: 6px 10px;
   cursor: pointer;
   font: 13px/1.1 var(--sans);
@@ -8413,7 +8628,7 @@ a.thumbCard__fileDoc {
   max-height: 220px;
   overflow: auto;
   border-radius: 10px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   background: var(--bg);
   box-shadow: 0 10px 28px color-mix(in oklab, black 18%, transparent);
 }
@@ -8779,15 +8994,15 @@ a.thumbCard__fileDoc {
 }
 
 .recItem {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 16px;
   padding: 12px;
   background: var(--bg);
 }
 
 .recTitle {
-  color: var(--text-h);
-  font-weight: 650;
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
+  font-weight: 600;
   white-space: pre-line;
   line-height: 1.5;
 }
@@ -8886,7 +9101,7 @@ a.btn.carPage__recsAddVisitBtn:not(:disabled):hover,
   margin: 0;
   padding: 10px 12px;
   box-sizing: border-box;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 12px;
   background: var(--bg);
   color: var(--text-h);
@@ -10504,7 +10719,7 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .adminOpsMetric strong {
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
   font-size: 28px;
   line-height: 1;
 }
@@ -10536,7 +10751,7 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .adminOpsItem {
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in oklab, var(--border-strong) 72%, var(--accent) 8%);
   border-radius: 8px;
   background: color-mix(in oklab, var(--code-bg) 20%, var(--bg));
   padding: 12px;
@@ -10650,7 +10865,7 @@ a.btn.carPage__recsAddVisitFull,
 
 .cookieBanner__btn:hover {
   background: color-mix(in oklab, var(--accent) 18%, var(--bg));
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text-h) 88%, var(--text) 12%);
 }
 
 .adminPreview__toggleList {
@@ -10675,7 +10890,7 @@ a.btn.carPage__recsAddVisitFull,
 
 .adminPreview__fakeToggle {
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 600;
   padding: 4px 10px;
   border-radius: 999px;
   background: color-mix(in oklab, #22c55e 22%, var(--bg));
@@ -11449,9 +11664,9 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .detCrmProfile__blockTitle {
-  color: color-mix(in oklab, var(--text) 86%, var(--text-h));
-  font-size: 13px;
-  font-weight: 560;
+  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.35;
 }
 
@@ -11464,8 +11679,74 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .detCrmProfile__contacts a {
-  color: var(--text-h);
+  color: color-mix(in oklab, var(--text) 82%, var(--text-h));
+  font-weight: 500;
+}
+
+.detCrmProfile__clientNote {
+  padding: 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 78%, var(--text) 6%);
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--code-bg) 46%, var(--bg));
+}
+
+.detCrmProfile__clientNoteHead,
+.detCrmProfile__clientNoteActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.detCrmProfile__clientNoteHead {
+  justify-content: space-between;
+}
+
+.detCrmProfile__textAction {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 13px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+.detCrmProfile__textAction:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.detCrmProfile__clientNoteText {
+  margin: 8px 0 0;
+  color: color-mix(in oklab, var(--text) 92%, var(--text-h));
+  font-size: 13px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.detCrmProfile__clientNoteText.is-empty {
+  color: var(--muted);
+}
+
+.detCrmProfile__clientNoteEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.detCrmProfile__clientNoteEditor textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+.detCrmProfile__clientNoteActions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.detCrmProfile__clientNoteActions .small {
+  margin-right: auto;
 }
 
 .detCrmProfile__bookingRequest {
@@ -11518,6 +11799,18 @@ a.btn.carPage__recsAddVisitFull,
 
 .detCrmProfile__actions .btn {
   flex: 1 1 150px;
+}
+
+.detCrmProfile__historyBtn {
+  border-color: color-mix(in oklab, var(--accent) 70%, var(--border)) !important;
+  background: color-mix(in oklab, var(--accent) 10%, transparent) !important;
+  color: var(--accent) !important;
+  font-weight: 700;
+}
+
+.detCrmProfile__historyBtn:not(:disabled):hover {
+  background: color-mix(in oklab, var(--accent) 16%, transparent) !important;
+  border-color: color-mix(in oklab, var(--accent) 86%, var(--border)) !important;
 }
 
 .detCrmProfile__block {

@@ -749,10 +749,9 @@ export function TopNav() {
   const detailingOnboarding =
     mode === 'detailing' && detailing && detailing.profileCompleted === false
   const linkClass = ({ isActive }) => `nav__action${isActive ? ' is-active' : ''}`
-  /** Публичные страницы /g/ и /d/ (на улице): в шапке «Войти» (прозрачная кнопка с обводкой) */
+  /** Публичные страницы /d/: в шапке «Войти» (прозрачная кнопка с обводкой). */
   const isPublicDetailingPage = /^\/d\/[^/]+\/?$/.test(loc.pathname)
-  const isPublicGaragePage = /^\/g\/[^/]+\/?$/.test(loc.pathname)
-  const isPublicShowcasePage = isPublicDetailingPage || isPublicGaragePage
+  const isPublicShowcasePage = isPublicDetailingPage
   const isDetailingCabinet = mode === 'detailing' && !isPublicDetailingPage
   const [pendingClaims, setPendingClaims] = useState(0)
   const [notificationsUnread, setNotificationsUnread] = useState(0)

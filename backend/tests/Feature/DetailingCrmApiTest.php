@@ -6,6 +6,7 @@ use App\Models\Car;
 use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\DevicePushToken;
+use App\Models\DetailingClientNote;
 use App\Models\Owner;
 use App\Services\FcmV1Client;
 use Illuminate\Support\Facades\Hash;
@@ -186,5 +187,36 @@ class DetailingCrmApiTest extends FeatureTestCase
             ->assertJsonPath('ok', true)
             ->assertJsonPath('sent', 1)
             ->assertJsonPath('failed', 0);
+    }
+
+    public function test_detailing_can_save_client_note_for_crm_card(): void
+    {
+        $d = $this->detailing();
+        $owner = Owner::query()->create([
+            'email' => 'note-crm-owner@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Клиент с заметкой',
+        ]);
+        $car = $this->carForDetailing($d->id, ['owner_id' => $owner->id]);
+
+        Sanctum::actingAs($d);
+
+        $this->patchJson("/api/detailings/crm/clients/{$car->id}/note", [
+            'note' => 'Звонить после 18:00. Просит фото до/после.',
+        ])
+            ->assertOk()
+            ->assertJsonPath('clientNote', 'Звонить после 18:00. Просит фото до/после.');
+
+        $this->assertDatabaseHas('detailing_client_notes', [
+            'detailing_id' => $d->id,
+            'owner_id' => $owner->id,
+            'client_key' => 'owner:'.$owner->id,
+        ]);
+
+        $this->getJson('/api/detailings/crm/clients')
+            ->assertOk()
+            ->assertJsonPath('items.0.client.note', 'Звонить после 18:00. Просит фото до/после.');
+
+        DetailingClientNote::query()->where('detailing_id', $d->id)->delete();
     }
 }

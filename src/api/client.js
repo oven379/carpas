@@ -159,11 +159,6 @@ export function createApiClient() {
       return await req(`public/detailings/${encodeURIComponent(id)}`, { token: t })
     },
 
-    async publicGarage(slug) {
-      const t = dTok() || null
-      return await req(`public/garages/${encodeURIComponent(slug)}`, { token: t })
-    },
-
     async publicPushSettings() {
       return await req('push/settings', { token: null })
     },
@@ -200,6 +195,14 @@ export function createApiClient() {
 
     async detailingCrmClients() {
       return await req('detailings/crm/clients', { token: dTok() })
+    },
+
+    async updateDetailingClientNote(carId, body) {
+      return await req(`detailings/crm/clients/${encodeURIComponent(String(carId))}/note`, {
+        method: 'PATCH',
+        body,
+        token: dTok(),
+      })
     },
 
     async sendDetailingClientPush(carId, body) {
@@ -420,24 +423,17 @@ export function createApiClient() {
     },
 
     async listShares(carId) {
-      if (oTok()) return await req(`owners/cars/${carId}/shares`, { token: oTok() })
-      return await req(`cars/${carId}/shares`, { token: dTok() })
+      return await req(`owners/cars/${carId}/shares`, { token: oTok() })
     },
 
     async createShare(carId) {
       flushCoalescedRequests()
-      if (oTok()) {
-        return await req(`owners/cars/${carId}/shares`, { method: 'POST', body: {}, token: oTok() })
-      }
-      return await req(`cars/${carId}/shares`, { method: 'POST', body: {}, token: dTok() })
+      return await req(`owners/cars/${carId}/shares`, { method: 'POST', body: {}, token: oTok() })
     },
 
     async revokeShare(token) {
       flushCoalescedRequests()
-      if (oTok()) {
-        return await req(`owners/shares/${encodeURIComponent(token)}`, { method: 'DELETE', token: oTok() })
-      }
-      return await req(`shares/${encodeURIComponent(token)}`, { method: 'DELETE', token: dTok() })
+      return await req(`owners/shares/${encodeURIComponent(token)}`, { method: 'DELETE', token: oTok() })
     },
 
     async findCarsByVin(vin) {

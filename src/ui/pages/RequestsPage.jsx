@@ -146,9 +146,8 @@ export default function RequestsPage() {
               <h1 className="h1">Заявки на привязку авто</h1>
               <ServiceHint scopeId="requests-page-hint" variant="compact" label="Справка: заявки">
                 <p className="serviceHint__panelText">
-                  Владельцы запрашивают привязку своего авто к вашему кабинету. Круглое фото в шапке открывает публичную страницу
-                  гаража владельца, если он включил «выйти на улицу» и задал адрес в настройках гаража. Если публичная страница не
-                  настроена, по значку перейти нельзя.
+                  Владельцы запрашивают привязку своего авто к вашему кабинету. Гараж владельца остаётся приватным; публично
+                  доступен только лендинг детейлинга и отдельные истории авто по ссылке.
                 </p>
               </ServiceHint>
             </div>
@@ -163,7 +162,6 @@ export default function RequestsPage() {
         {claims.map((x) => {
           const car = carsById[String(x.carId)] || null
           const ev = x.evidence || {}
-          const ownerGarageSlug = String(x.ownerGarageSlug || '').trim()
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
           const ownerLabel = String(x.ownerName || '').trim() || 'Владелец'
           const ownerDisplayName = String(x.ownerName || '').trim() || '—'
@@ -173,8 +171,6 @@ export default function RequestsPage() {
           const { display: clientPhoneDisplay, telHref: clientPhoneTelHref } = displayRuPhone(clientPhoneRaw)
           const evidencePhoneRaw = String(ev.contactPhone || '').trim()
           const { display: evidencePhoneDisplay, telHref: evidencePhoneTelHref } = displayRuPhone(evidencePhoneRaw)
-          const garagePath = ownerGarageSlug ? `/g/${encodeURIComponent(ownerGarageSlug)}` : null
-          const navState = { from: `${loc.pathname}${loc.search}` }
           const carHeroBg = car?.hero ? resolvedBackgroundImageUrl(car.hero) : undefined
           const claimOwnerEmail = String(x.ownerEmail || '').trim()
           const avatarInner = ownerAvatar ? (
@@ -182,22 +178,12 @@ export default function RequestsPage() {
           ) : (
             <DefaultAvatar email={claimOwnerEmail} fallback={ownerLabel} alt="" />
           )
-          const avatarCorner = garagePath ? (
-            <Link
-              className="requestsCard__avatarCorner requestsCard__ownerAvatar requestsCard__ownerAvatar--link"
-              to={garagePath}
-              state={navState}
-              title={`Страница гаража владельца: ${ownerLabel}`}
-              aria-label={`Открыть страницу гаража владельца ${ownerLabel}`}
-            >
-              {avatarInner}
-            </Link>
-          ) : (
+          const avatarCorner = (
             <span
               className="requestsCard__avatarCorner requestsCard__ownerAvatar requestsCard__avatarCorner--static"
-              title="У владельца не задан адрес публичной страницы гаража"
+              title="Гараж владельца приватный"
               role="img"
-              aria-label={`Аватар владельца ${ownerLabel}, страница гаража не задана`}
+              aria-label={`Аватар владельца ${ownerLabel}`}
             >
               {avatarInner}
             </span>
@@ -267,13 +253,6 @@ export default function RequestsPage() {
                       <span className="clientBlockLabel">Заявитель:</span>{' '}
                       <span className="requestsCard__clientName">{ownerDisplayName}</span>
                     </div>
-                    {garagePath ? (
-                      <div className="muted small requestsCard__factLine">
-                        <Link className="requestsCard__ownerPublicLink" to={garagePath} state={navState}>
-                          открыть страницу гаража
-                        </Link>
-                      </div>
-                    ) : null}
                   </div>
 
                   {x.status === 'pending' ? (

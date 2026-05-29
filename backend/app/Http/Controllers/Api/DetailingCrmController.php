@@ -10,6 +10,7 @@ use App\Models\CarDoc;
 use App\Models\CarEvent;
 use App\Models\DevicePushToken;
 use App\Models\Detailing;
+use App\Models\DetailingClientNote;
 use App\Models\ServiceBookingRequest;
 use App\Services\FcmV1Client;
 use App\Services\InternalNotificationService;
@@ -78,8 +79,21 @@ class DetailingCrmController extends Controller
             ->get()
             ->groupBy('car_id');
 
-        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent, $bookingRequests) {
+        $noteKeys = $cars
+            ->map(fn (Car $car) => self::clientNoteKey($car))
+            ->filter()
+            ->unique()
+            ->values();
+        $clientNotes = DetailingClientNote::query()
+            ->where('detailing_id', $d->id)
+            ->whereIn('client_key', $noteKeys)
+            ->get()
+            ->keyBy('client_key');
+
+        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent, $bookingRequests, $clientNotes) {
             $last = $lastEvents->get($car->id);
+            $clientNoteKey = self::clientNoteKey($car);
+            $clientNote = $clientNoteKey ? $clientNotes->get($clientNoteKey) : null;
             $requests = $bookingRequests
                 ->get($car->id, collect())
                 ->map(fn (ServiceBookingRequest $request) => ServiceBookingRequestController::resource($request))
@@ -101,6 +115,7 @@ class DetailingCrmController extends Controller
                     'name' => trim((string) ($car->client_name ?: $car->owner?->name ?: '')),
                     'phone' => trim((string) ($car->client_phone ?: $car->owner?->phone ?: $car->owner_phone ?: '')),
                     'email' => trim((string) ($car->client_email ?: $car->owner?->email ?: '')),
+                    'note' => trim((string) ($clientNote?->note ?? '')),
                     'isRegisteredOwner' => $car->owner_id !== null,
                     'garageSlug' => trim((string) ($car->owner?->garage_slug ?? '')),
                 ],
@@ -174,6 +189,54 @@ class DetailingCrmController extends Controller
                 'withVisits' => $rows->filter(fn ($row) => $row['flags']['hasVisits'])->count(),
             ],
         ]);
+    }
+
+    public function updateClientNote(Request $request, $carId)
+    {
+        /** @var Detailing $d */
+        $d = $request->user();
+        $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $carId);
+
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $key = self::clientNoteKey($car);
+        $noteText = trim((string) ($data['note'] ?? ''));
+
+        $note = DetailingClientNote::query()->updateOrCreate(
+            [
+                'detailing_id' => $d->id,
+                'client_key' => $key,
+            ],
+            [
+                'owner_id' => $car->owner_id,
+                'note' => $noteText,
+            ],
+        );
+
+        return response()->json([
+            'clientNote' => trim((string) $note->note),
+        ]);
+    }
+
+    private static function clientNoteKey(Car $car): string
+    {
+        if ($car->owner_id) {
+            return 'owner:'.(string) $car->owner_id;
+        }
+
+        $email = mb_strtolower(trim((string) $car->client_email));
+        if ($email !== '') {
+            return 'email:'.$email;
+        }
+
+        $phone = preg_replace('/\D+/', '', (string) ($car->client_phone ?: $car->owner_phone));
+        if ($phone !== '') {
+            return 'phone:'.$phone;
+        }
+
+        return 'car:'.(string) $car->id;
     }
 
     public function sendOwnerPush(Request $request, $carId)

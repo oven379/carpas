@@ -17,8 +17,8 @@ import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 
-const STALE_VISIT_DAYS = 15
-const TASK_DUE_DAYS = 2
+const STALE_VISIT_DAYS = 25
+const CLIENT_FILTERS = new Set(['all', 'today', 'stale'])
 
 function carTitle(row) {
   const c = row?.car || {}
@@ -92,35 +92,11 @@ function isLastVisitStale(row) {
   return t < startOfLocalDay() - STALE_VISIT_DAYS * 24 * 60 * 60 * 1000
 }
 
-function hasOpenBookingRequest(row) {
-  return Number(row?.bookingRequestsCount || 0) > 0
-}
-
-function isNextContactDueSoon(row) {
-  const days = Number(row?.nextReminder?.daysLeft)
-  return Number.isFinite(days) && days <= TASK_DUE_DAYS
-}
-
-function hasCrmTask(row) {
-  return hasOpenBookingRequest(row) || isNextContactDueSoon(row)
-}
-
-function taskPriority(row) {
-  if (hasOpenBookingRequest(row)) return 0
-  if (isNextContactDueSoon(row)) return 1
-  return 2
-}
-
-function sortTasksFirst(a, b) {
-  return taskPriority(a) - taskPriority(b) || lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
-}
-
 function sortByLastVisitDesc(a, b) {
   return lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
 }
 
 function matchesFilter(row, filter) {
-  if (filter === 'tasks') return hasCrmTask(row)
   if (filter === 'today') return isLastVisitToday(row)
   if (filter === 'stale') return isLastVisitStale(row)
   return true
@@ -167,10 +143,13 @@ export default function DetailingClientsPage() {
   const [data, setData] = useState({ items: [], stats: {} })
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
-  const [pushBusy, setPushBusy] = useState('')
   const [photoLb, setPhotoLb] = useState(null)
+  const [clientNoteEditing, setClientNoteEditing] = useState(false)
+  const [clientNoteDraft, setClientNoteDraft] = useState('')
+  const [clientNoteBusy, setClientNoteBusy] = useState(false)
   const query = sp.get('q') || ''
-  const filter = sp.get('filter') || 'all'
+  const filterRaw = sp.get('filter') || 'all'
+  const filter = CLIENT_FILTERS.has(filterRaw) ? filterRaw : 'all'
   const selectedId = sp.get('id') || ''
 
   useEffect(() => {
@@ -208,17 +187,21 @@ export default function DetailingClientsPage() {
     return (data.items || [])
       .filter((row) => matchesFilter(row, filter))
       .filter((row) => matchesQuery(row, query))
-      .sort(filter === 'tasks' ? sortTasksFirst : sortByLastVisitDesc)
+      .sort(sortByLastVisitDesc)
   }, [data.items, filter, query])
   const selected = useMemo(() => {
     return rows.find((row) => String(row.id) === String(selectedId)) || rows[0] || null
   }, [rows, selectedId])
-  const taskCount = useMemo(() => (data.items || []).filter(hasCrmTask).length, [data.items])
+  useEffect(() => {
+    setClientNoteEditing(false)
+    setClientNoteDraft(String(selected?.client?.note || ''))
+  }, [selected?.id, selected?.client?.note])
+  const staleCount = useMemo(() => (data.items || []).filter(isLastVisitStale).length, [data.items])
   const filters = useMemo(() => [
     { id: 'all', label: 'Все' },
     { id: 'today', label: 'Сегодня' },
-    { id: 'tasks', label: 'Запись', count: taskCount },
-  ], [taskCount])
+    { id: 'stale', label: 'Давно не были', count: staleCount },
+  ], [staleCount])
   function setFilter(next) {
     const n = new URLSearchParams(sp)
     if (next === 'all') n.delete('filter')
@@ -241,45 +224,23 @@ export default function DetailingClientsPage() {
     setSp(n, { replace: true })
   }
 
-  async function sendClientPush(kind) {
-    if (!selected) return
-    setPushBusy(kind)
+  async function saveClientNote() {
+    if (!selected?.id || clientNoteBusy) return
+    setClientNoteBusy(true)
     try {
-      const res = await r.sendDetailingClientPush(selected.id, { kind })
-      alert(res?.message || 'Push отправлен.')
+      const res = await r.updateDetailingClientNote(selected.id, { note: clientNoteDraft })
+      const note = String(res?.clientNote ?? clientNoteDraft ?? '').trim()
+      const refreshed = await r.detailingCrmClients()
+      setData({
+        items: Array.isArray(refreshed?.items) ? refreshed.items : [],
+        stats: refreshed?.stats && typeof refreshed.stats === 'object' ? refreshed.stats : {},
+      })
+      setClientNoteDraft(note)
+      setClientNoteEditing(false)
     } catch (e) {
       alert(formatHttpErrorMessage(e))
     } finally {
-      setPushBusy('')
-    }
-  }
-
-  async function closeBookingRequest(requestId) {
-    if (!requestId) return
-    try {
-      await r.updateServiceBookingRequest(requestId, { status: 'closed' })
-      const res = await r.detailingCrmClients()
-      setData({
-        items: Array.isArray(res?.items) ? res.items : [],
-        stats: res?.stats && typeof res.stats === 'object' ? res.stats : {},
-      })
-    } catch (e) {
-      alert(formatHttpErrorMessage(e))
-    }
-  }
-
-  async function closeNextContactTask(row) {
-    const eventId = row?.lastVisit?.id
-    if (!row?.id || !eventId) return
-    try {
-      await r.updateEvent(row.id, eventId, { nextContactAt: null })
-      const res = await r.detailingCrmClients()
-      setData({
-        items: Array.isArray(res?.items) ? res.items : [],
-        stats: res?.stats && typeof res.stats === 'object' ? res.stats : {},
-      })
-    } catch (e) {
-      alert(formatHttpErrorMessage(e))
+      setClientNoteBusy(false)
     }
   }
 
@@ -320,8 +281,8 @@ export default function DetailingClientsPage() {
             </h1>
             <ServiceHint scopeId="det-crm-head" variant="compact" label="Справка: CRM">
               <p className="serviceHint__panelText">
-                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Запись» показывает заявки
-                владельцев и клиентов, с которыми пора связаться по дате следующего контакта.
+                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Давно не были»
+                показывает клиентов, у которых последний визит был больше 25 дней назад.
               </p>
             </ServiceHint>
           </div>
@@ -396,11 +357,6 @@ export default function DetailingClientsPage() {
                     <small>{[c.year ? `${c.year} г` : '', fmtPlateFull(c.plate, c.plateRegion)].filter(Boolean).join(' · ') || c.vin || '—'}</small>
                   </span>
                   <span className="detCrmRow__visit">
-                    {hasOpenBookingRequest(row) ? (
-                      <span className="detCrmRow__taskBadge">Хочет записаться</span>
-                    ) : filter === 'tasks' && isNextContactDueSoon(row) ? (
-                      <span className="detCrmRow__taskBadge detCrmRow__taskBadge--soft">Связаться</span>
-                    ) : null}
                     {row.lastVisit ? (
                       <>
                         <span className="detCrmRow__visitTitle">{row.lastVisit.title || 'Визит'}</span>
@@ -448,85 +404,86 @@ export default function DetailingClientsPage() {
                 <div className="muted small">
                   {[selectedCar.year ? `${selectedCar.year} г` : '', selectedCar.mileageKm ? fmtKm(selectedCar.mileageKm) : '', fmtPlateFull(selectedCar.plate, selectedCar.plateRegion)].filter(Boolean).join(' · ') || 'Данные авто не заполнены'}
                 </div>
-                {selectedCar.vin ? <div className="mono muted small" style={{ marginTop: 4 }}>VIN: {selectedCar.vin}</div> : null}
               </div>
 
               <div className="detCrmProfile__contacts">
                 {phone.telHref ? <a href={phone.telHref}>{phone.display}</a> : <span className="muted">Телефон не указан</span>}
-                {selectedClient.email ? <a href={`mailto:${selectedClient.email}`}>{selectedClient.email}</a> : null}
               </div>
 
-              {selected.latestBookingRequest ? (
-                <div className="detCrmProfile__bookingRequest">
-                  <div className="detCrmProfile__bookingRequestTop">
-                    <span className="detCrmProfile__bookingRequestBadge">Новая заявка</span>
-                    <span className="muted small">{fmtDate(selected.latestBookingRequest.createdAt)}</span>
-                  </div>
-                  <div className="detCrmProfile__bookingRequestTitle">Клиент хочет записаться</div>
-                  <p className="muted small">
-                    Хочу записаться на повторный уход, подберите удобное время.
-                  </p>
-                  <div className="detCrmProfile__bookingRequestActions">
-                    {phone.telHref ? (
-                      <a className="btn" data-variant="primary" href={phone.telHref}>
-                        Позвонить
-                      </a>
-                    ) : null}
+              <div className="detCrmProfile__clientNote">
+                <div className="detCrmProfile__clientNoteHead">
+                  <div className="detCrmProfile__blockTitle">Заметка по клиенту</div>
+                  {!clientNoteEditing ? (
                     <button
                       type="button"
-                      className="btn"
-                      data-variant="ghost"
-                      onClick={() => void closeBookingRequest(selected.latestBookingRequest.id)}
+                      className="detCrmProfile__textAction"
+                      onClick={() => {
+                        setClientNoteDraft(String(selectedClient.note || ''))
+                        setClientNoteEditing(true)
+                      }}
                     >
-                      Закрыть заявку
+                      {String(selectedClient.note || '').trim() ? 'Изменить' : 'Добавить'}
                     </button>
-                  </div>
+                  ) : null}
                 </div>
-              ) : isNextContactDueSoon(selected) ? (
-                <div className="detCrmProfile__bookingRequest">
-                  <div className="detCrmProfile__bookingRequestTop">
-                    <span className="detCrmProfile__bookingRequestBadge">Рекомендованное время</span>
-                    <span className="muted small">{fmtDate(selected.nextReminder?.at)}</span>
+                {clientNoteEditing ? (
+                  <div className="detCrmProfile__clientNoteEditor">
+                    <textarea
+                      className="input"
+                      value={clientNoteDraft}
+                      rows={4}
+                      maxLength={1000}
+                      placeholder="Например: звонить после 18:00, просит фото до/после, предпочитает звонок вместо сообщения"
+                      onChange={(e) => setClientNoteDraft(e.target.value)}
+                    />
+                    <div className="detCrmProfile__clientNoteActions">
+                      <span className="muted small">{clientNoteDraft.length} / 1000</span>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="ghost"
+                        disabled={clientNoteBusy}
+                        onClick={() => {
+                          setClientNoteDraft(String(selectedClient.note || ''))
+                          setClientNoteEditing(false)
+                        }}
+                      >
+                        Отмена
+                      </button>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="primary"
+                        disabled={clientNoteBusy}
+                        onClick={() => void saveClientNote()}
+                      >
+                        {clientNoteBusy ? 'Сохраняем...' : 'Сохранить'}
+                      </button>
+                    </div>
                   </div>
-                  <p className="muted small">
-                    Подошло рекомендованное время повторного ухода, подберите удобное время.
+                ) : (
+                  <p className={`detCrmProfile__clientNoteText${String(selectedClient.note || '').trim() ? '' : ' is-empty'}`}>
+                    {String(selectedClient.note || '').trim() || 'Постоянная заметка для менеджера: предпочтения, удобное время звонка, важные детали.'}
                   </p>
-                  <div className="detCrmProfile__bookingRequestActions">
-                    {phone.telHref ? (
-                      <a className="btn" data-variant="primary" href={phone.telHref}>
-                        Позвонить
-                      </a>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="btn"
-                      data-variant="ghost"
-                      onClick={() => void closeNextContactTask(selected)}
-                    >
-                      Закрыть задачу
-                    </button>
-                  </div>
-                </div>
-              ) : null}
+                )}
+              </div>
 
               <div className="detCrmProfile__actions">
                 <button
                   type="button"
-                  className="btn"
-                  data-variant="outline"
+                  className="btn detCrmProfile__historyBtn"
+                  data-variant="primary"
                   onClick={() => nav(`/car/${selected.id}?from=${encodeURIComponent(from)}`)}
                 >
-                  Открыть историю
+                  Открыть авто
                 </button>
                 <button
                   type="button"
                   className="btn"
                   data-variant="ghost"
-                  disabled={Boolean(pushBusy)}
-                  aria-busy={pushBusy === 'car_ready' || undefined}
-                  onClick={() => void sendClientPush('car_ready')}
+                  onClick={() => nav(`/car/${selected.id}/history?from=${encodeURIComponent(from)}`)}
                 >
-                  {pushBusy === 'car_ready' ? 'Отправка…' : 'Машина готова'}
+                  История авто
                 </button>
               </div>
 

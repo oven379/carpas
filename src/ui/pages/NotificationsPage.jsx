@@ -45,18 +45,54 @@ function notificationMetaItems(n) {
   const requestTypeLabel = String(data.requestTypeLabel || '').trim()
   const ownerName = String(data.ownerName || '').trim()
   const carName = String(data.carName || '').trim()
-  const ownerPhone = String(data.ownerPhone || '').trim()
   const nextContactAt = String(data.nextContactAt || '').trim()
+  const isCrmAction = n?.kind === 'crm_next_contact' || n?.kind === 'owner_booking_request'
 
   if (requestTypeLabel) items.push({ label: 'Тип', value: requestTypeLabel })
   if (ownerName) items.push({ label: 'Клиент', value: ownerName })
   if (carName) items.push({ label: 'Авто', value: carName })
-  if (ownerPhone) items.push({ label: 'Телефон', value: ownerPhone })
+  if (!isCrmAction) {
+    const ownerPhone = String(data.ownerPhone || '').trim()
+    if (ownerPhone) items.push({ label: 'Телефон', value: ownerPhone })
+  }
   if (n?.kind === 'crm_next_contact' && nextContactAt) {
     items.push({ label: 'Дата контакта', value: fmtDateTime(nextContactAt) })
   }
 
   return items
+}
+
+function notificationCallPhone(n) {
+  const data = n?.data && typeof n.data === 'object' ? n.data : {}
+  if (n?.kind !== 'crm_next_contact' && n?.kind !== 'owner_booking_request') return ''
+  return String(data.ownerPhone || '').trim()
+}
+
+function notificationActionDetails(n) {
+  const data = n?.data && typeof n.data === 'object' ? n.data : {}
+  if (n?.kind !== 'crm_next_contact' && n?.kind !== 'owner_booking_request') return null
+  const requestTypeLabel = String(data.requestTypeLabel || '').trim()
+  const ownerName = String(data.ownerName || '').trim()
+  const carName = String(data.carName || '').trim()
+  const internalNote = String(
+    data.internalNote || data.ownerInternalNote || data.clientNote || data.managerNote || data.note || '',
+  ).trim()
+  const nextContactAt = String(data.nextContactAt || '').trim()
+
+  return {
+    title:
+      n.kind === 'owner_booking_request'
+        ? 'Запись клиента'
+        : requestTypeLabel || 'Время от мастера',
+    rows: [
+      ownerName ? { label: 'Имя владельца', value: ownerName } : null,
+      carName ? { label: 'Автомобиль', value: carName } : null,
+      internalNote ? { label: 'Внутренний комментарий', value: internalNote } : null,
+      n.kind === 'crm_next_contact' && nextContactAt
+        ? { label: 'Дата контакта', value: fmtDateTime(nextContactAt) }
+        : null,
+    ].filter(Boolean),
+  }
 }
 
 export default function NotificationsPage() {
@@ -189,15 +225,9 @@ export default function NotificationsPage() {
           <BackNav fallbackTo={hasOwnerSession() ? '/garage' : '/detailing'} title="Назад" />
           <div>
             <h1 className="h1" style={{ margin: 0 }}>Уведомления</h1>
-            <p className="muted small" style={{ margin: '6px 0 0' }}>
-              {unread > 0 ? `Новых: ${unread}` : 'Новых уведомлений нет'}
-            </p>
           </div>
         </div>
         <div className="row gap wrap">
-          <Button variant="outline" className="btn" disabled={!unread || loading} onClick={markAll}>
-            Прочитать все
-          </Button>
           {!isDetailing ? (
             <Button variant="ghost" className="btn" disabled={items.length === 0 || loading} onClick={clearAll}>
               Очистить уведомления
@@ -220,6 +250,15 @@ export default function NotificationsPage() {
             <span className="notificationsTab__count">{x.count}</span>
           </button>
         ))}
+        <button
+          type="button"
+          className="notificationsTab notificationsTab--markAll"
+          disabled={!unread || loading}
+          onClick={markAll}
+        >
+          <span>Прочитать все</span>
+          <span className="notificationsTab__count">{unread}</span>
+        </button>
       </div>
 
       {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
@@ -241,6 +280,8 @@ export default function NotificationsPage() {
         {visibleItems.map((n) => {
           const unreadItem = !n.readAt
           const metaItems = notificationMetaItems(n)
+          const callPhone = notificationCallPhone(n)
+          const actionDetails = notificationActionDetails(n)
           return (
             <Card
               key={n.id}
@@ -259,9 +300,21 @@ export default function NotificationsPage() {
                 <span className="notificationsItem__kind">{kindLabel(n.kind)}</span>
                 <span className="muted small">{fmtDateTime(n.createdAt)}</span>
               </div>
-              <h2 className="notificationsItem__title">{n.title || 'Уведомление'}</h2>
-              <p className="notificationsItem__body">{n.body}</p>
-              {metaItems.length ? (
+              <h2 className="notificationsItem__title">
+                {actionDetails?.title || n.title || 'Уведомление'}
+              </h2>
+              {actionDetails ? (
+                <div className="notificationsItem__details" aria-label="Детали заявки">
+                  {actionDetails.rows.map((item) => (
+                    <p key={`${item.label}-${item.value}`} className="notificationsItem__detailRow">
+                      <span>{item.label}:</span> {item.value}
+                    </p>
+                  ))}
+                </div>
+              ) : (
+                <p className="notificationsItem__body">{n.body}</p>
+              )}
+              {!actionDetails && metaItems.length ? (
                 <div className="notificationsItem__meta" aria-label="Детали уведомления">
                   {metaItems.map((item) => (
                     <span key={`${item.label}-${item.value}`} className="notificationsItem__metaItem">
@@ -270,10 +323,20 @@ export default function NotificationsPage() {
                   ))}
                 </div>
               ) : null}
+              {callPhone ? (
+                <a
+                  className="link notificationsItem__callBtn"
+                  href={`tel:${callPhone.replace(/[^\d+]/g, '')}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  Позвонить
+                </a>
+              ) : null}
               {unreadItem ? (
                 <button
                   type="button"
-                  className="link notificationsItem__readBtn"
+                  className="btn notificationsItem__readBtn"
+                  data-variant="outline"
                   onClick={(e) => {
                     e.stopPropagation()
                     void markRead(n.id)

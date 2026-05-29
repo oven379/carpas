@@ -37,7 +37,6 @@ const DetailingClientsPage = lazy(() => import('./ui/pages/DetailingClientsPage.
 const PublicDetailingPage = lazy(() => import('./ui/pages/PublicDetailingPage.jsx'))
 const OwnerGaragePage = lazy(() => import('./ui/pages/OwnerGaragePage.jsx'))
 const GarageSettingsPage = lazy(() => import('./ui/pages/GarageSettingsPage.jsx'))
-const PublicGaragePage = lazy(() => import('./ui/pages/PublicGaragePage.jsx'))
 const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
 const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
 const PolicyPage = lazy(() => import('./ui/pages/PolicyPage.jsx'))
@@ -229,7 +228,7 @@ export default function App() {
               }
             />
             <Route path="/d/:id" element={<PublicDetailingPage />} />
-            <Route path="/g/:slug" element={<PublicGaragePage />} />
+            <Route path="/g/:slug" element={<Navigate to="/" replace />} />
             <Route path="/share/:token" element={<PublicCarPage />} />
             <Route path="/for-detailing" element={<DetOfferPage />} />
             <Route path="/policy" element={<PolicyPage />} />

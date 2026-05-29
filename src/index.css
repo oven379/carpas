@@ -89,6 +89,8 @@ video {
 
 #root {
   min-height: 100svh;
+  max-width: 100%;
+  overflow-x: clip;
 }
 
 /* Headings: light weight, tight tracking */

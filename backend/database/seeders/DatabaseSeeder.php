@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Hash;
  * Учётки (пароль везде 1111):
  * - Партнёр (основной): studio@demo.car
  * - Партнёр (legacy из доков): test@test
- * - Владелец: owner@demo.car — для демо страница /g/demo-garage открыта (garage_private = false); у новых владельцев по умолчанию закрыта.
+ * - Владелец: owner@demo.car — личный гараж закрыт; публично открывается только история авто по ссылке.
  * - Публичная карта по ссылке: /share/cpdemosharepubliclinktoken32char
  */
 class DatabaseSeeder extends Seeder
@@ -83,7 +83,7 @@ class DatabaseSeeder extends Seeder
                 'show_social_public' => true,
                 'show_phone_public' => false,
                 'is_premium' => false,
-                'garage_private' => false,
+                'garage_private' => true,
             ],
         );
 
@@ -294,7 +294,7 @@ class DatabaseSeeder extends Seeder
         if ($this->command) {
             $this->command->info('Демо-данные готовы.');
             $this->command->info('Партнёр: studio@demo.car или test@test — пароль 1111');
-            $this->command->info('Владелец: owner@demo.car — пароль 1111, slug demo-garage');
+            $this->command->info('Владелец: owner@demo.car — пароль 1111');
             $this->command->info('Публичная карта: /share/cpdemosharepubliclinktoken32char');
         }
     }
