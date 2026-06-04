@@ -12,6 +12,7 @@ class CarClaim extends Model
         'owner_id',
         'detailing_id',
         'status',
+        'direction',
         'evidence',
         'reviewed_at',
     ];

@@ -7,19 +7,18 @@ import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
 import DevHud from './ui/DevHud.jsx'
-import { hasDetailingSession, hasOwnerSession, isAuthed } from './ui/auth.js'
+import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
 import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
 import CookieBanner from './ui/CookieBanner.jsx'
 
-/** Гостевой маркетинг на `/` и редирект со `/about` — без общей шапки приложения. */
+/** Гостевой маркетинг на `/about` и `/for-detailing` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return (pathname === '/' && !isAuthed()) || pathname === '/about' || pathname === '/for-detailing'
+  return pathname === '/about' || pathname === '/for-detailing'
 }
 
 const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
-const HomePage = lazy(() => import('./ui/pages/HomePage.jsx'))
 const OwnersSeoPage = lazy(() => import('./ui/pages/OwnersSeoPage.jsx'))
 const BusinessSeoPage = lazy(() => import('./ui/pages/BusinessSeoPage.jsx'))
 const NotificationsPage = lazy(() => import('./ui/pages/NotificationsPage.jsx'))
@@ -49,13 +48,6 @@ function RouteFallback() {
       <PageLoadSpinner size="page" />
     </div>
   )
-}
-
-/** На нативной платформе отправляем на кабинет владельца вместо маркетинговой главной. */
-function MobileHomeRedirect() {
-  if (hasOwnerSession()) return <Navigate to="/garage" replace />
-  if (hasDetailingSession()) return <Navigate to="/detailing" replace />
-  return <Navigate to="/auth/owner" replace />
 }
 
 function RequireAuth({ children }) {
@@ -125,7 +117,7 @@ export default function App() {
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
           <Routes>
-            <Route path="/" element={isNativeApp() ? <MobileHomeRedirect /> : <HomePage />} />
+            <Route path="/" element={<Navigate to="/auth" replace />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/owners" element={<OwnersSeoPage />} />
             <Route path="/business" element={<BusinessSeoPage />} />

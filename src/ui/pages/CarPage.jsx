@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useRepo } from '../useRepo.js'
+import { useRepo, invalidateRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
@@ -26,6 +26,7 @@ import {
   readCarPageExpandPrefs,
 } from '../../lib/carPageExpandPrefs.js'
 import { resolveEffectiveMileageKm } from '../../lib/carMileage.js'
+import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -109,6 +110,11 @@ export default function CarPage() {
   const [inboxClaims, setInboxClaims] = useState([])
   const [dataReady, setDataReady] = useState(false)
   const prevCarIdRef = useRef(null)
+
+  useVisibleAutoRefresh(() => invalidateRepo(), {
+    enabled: Boolean(id) && (mode === 'owner' || mode === 'detailing'),
+    intervalMs: 30_000,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -975,4 +981,3 @@ export default function CarPage() {
     </div>
   )
 }
-

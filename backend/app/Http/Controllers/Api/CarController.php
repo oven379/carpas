@@ -13,14 +13,18 @@ use App\Http\Support\MediaStorage;
 use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
+use App\Models\CarClaim;
 use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
+use App\Services\InternalNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class CarController extends Controller
 {
+    public function __construct(private readonly InternalNotificationService $notifications) {}
+
     public function index(Request $request)
     {
         /** @var Detailing $d */
@@ -76,16 +80,58 @@ class CarController extends Controller
         $vinKey = mb_strtolower($vin, 'UTF-8');
         $poolId = PendingOwnerPool::detailingId();
 
-        $inOwnerGarageOnly = Car::query()
+        $ownerGarageCar = Car::query()
             ->whereRaw('lower(trim(vin)) = ?', [$vinKey])
             ->whereNotNull('owner_id')
             ->whereNull('detailing_id')
-            ->exists();
-        if ($inOwnerGarageOnly) {
+            ->with('owner')
+            ->first();
+        if ($ownerGarageCar instanceof Car) {
+            $claim = CarClaim::query()->firstOrCreate(
+                [
+                    'car_id' => $ownerGarageCar->id,
+                    'owner_id' => $ownerGarageCar->owner_id,
+                    'detailing_id' => $d->id,
+                    'direction' => 'detailing_to_owner',
+                    'status' => 'pending',
+                ],
+                [
+                    'evidence' => [
+                        'message' => trim((string) ($data['clientName'] ?? '')),
+                        'clientPhone' => trim((string) ($data['clientPhone'] ?? '')),
+                        'clientEmail' => trim((string) ($data['clientEmail'] ?? '')),
+                        'detailingName' => $d->name,
+                        'detailingPhone' => $d->phone,
+                    ],
+                ],
+            );
+
+            if ($claim->wasRecentlyCreated && $ownerGarageCar->owner_id) {
+                $carName = trim(implode(' ', array_filter([(string) $ownerGarageCar->make, (string) $ownerGarageCar->model]))) ?: 'ваш автомобиль';
+                $this->notifications->createForOwner(
+                    (int) $ownerGarageCar->owner_id,
+                    'Сервис хочет добавить авто',
+                    trim((string) $d->name) !== ''
+                        ? $d->name.' хочет добавить '.$carName.' в свой кабинет.'
+                        : 'Сервис хочет добавить '.$carName.' в свой кабинет.',
+                    'detailing_car_add_request',
+                    [
+                        'claimId' => (string) $claim->id,
+                        'carId' => (string) $ownerGarageCar->id,
+                        'detailingId' => (string) $d->id,
+                        'requestType' => 'detailing_car_add',
+                    ],
+                );
+            }
+
             return response()->json([
-                'code' => 'car_in_owner_garage',
-                'message' => 'Этот VIN уже в личном гараже владельца в КарПас — новую карточку по нему не создаём. Клиент может пригласить вас из гаража или оформить заявку.',
-            ], 422);
+                'code' => 'owner_approval_required',
+                'message' => $claim->wasRecentlyCreated
+                    ? 'Автомобиль уже есть в гараже владельца. Мы отправили владельцу заявку на добавление авто в ваш кабинет.'
+                    : 'Заявка владельцу уже отправлена и ожидает подтверждения.',
+                'claimId' => (string) $claim->id,
+                'carId' => (string) $ownerGarageCar->id,
+            ], $claim->wasRecentlyCreated ? 202 : 200);
         }
 
         $candidate = Car::query()

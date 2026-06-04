@@ -243,6 +243,7 @@ class ApiResources
             'ownerGarageSlug' => trim((string) ($ow?->garage_slug ?? '')),
             'ownerGarageAvatar' => MediaStorage::publicUrl($ow?->garage_avatar ?? null),
             'status' => $c->status,
+            'direction' => (string) ($c->direction ?? 'owner_to_detailing'),
             'evidence' => $c->evidence ?? [],
             'createdAt' => optional($c->created_at)->toISOString(),
             'reviewedAt' => optional($c->reviewed_at)->toISOString(),

@@ -443,6 +443,7 @@ function notificationKindLabel(kind) {
   if (kind === 'car_ready') return 'Авто'
   if (kind === 'service_reminder') return 'Напоминание'
   if (kind === 'owner_booking_request_sent') return 'Запись'
+  if (kind === 'detailing_car_add_request') return 'Заявка'
   if (kind === 'admin_broadcast') return 'Сервис'
   if (kind === 'admin_test') return 'Тест'
   return 'Уведомление'
@@ -528,6 +529,10 @@ function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout
     if (n?.kind === 'owner_booking_request_sent' && carId) {
       const suffix = eventId ? `?visit=${encodeURIComponent(eventId)}` : ''
       nav(`/car/${encodeURIComponent(carId)}/history${suffix}`)
+      return
+    }
+    if (n?.kind === 'detailing_car_add_request') {
+      nav('/requests')
       return
     }
     if (detailingId && !isNativeApp()) {
@@ -763,7 +768,7 @@ export function TopNav() {
       return
     }
     let c = false
-    ;(async () => {
+    const load = async () => {
       try {
         const list = await r.listClaimsForDetailing()
         if (!c && Array.isArray(list)) {
@@ -772,9 +777,15 @@ export function TopNav() {
       } catch {
         if (!c) setPendingClaims(0)
       }
-    })()
+    }
+    void load()
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void load()
+    }, 30_000)
     return () => {
       c = true
+      window.clearInterval(pollId)
     }
   }, [isDetailingCabinet, detailingId, r, r._version])
   useEffect(() => {
@@ -784,7 +795,7 @@ export function TopNav() {
       return
     }
     let cancelled = false
-    ;(async () => {
+    const load = async () => {
       try {
         const res = await getApi().notificationsUnreadCount()
         if (!cancelled) {
@@ -795,9 +806,15 @@ export function TopNav() {
       } catch {
         if (!cancelled) setNotificationsUnread(0)
       }
-    })()
+    }
+    void load()
+    const pollId = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void load()
+    }, 30_000)
     return () => {
       cancelled = true
+      window.clearInterval(pollId)
     }
   }, [loc.pathname, mode, isPublicShowcasePage])
   const logout = () => {
@@ -906,4 +923,3 @@ export function TopNav() {
     </header>
   )
 }
-

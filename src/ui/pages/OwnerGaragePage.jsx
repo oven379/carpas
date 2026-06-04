@@ -15,6 +15,7 @@ import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '.
 import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices } from '../../lib/serviceCatalogs.js'
+import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 
 /** Одна строка визита для вкладки «Мои визиты» на странице гаража. */
 function buildGarageVisitRow(carRow, evtRaw) {
@@ -100,6 +101,11 @@ export default function OwnerGaragePage() {
   const [primaryServicePhone, setPrimaryServicePhone] = useState('')
 
   const ownerEmail = String(owner?.email || '').trim()
+
+  useVisibleAutoRefresh(() => invalidateRepo(), {
+    enabled: mode === 'owner' && Boolean(ownerEmail),
+    intervalMs: 30_000,
+  })
 
   useEffect(() => {
     if (loc.hash !== '#garage-vin-claim') return

@@ -7,15 +7,22 @@ use App\Http\Support\ApiResources;
 use App\Models\AppNotification;
 use App\Models\Car;
 use App\Models\CarEvent;
+use App\Models\DevicePushToken;
 use App\Models\Owner;
 use App\Models\ServiceBookingRequest;
+use App\Services\FcmV1Client;
 use App\Services\InternalNotificationService;
+use App\Services\PushSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ServiceBookingRequestController extends Controller
 {
-    public function __construct(private readonly InternalNotificationService $notifications) {}
+    public function __construct(
+        private readonly InternalNotificationService $notifications,
+        private readonly FcmV1Client $fcm,
+        private readonly PushSettings $pushSettings,
+    ) {}
 
     public function storeOwner(Request $request)
     {
@@ -78,7 +85,7 @@ class ServiceBookingRequestController extends Controller
                     'requestTypeLabel' => 'Запись от владельца',
                 ],
             );
-            $this->notifications->createForDetailing(
+            $detailingNotification = $this->notifications->createForDetailing(
                 (int) $event->detailing_id,
                 'Клиент хочет записаться',
                 $ownerName.' хочет записать '.$carName.' на повторный визит. Свяжитесь с клиентом для выбора времени.',
@@ -96,6 +103,7 @@ class ServiceBookingRequestController extends Controller
                     'requestTypeLabel' => 'Запись от владельца',
                 ],
             );
+            $this->sendDetailingPushForBooking($detailingNotification);
         }
 
         return response()->json([
@@ -105,6 +113,31 @@ class ServiceBookingRequestController extends Controller
                 ? 'Заявка отправлена. Менеджер сервиса свяжется с вами.'
                 : 'Заявка уже есть в CRM сервиса.',
         ], $requestRow->wasRecentlyCreated ? 201 : 200);
+    }
+
+    private function sendDetailingPushForBooking(AppNotification $notification): void
+    {
+        $detailingId = (int) ($notification->detailing_id ?? 0);
+        if ($detailingId <= 0 || ! $this->pushSettings->isEnabledForAudience('detailings') || ! $this->fcm->canSendAny()) {
+            return;
+        }
+
+        $tokens = DevicePushToken::query()
+            ->where('detailing_id', $detailingId)
+            ->pluck('token')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($tokens === []) {
+            return;
+        }
+
+        $result = $this->fcm->sendToTokens($tokens, $notification->title, $notification->body);
+        $notification->push_sent = (int) ($result['sent'] ?? 0) > 0;
+        $notification->push_failed = (int) ($result['failed'] ?? 0) > 0;
+        $notification->save();
     }
 
     public function updateDetailing(Request $request, int $id)

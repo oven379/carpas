@@ -15,6 +15,7 @@ function kindLabel(kind) {
   if (kind === 'crm_next_contact') return 'CRM'
   if (kind === 'owner_booking_request') return 'Заявка'
   if (kind === 'owner_booking_request_sent') return 'Запись'
+  if (kind === 'detailing_car_add_request') return 'Заявка'
   if (kind === 'admin_broadcast') return 'Сервис'
   if (kind === 'admin_test') return 'Тест'
   return 'Уведомление'
@@ -206,6 +207,10 @@ export default function NotificationsPage() {
         const suffix = eventId ? `?visit=${encodeURIComponent(eventId)}` : ''
         nav(`/car/${encodeURIComponent(carId)}/history${suffix}`)
       }
+      return
+    }
+    if (n?.kind === 'detailing_car_add_request' && hasOwnerSession()) {
+      nav('/requests')
       return
     }
     const detailingId = String(n?.data?.detailingId || '').trim()

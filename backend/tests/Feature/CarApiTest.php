@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Car;
+use App\Models\CarClaim;
 use App\Models\Owner;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
@@ -100,6 +101,60 @@ class CarApiTest extends FeatureTestCase
             'vin' => 'TOOSHORT',
             'legalConsentAccepted' => true,
         ])->assertStatus(422);
+    }
+
+    public function test_studio_for_visit_owner_garage_car_creates_owner_approval_claim(): void
+    {
+        $owner = Owner::query()->create([
+            'email' => 'owner-approval@example.test',
+            'password' => Hash::make('secret'),
+            'name' => 'Владелец',
+            'phone' => '+7 999 123 45 67',
+        ]);
+        $car = Car::query()->create([
+            'detailing_id' => null,
+            'owner_id' => $owner->id,
+            'vin' => '4HGBH41JXMN109186',
+            'make' => 'Toyota',
+            'model' => 'RAV4',
+            'year' => 2022,
+            'mileage_km' => 12000,
+            'price_rub' => 0,
+            'segment' => 'mass',
+        ]);
+        $d = $this->detailing(['name' => 'Студия Блеск']);
+
+        Sanctum::actingAs($d);
+
+        $this->postJson('/api/cars/for-visit', [
+            'vin' => '4HGBH41JXMN109186',
+        ])
+            ->assertAccepted()
+            ->assertJsonPath('code', 'owner_approval_required');
+
+        $claim = CarClaim::query()->firstOrFail();
+        $this->assertSame('detailing_to_owner', $claim->direction);
+        $this->assertSame($owner->id, (int) $claim->owner_id);
+        $this->assertSame($d->id, (int) $claim->detailing_id);
+        $this->assertDatabaseHas('app_notifications', [
+            'owner_id' => $owner->id,
+            'kind' => 'detailing_car_add_request',
+            'title' => 'Сервис хочет добавить авто',
+        ]);
+
+        Sanctum::actingAs($owner);
+
+        $this->patchJson("/api/owners/claims/{$claim->id}", [
+            'status' => 'approved',
+        ])
+            ->assertOk()
+            ->assertJsonPath('status', 'approved');
+
+        $this->assertDatabaseHas('cars', [
+            'id' => $car->id,
+            'detailing_id' => $d->id,
+            'owner_id' => $owner->id,
+        ]);
     }
 
     public function test_store_car_requires_legal_consent(): void

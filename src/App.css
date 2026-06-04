@@ -7530,6 +7530,9 @@ button.garageSettings__thumb:focus-visible {
   grid-column: 2;
   grid-row: 1;
   align-self: start;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .authSplit--hub .authSplit__lede {
@@ -7862,6 +7865,154 @@ a.btn.authHub__btn--cta:visited:hover {
 a.btn.authHub__btn--neutral:visited,
 a.btn.authHub__btn--accent:visited {
   color: inherit;
+}
+
+.authAppDownloads {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
+}
+
+.authAppDownloads__title {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-weight: 650;
+}
+
+.authAppDownloads__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+
+.authAppDownloadBtn {
+  appearance: none;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 58px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 82%, var(--text-h));
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--code-bg) 48%, var(--bg));
+  color: var(--text-h);
+  text-align: left;
+  text-decoration: none;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    filter 120ms ease;
+}
+
+.authAppDownloadBtn:not(:disabled):hover {
+  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
+  border-color: color-mix(in oklab, var(--accent) 54%, var(--border));
+  color: var(--text-h);
+  filter: brightness(1.03);
+}
+
+.authAppDownloadBtn:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.authAppDownloadBtn:visited {
+  color: var(--text-h);
+}
+
+.authAppDownloadBtn__icon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: color-mix(in oklab, var(--accent) 14%, var(--bg));
+  border: 1px solid color-mix(in oklab, var(--accent) 46%, var(--border));
+}
+
+.authAppDownloadBtn__icon--ios::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 8px;
+  width: 12px;
+  height: 13px;
+  border-radius: 7px 7px 6px 6px;
+  background: var(--text-h);
+}
+
+.authAppDownloadBtn__icon--ios::after {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 4px;
+  width: 7px;
+  height: 8px;
+  border-radius: 8px 0 8px 0;
+  background: var(--text-h);
+  transform: rotate(-24deg);
+}
+
+.authAppDownloadBtn__icon--android::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 9px;
+  width: 14px;
+  height: 14px;
+  border-radius: 5px 5px 4px 4px;
+  background: var(--text-h);
+}
+
+.authAppDownloadBtn__icon--android::after {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid var(--text-h);
+  border-left: 2px solid var(--text-h);
+  transform: rotate(45deg);
+}
+
+.authAppDownloadBtn__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.authAppDownloadBtn__label,
+.authAppDownloadBtn__store {
+  overflow-wrap: anywhere;
+}
+
+.authAppDownloadBtn__label {
+  color: var(--text-h);
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.15;
+}
+
+.authAppDownloadBtn__store {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+@media (max-width: 520px) {
+  .authAppDownloads__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* CTA + шеврон «вперёд» (как OpenAction в кабинете), внутри фиолетовой кнопки */
@@ -9444,6 +9595,8 @@ a.btn.carPage__recsAddVisitFull,
     margin-top: 10px;
     width: 100%;
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
     justify-content: center;
   }
 

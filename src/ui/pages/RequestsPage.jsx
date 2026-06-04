@@ -14,7 +14,7 @@ export default function RequestsPage() {
   const claimLock = useAsyncActionLock()
   const loc = useLocation()
   const navigate = useNavigate()
-  const { detailingId, detailing, mode, loading } = useDetailing()
+  const { detailingId, detailing, owner, mode, loading } = useDetailing()
   const [claims, setClaims] = useState([])
   const [carsById, setCarsById] = useState({})
   const [ready, setReady] = useState(false)
@@ -25,7 +25,7 @@ export default function RequestsPage() {
     let softReloadTimer = 0
 
     async function loadClaims({ showSpinner = true } = {}) {
-      if (mode !== 'detailing' || !detailingId) {
+      if (mode !== 'detailing' && mode !== 'owner') {
         if (!cancelled) {
           setClaims([])
           setCarsById({})
@@ -35,7 +35,10 @@ export default function RequestsPage() {
       }
       if (showSpinner) setReady(false)
       try {
-        const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+        const [cl, carList] =
+          mode === 'detailing'
+            ? await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+            : await Promise.all([r.listClaimsForOwner(), r.listCars()])
         if (cancelled) return
         setClaims(Array.isArray(cl) ? cl : [])
         const map = {}
@@ -68,16 +71,21 @@ export default function RequestsPage() {
 
     document.addEventListener('visibilitychange', scheduleSoftReload)
     window.addEventListener('focus', scheduleSoftReload)
+    const pollId = window.setInterval(() => {
+      if (cancelled || document.visibilityState !== 'visible') return
+      void loadClaims({ showSpinner: false })
+    }, 15_000)
 
     return () => {
       cancelled = true
       if (softReloadTimer) window.clearTimeout(softReloadTimer)
+      window.clearInterval(pollId)
       document.removeEventListener('visibilitychange', scheduleSoftReload)
       window.removeEventListener('focus', scheduleSoftReload)
     }
   }, [r, r._version, mode, detailingId, loc.pathname, loc.key])
 
-  if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (mode !== 'detailing' && mode !== 'owner') return <Navigate to="/cars" replace />
 
   if (loading) {
     return (
@@ -87,7 +95,11 @@ export default function RequestsPage() {
     )
   }
 
-  const pending = claims.filter((x) => x.status === 'pending')
+  const visibleClaims =
+    mode === 'owner'
+      ? claims.filter((x) => String(x.direction || '') === 'detailing_to_owner')
+      : claims.filter((x) => String(x.direction || 'owner_to_detailing') === 'owner_to_detailing')
+  const pending = visibleClaims.filter((x) => x.status === 'pending')
 
   if (!ready) {
     return (
@@ -136,35 +148,49 @@ export default function RequestsPage() {
       <div className="row spread gap">
         <div>
           <div className="breadcrumbs">
-            <span>Кабинет</span>
+            <span>{mode === 'owner' ? 'Гараж' : 'Кабинет'}</span>
             <span> / </span>
             <span>Заявки</span>
           </div>
           <div id="requests-page-hint" className="serviceHint__pageBlock">
             <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
-              <BackNav />
-              <h1 className="h1">Заявки на привязку авто</h1>
+              <BackNav fallbackTo={mode === 'owner' ? '/garage' : '/detailing'} />
+              <h1 className="h1">{mode === 'owner' ? 'Заявки от сервисов' : 'Заявки на привязку авто'}</h1>
               <ServiceHint scopeId="requests-page-hint" variant="compact" label="Справка: заявки">
-                <p className="serviceHint__panelText">
-                  Владельцы запрашивают привязку своего авто к вашему кабинету. Гараж владельца остаётся приватным; публично
-                  доступен только лендинг детейлинга и отдельные истории авто по ссылке.
-                </p>
+                {mode === 'owner' ? (
+                  <p className="serviceHint__panelText">
+                    Сервисы могут попросить разрешение добавить вашу машину в свой кабинет по VIN. Подтверждайте только знакомый сервис.
+                  </p>
+                ) : (
+                  <p className="serviceHint__panelText">
+                    Владельцы запрашивают привязку своего авто к вашему кабинету. Гараж владельца остаётся приватным; публично
+                    доступен только лендинг детейлинга и отдельные истории авто по ссылке.
+                  </p>
+                )}
               </ServiceHint>
             </div>
           </div>
           <p className="muted" style={{ marginTop: 8 }}>
-            Детейлинг: <span className="mono">{detailing?.name || detailingId}</span> · в ожидании: {pending.length}
+            {mode === 'owner' ? (
+              <>Владелец: <span className="mono">{owner?.email || owner?.name || 'аккаунт'}</span> · в ожидании: {pending.length}</>
+            ) : (
+              <>Детейлинг: <span className="mono">{detailing?.name || detailingId}</span> · в ожидании: {pending.length}</>
+            )}
           </p>
         </div>
       </div>
 
       <div className="list">
-        {claims.map((x) => {
+        {visibleClaims.map((x) => {
           const car = carsById[String(x.carId)] || null
           const ev = x.evidence || {}
           const ownerAvatar = String(x.ownerGarageAvatar || '').trim()
           const ownerLabel = String(x.ownerName || '').trim() || 'Владелец'
           const ownerDisplayName = String(x.ownerName || '').trim() || '—'
+          const requesterDisplayName =
+            mode === 'owner'
+              ? String(ev.detailingName || '').trim() || 'Сервис'
+              : ownerDisplayName
           const plateLine = car ? fmtPlateFull(car.plate, car.plateRegion) : ''
           const mileageLine = car != null ? `${fmtInt(Number(car.mileageKm) || 0)} км` : null
           const clientPhoneRaw = String(car?.clientPhone || '').trim()
@@ -173,17 +199,22 @@ export default function RequestsPage() {
           const { display: evidencePhoneDisplay, telHref: evidencePhoneTelHref } = displayRuPhone(evidencePhoneRaw)
           const carHeroBg = car?.hero ? resolvedBackgroundImageUrl(car.hero) : undefined
           const claimOwnerEmail = String(x.ownerEmail || '').trim()
-          const avatarInner = ownerAvatar ? (
-            <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
-          ) : (
-            <DefaultAvatar email={claimOwnerEmail} fallback={ownerLabel} alt="" />
-          )
+          const avatarInner =
+            mode !== 'owner' && ownerAvatar ? (
+              <img src={resolvePublicMediaUrl(ownerAvatar)} alt="" />
+            ) : (
+              <DefaultAvatar
+                email={mode === 'owner' ? '' : claimOwnerEmail}
+                fallback={mode === 'owner' ? requesterDisplayName : ownerLabel}
+                alt=""
+              />
+            )
           const avatarCorner = (
             <span
               className="requestsCard__avatarCorner requestsCard__ownerAvatar requestsCard__avatarCorner--static"
-              title="Гараж владельца приватный"
+              title={mode === 'owner' ? 'Сервис запрашивает доступ' : 'Гараж владельца приватный'}
               role="img"
-              aria-label={`Аватар владельца ${ownerLabel}`}
+              aria-label={mode === 'owner' ? `Сервис ${requesterDisplayName}` : `Аватар владельца ${ownerLabel}`}
             >
               {avatarInner}
             </span>
@@ -212,7 +243,9 @@ export default function RequestsPage() {
                     />
                   </div>
                   <p className="muted small requestsCard__evidenceHint" style={{ marginTop: 10, marginBottom: 0 }}>
-                    Сверьте заявителя с фото автомобиля и телефоном в вашей карточке клиента.
+                    {mode === 'owner'
+                      ? 'Проверьте сервис перед подтверждением. После подтверждения машина появится в кабинете сервиса.'
+                      : 'Сверьте заявителя с фото автомобиля и телефоном в вашей карточке клиента.'}
                   </p>
 
                   <div className="requestsCard__facts topBorder" style={{ marginTop: 14 }}>
@@ -251,7 +284,7 @@ export default function RequestsPage() {
                     ) : null}
                     <div className="requestsCard__factLine">
                       <span className="clientBlockLabel">Заявитель:</span>{' '}
-                      <span className="requestsCard__clientName">{ownerDisplayName}</span>
+                      <span className="requestsCard__clientName">{requesterDisplayName}</span>
                     </div>
                   </div>
 
@@ -266,23 +299,27 @@ export default function RequestsPage() {
                         onClick={() =>
                           void claimLock.run(async () => {
                             try {
-                              await r.reviewClaim(x.id, { status: 'approved' })
+                              if (mode === 'owner') await r.reviewOwnerClaim(x.id, { status: 'approved' })
+                              else await r.reviewClaim(x.id, { status: 'approved' })
                               invalidateRepo()
-                              const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+                              const [cl, carList] =
+                                mode === 'owner'
+                                  ? await Promise.all([r.listClaimsForOwner(), r.listCars()])
+                                  : await Promise.all([r.listClaimsForDetailing(), r.listCars()])
                               setClaims(Array.isArray(cl) ? cl : [])
                               const map = {}
                               for (const c of Array.isArray(carList) ? carList : []) {
                                 map[String(c.id)] = c
                               }
                               setCarsById(map)
-                              setClaimApprovedModalOpen(true)
+                              if (mode === 'detailing') setClaimApprovedModalOpen(true)
                             } catch {
                               alert('Не удалось принять заявку.')
                             }
                           })
                         }
                       >
-                        Добавить авто
+                        {mode === 'owner' ? 'Разрешить сервису' : 'Добавить авто'}
                       </button>
                       <button
                         className="btn"
@@ -294,15 +331,21 @@ export default function RequestsPage() {
                           void claimLock.run(async () => {
                             if (
                               !confirm(
-                                'Отменить заявку владельца? Привязка к приложению не будет создана, карточка у вас останется как раньше.',
+                                mode === 'owner'
+                                  ? 'Отклонить заявку сервиса? Автомобиль не появится в кабинете сервиса.'
+                                  : 'Отменить заявку владельца? Привязка к приложению не будет создана, карточка у вас останется как раньше.',
                               )
                             ) {
                               return
                             }
                             try {
-                              await r.reviewClaim(x.id, { status: 'rejected' })
+                              if (mode === 'owner') await r.reviewOwnerClaim(x.id, { status: 'rejected' })
+                              else await r.reviewClaim(x.id, { status: 'rejected' })
                               invalidateRepo()
-                              const [cl, carList] = await Promise.all([r.listClaimsForDetailing(), r.listCars()])
+                              const [cl, carList] =
+                                mode === 'owner'
+                                  ? await Promise.all([r.listClaimsForOwner(), r.listCars()])
+                                  : await Promise.all([r.listClaimsForDetailing(), r.listCars()])
                               setClaims(Array.isArray(cl) ? cl : [])
                               const map = {}
                               for (const c of Array.isArray(carList) ? carList : []) {
@@ -324,7 +367,7 @@ export default function RequestsPage() {
             </Card>
           )
         })}
-        {claims.length === 0 ? (
+        {visibleClaims.length === 0 ? (
           <Card className="card pad">
             <div className="muted">Заявок пока нет.</div>
           </Card>

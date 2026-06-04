@@ -26,6 +26,9 @@ import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import Logo from '../Logo.jsx'
 
+const IOS_APP_URL =
+  'https://apps.apple.com/ru/app/carpasss-%D0%BA%D0%B0%D1%80%D0%BF%D0%B0%D1%81%D1%81%D1%81/id6768924960'
+
 export default function OwnerAuthPage() {
   const r = useRepo()
   const { detailing } = useDetailing()
@@ -351,6 +354,36 @@ export default function OwnerAuthPage() {
               )}
             </div>
           </Card>
+          <div className="authAppDownloads" aria-label="Скачать приложение CarPasss">
+            <p className="muted small authAppDownloads__title">Мобильное приложение</p>
+            <div className="authAppDownloads__grid">
+              <a
+                className="authAppDownloadBtn authAppDownloadBtn--ios"
+                href={IOS_APP_URL}
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Скачать приложение CarPasss для iOS в App Store"
+              >
+                <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--ios" aria-hidden="true" />
+                <span className="authAppDownloadBtn__copy">
+                  <span className="authAppDownloadBtn__label">Скачать приложение</span>
+                  <span className="authAppDownloadBtn__store">iOS · App Store</span>
+                </span>
+              </a>
+              <button
+                className="authAppDownloadBtn authAppDownloadBtn--android"
+                type="button"
+                disabled
+                aria-label="Скачать приложение CarPasss для Android"
+              >
+                <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />
+                <span className="authAppDownloadBtn__copy">
+                  <span className="authAppDownloadBtn__label">Скачать приложение</span>
+                  <span className="authAppDownloadBtn__store">Android · скоро</span>
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\AppNotification;
 use App\Models\Car;
 use App\Models\CarEvent;
+use App\Models\DevicePushToken;
 use App\Models\Owner;
 use App\Models\ServiceBookingRequest;
+use App\Services\FcmV1Client;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 
 class ServiceBookingRequestApiTest extends FeatureTestCase
 {
@@ -46,6 +49,20 @@ class ServiceBookingRequestApiTest extends FeatureTestCase
             'services' => ['Керамика'],
             'maintenance_services' => [],
         ]);
+        DevicePushToken::query()->create([
+            'owner_id' => null,
+            'detailing_id' => $detailing->id,
+            'token' => 'ExpoPushToken[detailing-booking-token]',
+            'platform' => 'expo',
+        ]);
+
+        $this->mock(FcmV1Client::class, function ($mock) {
+            $mock->shouldReceive('canSendAny')->once()->andReturn(true);
+            $mock->shouldReceive('sendToTokens')
+                ->once()
+                ->with(['ExpoPushToken[detailing-booking-token]'], 'Клиент хочет записаться', Mockery::type('string'))
+                ->andReturn(['sent' => 1, 'failed' => 0, 'errors' => []]);
+        });
 
         Sanctum::actingAs($owner);
 
@@ -73,6 +90,7 @@ class ServiceBookingRequestApiTest extends FeatureTestCase
             'detailing_id' => $detailing->id,
             'kind' => 'owner_booking_request',
             'title' => 'Клиент хочет записаться',
+            'push_sent' => true,
         ]);
 
         ServiceBookingRequest::query()->firstOrFail()->update(['status' => ServiceBookingRequest::STATUS_IN_WORK]);

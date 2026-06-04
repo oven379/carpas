@@ -509,6 +509,15 @@ export function createApiClient() {
       })
     },
 
+    async createDetailingClaim({ carId, message }) {
+      flushCoalescedRequests()
+      return await req('claims/outbox', {
+        method: 'POST',
+        body: { carId: String(carId), message: String(message || '') },
+        token: dTok(),
+      })
+    },
+
     async listClaimsForOwner() {
       if (inflightOwnerClaims) return inflightOwnerClaims
       const p = req('owners/claims', { token: oTok() }).finally(() => {
@@ -530,6 +539,11 @@ export function createApiClient() {
     async reviewClaim(id, { status }) {
       flushCoalescedRequests()
       return await req(`claims/${id}`, { method: 'PATCH', body: { status }, token: dTok() })
+    },
+
+    async reviewOwnerClaim(id, { status }) {
+      flushCoalescedRequests()
+      return await req(`owners/claims/${id}`, { method: 'PATCH', body: { status }, token: oTok() })
     },
 
     async createOwnerServiceBookingRequest(body) {

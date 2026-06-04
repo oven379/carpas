@@ -37,6 +37,7 @@ import { mergeStoredCareTipsToPlainText } from '../../lib/recommendations.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
+import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 import {
   FORM_ADD_PHOTOS_HINT,
   FORM_CARE_ADVICE_HINT,
@@ -543,6 +544,10 @@ export default function HistoryPage() {
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
+  useVisibleAutoRefresh(() => invalidateRepo(), {
+    enabled: Boolean(id) && (mode === 'owner' || mode === 'detailing') && !showNew && !editingId,
+    intervalMs: 30_000,
+  })
   const [draftSaveNotice, setDraftSaveNotice] = useState('')
   const minMileageKmForVisitForm = useMemo(
     () => (car ? resolveMinMileageKmForVisitForm(car, events, editingId) : 0),
@@ -2143,4 +2148,3 @@ export default function HistoryPage() {
     </div>
   )
 }
-

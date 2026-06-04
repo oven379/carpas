@@ -31,6 +31,7 @@ import {
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { useDetailing } from '../useDetailing.js'
+import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 
 function rowHeroBackgroundStyle(hero) {
   const bg = resolvedBackgroundImageUrl(hero)
@@ -202,6 +203,11 @@ export default function DetailingDashboardPage() {
   const [inboxClaims, setInboxClaims] = useState([])
   const [lastVisitByCarId, setLastVisitByCarId] = useState({})
   const [dashReady, setDashReady] = useState(false)
+
+  useVisibleAutoRefresh(() => invalidateRepo(), {
+    enabled: mode === 'detailing' && Boolean(detailingId),
+    intervalMs: 30_000,
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -454,6 +460,15 @@ export default function DetailingDashboardPage() {
                       clientPhone,
                       clientEmail: '',
                     })
+                    if (created?.code === 'owner_approval_required') {
+                      alert(
+                        typeof created.message === 'string' && created.message.trim()
+                          ? created.message.trim()
+                          : 'Автомобиль уже есть в гараже владельца. Мы отправили владельцу заявку на добавление авто в ваш кабинет.',
+                      )
+                      invalidateRepo()
+                      return
+                    }
                     if (!created?.id) {
                       alert('Не удалось добавить автомобиль.')
                       return
@@ -464,6 +479,20 @@ export default function DetailingDashboardPage() {
                     if (e instanceof HttpError && e.status === 404 && e.body && e.body.code === 'car_not_found') {
                       invalidateRepo()
                       nav(`/create?from=${encodeURIComponent(from)}&vin=${encodeURIComponent(vinResolved)}`)
+                      return
+                    }
+                    if (
+                      e instanceof HttpError &&
+                      (e.status === 202 || e.status === 200) &&
+                      e.body &&
+                      e.body.code === 'owner_approval_required'
+                    ) {
+                      alert(
+                        typeof e.body.message === 'string' && e.body.message.trim()
+                          ? e.body.message.trim()
+                          : 'Автомобиль уже есть в гараже владельца. Мы отправили владельцу заявку на добавление авто в ваш кабинет.',
+                      )
+                      invalidateRepo()
                       return
                     }
                     if (e instanceof HttpError && e.status === 422 && e.body && e.body.code === 'car_in_owner_garage') {
@@ -781,4 +810,3 @@ export default function DetailingDashboardPage() {
     </div>
   )
 }
-

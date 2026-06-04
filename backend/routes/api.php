@@ -132,6 +132,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
 
     Route::post('/owners/claims', [CarClaimController::class, 'store']);
     Route::get('/owners/claims', [CarClaimController::class, 'mine']);
+    Route::patch('/owners/claims/{id}', [CarClaimController::class, 'reviewByOwner']);
 });
 
 Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
@@ -164,5 +165,6 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::delete('/docs/{id}', [CarDocController::class, 'destroy']);
 
     Route::get('/claims/inbox', [CarClaimController::class, 'inbox']);
+    Route::post('/claims/outbox', [CarClaimController::class, 'storeDetailing']);
     Route::patch('/claims/{id}', [CarClaimController::class, 'review']);
 });
