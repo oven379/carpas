@@ -1,0 +1,14 @@
+Slide 01: cover with thesis and timing badge.
+Slide 02: loss map with seven operational leaks.
+Slide 03: mini-audit scorecard.
+Slide 04: process map from request to repeat visit.
+Slide 05: current Car Pass feature map.
+Slide 06: partner onboarding path.
+Slide 07: marketing channels matrix.
+Slide 08: service offer bundles.
+Slide 09: reputation and maps loop.
+Slide 10: repeat sales and retention loop.
+Slide 11: 7-day implementation roadmap.
+Slide 12: 30-minute compressed route.
+Slide 13: checklist handout.
+Slide 14: final call to action with URL and QR placeholder.

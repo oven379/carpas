@@ -1,0 +1,40 @@
+Task mode: create
+Primary deck-profile: product-platform
+Secondary gates: gtm-growth, practical offline training
+
+Required proof objects:
+- Loss map for detailing and service businesses.
+- CRM process map from lead to repeat visit.
+- Car Pass feature map grounded in the current project.
+- Marketing channel matrix for Russia.
+- 7-day adoption plan and connection call to action.
+
+Source constraints:
+- Product capabilities are based on local Car Pass project screens and backend controllers.
+- Do not claim paid analytics, IP telephony, cash register, warehouse, or full ad attribution as built-in if not visible in the current project.
+- Position those items as next integrations or marketing discipline around CRM.
+
+Known product capabilities to mention:
+- Partner application and admin approval flow with login/password by email.
+- Partner cabinet for detailing/STO.
+- Public service landing page with contacts, city, address, work hours, services, website, Telegram, Instagram, logo and cover.
+- Client and car CRM list with stats: clients, cars, visits this month, cars with history.
+- Search by name, phone, VIN and Russian plate.
+- Filter for clients who have not visited for more than 25 days.
+- Client notes.
+- Car cards and service visit history.
+- Visit records with mileage, services, maintenance services, internal note, next contact date, recommendations, photos and documents.
+- Owner garage, vehicle history sharing, claim/attachment flow between owner and service.
+- Booking/request notifications and owner push messaging where enabled.
+
+Brand constraints:
+- Main written form on slides: КарПас CRM.
+- Alternate names in speech: Car Pass, Кар Пас, Кар Пасс.
+- URL: https://carpasss.ru
+- Free access wording: "бесплатный доступ к текущему функционалу / на этапе запуска" until the product owner confirms a permanent free subscription.
+
+QA gates:
+- 16:9 deck, readable on an offline projector.
+- No tiny body text.
+- 30-minute route clearly marked in notes and program.
+- Final slide has a QR placeholder and URL.
