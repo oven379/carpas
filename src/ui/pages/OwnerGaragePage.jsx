@@ -44,24 +44,6 @@ function buildGarageVisitRow(carRow, evtRaw) {
   }
 }
 
-function pickBestDetailingId(cars) {
-  const counts = new Map()
-  for (const c of cars || []) {
-    if (c?.detailingIsPersonal) continue
-    const id = String(c?.detailingId ?? '').trim()
-    if (!id) continue
-    counts.set(id, (counts.get(id) || 0) + 1)
-  }
-  let best = ''
-  let bestN = 0
-  for (const [id, n] of counts) {
-    if (n > bestN) {
-      bestN = n
-      best = id
-    }
-  }
-  return best
-}
 
 function GarageDashPinIcon() {
   return (
@@ -98,7 +80,6 @@ export default function OwnerGaragePage() {
   /** События по авто — одна загрузка на страницу (вкладка визитов и сетка), без второго listEvents */
   const [enrichedRows, setEnrichedRows] = useState(null)
   const [garageMainTab, setGarageMainTab] = useState('cars')
-  const [primaryServicePhone, setPrimaryServicePhone] = useState('')
 
   const ownerEmail = String(owner?.email || '').trim()
 
@@ -215,38 +196,6 @@ export default function OwnerGaragePage() {
     return out
   }, [enrichedRows])
 
-  const primaryDetailingFromCars = useMemo(() => {
-    const id = pickBestDetailingId(cars)
-    if (!id) return null
-    const sample = cars.find((c) => String(c?.detailingId ?? '').trim() === id)
-    if (!sample) return null
-    const name = String(sample.detailingName || '').trim()
-    const logo = String(sample.detailingLogo || '').trim()
-    const website = String(sample.detailingWebsite || '').trim()
-    const publicSlug = String(sample.detailingPublicSlug || '').trim()
-    return { id, publicSlug, name, logo, website }
-  }, [cars])
-
-  useEffect(() => {
-    const seg = primaryDetailingFromCars?.publicSlug || primaryDetailingFromCars?.id
-    if (!seg) {
-      setPrimaryServicePhone('')
-      return () => {}
-    }
-    let cancelled = false
-    void (async () => {
-      try {
-        const data = await r.publicDetailingShowcase(seg)
-        if (cancelled || !data?.detailing) return
-        setPrimaryServicePhone(String(data.detailing.phone || '').trim())
-      } catch {
-        if (!cancelled) setPrimaryServicePhone('')
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [primaryDetailingFromCars?.id, primaryDetailingFromCars?.publicSlug, r])
 
   if (mode === 'detailing') return <Navigate to="/detailing" replace />
   if (!hasOwnerSession()) return <Navigate to="/auth/owner" replace />
@@ -268,12 +217,7 @@ export default function OwnerGaragePage() {
     `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
   const { display: phoneDisplay } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
-  const { display: servicePhoneDisplay } = displayRuPhone(primaryServicePhone)
-  const serviceWebsiteHref = primaryDetailingFromCars?.website
-    ? normalizeHttpUrl(primaryDetailingFromCars.website)
-    : ''
-
-  const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
+const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
 
   return (
     <div
@@ -419,37 +363,6 @@ export default function OwnerGaragePage() {
               </div>
             </div>
 
-            {primaryDetailingFromCars ? (
-              <Link
-                className="garageDash__service"
-                to={`/d/${encodeURIComponent(primaryDetailingFromCars.publicSlug || primaryDetailingFromCars.id)}`}
-              >
-                <div className="garageDash__serviceInner row gap wrap align-start">
-                  <div className="garageDash__serviceLogo">
-                    {primaryDetailingFromCars.logo ? (
-                      <img alt="" src={resolvePublicMediaUrl(primaryDetailingFromCars.logo)} />
-                    ) : (
-                      <DefaultAvatar
-                        fallback={primaryDetailingFromCars.name || 'Сервис'}
-                        alt=""
-                      />
-                    )}
-                  </div>
-                  <div className="garageDash__serviceBody">
-                    <div className="garageDash__serviceName">
-                      {primaryDetailingFromCars.name || 'Сервис'}
-                    </div>
-                    {servicePhoneDisplay ? (
-                      <p className="muted small garageDash__serviceMeta">{servicePhoneDisplay}</p>
-                    ) : serviceWebsiteHref ? (
-                      <span className="muted small garageDash__serviceMeta">Сайт сервиса</span>
-                    ) : (
-                      <span className="muted small garageDash__serviceMeta">Публичная страница сервиса</span>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ) : null}
           </div>
 
           <div className="garageDash__tabsBar row spread gap wrap align-center">

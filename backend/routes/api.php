@@ -33,11 +33,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 Route::get('/health', fn () => response()->json(['ok' => true]));
 Route::get('/push/settings', [AdminPushController::class, 'publicSettings']);
 
-Route::middleware('throttle:30,1')->post('/support/tickets', [SupportTicketController::class, 'store']);
+Route::post('/support/tickets', [SupportTicketController::class, 'store']);
 
 Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
 
-Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
+Route::middleware('admin.support')->group(function () {
     Route::get('/admin/support/overview', [AdminSupportController::class, 'overview']);
     Route::get('/admin/support/partners', [AdminSupportController::class, 'partnersDirectory']);
     Route::get('/admin/support/partners/{id}/summary', [AdminRegistryController::class, 'partnerSummary']);
@@ -46,20 +46,16 @@ Route::middleware(['admin.support', 'throttle:120,1'])->group(function () {
     Route::get('/admin/support/registry/cars', [AdminRegistryController::class, 'cars']);
     Route::get('/admin/support/registry/cars/{id}', [AdminRegistryController::class, 'carShow']);
     Route::get('/admin/support/partner-registrations/pending', [AdminSupportController::class, 'partnerRegistrationsPending']);
-    Route::post('/admin/support/partner-registrations/{id}/approve', [AdminSupportController::class, 'approvePartnerRegistration'])
-        ->middleware('throttle:60,1');
+    Route::post('/admin/support/partner-registrations/{id}/approve', [AdminSupportController::class, 'approvePartnerRegistration']);
     Route::get('/admin/support/tickets', [AdminSupportController::class, 'index']);
     Route::post('/admin/support/tickets/{id}/reply', [AdminSupportController::class, 'reply']);
     Route::get('/admin/support/operations', [AdminOperationsController::class, 'index']);
     Route::get('/admin/support/push/devices', [AdminOperationsController::class, 'pushDevices']);
-    Route::delete('/admin/support/push/devices/{id}', [AdminOperationsController::class, 'deletePushDevice'])
-        ->middleware('throttle:60,1');
+    Route::delete('/admin/support/push/devices/{id}', [AdminOperationsController::class, 'deletePushDevice']);
     Route::get('/admin/support/push/stats', [AdminPushController::class, 'stats']);
     Route::patch('/admin/support/push/settings', [AdminPushController::class, 'updateSettings']);
-    Route::post('/admin/support/push/test', [AdminPushController::class, 'sendTest'])
-        ->middleware('throttle:20,1');
-    Route::post('/admin/support/push/broadcast', [AdminPushController::class, 'broadcast'])
-        ->middleware('throttle:12,1');
+    Route::post('/admin/support/push/test', [AdminPushController::class, 'sendTest']);
+    Route::post('/admin/support/push/broadcast', [AdminPushController::class, 'broadcast']);
 });
 
 Route::get('/public/stats', [PublicShowcaseController::class, 'stats']);
@@ -127,8 +123,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
     Route::get('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'index']);
     Route::delete('/owners/shares/{token}', [OwnerCarShareController::class, 'revoke']);
 
-    Route::post('/owners/service-booking-requests', [ServiceBookingRequestController::class, 'storeOwner'])
-        ->middleware('throttle:20,1');
+    Route::post('/owners/service-booking-requests', [ServiceBookingRequestController::class, 'storeOwner']);
 
     Route::post('/owners/claims', [CarClaimController::class, 'store']);
     Route::get('/owners/claims', [CarClaimController::class, 'mine']);

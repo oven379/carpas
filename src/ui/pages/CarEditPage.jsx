@@ -108,6 +108,13 @@ export default function CarEditPage({ mode }) {
   const [ownerOrphanCar, setOwnerOrphanCar] = useState(null)
   const [ownerVinLookupBusy, setOwnerVinLookupBusy] = useState(false)
   const [ownerAttachBusy, setOwnerAttachBusy] = useState(false)
+  // 'vin' → 'form' (не найден) | 'owner_garage' (в гараже владельца) | 'other_detailing' (у другого сервиса)
+  const [detailingVinPhase, setDetailingVinPhase] = useState('vin')
+  const [detailingFoundCar, setDetailingFoundCar] = useState(null)
+  const [detailingVinBusy, setDetailingVinBusy] = useState(false)
+  const [detailingVinError, setDetailingVinError] = useState('')
+  const [detailingLinkBusy, setDetailingLinkBusy] = useState(false)
+  const [detailingLinkError, setDetailingLinkError] = useState('')
   const ownerUrlVinLookupDone = useRef(false)
   const [car, setCar] = useState(null)
   const [carEditEvents, setCarEditEvents] = useState([])
@@ -341,6 +348,14 @@ export default function CarEditPage({ mode }) {
     } else {
       setOwnerAddVinPhase('form')
     }
+    if (mode === 'create' && who === 'detailing') {
+      setDetailingVinPhase('vin')
+      setDetailingFoundCar(null)
+      setDetailingVinError('')
+      setDetailingLinkError('')
+    } else {
+      setDetailingVinPhase('form')
+    }
   }, [mode, who])
 
   useEffect(() => {
@@ -453,6 +468,57 @@ export default function CarEditPage({ mode }) {
   const carCardHref = mode === 'edit' && id ? `/car/${id}${buildCarFromQuery(fromParam)}` : listReturn
 
   const ownerVinFieldsLocked = mode === 'create' && who === 'owner' && ownerAddVinPhase === 'vin'
+  const isDetailingCreate = mode === 'create' && who === 'detailing'
+  // true → поля формы заблокированы (нужна сначала проверка VIN или подтверждение города)
+  const detailingFormFieldsDisabled = isDetailingCreate && detailingVinPhase !== 'form'
+  // city разблокирован и в фазе owner_garage — для подтверждения
+  const detailingCityDisabled = isDetailingCreate && detailingVinPhase !== 'form' && detailingVinPhase !== 'owner_garage'
+
+  const handleDetailingVinCheck = async () => {
+    const v = normVin(draft.vin)
+    const vinErr = describeVinValidationError(v)
+    if (vinErr || v.length !== 17) {
+      setDetailingVinError(vinErr || 'Введите полный VIN из 17 символов.')
+      return
+    }
+    setDetailingVinError('')
+    setDetailingVinBusy(true)
+    try {
+      const dupes = r.findDuplicateCarsForDetailing
+        ? await r.findDuplicateCarsForDetailing({ vin: v })
+        : []
+      if (Array.isArray(dupes) && dupes.length > 0) {
+        const c = dupes[0]
+        setDetailingFoundCar(c)
+        setDetailingVinPhase(c.vinHitFromOwnerGarage ? 'owner_garage' : 'other_detailing')
+      } else {
+        setDetailingVinPhase('form')
+      }
+    } catch {
+      setDetailingVinPhase('form')
+    } finally {
+      setDetailingVinBusy(false)
+    }
+  }
+
+  const handleDetailingLink = async () => {
+    if (!detailingFoundCar) return
+    setDetailingLinkError('')
+    setDetailingLinkBusy(true)
+    try {
+      await r.linkPersonalGarageCar({
+        carId: detailingFoundCar.id,
+        year: String(detailingFoundCar.year || '').trim(),
+        city: String(draft.city || '').trim(),
+      })
+      invalidateRepo()
+      nav(`/car/${detailingFoundCar.id}${buildCarFromQuery(fromParam)}`)
+    } catch (e) {
+      setDetailingLinkError(formatHttpErrorMessage(e))
+    } finally {
+      setDetailingLinkBusy(false)
+    }
+  }
 
   const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
   /** Редактирование: «Отмена» и назад — на страницу автомобиля (с ?from=). Создание — в гараж/список или кабинет. */
@@ -601,9 +667,82 @@ export default function CarEditPage({ mode }) {
               spellCheck={false}
               inputMode="text"
               autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
+              disabled={isDetailingCreate && detailingVinPhase !== 'vin'}
               onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
               placeholder="WDD..."
             />
+            {isDetailingCreate && detailingVinPhase === 'vin' ? (
+              <div style={{ marginTop: 10 }}>
+                {detailingVinError ? (
+                  <p className="field__error" style={{ marginBottom: 8 }}>{detailingVinError}</p>
+                ) : null}
+                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                  <Button
+                    className="btn"
+                    variant="primary"
+                    type="button"
+                    disabled={detailingVinBusy}
+                    aria-busy={detailingVinBusy || undefined}
+                    onClick={() => void handleDetailingVinCheck()}
+                  >
+                    {detailingVinBusy ? 'Проверка…' : 'Проверить VIN и продолжить'}
+                  </Button>
+                  <Button className="btn" variant="outline" type="button" onClick={() => nav(listReturn)}>
+                    Отменить
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            {isDetailingCreate && detailingVinPhase === 'owner_garage' && detailingFoundCar ? (
+              <div className="detailingVinFoundBanner" style={{ marginTop: 10, padding: '12px 14px', background: 'var(--color-accent-subtle, #eef6ff)', borderRadius: 8, border: '1px solid var(--color-accent-border, #bdd7f5)' }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {[detailingFoundCar.make, detailingFoundCar.model].filter(Boolean).join(' ') || 'Авто'}
+                  {detailingFoundCar.year ? `, ${detailingFoundCar.year} г.` : ''}
+                </div>
+                <p className="muted small" style={{ margin: '0 0 10px' }}>
+                  Это авто есть в личном гараже владельца КарПас. Укажите город из карточки владельца — и нажмите «Привязать».
+                </p>
+                <button
+                  type="button"
+                  className="btn"
+                  data-variant="ghost"
+                  style={{ padding: '2px 8px', fontSize: '0.8em' }}
+                  onClick={() => { setDetailingVinPhase('vin'); setDetailingFoundCar(null); setDetailingLinkError('') }}
+                >
+                  Изменить VIN
+                </button>
+              </div>
+            ) : null}
+            {isDetailingCreate && detailingVinPhase === 'other_detailing' && detailingFoundCar ? (
+              <div style={{ marginTop: 10, padding: '12px 14px', background: 'var(--color-warn-subtle, #fff8ec)', borderRadius: 8, border: '1px solid var(--color-warn-border, #f5d88a)' }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>
+                  {[detailingFoundCar.make, detailingFoundCar.model].filter(Boolean).join(' ') || 'Авто'}
+                  {detailingFoundCar.year ? `, ${detailingFoundCar.year} г.` : ''}
+                </div>
+                <p className="muted small" style={{ margin: '0 0 10px' }}>
+                  Карточка с этим VIN уже ведётся{detailingFoundCar.detailingName ? ` в сервисе «${detailingFoundCar.detailingName}»` : ' в другом сервисе'}.
+                  Можно создать новую карточку в вашем кабинете или изменить VIN.
+                </p>
+                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                  <Button
+                    className="btn"
+                    variant="primary"
+                    type="button"
+                    onClick={() => { setDetailingFoundCar(null); setDetailingVinPhase('form') }}
+                  >
+                    Создать новую карточку
+                  </Button>
+                  <Button
+                    className="btn"
+                    variant="outline"
+                    type="button"
+                    onClick={() => { setDetailingVinPhase('vin'); setDetailingFoundCar(null) }}
+                  >
+                    Изменить VIN
+                  </Button>
+                </div>
+              </div>
+            ) : null}
             {ownerVinFieldsLocked ? (
               <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
                 <Button
@@ -664,7 +803,7 @@ export default function CarEditPage({ mode }) {
               value={draft.make}
               options={makes}
               placeholder="Начните вводить… (например: Volkswagen)"
-              disabled={ownerVinFieldsLocked}
+              disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, make: v }))}
               onBlur={() => addCustomMake(draft.make)}
             />
@@ -674,7 +813,7 @@ export default function CarEditPage({ mode }) {
               value={draft.model}
               options={modelOptions}
               placeholder={draft.make ? 'Выберите из списка или введите вручную…' : 'Сначала выберите марку'}
-              disabled={!draft.make || ownerVinFieldsLocked}
+              disabled={!draft.make || ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, model: v }))}
               emptyText={draft.make ? 'Нет моделей для этой марки' : 'Сначала выберите марку'}
               onBlur={() => addCustomModel(draft.make, draft.model)}
@@ -686,7 +825,7 @@ export default function CarEditPage({ mode }) {
               options={years}
               placeholder="Например: 2020"
               maxItems={30}
-              disabled={ownerVinFieldsLocked}
+              disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) =>
                 setDraft((d) => ({ ...d, year: normDigits(v, { max: 2100, maxLen: 4 }) }))
               }
@@ -710,7 +849,7 @@ export default function CarEditPage({ mode }) {
               inputMode="numeric"
               value={draft.mileageKm}
               maxLength={7}
-              disabled={ownerVinFieldsLocked}
+              disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(e) =>
                 setDraft((d) => {
                   const nextRaw = normDigits(e.target.value, { maxLen: 7 })
@@ -728,7 +867,7 @@ export default function CarEditPage({ mode }) {
               options={COLOR_SUGGESTIONS}
               placeholder="Например: Чёрный (можно свой вариант)"
               maxItems={20}
-              disabled={ownerVinFieldsLocked}
+              disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
             />
           </Field>
@@ -754,7 +893,7 @@ export default function CarEditPage({ mode }) {
                 spellCheck={false}
                 value={draft.plate}
                 maxLength={6}
-                disabled={ownerVinFieldsLocked}
+                disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
                 title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы (можно вводить кириллицей)"
                 onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBaseUi(e.target.value) }))}
                 placeholder="А777АА"
@@ -764,7 +903,7 @@ export default function CarEditPage({ mode }) {
                 inputMode="numeric"
                 value={draft.plateRegion}
                 maxLength={3}
-                disabled={ownerVinFieldsLocked}
+                disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
                 }
@@ -775,7 +914,7 @@ export default function CarEditPage({ mode }) {
           </div>
           <div className="field serviceHint__fieldWrap" id="car-edit-city-hint">
             <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Город</span>
+              <span className="field__label">Город{isDetailingCreate && detailingVinPhase === 'owner_garage' ? ' (для подтверждения)' : ''}</span>
               <ServiceHint scopeId="car-edit-city-hint" variant="compact" label="Справка: город">
                 <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
               </ServiceHint>
@@ -783,9 +922,36 @@ export default function CarEditPage({ mode }) {
             <CityComboBox
               value={draft.city}
               maxItems={20}
-              disabled={ownerVinFieldsLocked}
+              disabled={ownerVinFieldsLocked || detailingCityDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
             />
+            {isDetailingCreate && detailingVinPhase === 'owner_garage' ? (
+              <div style={{ marginTop: 10 }}>
+                {detailingLinkError ? (
+                  <p className="field__error" style={{ marginBottom: 8 }}>{detailingLinkError}</p>
+                ) : null}
+                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                  <Button
+                    className="btn"
+                    variant="primary"
+                    type="button"
+                    disabled={detailingLinkBusy}
+                    aria-busy={detailingLinkBusy || undefined}
+                    onClick={() => void handleDetailingLink()}
+                  >
+                    {detailingLinkBusy ? 'Привязка…' : 'Привязать авто'}
+                  </Button>
+                  <Button
+                    className="btn"
+                    variant="outline"
+                    type="button"
+                    onClick={() => { setDetailingFoundCar(null); setDetailingVinPhase('form') }}
+                  >
+                    Создать новую карточку
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
           {who !== 'owner' ? (
             <>
@@ -838,7 +1004,7 @@ export default function CarEditPage({ mode }) {
         <div
           className="topBorder carEditCoverBlock"
           style={
-            ownerVinFieldsLocked
+            ownerVinFieldsLocked || detailingFormFieldsDisabled
               ? { pointerEvents: 'none', opacity: 0.55 }
               : undefined
           }
@@ -911,7 +1077,7 @@ export default function CarEditPage({ mode }) {
             <Button
               className="btn"
               variant="primary"
-              disabled={saveBusy || ownerVinFieldsLocked}
+              disabled={saveBusy || ownerVinFieldsLocked || (isDetailingCreate && detailingVinPhase !== 'form')}
               aria-busy={saveBusy || undefined}
               onClick={async () => {
                 if (saveInFlightRef.current) return
@@ -959,76 +1125,6 @@ export default function CarEditPage({ mode }) {
                     if (who === 'owner') nav(listReturn)
                     else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
                   } else {
-                    const vin = normVin(draft.vin)
-                    const clientPhone = String(draft.clientPhone || '').trim()
-                    const clientEmail = String(draft.clientEmail || '').trim().toLowerCase()
-
-                    if (who === 'detailing' && r.findDuplicateCarsForDetailing) {
-                      const phoneDigitsLen = String(clientPhone || '').replace(/\D/g, '').length
-                      const phoneAloneOk = phoneDigitsLen >= 10
-                      if (vin || (clientPhone && clientEmail) || phoneAloneOk) {
-                        try {
-                          const dupes = await r.findDuplicateCarsForDetailing({
-                            vin,
-                            clientPhone,
-                            clientEmail,
-                          })
-                          if (Array.isArray(dupes) && dupes.length > 0) {
-                            const c = dupes[0]
-                            const plateLine = fmtPlateFull(c.plate, c.plateRegion)
-                            const more =
-                              dupes.length > 1 ? `\n\nЕщё совпадений в базе: ${dupes.length - 1}.` : ''
-                            const vinLine = c.vin ? `\nVIN: ${c.vin}` : ''
-                            const srcLine = c.vinHitFromOwnerGarage
-                              ? '\nИсточник: личный гараж владельца в КарПас.'
-                              : ''
-                            const isGarageOnly = c.vinHitFromOwnerGarage
-                            const actionHint = isGarageOnly
-                              ? 'ОК — привязать к кабинету и перейти, Отмена — создать новую.'
-                              : 'ОК — перейти к карточке, Отмена — создать новую.'
-                            const msg =
-                              'Найдена существующая карточка по VIN и/или телефону клиента:\n\n' +
-                              `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
-                              vinLine +
-                              (plateLine ? `\nГосномер: ${plateLine}` : '') +
-                              (c.detailingName ? `\nСервис: ${c.detailingName}` : '') +
-                              srcLine +
-                              `${more}\n\n` +
-                              'Открыть её вместо создания новой?\n\n' +
-                              actionHint
-                            if (confirm(msg)) {
-                              if (isGarageOnly) {
-                                try {
-                                  await r.linkPersonalGarageCar({
-                                    carId: c.id,
-                                    year: String(draft.year || '').trim(),
-                                    city: String(draft.city || '').trim(),
-                                  })
-                                  const clientPatch = {}
-                                  if (String(draft.clientName || '').trim()) clientPatch.clientName = String(draft.clientName).trim()
-                                  if (String(draft.clientPhone || '').trim()) clientPatch.clientPhone = String(draft.clientPhone).trim()
-                                  if (String(draft.clientEmail || '').trim()) clientPatch.clientEmail = String(draft.clientEmail).trim()
-                                  if (String(draft.ownerPhone || '').trim()) clientPatch.ownerPhone = String(draft.ownerPhone).trim()
-                                  if (Object.keys(clientPatch).length > 0) {
-                                    try { await r.updateCar(c.id, clientPatch) } catch { /* не критично */ }
-                                  }
-                                  invalidateRepo()
-                                  nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
-                                } catch (e) {
-                                  alert(formatHttpErrorMessage(e))
-                                }
-                              } else {
-                                nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
-                              }
-                              return
-                            }
-                          }
-                        } catch {
-                          /* ignore duplicate check */
-                        }
-                      }
-                    }
-
                     const plateKey =
                       draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
                     if (who === 'owner' && plateKey && r.findCarsByPlate) {
