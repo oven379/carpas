@@ -982,6 +982,10 @@ export default function CarEditPage({ mode }) {
                             const srcLine = c.vinHitFromOwnerGarage
                               ? '\nИсточник: личный гараж владельца в КарПас.'
                               : ''
+                            const isGarageOnly = c.vinHitFromOwnerGarage
+                            const actionHint = isGarageOnly
+                              ? 'ОК — привязать к кабинету и перейти, Отмена — создать новую.'
+                              : 'ОК — перейти к карточке, Отмена — создать новую.'
                             const msg =
                               'Найдена существующая карточка по VIN и/или телефону клиента:\n\n' +
                               `${c.make} ${c.model}${c.year ? `, ${c.year} г.` : ''}` +
@@ -991,9 +995,31 @@ export default function CarEditPage({ mode }) {
                               srcLine +
                               `${more}\n\n` +
                               'Открыть её вместо создания новой?\n\n' +
-                              'ОК — перейти к карточке, Отмена — создать новую.'
+                              actionHint
                             if (confirm(msg)) {
-                              nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
+                              if (isGarageOnly) {
+                                try {
+                                  await r.linkPersonalGarageCar({
+                                    carId: c.id,
+                                    year: String(draft.year || '').trim(),
+                                    city: String(draft.city || '').trim(),
+                                  })
+                                  const clientPatch = {}
+                                  if (String(draft.clientName || '').trim()) clientPatch.clientName = String(draft.clientName).trim()
+                                  if (String(draft.clientPhone || '').trim()) clientPatch.clientPhone = String(draft.clientPhone).trim()
+                                  if (String(draft.clientEmail || '').trim()) clientPatch.clientEmail = String(draft.clientEmail).trim()
+                                  if (String(draft.ownerPhone || '').trim()) clientPatch.ownerPhone = String(draft.ownerPhone).trim()
+                                  if (Object.keys(clientPatch).length > 0) {
+                                    try { await r.updateCar(c.id, clientPatch) } catch { /* не критично */ }
+                                  }
+                                  invalidateRepo()
+                                  nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
+                                } catch (e) {
+                                  alert(formatHttpErrorMessage(e))
+                                }
+                              } else {
+                                nav(`/car/${c.id}${buildCarFromQuery(fromParam)}`)
+                              }
                               return
                             }
                           }
