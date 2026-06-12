@@ -12,6 +12,7 @@ import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
 import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
 import CookieBanner from './ui/CookieBanner.jsx'
+import { ToastProvider } from './ui/toast.jsx'
 
 /** Гостевой маркетинг на `/about` и `/for-detailing` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
@@ -106,6 +107,7 @@ export default function App() {
   const soloChrome = guestMarketingChrome || adminSolo || nativeAuthChrome
 
   return (
+    <ToastProvider>
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
       <DevHud />
       <SyncClientDataOnTabReturn />
@@ -240,5 +242,6 @@ export default function App() {
       )}
       {isNativeApp() ? null : <CookieBanner />}
     </div>
+    </ToastProvider>
   )
 }

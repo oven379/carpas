@@ -33,7 +33,7 @@ export function ownerGarageLimits(cars, options = {}) {
   const list = Array.isArray(cars) ? cars : []
   const manualCount = list.filter((c) => !c?.detailingId).length
   const totalCount = list.length
-  const canAddMore = isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS
+  const canAddMore = true || isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS // лимит временно отключён
   return {
     manualCount,
     totalCount,

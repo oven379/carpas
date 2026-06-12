@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useToast } from '../toast.jsx'
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
 import {
   BackNav,
@@ -97,6 +98,7 @@ function norm(s) {
 }
 
 export default function CarEditPage({ mode }) {
+  const toast = useToast()
   const { id } = useParams()
   const nav = useNavigate()
   const [sp] = useSearchParams()
@@ -215,7 +217,7 @@ export default function CarEditPage({ mode }) {
       })
       setDraft((d) => ({ ...d, hero: url }))
     } catch {
-      alert('Не удалось прочитать файл')
+      toast('Не удалось прочитать файл', 'error')
     }
   }
 
@@ -380,11 +382,11 @@ export default function CarEditPage({ mode }) {
           setOwnerOrphanCar(res.car)
           setOwnerOrphanModalOpen(true)
         } else {
-          alert('По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.')
+          toast('По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.', 'warn')
         }
       } catch (e) {
         ownerUrlVinLookupDone.current = false
-        if (!cancelled) alert(formatHttpErrorMessage(e))
+        if (!cancelled) toast(formatHttpErrorMessage(e), 'error')
       } finally {
         if (!cancelled) setOwnerVinLookupBusy(false)
       }
@@ -422,7 +424,7 @@ export default function CarEditPage({ mode }) {
         </div>
       )
     }
-    if (!ownerCreateLimits.canAddManual) {
+    if (false && !ownerCreateLimits.canAddManual) {
       const fromParamEarly = sp.get('from') || ''
       const listReturnEarly = resolveCarListReturnPath('owner', fromParamEarly)
       const limitDetail = `В бесплатном гараже — не больше ${OWNER_MAX_FREE_GARAGE_CARS} автомобилей.`
@@ -572,7 +574,7 @@ export default function CarEditPage({ mode }) {
                   onClick={() =>
                     void (async () => {
                       if (!r.attachOwnerExistingCar) {
-                        alert('Действие недоступно в этой сборке.')
+                        toast('Действие недоступно в этой сборке.', 'warn')
                         return
                       }
                       setOwnerAttachBusy(true)
@@ -583,7 +585,7 @@ export default function CarEditPage({ mode }) {
                         setOwnerOrphanModalOpen(false)
                         nav(listReturn, { replace: true })
                       } catch (e) {
-                        alert(formatHttpErrorMessage(e))
+                        toast(formatHttpErrorMessage(e), 'error')
                       } finally {
                         setOwnerAttachBusy(false)
                       }
@@ -694,7 +696,7 @@ export default function CarEditPage({ mode }) {
               </div>
             ) : null}
             {isDetailingCreate && detailingVinPhase === 'owner_garage' && detailingFoundCar ? (
-              <div className="detailingVinFoundBanner" style={{ marginTop: 10, padding: '12px 14px', background: 'var(--color-accent-subtle, #eef6ff)', borderRadius: 8, border: '1px solid var(--color-accent-border, #bdd7f5)' }}>
+              <div className="detailingVinFoundBanner" style={{ marginTop: 10, padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '0.5px solid var(--border-default)' }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>
                   {[detailingFoundCar.make, detailingFoundCar.model].filter(Boolean).join(' ') || 'Авто'}
                   {detailingFoundCar.year ? `, ${detailingFoundCar.year} г.` : ''}
@@ -756,13 +758,13 @@ export default function CarEditPage({ mode }) {
                       const v = normVin(draft.vin)
                       const vinErr = describeVinValidationError(v)
                       if (vinErr || v.length !== 17) {
-                        alert(vinErr || 'Введите полный VIN из 17 символов.')
+                        toast(vinErr || 'Введите полный VIN из 17 символов.', 'warn')
                         return
                       }
                       setOwnerVinLookupBusy(true)
                       try {
                         if (!r.lookupOwnerCarForAdd) {
-                          alert('Действие недоступно в этой сборке.')
+                          toast('Действие недоступно в этой сборке.', 'warn')
                           return
                         }
                         const res = await r.lookupOwnerCarForAdd(v)
@@ -772,12 +774,13 @@ export default function CarEditPage({ mode }) {
                           setOwnerOrphanCar(res.car)
                           setOwnerOrphanModalOpen(true)
                         } else {
-                          alert(
+                          toast(
                             'По этому VIN машина уже привязана к владельцу в КарПас. Добавить её к себе нельзя.',
+                            'warn',
                           )
                         }
                       } catch (e) {
-                        alert(formatHttpErrorMessage(e))
+                        toast(formatHttpErrorMessage(e), 'error')
                       } finally {
                         setOwnerVinLookupBusy(false)
                       }
@@ -1082,31 +1085,31 @@ export default function CarEditPage({ mode }) {
               onClick={async () => {
                 if (saveInFlightRef.current) return
                 if (mode === 'create' && !carLegalConsent) {
-                  alert('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.')
+                  toast('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.', 'warn')
                   return
                 }
                 const vinErr = describeVinValidationError(normVin(draft.vin))
                 const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
                 if (vinErr) {
-                  alert(vinErr)
+                  toast(vinErr, 'warn')
                   return
                 }
                 if (mode === 'create' && who === 'owner' && normVin(draft.vin).length !== 17) {
-                  alert('Укажите полный VIN из 17 символов.')
+                  toast('Укажите полный VIN из 17 символов.', 'warn')
                   return
                 }
                 if (mode === 'create' && who === 'detailing' && normVin(draft.vin).length !== 17) {
-                  alert('Для новой карточки в кабинете партнёра нужен полный VIN из 17 символов.')
+                  toast('Для новой карточки в кабинете партнёра нужен полный VIN из 17 символов.', 'warn')
                   return
                 }
                 if (plateErr) {
-                  alert(plateErr)
+                  toast(plateErr, 'warn')
                   return
                 }
                 if (mode === 'edit') {
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
                   if (nextMileage < minMileageKm) {
-                    alert(`Пробег не может быть меньше ${fmtInt(minMileageKm)} км — по карточке и истории визитов.`)
+                    toast(`Пробег не может быть меньше ${fmtInt(minMileageKm)} км — по карточке и истории визитов.`, 'warn')
                     return
                   }
                 }
@@ -1118,7 +1121,7 @@ export default function CarEditPage({ mode }) {
                     try {
                       await r.updateCar(id, draft)
                     } catch (e) {
-                      alert(formatHttpErrorMessage(e))
+                      toast(formatHttpErrorMessage(e), 'error')
                       return
                     }
                     invalidateRepo()
@@ -1147,7 +1150,7 @@ export default function CarEditPage({ mode }) {
                       legalConsentAccepted: true,
                     })
                     if (!created?.id) {
-                      alert('Ошибка')
+                      toast('Ошибка при создании карточки', 'error')
                       return
                     }
                     if (who === 'owner') refreshAllClientData()
@@ -1156,7 +1159,7 @@ export default function CarEditPage({ mode }) {
                   }
                 } catch (e) {
                   if (import.meta.env.DEV) console.error(e)
-                  alert(formatHttpErrorMessage(e))
+                  toast(formatHttpErrorMessage(e), 'error')
                 } finally {
                   saveInFlightRef.current = false
                   setSaveBusy(false)
@@ -1188,7 +1191,7 @@ export default function CarEditPage({ mode }) {
                       const list = await r.listCars()
                       nav(getPathAfterCarRemovedFromScope(list, { mode: who, owner, detailingId }), { replace: true })
                     } catch {
-                      alert('Не удалось удалить авто (нет доступа).')
+                      toast('Не удалось удалить авто (нет доступа).', 'error')
                     }
                   })
                 }
