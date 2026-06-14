@@ -301,106 +301,102 @@ export function VisitFormServicesBlock({
         <p className="muted small visitFormSvc__meta">{meta}</p>
       )}
 
-      <details className="svcdd__group visitFormSvc__details" open>
-        <summary className="svcdd__title visitFormSvc__summary">
-          <span>Кузов</span>
-          <span className="svcdd__count">
-            {detGroups.reduce((n, g) => n + (g.items || []).length, 0) +
-              (showPaintGenericRow ? 1 : 0) +
-              paintLabelsForUi.length}
-          </span>
-        </summary>
-        <div className="visitFormSvc__detailsBody">
-          {!detGroups.length && !showPaintSubBlock ? (
-            <p className="muted small visitFormSvc__empty">
-              {useFullCatalogFallback
-                ? 'Справочник детейлинга недоступен.'
-                : 'В настройках лендинга нет услуг детейлинга (ни из справочника, ни своих названий).'}
-            </p>
-          ) : null}
-          {detGroups.map((g) => (
-            <div key={g.title} className="visitFormSvc__subBlock">
-              <div className="visitFormSvc__subLabel">{g.title}</div>
-              <SectionGrid items={g.items || []} selected={svc} disabled={disabled} onToggle={toggleBodyItem} />
-            </div>
-          ))}
-          {showPaintSubBlock ? (
-            <div className="visitFormSvc__subBlock">
-              {showPaintGenericRow ? (
-                <>
-                  <div className="visitFormSvc__subLabel">Покраска</div>
-                  <div className="svcdd__grid visitFormSvc__grid">
-                    <button
-                      type="button"
-                      className={`svcdd__item${paintGenericOn ? ' is-on' : ''}`}
-                      disabled={disabled}
-                      onClick={() => toggleBodyItem(VISIT_FORM_BODY_PAINT_GENERIC, !paintGenericOn)}
+      {(useFullCatalogFallback || detGroups.length > 0 || showPaintSubBlock) ? (
+        <details className="svcdd__group visitFormSvc__details" open>
+          <summary className="svcdd__title visitFormSvc__summary">
+            <span>Кузов</span>
+            <span className="svcdd__count">
+              {detGroups.reduce((n, g) => n + (g.items || []).length, 0) +
+                (showPaintGenericRow ? 1 : 0) +
+                paintLabelsForUi.length}
+            </span>
+          </summary>
+          <div className="visitFormSvc__detailsBody">
+            {!detGroups.length && !showPaintSubBlock ? (
+              <p className="muted small visitFormSvc__empty">
+                Справочник детейлинга недоступен.
+              </p>
+            ) : null}
+            {detGroups.map((g) => (
+              <div key={g.title} className="visitFormSvc__subBlock">
+                <div className="visitFormSvc__subLabel">{g.title}</div>
+                <SectionGrid items={g.items || []} selected={svc} disabled={disabled} onToggle={toggleBodyItem} />
+              </div>
+            ))}
+            {showPaintSubBlock ? (
+              <div className="visitFormSvc__subBlock">
+                {showPaintGenericRow ? (
+                  <>
+                    <div className="visitFormSvc__subLabel">Покраска</div>
+                    <div className="svcdd__grid visitFormSvc__grid">
+                      <button
+                        type="button"
+                        className={`svcdd__item${paintGenericOn ? ' is-on' : ''}`}
+                        disabled={disabled}
+                        onClick={() => toggleBodyItem(VISIT_FORM_BODY_PAINT_GENERIC, !paintGenericOn)}
+                      >
+                        <span className="svcdd__check" aria-hidden="true">
+                          {paintGenericOn ? '✓' : ''}
+                        </span>
+                        <span>{VISIT_FORM_BODY_PAINT_GENERIC}</span>
+                      </button>
+                    </div>
+                  </>
+                ) : null}
+                {paintLabelsForUi.length ? (
+                  <>
+                    <div
+                      className={`visitFormSvc__subLabel${showPaintGenericRow ? ' visitFormSvc__subLabel--tight' : ''}`}
                     >
-                      <span className="svcdd__check" aria-hidden="true">
-                        {paintGenericOn ? '✓' : ''}
-                      </span>
-                      <span>{VISIT_FORM_BODY_PAINT_GENERIC}</span>
-                    </button>
-                  </div>
-                </>
-              ) : null}
-              {paintLabelsForUi.length ? (
-                <>
-                  <div
-                    className={`visitFormSvc__subLabel${showPaintGenericRow ? ' visitFormSvc__subLabel--tight' : ''}`}
-                  >
-                    По элементам кузова
-                  </div>
-                  <SectionGrid
-                    items={paintLabelsForUi}
-                    selected={svc}
-                    disabled={disabled}
-                    onToggle={toggleBodyItem}
-                  />
-                </>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      </details>
+                      По элементам кузова
+                    </div>
+                    <SectionGrid
+                      items={paintLabelsForUi}
+                      selected={svc}
+                      disabled={disabled}
+                      onToggle={toggleBodyItem}
+                    />
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </details>
+      ) : null}
 
-      <details className="svcdd__group visitFormSvc__details">
-        <summary className="svcdd__title visitFormSvc__summary">
-          <span>ДВС</span>
-          <span className="svcdd__count">{engGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
-        </summary>
-        <div className="visitFormSvc__detailsBody">
-          {!engGroups.length ? (
-            <p className="muted small visitFormSvc__empty">В профиле не отмечены услуги ТО для двигателя и смежных систем.</p>
-          ) : (
-            engGroups.map((g) => (
+      {(useFullCatalogFallback || engGroups.length > 0) ? (
+        <details className="svcdd__group visitFormSvc__details">
+          <summary className="svcdd__title visitFormSvc__summary">
+            <span>ДВС</span>
+            <span className="svcdd__count">{engGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
+          </summary>
+          <div className="visitFormSvc__detailsBody">
+            {engGroups.map((g) => (
               <div key={g.title} className="visitFormSvc__subBlock">
                 <div className="visitFormSvc__subLabel">{g.title}</div>
                 <SectionGrid items={g.items || []} selected={maint} disabled={disabled} onToggle={toggleMaintItem} />
               </div>
-            ))
-          )}
-        </div>
-      </details>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
-      <details className="svcdd__group visitFormSvc__details">
-        <summary className="svcdd__title visitFormSvc__summary">
-          <span>Ходовая</span>
-          <span className="svcdd__count">{chassisGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
-        </summary>
-        <div className="visitFormSvc__detailsBody">
-          {!chassisGroups.length ? (
-            <p className="muted small visitFormSvc__empty">В профиле не отмечены услуги ТО по ходовой части.</p>
-          ) : (
-            chassisGroups.map((g) => (
+      {(useFullCatalogFallback || chassisGroups.length > 0) ? (
+        <details className="svcdd__group visitFormSvc__details">
+          <summary className="svcdd__title visitFormSvc__summary">
+            <span>Ходовая</span>
+            <span className="svcdd__count">{chassisGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
+          </summary>
+          <div className="visitFormSvc__detailsBody">
+            {chassisGroups.map((g) => (
               <div key={g.title} className="visitFormSvc__subBlock">
                 <div className="visitFormSvc__subLabel">{g.title}</div>
                 <SectionGrid items={g.items || []} selected={maint} disabled={disabled} onToggle={toggleMaintItem} />
               </div>
-            ))
-          )}
-        </div>
-      </details>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
       <details className="svcdd__group visitFormSvc__details">
         <summary className="svcdd__title visitFormSvc__summary">

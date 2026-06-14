@@ -195,7 +195,7 @@
   height: 44px;
   flex: 0 0 auto;
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
   align-items: center;
   justify-content: center;
   text-decoration: none;
@@ -221,6 +221,7 @@
   object-fit: cover;
   display: block;
   border-radius: 11px;
+  overflow: hidden;
 }
 .nav__ownerGarageLetter {
   font-size: 1.1rem;
@@ -235,6 +236,7 @@
   opacity: 0.95;
   font-size: 1.05rem;
   border-radius: 11px;
+  overflow: hidden;
 }
 
 /* Единый вид: ссылки и кнопки в шапке (без «серой» нативной кнопки) */
@@ -11751,6 +11753,51 @@ a.btn.carPage__recsAddVisitFull,
 .detCrm__empty,
 .detCrm__error {
   padding: 18px;
+}
+
+.detCrm__pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-default);
+}
+
+.detCrm__pageBtn {
+  appearance: none;
+  border: 0.5px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.detCrm__pageBtn:hover:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.detCrm__pageBtn.is-active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.detCrm__pageBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.detCrm__pageInfo {
+  margin-left: auto;
 }
 
 .detCrm__side {

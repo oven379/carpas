@@ -19,6 +19,7 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 
 const STALE_VISIT_DAYS = 25
 const CLIENT_FILTERS = new Set(['all', 'today', 'stale'])
+const PAGE_SIZE = 5
 
 function carTitle(row) {
   const c = row?.car || {}
@@ -151,6 +152,8 @@ export default function DetailingClientsPage() {
   const filterRaw = sp.get('filter') || 'all'
   const filter = CLIENT_FILTERS.has(filterRaw) ? filterRaw : 'all'
   const selectedId = sp.get('id') || ''
+  const pageRaw = parseInt(sp.get('page') || '1', 10)
+  const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
 
   useEffect(() => {
     let cancelled = false
@@ -189,6 +192,9 @@ export default function DetailingClientsPage() {
       .filter((row) => matchesQuery(row, query))
       .sort(sortByLastVisitDesc)
   }, [data.items, filter, query])
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
   const selected = useMemo(() => {
     return rows.find((row) => String(row.id) === String(selectedId)) || rows[0] || null
   }, [rows, selectedId])
@@ -207,6 +213,7 @@ export default function DetailingClientsPage() {
     if (next === 'all') n.delete('filter')
     else n.set('filter', next)
     n.delete('id')
+    n.delete('page')
     setSp(n, { replace: true })
   }
 
@@ -214,6 +221,15 @@ export default function DetailingClientsPage() {
     const n = new URLSearchParams(sp)
     if (next) n.set('q', next)
     else n.delete('q')
+    n.delete('id')
+    n.delete('page')
+    setSp(n, { replace: true })
+  }
+
+  function setPage(next) {
+    const n = new URLSearchParams(sp)
+    if (next <= 1) n.delete('page')
+    else n.set('page', String(next))
     n.delete('id')
     setSp(n, { replace: true })
   }
@@ -333,7 +349,7 @@ export default function DetailingClientsPage() {
             <span>Последний визит</span>
           </div>
           <div className="detCrm__rows">
-            {rows.map((row) => {
+            {pageRows.map((row) => {
               const c = row.car || {}
               const cl = row.client || {}
               const isSelected = selected && String(selected.id) === String(row.id)
@@ -377,6 +393,39 @@ export default function DetailingClientsPage() {
               <div className="detCrm__empty muted">Клиентов по этому поиску нет.</div>
             ) : null}
           </div>
+          {totalPages > 1 ? (
+            <div className="detCrm__pagination">
+              <button
+                type="button"
+                className="detCrm__pageBtn"
+                disabled={currentPage <= 1}
+                onClick={() => setPage(currentPage - 1)}
+              >
+                ←
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`detCrm__pageBtn${p === currentPage ? ' is-active' : ''}`}
+                  onClick={() => setPage(p)}
+                >
+                  {p}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="detCrm__pageBtn"
+                disabled={currentPage >= totalPages}
+                onClick={() => setPage(currentPage + 1)}
+              >
+                →
+              </button>
+              <span className="detCrm__pageInfo muted small">
+                {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, rows.length)} из {rows.length}
+              </span>
+            </div>
+          ) : null}
         </Card>
 
         <aside className={`detCrm__side${selected ? '' : ' detCrm__side--empty'}`}>
