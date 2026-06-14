@@ -11963,6 +11963,41 @@ a.btn.carPage__recsAddVisitFull,
   color: var(--muted);
 }
 
+.detCrmProfile__discount {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.detCrmProfile__discountBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--accent-dim);
+  border: 0.5px solid var(--accent);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.detCrmProfile__discountRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detCrmProfile__discountLabel {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.detCrmProfile__discountInput {
+  width: 80px;
+  text-align: center;
+}
+
 .detCrmProfile__clientNoteEditor {
   display: flex;
   flex-direction: column;

@@ -11,5 +11,10 @@ class DetailingClientNote extends Model
         'owner_id',
         'client_key',
         'note',
+        'discount_percent',
+    ];
+
+    protected $casts = [
+        'discount_percent' => 'integer',
     ];
 }

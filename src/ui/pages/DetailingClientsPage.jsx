@@ -147,6 +147,7 @@ export default function DetailingClientsPage() {
   const [photoLb, setPhotoLb] = useState(null)
   const [clientNoteEditing, setClientNoteEditing] = useState(false)
   const [clientNoteDraft, setClientNoteDraft] = useState('')
+  const [clientDiscountDraft, setClientDiscountDraft] = useState('')
   const [clientNoteBusy, setClientNoteBusy] = useState(false)
   const query = sp.get('q') || ''
   const filterRaw = sp.get('filter') || 'all'
@@ -201,7 +202,8 @@ export default function DetailingClientsPage() {
   useEffect(() => {
     setClientNoteEditing(false)
     setClientNoteDraft(String(selected?.client?.note || ''))
-  }, [selected?.id, selected?.client?.note])
+    setClientDiscountDraft(selected?.client?.discountPercent != null ? String(selected.client.discountPercent) : '')
+  }, [selected?.id, selected?.client?.note, selected?.client?.discountPercent])
   const staleCount = useMemo(() => (data.items || []).filter(isLastVisitStale).length, [data.items])
   const filters = useMemo(() => [
     { id: 'all', label: 'Все' },
@@ -242,16 +244,23 @@ export default function DetailingClientsPage() {
 
   async function saveClientNote() {
     if (!selected?.id || clientNoteBusy) return
+    const discountRaw = clientDiscountDraft.trim()
+    const discountNum = discountRaw === '' ? null : Math.min(100, Math.max(0, parseInt(discountRaw, 10) || 0))
     setClientNoteBusy(true)
     try {
-      const res = await r.updateDetailingClientNote(selected.id, { note: clientNoteDraft })
+      const res = await r.updateDetailingClientNote(selected.id, {
+        note: clientNoteDraft,
+        discountPercent: discountNum,
+      })
       const note = String(res?.clientNote ?? clientNoteDraft ?? '').trim()
+      const discount = res?.discountPercent != null ? res.discountPercent : discountNum
       const refreshed = await r.detailingCrmClients()
       setData({
         items: Array.isArray(refreshed?.items) ? refreshed.items : [],
         stats: refreshed?.stats && typeof refreshed.stats === 'object' ? refreshed.stats : {},
       })
       setClientNoteDraft(note)
+      setClientDiscountDraft(discount != null ? String(discount) : '')
       setClientNoteEditing(false)
     } catch (e) {
       alert(formatHttpErrorMessage(e))
@@ -468,15 +477,38 @@ export default function DetailingClientsPage() {
                       className="detCrmProfile__textAction"
                       onClick={() => {
                         setClientNoteDraft(String(selectedClient.note || ''))
+                        setClientDiscountDraft(selectedClient.discountPercent != null ? String(selectedClient.discountPercent) : '')
                         setClientNoteEditing(true)
                       }}
                     >
-                      {String(selectedClient.note || '').trim() ? 'Изменить' : 'Добавить'}
+                      {String(selectedClient.note || '').trim() || selectedClient.discountPercent != null ? 'Изменить' : 'Добавить'}
                     </button>
                   ) : null}
                 </div>
+                {!clientNoteEditing && selectedClient.discountPercent != null ? (
+                  <div className="detCrmProfile__discount">
+                    <span className="detCrmProfile__discountBadge">−{selectedClient.discountPercent}%</span>
+                    <span className="muted small">постоянная скидка</span>
+                  </div>
+                ) : null}
                 {clientNoteEditing ? (
                   <div className="detCrmProfile__clientNoteEditor">
+                    <div className="detCrmProfile__discountRow">
+                      <label className="detCrmProfile__discountLabel muted small">Скидка %</label>
+                      <input
+                        type="number"
+                        className="input detCrmProfile__discountInput"
+                        value={clientDiscountDraft}
+                        min={0}
+                        max={100}
+                        step={1}
+                        placeholder="0–100"
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3)
+                          setClientDiscountDraft(v === '' ? '' : String(Math.min(100, parseInt(v, 10) || 0)))
+                        }}
+                      />
+                    </div>
                     <textarea
                       className="input"
                       value={clientNoteDraft}
@@ -494,6 +526,7 @@ export default function DetailingClientsPage() {
                         disabled={clientNoteBusy}
                         onClick={() => {
                           setClientNoteDraft(String(selectedClient.note || ''))
+                          setClientDiscountDraft(selectedClient.discountPercent != null ? String(selectedClient.discountPercent) : '')
                           setClientNoteEditing(false)
                         }}
                       >

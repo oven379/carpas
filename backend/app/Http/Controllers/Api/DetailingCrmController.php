@@ -116,6 +116,7 @@ class DetailingCrmController extends Controller
                     'phone' => trim((string) ($car->client_phone ?: $car->owner?->phone ?: $car->owner_phone ?: '')),
                     'email' => trim((string) ($car->client_email ?: $car->owner?->email ?: '')),
                     'note' => trim((string) ($clientNote?->note ?? '')),
+                    'discountPercent' => $clientNote?->discount_percent !== null ? (int) $clientNote->discount_percent : null,
                     'isRegisteredOwner' => $car->owner_id !== null,
                     'garageSlug' => trim((string) ($car->owner?->garage_slug ?? '')),
                 ],
@@ -199,24 +200,31 @@ class DetailingCrmController extends Controller
 
         $data = $request->validate([
             'note' => ['nullable', 'string', 'max:1000'],
+            'discountPercent' => ['nullable', 'integer', 'min:0', 'max:100'],
         ]);
 
         $key = self::clientNoteKey($car);
         $noteText = trim((string) ($data['note'] ?? ''));
+
+        $values = [
+            'owner_id' => $car->owner_id,
+            'note' => $noteText,
+        ];
+        if (array_key_exists('discountPercent', $data)) {
+            $values['discount_percent'] = $data['discountPercent'] !== null ? (int) $data['discountPercent'] : null;
+        }
 
         $note = DetailingClientNote::query()->updateOrCreate(
             [
                 'detailing_id' => $d->id,
                 'client_key' => $key,
             ],
-            [
-                'owner_id' => $car->owner_id,
-                'note' => $noteText,
-            ],
+            $values,
         );
 
         return response()->json([
             'clientNote' => trim((string) $note->note),
+            'discountPercent' => $note->discount_percent !== null ? (int) $note->discount_percent : null,
         ]);
     }
 
