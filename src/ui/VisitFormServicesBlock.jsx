@@ -10,6 +10,7 @@ import {
   VISIT_FORM_CHASSIS_MAINT_GROUPS,
   VISIT_FORM_ENGINE_MAINT_GROUPS,
   visitFormBodySelectableStrings,
+  visitFormCustomCategoryItems,
   visitFormDetailingFlatForPicker,
   visitFormMaintenanceFlatForPicker,
   visitFormPaintPartLabels,
@@ -124,6 +125,14 @@ export function VisitFormServicesBlock({
     return all.filter((x) => pset.has(x))
   }, [detailing, useFullCatalogFallback])
 
+  const customCats = useMemo(() => {
+    if (useFullCatalogFallback) return []
+    const cats = Array.isArray(detailing?.customServiceCategories) ? detailing.customServiceCategories : []
+    return cats.filter((c) => Array.isArray(c?.services) && c.services.length > 0)
+  }, [detailing, useFullCatalogFallback])
+
+  const customCatItemSet = useMemo(() => new Set(visitFormCustomCategoryItems(detailing)), [detailing])
+
   const showPaintGenericRow =
     useFullCatalogFallback || detFlat.includes(VISIT_FORM_BODY_PAINT_GENERIC)
   const showPaintSubBlock = showPaintGenericRow || paintLabelsForUi.length > 0
@@ -139,7 +148,10 @@ export function VisitFormServicesBlock({
   )
   const canSubmitSearch = Boolean(normalizedSearch)
 
-  const otherServices = useMemo(() => svc.filter((s) => !bodyKnownSet.has(s)), [svc, bodyKnownSet])
+  const otherServices = useMemo(
+    () => svc.filter((s) => !bodyKnownSet.has(s) && !customCatItemSet.has(s)),
+    [svc, bodyKnownSet, customCatItemSet],
+  )
 
   useEffect(() => {
     if (!sugOpen) return
@@ -397,6 +409,27 @@ export function VisitFormServicesBlock({
           </div>
         </details>
       ) : null}
+
+      {customCats.map((cat, idx) => {
+        const catItems = cat.services.map((s) => String(s).trim()).filter(Boolean)
+        const selectedCount = catItems.filter((it) => svc.includes(it)).length
+        return (
+          <details key={cat.title || idx} className="svcdd__group visitFormSvc__details">
+            <summary className="svcdd__title visitFormSvc__summary">
+              <span>{cat.title}</span>
+              <span className="svcdd__count">{catItems.length}</span>
+            </summary>
+            <div className="visitFormSvc__detailsBody">
+              <SectionGrid
+                items={catItems}
+                selected={svc}
+                disabled={disabled}
+                onToggle={toggleBodyItem}
+              />
+            </div>
+          </details>
+        )
+      })}
 
       <details className="svcdd__group visitFormSvc__details">
         <summary className="svcdd__title visitFormSvc__summary">

@@ -3026,6 +3026,39 @@ summary.carPage__recsSelect::-webkit-details-marker {
   font-weight: 600;
 }
 
+.detCustomCat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklab, var(--bg-surface) 60%, transparent);
+}
+
+.detCustomCat__head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.detCustomCat__titleInput {
+  flex: 1;
+  min-width: 0;
+}
+
+.detCustomCat__removeBtn {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.detCustomCat__addBtn {
+  margin-top: 4px;
+  align-self: flex-start;
+}
+
 .steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

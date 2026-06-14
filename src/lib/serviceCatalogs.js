@@ -269,6 +269,20 @@ export function visitFormBodySelectableStrings(detailing, options) {
   return out
 }
 
+/** Все услуги из кастомных категорий лендинга (плоский список). */
+export function visitFormCustomCategoryItems(detailing) {
+  const cats = Array.isArray(detailing?.customServiceCategories) ? detailing.customServiceCategories : []
+  const out = []
+  const seen = new Set()
+  for (const cat of cats) {
+    for (const s of Array.isArray(cat?.services) ? cat.services : []) {
+      const t = String(s || '').trim()
+      if (t && !seen.has(t)) { seen.add(t); out.push(t) }
+    }
+  }
+  return out
+}
+
 /** Плоские списки для подсказок поиска и маршрутизации в services / maintenanceServices. */
 export function visitFormSearchableOptionStrings(detailing, options) {
   const body = visitFormBodySelectableStrings(detailing, options)
@@ -294,7 +308,17 @@ export function visitFormSearchableOptionStrings(detailing, options) {
   }
   for (const g of eng) for (const it of g.items || []) pushM(it)
   for (const g of ch) for (const it of g.items || []) pushM(it)
-  return { body, maintenance: maint, all: [...body, ...maint] }
+  const custom = []
+  const pushC = (s) => {
+    const t = String(s || '').trim()
+    if (!t || seen.has(t)) return
+    seen.add(t)
+    custom.push(t)
+  }
+  if (!useFull) {
+    for (const s of visitFormCustomCategoryItems(detailing)) pushC(s)
+  }
+  return { body, maintenance: maint, custom, all: [...body, ...maint, ...custom] }
 }
 
 /**

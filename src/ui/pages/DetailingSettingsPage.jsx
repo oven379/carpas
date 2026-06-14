@@ -81,10 +81,12 @@ export default function DetailingSettingsPage() {
   const r = useRepo()
   const { detailingId, mode, detailing, loading, applyDetailingSnapshot } = useDetailing()
   const [customOfferInput, setCustomOfferInput] = useState('')
+  const [customCatInputs, setCustomCatInputs] = useState({})
 
   const [draft, setDraft] = useState(() => ({
     name: '',
     servicesOffered: [],
+    customServiceCategories: [],
     phone: '',
     city: '',
     address: '',
@@ -103,6 +105,9 @@ export default function DetailingSettingsPage() {
     setDraft({
       name: detailing.name || '',
       servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
+      customServiceCategories: Array.isArray(detailing.customServiceCategories)
+        ? detailing.customServiceCategories.map((c, i) => ({ ...c, _id: String(i) }))
+        : [],
       phone: formatPhoneRuInput(detailing.phone || ''),
       city: detailing.city || '',
       address: detailing.address || '',
@@ -178,6 +183,55 @@ export default function DetailingSettingsPage() {
   const customOffersOnly = (Array.isArray(draft.servicesOffered) ? draft.servicesOffered : []).filter(
     (s) => !catalogOfferSet.has(s),
   )
+
+  function addCustomCategory() {
+    const _id = String(Date.now())
+    setDraft((d) => ({
+      ...d,
+      customServiceCategories: [...(d.customServiceCategories || []), { _id, title: '', services: [] }],
+    }))
+  }
+
+  function removeCustomCategory(_id) {
+    setDraft((d) => ({
+      ...d,
+      customServiceCategories: (d.customServiceCategories || []).filter((c) => c._id !== _id),
+    }))
+    setCustomCatInputs((prev) => { const n = { ...prev }; delete n[_id]; return n })
+  }
+
+  function updateCategoryTitle(_id, title) {
+    setDraft((d) => ({
+      ...d,
+      customServiceCategories: (d.customServiceCategories || []).map((c) =>
+        c._id === _id ? { ...c, title } : c,
+      ),
+    }))
+  }
+
+  function addServiceToCategory(_id) {
+    const val = String(customCatInputs[_id] || '').trim().slice(0, DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN)
+    if (!val) return
+    setDraft((d) => ({
+      ...d,
+      customServiceCategories: (d.customServiceCategories || []).map((c) => {
+        if (c._id !== _id) return c
+        const existing = Array.isArray(c.services) ? c.services : []
+        if (existing.includes(val)) return c
+        return { ...c, services: [...existing, val] }
+      }),
+    }))
+    setCustomCatInputs((prev) => ({ ...prev, [_id]: '' }))
+  }
+
+  function removeServiceFromCategory(_id, svc) {
+    setDraft((d) => ({
+      ...d,
+      customServiceCategories: (d.customServiceCategories || []).map((c) =>
+        c._id === _id ? { ...c, services: (c.services || []).filter((s) => s !== svc) } : c,
+      ),
+    }))
+  }
 
   function logoutAndGoAuth() {
     clearSession()
@@ -393,6 +447,81 @@ export default function DetailingSettingsPage() {
               </div>
             ) : null}
           </Field>
+          <div className="field field--full">
+            <div className="field__top">
+              <span className="field__label">Свои категории услуг</span>
+              <span className="field__hint">необязательно · отображаются в форме визита отдельной группой</span>
+            </div>
+            {(draft.customServiceCategories || []).map((cat) => (
+              <div key={cat._id} className="detCustomCat">
+                <div className="detCustomCat__head">
+                  <Input
+                    className="input detCustomCat__titleInput"
+                    value={cat.title}
+                    placeholder="Название категории"
+                    maxLength={60}
+                    onChange={(e) => updateCategoryTitle(cat._id, e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn detCustomCat__removeBtn"
+                    data-variant="ghost"
+                    onClick={() => removeCustomCategory(cat._id)}
+                  >
+                    Удалить
+                  </button>
+                </div>
+                <div className="detailingCustomOfferRow">
+                  <Input
+                    className="input"
+                    value={customCatInputs[cat._id] || ''}
+                    maxLength={DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN}
+                    placeholder="Добавить услугу в категорию"
+                    autoComplete="off"
+                    onChange={(e) => setCustomCatInputs((prev) => ({ ...prev, [cat._id]: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') { e.preventDefault(); addServiceToCategory(cat._id) }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn detailingCustomOfferAddBtn"
+                    data-variant="outline"
+                    aria-label="Добавить услугу"
+                    onClick={() => addServiceToCategory(cat._id)}
+                  >
+                    +
+                  </button>
+                </div>
+                {(cat.services || []).length > 0 ? (
+                  <div className="row gap wrap" style={{ marginTop: 8 }}>
+                    {(cat.services || []).map((svc) => (
+                      <button
+                        key={svc}
+                        type="button"
+                        className="pill"
+                        data-tone="neutral"
+                        title="Убрать услугу"
+                        onClick={() => removeServiceFromCategory(cat._id, svc)}
+                      >
+                        {svc}
+                        <span aria-hidden="true"> ×</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn detCustomCat__addBtn"
+              data-variant="outline"
+              onClick={addCustomCategory}
+            >
+              + Добавить категорию
+            </button>
+          </div>
+
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Услуги</span>
@@ -544,7 +673,10 @@ export default function DetailingSettingsPage() {
                 return
               }
               try {
-                const res = await r.updateDetailingMe({ ...draft, profileCompleted: true })
+                const customServiceCategories = (draft.customServiceCategories || [])
+                  .filter((c) => String(c.title || '').trim())
+                  .map(({ _id, ...rest }) => rest)
+                const res = await r.updateDetailingMe({ ...draft, customServiceCategories, profileCompleted: true })
                 if (res?.detailing) {
                   applyDetailingSnapshot(res.detailing)
                   const next = res.detailing

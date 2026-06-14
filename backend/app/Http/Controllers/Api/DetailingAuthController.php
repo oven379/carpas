@@ -300,6 +300,21 @@ class DetailingAuthController extends Controller
         } elseif ($hasMaintList) {
             $d->maintenance_services_offered = array_values(array_map('strval', $patch['maintenanceServicesOffered']));
         }
+        if (array_key_exists('customServiceCategories', $patch) && is_array($patch['customServiceCategories'])) {
+            $cats = [];
+            foreach ($patch['customServiceCategories'] as $cat) {
+                if (!is_array($cat)) continue;
+                $title = trim((string) ($cat['title'] ?? ''));
+                if ($title === '') continue;
+                $services = [];
+                foreach ((array) ($cat['services'] ?? []) as $svc) {
+                    $s = trim((string) $svc);
+                    if ($s !== '') $services[] = $s;
+                }
+                $cats[] = ['title' => $title, 'services' => array_values($services)];
+            }
+            $d->custom_service_categories = $cats;
+        }
         if (array_key_exists('profileCompleted', $patch)) {
             $d->profile_completed = (bool) $patch['profileCompleted'];
         }

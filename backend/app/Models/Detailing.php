@@ -31,6 +31,7 @@ class Detailing extends Authenticatable
         'cover',
         'services_offered',
         'maintenance_services_offered',
+        'custom_service_categories',
         'profile_completed',
         'verification_approved_at',
         'public_slug',
@@ -44,6 +45,7 @@ class Detailing extends Authenticatable
     protected $casts = [
         'services_offered' => 'array',
         'maintenance_services_offered' => 'array',
+        'custom_service_categories' => 'array',
         'profile_completed' => 'boolean',
         'verification_approved_at' => 'datetime',
     ];

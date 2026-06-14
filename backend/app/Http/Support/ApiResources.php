@@ -58,6 +58,7 @@ class ApiResources
             'servicesOffered' => array_values(array_merge($det, $maint)),
             'detailingServicesOffered' => $det,
             'maintenanceServicesOffered' => $maint,
+            'customServiceCategories' => is_array($d->custom_service_categories) ? $d->custom_service_categories : [],
             'profileCompleted' => (bool) $d->profile_completed,
             'verificationApprovedAt' => optional($d->verification_approved_at)->toISOString(),
             'createdAt' => optional($d->created_at)->toISOString(),
