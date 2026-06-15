@@ -6,6 +6,18 @@ import { isNativeApp } from './lib/nativePlatform.js'
 import './index.css'
 import './App.css'
 import App from './App.jsx'
+
+window.__cpLog = (tag, ...args) => {
+  try { console.log(`[CP:${tag}]`, ...args) } catch {}
+}
+window.addEventListener('error', (e) => {
+  console.error('[CP:error]', e.message, e.filename, e.lineno, e.colno, e.error)
+})
+window.addEventListener('unhandledrejection', (e) => {
+  const r = e.reason
+  console.error('[CP:unhandledrejection]', r?.message ?? r, r?.stack ?? '')
+})
+window.__cpLog('init', 'native=' + isNativeApp(), 'url=' + location.href)
 import RootErrorBoundary from './ui/RootErrorBoundary.jsx'
 import { DetailingSessionProvider } from './ui/useDetailing.js'
 import { SupportProvider } from './ui/support/SupportHub.jsx'
