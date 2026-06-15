@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, Component } from 'react'
 import './App.css'
 import { PageLoadSpinner, TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
@@ -14,34 +14,61 @@ import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
 import CookieBanner from './ui/CookieBanner.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 
+class ChunkErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+  componentDidCatch() {
+    // Chunk не загрузился — перезагружаем страницу один раз
+    const key = 'chunkReloadAt'
+    const last = Number(sessionStorage.getItem(key) || 0)
+    if (Date.now() - last > 10_000) {
+      sessionStorage.setItem(key, String(Date.now()))
+      window.location.reload()
+    }
+  }
+  render() {
+    if (this.state.failed) return null
+    return this.props.children
+  }
+}
+
 /** Гостевой маркетинг на `/about` и `/for-detailing` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
   return pathname === '/about' || pathname === '/for-detailing'
 }
 
-const AboutPage = lazy(() => import('./ui/pages/AboutPage.jsx'))
-const OwnersSeoPage = lazy(() => import('./ui/pages/OwnersSeoPage.jsx'))
-const BusinessSeoPage = lazy(() => import('./ui/pages/BusinessSeoPage.jsx'))
-const NotificationsPage = lazy(() => import('./ui/pages/NotificationsPage.jsx'))
-const CarPage = lazy(() => import('./ui/pages/CarPage.jsx'))
-const CarEditPage = lazy(() => import('./ui/pages/CarEditPage.jsx'))
-const HistoryPage = lazy(() => import('./ui/pages/HistoryPage.jsx'))
-const DocsPage = lazy(() => import('./ui/pages/DocsPage.jsx'))
-const AuthPage = lazy(() => import('./ui/pages/AuthPage.jsx'))
-const PartnerLoginPage = lazy(() => import('./ui/pages/PartnerLoginPage.jsx'))
-const PartnerApplyPage = lazy(() => import('./ui/pages/PartnerApplyPage.jsx'))
-const PublicCarPage = lazy(() => import('./ui/pages/PublicCarPage.jsx'))
-const RequestsPage = lazy(() => import('./ui/pages/RequestsPage.jsx'))
-const DetailingSettingsPage = lazy(() => import('./ui/pages/DetailingSettingsPage.jsx'))
-const DetailingClientsPage = lazy(() => import('./ui/pages/DetailingClientsPage.jsx'))
-const PublicDetailingPage = lazy(() => import('./ui/pages/PublicDetailingPage.jsx'))
-const OwnerGaragePage = lazy(() => import('./ui/pages/OwnerGaragePage.jsx'))
-const GarageSettingsPage = lazy(() => import('./ui/pages/GarageSettingsPage.jsx'))
-const AdminLoginPage = lazy(() => import('./ui/pages/AdminLoginPage.jsx'))
-const AdminPanelPage = lazy(() => import('./ui/pages/AdminPanelPage.jsx'))
-const PolicyPage = lazy(() => import('./ui/pages/PolicyPage.jsx'))
-const TermsPage = lazy(() => import('./ui/pages/TermsPage.jsx'))
-const DetOfferPage = lazy(() => import('./ui/pages/DetOfferPage.jsx'))
+function lazyWithRetry(factory) {
+  return lazy(() => factory().catch(() => factory()))
+}
+
+const AboutPage = lazyWithRetry(() => import('./ui/pages/AboutPage.jsx'))
+const OwnersSeoPage = lazyWithRetry(() => import('./ui/pages/OwnersSeoPage.jsx'))
+const BusinessSeoPage = lazyWithRetry(() => import('./ui/pages/BusinessSeoPage.jsx'))
+const NotificationsPage = lazyWithRetry(() => import('./ui/pages/NotificationsPage.jsx'))
+const CarPage = lazyWithRetry(() => import('./ui/pages/CarPage.jsx'))
+const CarEditPage = lazyWithRetry(() => import('./ui/pages/CarEditPage.jsx'))
+const HistoryPage = lazyWithRetry(() => import('./ui/pages/HistoryPage.jsx'))
+const DocsPage = lazyWithRetry(() => import('./ui/pages/DocsPage.jsx'))
+const AuthPage = lazyWithRetry(() => import('./ui/pages/AuthPage.jsx'))
+const PartnerLoginPage = lazyWithRetry(() => import('./ui/pages/PartnerLoginPage.jsx'))
+const PartnerApplyPage = lazyWithRetry(() => import('./ui/pages/PartnerApplyPage.jsx'))
+const PublicCarPage = lazyWithRetry(() => import('./ui/pages/PublicCarPage.jsx'))
+const RequestsPage = lazyWithRetry(() => import('./ui/pages/RequestsPage.jsx'))
+const DetailingSettingsPage = lazyWithRetry(() => import('./ui/pages/DetailingSettingsPage.jsx'))
+const DetailingClientsPage = lazyWithRetry(() => import('./ui/pages/DetailingClientsPage.jsx'))
+const PublicDetailingPage = lazyWithRetry(() => import('./ui/pages/PublicDetailingPage.jsx'))
+const OwnerGaragePage = lazyWithRetry(() => import('./ui/pages/OwnerGaragePage.jsx'))
+const GarageSettingsPage = lazyWithRetry(() => import('./ui/pages/GarageSettingsPage.jsx'))
+const AdminLoginPage = lazyWithRetry(() => import('./ui/pages/AdminLoginPage.jsx'))
+const AdminPanelPage = lazyWithRetry(() => import('./ui/pages/AdminPanelPage.jsx'))
+const PolicyPage = lazyWithRetry(() => import('./ui/pages/PolicyPage.jsx'))
+const TermsPage = lazyWithRetry(() => import('./ui/pages/TermsPage.jsx'))
+const DetOfferPage = lazyWithRetry(() => import('./ui/pages/DetOfferPage.jsx'))
 
 function RouteFallback() {
   return (
@@ -117,6 +144,7 @@ export default function App() {
       >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
+        <ChunkErrorBoundary>
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Navigate to="/auth" replace />} />
@@ -234,6 +262,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
+        </ChunkErrorBoundary>
       </main>
       {soloChrome ? null : (
         <footer className="footer">
