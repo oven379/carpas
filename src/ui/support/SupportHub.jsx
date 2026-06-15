@@ -113,7 +113,7 @@ export function SupportProvider({ children }) {
 
   useEffect(() => {
     void refreshUnread()
-  }, [refreshUnread, loc.pathname, r._version])
+  }, [refreshUnread, loc.pathname])
 
   useEffect(() => {
     if (!canPoll) return undefined
