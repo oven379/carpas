@@ -70,15 +70,11 @@ export function OwnerGarageCarList({
 
   const fromQ = buildCarFromQuery(fromPath)
 
-  if (parentSuppliesEnrichment && enrichedFromParent === null) {
-    return (
-      <div className="muted pageLoadSpinner--centerBlock" style={{ padding: '12px 0', minHeight: 56 }}>
-        <PageLoadSpinner size="compact" />
-      </div>
-    )
-  }
-
-  const listRows = parentSuppliesEnrichment ? enrichedFromParent || [] : rows
+  const listRows = parentSuppliesEnrichment
+    ? enrichedFromParent === null
+      ? (carsProp ?? []).map((car) => ({ car, evts: [] }))
+      : enrichedFromParent || []
+    : rows
 
   if (!parentSuppliesEnrichment && loading) {
     return (
