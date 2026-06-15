@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { useRepo, invalidateRepo } from '../useRepo.js'
+import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { getCareRecommendations } from '../../lib/recommendations.js'
@@ -109,9 +109,10 @@ export default function CarPage() {
   const [ownerClaims, setOwnerClaims] = useState([])
   const [inboxClaims, setInboxClaims] = useState([])
   const [dataReady, setDataReady] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
   const prevCarIdRef = useRef(null)
 
-  useVisibleAutoRefresh(() => invalidateRepo(), {
+  useVisibleAutoRefresh(() => setRefreshTick((t) => t + 1), {
     enabled: Boolean(id) && (mode === 'owner' || mode === 'detailing'),
     intervalMs: 30_000,
   })
@@ -170,7 +171,7 @@ export default function CarPage() {
     return () => {
       cancelled = true
     }
-  }, [id, r, r._version, mode, ownerEmailResolved, detailingId])
+  }, [id, r, refreshTick, mode, ownerEmailResolved, detailingId])
 
   const docGalleryItems = useMemo(
     () => docsToPhotoItems(docs.filter((d) => carDocHasImageThumbnail(d))),

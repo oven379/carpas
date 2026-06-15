@@ -329,6 +329,7 @@ export default function HistoryPage() {
   const [events, setEvents] = useState([])
   const [allDocs, setAllDocs] = useState([])
   const [dataReady, setDataReady] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
   const [bookingBusyId, setBookingBusyId] = useState('')
   const minMileageForNewVisit = useMemo(
     () => (car ? resolveMinMileageKmForVisitForm(car, events, null) : 0),
@@ -375,7 +376,7 @@ export default function HistoryPage() {
     return () => {
       cancelled = true
     }
-  }, [id, mode, r, r._version])
+  }, [id, mode, r, refreshTick])
 
   const docsForEvent = useCallback(
     (evId) => {
@@ -544,7 +545,7 @@ export default function HistoryPage() {
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
   const [showNew, setShowNew] = useState(false)
   const [editingId, setEditingId] = useState(null)
-  useVisibleAutoRefresh(() => invalidateRepo(), {
+  useVisibleAutoRefresh(() => setRefreshTick((t) => t + 1), {
     enabled: Boolean(id) && (mode === 'owner' || mode === 'detailing') && !showNew && !editingId,
     intervalMs: 30_000,
   })

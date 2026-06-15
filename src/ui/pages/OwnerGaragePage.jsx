@@ -1,6 +1,6 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useRepo, invalidateRepo } from '../useRepo.js'
+import { useRepo } from '../useRepo.js'
 import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
 import { hasOwnerSession } from '../auth.js'
@@ -80,10 +80,11 @@ export default function OwnerGaragePage() {
   /** События по авто — одна загрузка на страницу (вкладка визитов и сетка), без второго listEvents */
   const [enrichedRows, setEnrichedRows] = useState(null)
   const [garageMainTab, setGarageMainTab] = useState('cars')
+  const [refreshTick, setRefreshTick] = useState(0)
 
   const ownerEmail = String(owner?.email || '').trim()
 
-  useVisibleAutoRefresh(() => invalidateRepo(), {
+  useVisibleAutoRefresh(() => setRefreshTick((t) => t + 1), {
     enabled: mode === 'owner' && Boolean(ownerEmail),
     intervalMs: 30_000,
   })
@@ -96,23 +97,6 @@ export default function OwnerGaragePage() {
     return () => window.clearTimeout(t)
   }, [loc.hash, loc.pathname])
 
-  const visitPinged = useRef(false)
-  useEffect(() => {
-    visitPinged.current = false
-  }, [ownerEmail])
-
-  useEffect(() => {
-    if (visitPinged.current || !ownerEmail || mode !== 'owner' || !r.touchOwnerLastVisit) return
-    visitPinged.current = true
-    void (async () => {
-      try {
-        const next = await Promise.resolve(r.touchOwnerLastVisit(ownerEmail))
-        if (next) invalidateRepo()
-      } catch {
-        /* ignore */
-      }
-    })()
-  }, [ownerEmail, mode, r])
 
   useEffect(() => {
     let cancelled = false
@@ -138,7 +122,7 @@ export default function OwnerGaragePage() {
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, r, r._version])
+  }, [ownerEmail, r, refreshTick])
 
   useEffect(() => {
     let cancelled = false
@@ -176,7 +160,7 @@ export default function OwnerGaragePage() {
     return () => {
       cancelled = true
     }
-  }, [ownerEmail, cars, r, r._version])
+  }, [ownerEmail, cars, r, refreshTick])
 
   const pendingClaimsCount = useMemo(
     () => (Array.isArray(ownerClaims) ? ownerClaims : []).filter((x) => x?.status === 'pending').length,
