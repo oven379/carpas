@@ -1,8 +1,8 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
-import { lazy, Suspense, useEffect, Component } from 'react'
+import { useEffect } from 'react'
 import './App.css'
-import { PageLoadSpinner, TopNav } from './ui/components.jsx'
+import { TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
@@ -10,73 +10,38 @@ import DevHud from './ui/DevHud.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
-import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
 import CookieBanner from './ui/CookieBanner.jsx'
 import { ToastProvider } from './ui/toast.jsx'
-
-class ChunkErrorBoundary extends Component {
-  constructor(props) {
-    super(props)
-    this.state = { failed: false }
-  }
-  static getDerivedStateFromError() {
-    return { failed: true }
-  }
-  componentDidCatch() {
-    // Chunk не загрузился — перезагружаем страницу один раз
-    const key = 'chunkReloadAt'
-    const last = Number(sessionStorage.getItem(key) || 0)
-    if (Date.now() - last > 10_000) {
-      sessionStorage.setItem(key, String(Date.now()))
-      window.location.reload()
-    }
-  }
-  render() {
-    if (this.state.failed) return null
-    return this.props.children
-  }
-}
+import AboutPage from './ui/pages/AboutPage.jsx'
+import OwnersSeoPage from './ui/pages/OwnersSeoPage.jsx'
+import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
+import NotificationsPage from './ui/pages/NotificationsPage.jsx'
+import CarPage from './ui/pages/CarPage.jsx'
+import CarEditPage from './ui/pages/CarEditPage.jsx'
+import HistoryPage from './ui/pages/HistoryPage.jsx'
+import DocsPage from './ui/pages/DocsPage.jsx'
+import AuthPage from './ui/pages/AuthPage.jsx'
+import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
+import PartnerLoginPage from './ui/pages/PartnerLoginPage.jsx'
+import PartnerApplyPage from './ui/pages/PartnerApplyPage.jsx'
+import PublicCarPage from './ui/pages/PublicCarPage.jsx'
+import RequestsPage from './ui/pages/RequestsPage.jsx'
+import DetailingSettingsPage from './ui/pages/DetailingSettingsPage.jsx'
+import DetailingClientsPage from './ui/pages/DetailingClientsPage.jsx'
+import PublicDetailingPage from './ui/pages/PublicDetailingPage.jsx'
+import OwnerGaragePage from './ui/pages/OwnerGaragePage.jsx'
+import GarageSettingsPage from './ui/pages/GarageSettingsPage.jsx'
+import AdminLoginPage from './ui/pages/AdminLoginPage.jsx'
+import AdminPanelPage from './ui/pages/AdminPanelPage.jsx'
+import PolicyPage from './ui/pages/PolicyPage.jsx'
+import TermsPage from './ui/pages/TermsPage.jsx'
+import DetOfferPage from './ui/pages/DetOfferPage.jsx'
 
 /** Гостевой маркетинг на `/about` и `/for-detailing` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
   return pathname === '/about' || pathname === '/for-detailing'
 }
 
-function lazyWithRetry(factory) {
-  return lazy(() => factory().catch(() => factory()))
-}
-
-const AboutPage = lazyWithRetry(() => import('./ui/pages/AboutPage.jsx'))
-const OwnersSeoPage = lazyWithRetry(() => import('./ui/pages/OwnersSeoPage.jsx'))
-const BusinessSeoPage = lazyWithRetry(() => import('./ui/pages/BusinessSeoPage.jsx'))
-const NotificationsPage = lazyWithRetry(() => import('./ui/pages/NotificationsPage.jsx'))
-const CarPage = lazyWithRetry(() => import('./ui/pages/CarPage.jsx'))
-const CarEditPage = lazyWithRetry(() => import('./ui/pages/CarEditPage.jsx'))
-const HistoryPage = lazyWithRetry(() => import('./ui/pages/HistoryPage.jsx'))
-const DocsPage = lazyWithRetry(() => import('./ui/pages/DocsPage.jsx'))
-const AuthPage = lazyWithRetry(() => import('./ui/pages/AuthPage.jsx'))
-const PartnerLoginPage = lazyWithRetry(() => import('./ui/pages/PartnerLoginPage.jsx'))
-const PartnerApplyPage = lazyWithRetry(() => import('./ui/pages/PartnerApplyPage.jsx'))
-const PublicCarPage = lazyWithRetry(() => import('./ui/pages/PublicCarPage.jsx'))
-const RequestsPage = lazyWithRetry(() => import('./ui/pages/RequestsPage.jsx'))
-const DetailingSettingsPage = lazyWithRetry(() => import('./ui/pages/DetailingSettingsPage.jsx'))
-const DetailingClientsPage = lazyWithRetry(() => import('./ui/pages/DetailingClientsPage.jsx'))
-const PublicDetailingPage = lazyWithRetry(() => import('./ui/pages/PublicDetailingPage.jsx'))
-const OwnerGaragePage = lazyWithRetry(() => import('./ui/pages/OwnerGaragePage.jsx'))
-const GarageSettingsPage = lazyWithRetry(() => import('./ui/pages/GarageSettingsPage.jsx'))
-const AdminLoginPage = lazyWithRetry(() => import('./ui/pages/AdminLoginPage.jsx'))
-const AdminPanelPage = lazyWithRetry(() => import('./ui/pages/AdminPanelPage.jsx'))
-const PolicyPage = lazyWithRetry(() => import('./ui/pages/PolicyPage.jsx'))
-const TermsPage = lazyWithRetry(() => import('./ui/pages/TermsPage.jsx'))
-const DetOfferPage = lazyWithRetry(() => import('./ui/pages/DetOfferPage.jsx'))
-
-function RouteFallback() {
-  return (
-    <div className="routeFallback muted">
-      <PageLoadSpinner size="page" />
-    </div>
-  )
-}
 
 function RequireAuth({ children }) {
   const loc = useLocation()
@@ -144,9 +109,7 @@ export default function App() {
       >
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
-        <ChunkErrorBoundary>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
+        <Routes>
             <Route path="/" element={<Navigate to="/auth" replace />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/owners" element={<OwnersSeoPage />} />
@@ -261,8 +224,6 @@ export default function App() {
             <Route path="/auth/partner" element={<PartnerLoginPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Suspense>
-        </ChunkErrorBoundary>
       </main>
       {soloChrome ? null : (
         <footer className="footer">
