@@ -253,7 +253,7 @@ export default function DetailingDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [r, r._version, detailingId, mode])
+  }, [r, refreshTick, detailingId, mode])
 
   const searchIntent = useMemo(() => classifyDetailingDashboardQuery(q), [q])
   const filtered = useMemo(() => cars.filter((c) => matchesCar(c, searchIntent)), [cars, searchIntent])
@@ -307,7 +307,7 @@ export default function DetailingDashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [cars, detailingId, mode, r, r._version, strictHits.length, searchIntent])
+  }, [cars, detailingId, mode, r, refreshTick, strictHits.length, searchIntent])
 
   async function onLinkPersonalGarageCar(car) {
     const ev = linkEvidenceByCarId[car.id] || { year: '', city: '' }
