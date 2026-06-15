@@ -203,8 +203,9 @@ export default function DetailingDashboardPage() {
   const [inboxClaims, setInboxClaims] = useState([])
   const [lastVisitByCarId, setLastVisitByCarId] = useState({})
   const [dashReady, setDashReady] = useState(false)
+  const [refreshTick, setRefreshTick] = useState(0)
 
-  useVisibleAutoRefresh(() => invalidateRepo(), {
+  useVisibleAutoRefresh(() => setRefreshTick((t) => t + 1), {
     enabled: mode === 'detailing' && Boolean(detailingId),
     intervalMs: 30_000,
   })
