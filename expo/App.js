@@ -145,6 +145,7 @@ const SESSION_BRIDGE_JS = `
 export default function App() {
   const pushRegisteredKey = useRef('')
   const webViewRef = useRef(null)
+  const reloadTimeoutRef = useRef(null)
   const [nativeSession, setNativeSession] = useState(null)
   const [ready, setReady] = useState(false)
 
@@ -173,11 +174,18 @@ export default function App() {
       .catch(() => {})
   }, [nativeSession])
 
+  const onWebViewError = useCallback(() => {
+    if (reloadTimeoutRef.current) clearTimeout(reloadTimeoutRef.current)
+    reloadTimeoutRef.current = setTimeout(() => {
+      webViewRef.current?.reload()
+    }, 3000)
+  }, [])
+
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener(() => {
       try {
         webViewRef.current?.injectJavaScript(`
-          try { window.location.href = '/notifications'; } catch (e) {}
+          try { window.location.hash = '/notifications'; } catch (e) {}
           true;
         `)
       } catch {
@@ -279,6 +287,10 @@ export default function App() {
         injectedJavaScriptBeforeContentLoaded={bootstrapJs}
         injectedJavaScript={SESSION_BRIDGE_JS}
         onMessage={onMessage}
+        onError={onWebViewError}
+        onHttpError={(e) => {
+          if (e.nativeEvent.statusCode >= 500) onWebViewError()
+        }}
         style={styles.webview}
       />
     </SafeAreaView>
