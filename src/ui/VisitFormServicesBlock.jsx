@@ -137,6 +137,17 @@ export function VisitFormServicesBlock({
     useFullCatalogFallback || detFlat.includes(VISIT_FORM_BODY_PAINT_GENERIC)
   const showPaintSubBlock = showPaintGenericRow || paintLabelsForUi.length > 0
 
+  const bodyAllItems = useMemo(
+    () => [
+      ...detGroups.flatMap((g) => g.items || []),
+      ...(showPaintGenericRow ? [VISIT_FORM_BODY_PAINT_GENERIC] : []),
+      ...paintLabelsForUi,
+    ],
+    [detGroups, showPaintGenericRow, paintLabelsForUi],
+  )
+  const engAllItems = useMemo(() => engGroups.flatMap((g) => g.items || []), [engGroups])
+  const chassisAllItems = useMemo(() => chassisGroups.flatMap((g) => g.items || []), [chassisGroups])
+
   const qn = searchQ.trim().toLowerCase()
   const suggestions = useMemo(() => {
     if (!qn) return []
@@ -313,14 +324,23 @@ export function VisitFormServicesBlock({
         <p className="muted small visitFormSvc__meta">{meta}</p>
       )}
 
-      {(useFullCatalogFallback || detGroups.length > 0 || showPaintSubBlock) ? (
+      {(useFullCatalogFallback || detGroups.length > 0 || showPaintSubBlock) ? (() => {
+        const bodySelectedCount = bodyAllItems.filter((it) => svc.includes(it)).length
+        const bodyAllSelected = bodyAllItems.length > 0 && bodySelectedCount === bodyAllItems.length
+        const toggleBodyAll = () => {
+          const next = !bodyAllSelected
+            ? [...new Set([...svc, ...bodyAllItems])]
+            : svc.filter((x) => !bodyAllItems.includes(x))
+          applyServices(next)
+        }
+        return (
         <details className="svcdd__group visitFormSvc__details" open>
           <summary className="svcdd__title visitFormSvc__summary">
             <span>Кузов</span>
             <span className="svcdd__count">
-              {detGroups.reduce((n, g) => n + (g.items || []).length, 0) +
-                (showPaintGenericRow ? 1 : 0) +
-                paintLabelsForUi.length}
+              {bodySelectedCount > 0
+                ? `${bodySelectedCount}/${bodyAllItems.length}`
+                : bodyAllItems.length}
             </span>
           </summary>
           <div className="visitFormSvc__detailsBody">
@@ -328,7 +348,18 @@ export function VisitFormServicesBlock({
               <p className="muted small visitFormSvc__empty">
                 Справочник детейлинга недоступен.
               </p>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                className="btn visitFormSvc__selectAllBtn"
+                data-variant="ghost"
+                disabled={disabled || bodyAllItems.length === 0}
+                onClick={toggleBodyAll}
+                style={{ marginBottom: 8 }}
+              >
+                {bodyAllSelected ? 'Снять все' : 'Выбрать все'}
+              </button>
+            )}
             {detGroups.map((g) => (
               <div key={g.title} className="visitFormSvc__subBlock">
                 <div className="visitFormSvc__subLabel">{g.title}</div>
@@ -374,15 +405,37 @@ export function VisitFormServicesBlock({
             ) : null}
           </div>
         </details>
-      ) : null}
+        )
+      })() : null}
 
-      {(useFullCatalogFallback || engGroups.length > 0) ? (
+      {(useFullCatalogFallback || engGroups.length > 0) ? (() => {
+        const engSelectedCount = engAllItems.filter((it) => maint.includes(it)).length
+        const engAllSelected = engAllItems.length > 0 && engSelectedCount === engAllItems.length
+        const toggleEngAll = () => {
+          const next = !engAllSelected
+            ? [...new Set([...maint, ...engAllItems])]
+            : maint.filter((x) => !engAllItems.includes(x))
+          applyMaint(next)
+        }
+        return (
         <details className="svcdd__group visitFormSvc__details">
           <summary className="svcdd__title visitFormSvc__summary">
             <span>ДВС</span>
-            <span className="svcdd__count">{engGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
+            <span className="svcdd__count">
+              {engSelectedCount > 0 ? `${engSelectedCount}/${engAllItems.length}` : engAllItems.length}
+            </span>
           </summary>
           <div className="visitFormSvc__detailsBody">
+            <button
+              type="button"
+              className="btn visitFormSvc__selectAllBtn"
+              data-variant="ghost"
+              disabled={disabled || engAllItems.length === 0}
+              onClick={toggleEngAll}
+              style={{ marginBottom: 8 }}
+            >
+              {engAllSelected ? 'Снять все' : 'Выбрать все'}
+            </button>
             {engGroups.map((g) => (
               <div key={g.title} className="visitFormSvc__subBlock">
                 <div className="visitFormSvc__subLabel">{g.title}</div>
@@ -391,15 +444,39 @@ export function VisitFormServicesBlock({
             ))}
           </div>
         </details>
-      ) : null}
+        )
+      })() : null}
 
-      {(useFullCatalogFallback || chassisGroups.length > 0) ? (
+      {(useFullCatalogFallback || chassisGroups.length > 0) ? (() => {
+        const chassisSelectedCount = chassisAllItems.filter((it) => maint.includes(it)).length
+        const chassisAllSelected = chassisAllItems.length > 0 && chassisSelectedCount === chassisAllItems.length
+        const toggleChassisAll = () => {
+          const next = !chassisAllSelected
+            ? [...new Set([...maint, ...chassisAllItems])]
+            : maint.filter((x) => !chassisAllItems.includes(x))
+          applyMaint(next)
+        }
+        return (
         <details className="svcdd__group visitFormSvc__details">
           <summary className="svcdd__title visitFormSvc__summary">
             <span>Ходовая</span>
-            <span className="svcdd__count">{chassisGroups.reduce((n, g) => n + (g.items || []).length, 0)}</span>
+            <span className="svcdd__count">
+              {chassisSelectedCount > 0
+                ? `${chassisSelectedCount}/${chassisAllItems.length}`
+                : chassisAllItems.length}
+            </span>
           </summary>
           <div className="visitFormSvc__detailsBody">
+            <button
+              type="button"
+              className="btn visitFormSvc__selectAllBtn"
+              data-variant="ghost"
+              disabled={disabled || chassisAllItems.length === 0}
+              onClick={toggleChassisAll}
+              style={{ marginBottom: 8 }}
+            >
+              {chassisAllSelected ? 'Снять все' : 'Выбрать все'}
+            </button>
             {chassisGroups.map((g) => (
               <div key={g.title} className="visitFormSvc__subBlock">
                 <div className="visitFormSvc__subLabel">{g.title}</div>
@@ -408,7 +485,8 @@ export function VisitFormServicesBlock({
             ))}
           </div>
         </details>
-      ) : null}
+        )
+      })() : null}
 
       {customCats.map((cat, idx) => {
         const catItems = cat.services.map((s) => String(s).trim()).filter(Boolean)
