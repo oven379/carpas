@@ -184,6 +184,9 @@ export default function PublicDetailingPage() {
   const navHref = addressText ? (isIOS ? `maps://?q=${encodeURIComponent(addressText)}` : `geo:0,0?q=${encodeURIComponent(addressText)}`) : ''
   const { display: phoneDisplay, telHref: phoneTelHref } = displayRuPhone(det.phone)
   const services = Array.isArray(det.servicesOffered) ? det.servicesOffered : []
+  const customCategories = Array.isArray(det.customServiceCategories)
+    ? det.customServiceCategories.filter((c) => Array.isArray(c?.services) && c.services.length > 0)
+    : []
   const servicesPreviewCount = 3
   const hasMoreServices = services.length > servicesPreviewCount
   const servicesVisible =
@@ -413,11 +416,23 @@ export default function PublicDetailingPage() {
                   <Pill key={`${i}-${String(s)}`}>{s}</Pill>
                 ))}
               </div>
-            ) : (
+            ) : customCategories.length === 0 ? (
               <p className="muted small" style={{ marginTop: 12 }}>
                 Список услуг пока не выбран.
               </p>
-            )}
+            ) : null}
+            {customCategories.map((cat, idx) => (
+              <div key={cat.title || idx} className="topBorder">
+                <div className="cardTitle" style={{ margin: '0 0 10px' }}>
+                  {cat.title || 'Категория'}
+                </div>
+                <div className="row gap wrap">
+                  {cat.services.map((s) => (
+                    <Pill key={s}>{s}</Pill>
+                  ))}
+                </div>
+              </div>
+            ))}
           </Card>
 
           <Card className="card pad">

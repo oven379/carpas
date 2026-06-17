@@ -1055,6 +1055,8 @@ export default function HistoryPage() {
       if (typeof r.syncCarWashPhotosFromLatestEvent === 'function') {
         r.syncCarWashPhotosFromLatestEvent(id, scope)
       }
+      const freshDocs = await r.listDocs(id).catch(() => null)
+      if (Array.isArray(freshDocs)) setAllDocs(freshDocs)
       invalidateRepo()
       if (toAdd.length > 0) {
         window.requestAnimationFrame(() => {
@@ -2001,6 +2003,11 @@ export default function HistoryPage() {
                     r.syncCarWashPhotosFromLatestEvent(id, scope)
                   }
 
+                  setEvents((prev) =>
+                    Array.isArray(prev)
+                      ? prev.map((x) => (String(x.id) === String(evt.id) ? normalizeCarEventServices(evt) : x))
+                      : prev,
+                  )
                   setDraft({
                     title: '',
                     mileageKm: '',
@@ -2014,6 +2021,7 @@ export default function HistoryPage() {
                     ...EMPTY_CARE_DRAFT,
                   })
                   invalidateRepo()
+                  setRefreshTick((t) => t + 1)
                   setShowNew(false)
                   setEditingId(null)
                   const next = new URLSearchParams(sp)

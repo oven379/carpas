@@ -413,13 +413,32 @@ export function VisitFormServicesBlock({
       {customCats.map((cat, idx) => {
         const catItems = cat.services.map((s) => String(s).trim()).filter(Boolean)
         const selectedCount = catItems.filter((it) => svc.includes(it)).length
+        const allSelected = catItems.length > 0 && selectedCount === catItems.length
+        const toggleAll = () => {
+          const next = !allSelected
+            ? [...new Set([...svc, ...catItems])]
+            : svc.filter((x) => !catItems.includes(x))
+          applyServices(next)
+        }
         return (
           <details key={cat.title || idx} className="svcdd__group visitFormSvc__details">
             <summary className="svcdd__title visitFormSvc__summary">
               <span>{cat.title}</span>
-              <span className="svcdd__count">{catItems.length}</span>
+              <span className="svcdd__count">
+                {selectedCount > 0 ? `${selectedCount}/${catItems.length}` : catItems.length}
+              </span>
             </summary>
             <div className="visitFormSvc__detailsBody">
+              <button
+                type="button"
+                className="btn visitFormSvc__selectAllBtn"
+                data-variant="ghost"
+                disabled={disabled || catItems.length === 0}
+                onClick={toggleAll}
+                style={{ marginBottom: 8 }}
+              >
+                {allSelected ? 'Снять все' : 'Выбрать все'}
+              </button>
               <SectionGrid
                 items={catItems}
                 selected={svc}
