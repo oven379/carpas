@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
 import { useEffect } from 'react'
+import { getApiBaseUrl } from './api/client.js'
 import './App.css'
 import { TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
@@ -65,6 +66,29 @@ function ScrollToTopOnRouteChange() {
   return null
 }
 
+function BackendHealthCheck() {
+  useEffect(() => {
+    const INTERVAL_MS = 30_000
+    const TIMEOUT_MS = 5_000
+
+    async function check() {
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+      try {
+        await fetch(`${getApiBaseUrl()}/health`, { signal: ctrl.signal })
+      } catch {
+        window.location.reload()
+      } finally {
+        clearTimeout(timer)
+      }
+    }
+
+    const id = setInterval(check, INTERVAL_MS)
+    return () => clearInterval(id)
+  }, [])
+  return null
+}
+
 /** После возврата на вкладку — тот же сброс кэша, что раньше делала кнопка «Обновить данные» (с троттлингом). */
 function SyncClientDataOnTabReturn() {
   useEffect(() => {
@@ -103,6 +127,7 @@ export default function App() {
     <div className={`app${adminSolo ? ' app--adminSolo' : ''}`}>
       <DevHud />
       <SyncClientDataOnTabReturn />
+      <BackendHealthCheck />
       {soloChrome ? null : <TopNav />}
       <main
         className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${nativeAuthChrome ? ' main--nativeAuth' : ''}`}
