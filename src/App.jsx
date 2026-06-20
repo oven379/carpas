@@ -83,6 +83,7 @@ function BackendHealthCheck() {
       }
     }
 
+    check()
     const id = setInterval(check, INTERVAL_MS)
     return () => clearInterval(id)
   }, [])
