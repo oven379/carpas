@@ -12304,3 +12304,118 @@ a.btn.carPage__recsAddVisitFull,
     -webkit-box-orient: vertical;
   }
 }
+
+/* =========================================================
+   Редактор работ (WorkItemsEditor)
+   ========================================================= */
+.workItemsEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.workItemsEditor__header {
+  display: grid;
+  grid-template-columns: 24px 1fr 70px 90px 90px 34px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted, #888);
+  padding: 0 2px;
+}
+
+.workItemsEditor__row {
+  display: grid;
+  grid-template-columns: 24px 1fr 70px 90px 90px 34px;
+  gap: 4px;
+  align-items: center;
+}
+
+.workItemsEditor__num {
+  text-align: center;
+}
+
+.workItemsEditor__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.workItemsEditor__totalRow {
+  margin-left: auto;
+}
+
+/* =========================================================
+   Редактор запчастей (PartsItemsEditor)
+   ========================================================= */
+.partsItemsEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.partsItemsEditor__header {
+  display: grid;
+  grid-template-columns: 24px 80px 1fr 70px 90px 80px 90px 34px;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted, #888);
+  padding: 0 2px;
+}
+
+.partsItemsEditor__row {
+  display: grid;
+  grid-template-columns: 24px 80px 1fr 70px 90px 80px 90px 34px;
+  gap: 4px;
+  align-items: center;
+}
+
+.partsItemsEditor__footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.partsItemsEditor__totalRow {
+  margin-left: auto;
+}
+
+/* =========================================================
+   Блок заказ-наряда в форме визита
+   ========================================================= */
+.visitOrderBlock {
+  padding-top: 12px;
+}
+
+.visitOrderBlock__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.visitOrderBlock__head .field__label {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* Кнопка печати ЗН в карточке визита */
+.historyVisitPdfBtn {
+  margin-top: 10px;
+}
+
+@media (max-width: 700px) {
+  .workItemsEditor__header,
+  .workItemsEditor__row {
+    grid-template-columns: 20px 1fr 55px 75px 75px 28px;
+  }
+  .partsItemsEditor__header,
+  .partsItemsEditor__row {
+    grid-template-columns: 20px 60px 1fr 55px 75px 65px 75px 28px;
+  }
+}

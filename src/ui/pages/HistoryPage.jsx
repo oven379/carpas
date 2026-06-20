@@ -58,6 +58,9 @@ import {
 } from '../../lib/historyVisitHints.js'
 import { detailingBrandHref } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import WorkItemsEditor, { calcWorkItemsTotal } from '../WorkItemsEditor.jsx'
+import PartsItemsEditor, { calcPartsItemsTotal, calcPartsItemsDiscount } from '../PartsItemsEditor.jsx'
+import { openVisitOrderPrint } from '../VisitOrderPdf.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/visitEditCalendar.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
@@ -540,6 +543,11 @@ export default function HistoryPage() {
     maintenanceServices: [],
     type: 'visit',
     allowPublicPhotos: true,
+    reason: '',
+    specialNotes: '',
+    masterName: '',
+    workItems: [],
+    partsItems: [],
     ...EMPTY_CARE_DRAFT,
   })
   const [visitPhotoBusy, setVisitPhotoBusy] = useState(false)
@@ -669,6 +677,11 @@ export default function HistoryPage() {
             : [],
         type: ne.type || 'visit',
         allowPublicPhotos: ne.allowPublicPhotos !== false,
+        reason: mode === 'detailing' ? String(ne.reason || '') : '',
+        specialNotes: mode === 'detailing' ? String(ne.specialNotes || '') : '',
+        masterName: mode === 'detailing' ? String(ne.masterName || '') : '',
+        workItems: mode === 'detailing' && Array.isArray(ne.workItems) ? ne.workItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
+        partsItems: mode === 'detailing' && Array.isArray(ne.partsItems) ? ne.partsItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
         ...careDraftFromEvent(ne, mode === 'owner'),
       })
       const next = new URLSearchParams(sp)
@@ -715,6 +728,11 @@ export default function HistoryPage() {
                 : [],
             type: ne.type || 'visit',
             allowPublicPhotos: ne.allowPublicPhotos !== false,
+            reason: mode === 'detailing' ? String(ne.reason || '') : '',
+            specialNotes: mode === 'detailing' ? String(ne.specialNotes || '') : '',
+            masterName: mode === 'detailing' ? String(ne.masterName || '') : '',
+            workItems: mode === 'detailing' && Array.isArray(ne.workItems) ? ne.workItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
+            partsItems: mode === 'detailing' && Array.isArray(ne.partsItems) ? ne.partsItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
             ...careDraftFromEvent(ne, mode === 'owner'),
           })
         } else {
@@ -852,6 +870,11 @@ export default function HistoryPage() {
             internalNote: String(draft.internalNote || '').trim().slice(0, VISIT_INTERNAL_NOTE_MAX_LEN) || null,
             nextContactAt: isoFromDateInput(draft.nextContactAt),
             allowPublicPhotos: Boolean(draft.allowPublicPhotos),
+            reason: String(draft.reason || '').trim().slice(0, 1000) || null,
+            specialNotes: String(draft.specialNotes || '').trim().slice(0, 3000) || null,
+            masterName: String(draft.masterName || '').trim().slice(0, 255) || null,
+            workItems: Array.isArray(draft.workItems) ? draft.workItems : [],
+            partsItems: Array.isArray(draft.partsItems) ? draft.partsItems : [],
           }
         : mode === 'owner'
           ? {
@@ -873,6 +896,11 @@ export default function HistoryPage() {
     draft.internalNote,
     draft.nextContactAt,
     draft.allowPublicPhotos,
+    draft.reason,
+    draft.specialNotes,
+    draft.masterName,
+    draft.workItems,
+    draft.partsItems,
   ])
 
   const closeVisitFormInUrl = () => {
@@ -939,6 +967,11 @@ export default function HistoryPage() {
     draft.careAdviceText,
     draft.services,
     draft.maintenanceServices,
+    draft.reason,
+    draft.specialNotes,
+    draft.masterName,
+    draft.workItems,
+    draft.partsItems,
     buildVisitPayload,
     r,
     setEvents,
@@ -1218,7 +1251,7 @@ export default function HistoryPage() {
           <Card
             key={e.id}
             id={e.id ? `history-visit-${e.id}` : undefined}
-            style={{ zIndex: cardIdx + 1 }}
+            style={{ zIndex: visibleEvents.length - cardIdx }}
             className={`card pad eventCard--collapsible${canOpen(e) ? ' eventCard--clickable' : ''}${visitReadonlyCard ? ' eventCard--visitReadonly' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
             role={canOpen(e) && !cardInnerLink ? 'region' : undefined}
             tabIndex={canOpen(e) ? 0 : undefined}
@@ -1411,6 +1444,30 @@ export default function HistoryPage() {
                         <span className="eventLabel">Внутренняя заметка:</span> {e.internalNote}
                       </div>
                     ) : null}
+                  </div>
+                ) : null}
+                {visitExpanded && mode === 'detailing' && e.source === 'service' && !e.isDraft ? (
+                  <div
+                    className="historyVisitPdfBtn"
+                    onClick={(ev) => ev.stopPropagation()}
+                    onKeyDown={(ev) => ev.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="btn"
+                      data-variant="outline"
+                      onClick={(ev) => {
+                        ev.stopPropagation()
+                        openVisitOrderPrint({
+                          event: e,
+                          car,
+                          detailing,
+                        })
+                      }}
+                      title={`Открыть заказ-наряд ${e.orderNumber || `ЗН-${e.id}`} для печати / сохранения в PDF`}
+                    >
+                      Распечатать ЗН {e.orderNumber ? `· ${e.orderNumber}` : ''}
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -1636,6 +1693,68 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
+            {mode === 'detailing' ? (
+              <div className="field field--full topBorder visitOrderBlock">
+                <div className="visitOrderBlock__head">
+                  <span className="field__label">Заказ-наряд</span>
+                  <span className="muted small">Для печати ЗН укажите работы и запчасти</span>
+                </div>
+                <div className="field">
+                  <span className="field__label">Причина обращения</span>
+                  <Textarea
+                    className="textarea"
+                    rows={2}
+                    maxLength={1000}
+                    value={draft.reason}
+                    disabled={formLocked}
+                    placeholder="Что беспокоит клиента: царапины, запах, не работает кондиционер…"
+                    onChange={(e) => setDraft((d) => ({ ...d, reason: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, reason: next })))}
+                  />
+                </div>
+                <div className="field">
+                  <span className="field__label">Особые отметки и рекомендации</span>
+                  <Textarea
+                    className="textarea"
+                    rows={2}
+                    maxLength={3000}
+                    value={draft.specialNotes}
+                    disabled={formLocked}
+                    placeholder="Дополнительные условия, отметки о кузове, требования клиента…"
+                    onChange={(e) => setDraft((d) => ({ ...d, specialNotes: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, specialNotes: next })))}
+                  />
+                </div>
+                <div className="field">
+                  <span className="field__label">Мастер-приёмщик</span>
+                  <Input
+                    className="input"
+                    maxLength={255}
+                    value={draft.masterName}
+                    disabled={formLocked}
+                    placeholder="Имя мастера для этого визита"
+                    onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
+                  />
+                </div>
+                <div className="field field--full">
+                  <span className="field__label">Выполненные работы (с ценами)</span>
+                  <WorkItemsEditor
+                    items={draft.workItems}
+                    disabled={formLocked}
+                    onChange={(next) => setDraft((d) => ({ ...d, workItems: next }))}
+                  />
+                </div>
+                <div className="field field--full">
+                  <span className="field__label">Запасные части и материалы</span>
+                  <PartsItemsEditor
+                    items={draft.partsItems}
+                    disabled={formLocked}
+                    onChange={(next) => setDraft((d) => ({ ...d, partsItems: next }))}
+                  />
+                </div>
+              </div>
+            ) : null}
             {mode === 'detailing' ? (
               <>
                 <div className="field field--full">
@@ -2018,6 +2137,11 @@ export default function HistoryPage() {
                     maintenanceServices: [],
                     type: 'visit',
                     allowPublicPhotos: true,
+                    reason: '',
+                    specialNotes: '',
+                    masterName: '',
+                    workItems: [],
+                    partsItems: [],
                     ...EMPTY_CARE_DRAFT,
                   })
                   invalidateRepo()

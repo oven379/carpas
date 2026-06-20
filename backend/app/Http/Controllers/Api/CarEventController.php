@@ -107,6 +107,11 @@ class CarEventController extends Controller
             'services' => ['nullable', 'array'],
             'maintenanceServices' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
+            'reason' => ['nullable', 'string', 'max:1000'],
+            'specialNotes' => ['nullable', 'string', 'max:3000'],
+            'masterName' => ['nullable', 'string', 'max:255'],
+            'workItems' => ['nullable', 'array'],
+            'partsItems' => ['nullable', 'array'],
             'internalNote' => ['nullable', 'string', 'max:1000'],
             'nextContactAt' => ['nullable', 'string'],
             'careTips' => ['nullable', 'array'],
@@ -169,6 +174,11 @@ class CarEventController extends Controller
             'services' => $data['services'] ?? [],
             'maintenance_services' => $data['maintenanceServices'] ?? [],
             'note' => $data['note'] ?? null,
+            'reason' => isset($data['reason']) ? trim((string) $data['reason']) : null,
+            'special_notes' => isset($data['specialNotes']) ? trim((string) $data['specialNotes']) : null,
+            'master_name' => isset($data['masterName']) ? trim((string) $data['masterName']) : null,
+            'work_items' => isset($data['workItems']) && is_array($data['workItems']) ? $data['workItems'] : [],
+            'parts_items' => isset($data['partsItems']) && is_array($data['partsItems']) ? $data['partsItems'] : [],
             'internal_note' => $data['internalNote'] ?? null,
             'next_contact_at' => $data['nextContactAt'] ?? null,
             'care_tips' => CareTips::normalize($data['careTips'] ?? null),
@@ -176,6 +186,10 @@ class CarEventController extends Controller
 
         if (! $isDraft) {
             CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+            if (! $evt->order_number) {
+                $evt->order_number = 'ЗН-'.$evt->id;
+                $evt->save();
+            }
         }
 
         return response()->json(ApiResources::event($evt, true));
@@ -213,6 +227,21 @@ class CarEventController extends Controller
         }
         if (array_key_exists('note', $data)) {
             $evt->note = $data['note'];
+        }
+        if (array_key_exists('reason', $data)) {
+            $evt->reason = $data['reason'] !== null ? trim((string) $data['reason']) : null;
+        }
+        if (array_key_exists('specialNotes', $data)) {
+            $evt->special_notes = $data['specialNotes'] !== null ? trim((string) $data['specialNotes']) : null;
+        }
+        if (array_key_exists('masterName', $data)) {
+            $evt->master_name = $data['masterName'] !== null ? trim((string) $data['masterName']) : null;
+        }
+        if (array_key_exists('workItems', $data) && is_array($data['workItems'])) {
+            $evt->work_items = $data['workItems'];
+        }
+        if (array_key_exists('partsItems', $data) && is_array($data['partsItems'])) {
+            $evt->parts_items = $data['partsItems'];
         }
         if (array_key_exists('internalNote', $data)) {
             $evt->internal_note = $data['internalNote'];
@@ -252,6 +281,11 @@ class CarEventController extends Controller
 
         if ($willBeFinalized) {
             CarMileageSync::bumpCarMileageFromEvents($car->fresh());
+            $evt->refresh();
+            if (! $evt->order_number) {
+                $evt->order_number = 'ЗН-'.$evt->id;
+                $evt->save();
+            }
         }
 
         return response()->json(ApiResources::event($evt->fresh(), true));

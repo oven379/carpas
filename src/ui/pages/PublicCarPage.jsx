@@ -59,7 +59,10 @@ export default function PublicCarPage() {
   const car = payload?.car ?? null
   const events = useMemo(() => {
     const ev = payload?.ownerEvents
-    return Array.isArray(ev) ? ev.filter((e) => e.source === 'owner') : []
+    if (!Array.isArray(ev)) return []
+    return ev
+      .filter((e) => e.source === 'owner')
+      .sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')))
   }, [payload])
 
   const docs = useMemo(() => {

@@ -48,6 +48,10 @@ class ApiResources
             'phone' => $d->phone ?? '',
             'city' => $d->city ?? '',
             'address' => $d->address ?? '',
+            'inn' => $d->inn ?? '',
+            'legalName' => $d->legal_name ?? '',
+            'masterName' => $d->master_name ?? '',
+            'warrantyText' => $d->warranty_text ?? '',
             'description' => $d->description ?? '',
             'workingHours' => $d->working_hours ?? '',
             'website' => $d->website ?? '',
@@ -174,6 +178,15 @@ class ApiResources
         $partnerName = trim((string) ($e->service_partner_name ?? ''));
         $partnerLogo = trim((string) ($e->service_partner_logo ?? ''));
 
+        $workItems = $e->work_items ?? null;
+        if (!is_array($workItems)) {
+            $workItems = [];
+        }
+        $partsItems = $e->parts_items ?? null;
+        if (!is_array($partsItems)) {
+            $partsItems = [];
+        }
+
         $payload = [
             'id' => (string) $e->id,
             'detailingId' => $e->detailing_id ? (string) $e->detailing_id : '',
@@ -185,10 +198,16 @@ class ApiResources
             'at' => optional($e->at)->toISOString(),
             'type' => $e->type ?? 'visit',
             'title' => $e->title ?? '',
+            'orderNumber' => $e->order_number ?? '',
             'mileageKm' => (int) ($e->mileage_km ?? 0),
             'services' => $svc,
             'maintenanceServices' => $ms,
             'note' => $e->note ?? '',
+            'reason' => $e->reason ?? '',
+            'specialNotes' => $e->special_notes ?? '',
+            'masterName' => $e->master_name ?? '',
+            'workItems' => $workItems,
+            'partsItems' => $partsItems,
             'careTips' => $careTips,
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),

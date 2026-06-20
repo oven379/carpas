@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@al-bani/car-brands": "^1.4.0",
+    "@react-pdf/renderer": "^4.5.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.38.0",
     "list-of-cars": "^0.0.142",

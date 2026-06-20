@@ -23,10 +23,16 @@ class CarEvent extends Model
         'at',
         'type',
         'title',
+        'order_number',
         'mileage_km',
         'services',
         'maintenance_services',
         'note',
+        'reason',
+        'special_notes',
+        'master_name',
+        'work_items',
+        'parts_items',
         'internal_note',
         'next_contact_at',
         'care_tips',
@@ -41,6 +47,8 @@ class CarEvent extends Model
         'maintenance_services' => 'array',
         'next_contact_at' => 'datetime',
         'care_tips' => 'array',
+        'work_items' => 'array',
+        'parts_items' => 'array',
     ];
 
     public function detailing(): BelongsTo

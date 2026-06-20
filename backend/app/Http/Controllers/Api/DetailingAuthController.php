@@ -249,6 +249,22 @@ class DetailingAuthController extends Controller
         if (array_key_exists('address', $patch)) {
             $d->address = trim((string) $patch['address']);
         }
+        if (array_key_exists('inn', $patch)) {
+            $d->inn = trim((string) $patch['inn']);
+        }
+        if (array_key_exists('legalName', $patch)) {
+            $d->legal_name = trim((string) $patch['legalName']);
+        }
+        if (array_key_exists('masterName', $patch)) {
+            $d->master_name = trim((string) $patch['masterName']);
+        }
+        if (array_key_exists('warrantyText', $patch)) {
+            $wt = trim((string) $patch['warrantyText']);
+            if (mb_strlen($wt) > 5000) {
+                $wt = mb_substr($wt, 0, 5000);
+            }
+            $d->warranty_text = $wt;
+        }
         if (array_key_exists('description', $patch)) {
             $d->description = trim((string) $patch['description']);
         }
