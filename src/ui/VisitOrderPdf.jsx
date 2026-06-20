@@ -1,3 +1,5 @@
+import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
+
 /**
  * Генерация печатной формы заказ-наряда.
  * Открывает новое окно с документом и вызывает window.print().
@@ -65,7 +67,10 @@ function buildHtml({ event, car, detailing }) {
   const orderNum = event.orderNumber || `ЗН-${event.id}`
   const clientName = car.clientName || car.ownerName || '—'
   const clientPhone = car.clientPhone || car.ownerAccountPhone || ''
-  const logoUrl = detailing?.logo || ''
+  const logoResolved = resolvePublicMediaUrl(detailing?.logo || '')
+  const logoUrl = logoResolved && logoResolved.startsWith('/')
+    ? `${window.location.origin}${logoResolved}`
+    : logoResolved
   const inn = detailing?.inn || ''
   const legalName = detailing?.legalName || detailing?.name || ''
   const address = detailing?.address || ''
