@@ -208,6 +208,7 @@ class ApiResources
             'masterName' => $e->master_name ?? '',
             'workItems' => $workItems,
             'partsItems' => $partsItems,
+            'warrantyText' => $e->warranty_text ?? '',
             'careTips' => $careTips,
             'createdAt' => optional($e->created_at)->toISOString(),
             'updatedAt' => optional($e->updated_at)->toISOString(),

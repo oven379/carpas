@@ -34,6 +34,7 @@ export default function WorkItemsEditor({ items = [], onChange, disabled }) {
     <div className="workItemsEditor">
       {items.length > 0 && (
         <div className="workItemsEditor__header" aria-hidden="true">
+          <span />
           <span className="workItemsEditor__col workItemsEditor__col--title">Наименование работы</span>
           <span className="workItemsEditor__col workItemsEditor__col--qty">Кол-во</span>
           <span className="workItemsEditor__col workItemsEditor__col--price">Цена, ₽</span>

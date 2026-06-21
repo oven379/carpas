@@ -546,6 +546,7 @@ export default function HistoryPage() {
     reason: '',
     specialNotes: '',
     masterName: '',
+    warrantyText: '',
     workItems: [],
     partsItems: [],
     ...EMPTY_CARE_DRAFT,
@@ -680,6 +681,7 @@ export default function HistoryPage() {
         reason: mode === 'detailing' ? String(ne.reason || '') : '',
         specialNotes: mode === 'detailing' ? String(ne.specialNotes || '') : '',
         masterName: mode === 'detailing' ? String(ne.masterName || '') : '',
+        warrantyText: mode === 'detailing' ? String(ne.warrantyText || '') : '',
         workItems: mode === 'detailing' && Array.isArray(ne.workItems) ? ne.workItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
         partsItems: mode === 'detailing' && Array.isArray(ne.partsItems) ? ne.partsItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
         ...careDraftFromEvent(ne, mode === 'owner'),
@@ -731,6 +733,7 @@ export default function HistoryPage() {
             reason: mode === 'detailing' ? String(ne.reason || '') : '',
             specialNotes: mode === 'detailing' ? String(ne.specialNotes || '') : '',
             masterName: mode === 'detailing' ? String(ne.masterName || '') : '',
+            warrantyText: mode === 'detailing' ? String(ne.warrantyText || '') : '',
             workItems: mode === 'detailing' && Array.isArray(ne.workItems) ? ne.workItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
             partsItems: mode === 'detailing' && Array.isArray(ne.partsItems) ? ne.partsItems.map((it) => ({ id: String(it.id || Date.now() + Math.random()), ...it })) : [],
             ...careDraftFromEvent(ne, mode === 'owner'),
@@ -873,6 +876,7 @@ export default function HistoryPage() {
             reason: String(draft.reason || '').trim().slice(0, 1000) || null,
             specialNotes: String(draft.specialNotes || '').trim().slice(0, 3000) || null,
             masterName: String(draft.masterName || '').trim().slice(0, 255) || null,
+            warrantyText: String(draft.warrantyText || '').trim().slice(0, 5000) || null,
             workItems: Array.isArray(draft.workItems) ? draft.workItems : [],
             partsItems: Array.isArray(draft.partsItems) ? draft.partsItems : [],
           }
@@ -899,6 +903,7 @@ export default function HistoryPage() {
     draft.reason,
     draft.specialNotes,
     draft.masterName,
+    draft.warrantyText,
     draft.workItems,
     draft.partsItems,
   ])
@@ -970,6 +975,7 @@ export default function HistoryPage() {
     draft.reason,
     draft.specialNotes,
     draft.masterName,
+    draft.warrantyText,
     draft.workItems,
     draft.partsItems,
     buildVisitPayload,
@@ -1725,6 +1731,24 @@ export default function HistoryPage() {
                     onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, specialNotes: next })))}
                   />
                 </div>
+                <div className="field field--full">
+                  <span className="field__label">Гарантийные обязательства</span>
+                  <Textarea
+                    className="textarea"
+                    rows={3}
+                    maxLength={5000}
+                    value={draft.warrantyText}
+                    disabled={formLocked}
+                    placeholder={String(detailing?.warrantyText || '').trim() || 'Оставьте пустым — будет использован текст из настроек сервиса'}
+                    onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                  />
+                  {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
+                    <p className="muted small" style={{ marginTop: 4 }}>
+                      Будет использован текст гарантии из настроек сервиса.
+                    </p>
+                  ) : null}
+                </div>
                 <div className="field">
                   <span className="field__label">Мастер-приёмщик</span>
                   <Input
@@ -2140,6 +2164,7 @@ export default function HistoryPage() {
                     reason: '',
                     specialNotes: '',
                     masterName: '',
+                    warrantyText: '',
                     workItems: [],
                     partsItems: [],
                     ...EMPTY_CARE_DRAFT,
@@ -2186,6 +2211,7 @@ export default function HistoryPage() {
                     alert('Нельзя удалить это событие.')
                     return
                   }
+                  setEvents((prev) => prev.filter((x) => String(x.id) !== String(editingId)))
                   invalidateRepo()
                   setShowNew(false)
                   setEditingId(null)

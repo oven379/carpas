@@ -75,7 +75,7 @@ function buildHtml({ event, car, detailing }) {
   const legalName = detailing?.legalName || detailing?.name || ''
   const address = detailing?.address || ''
   const phone = detailing?.phone || ''
-  const warrantyText = detailing?.warrantyText || ''
+  const warrantyText = String(event.warrantyText || '').trim() || String(detailing?.warrantyText || '').trim()
 
   const plate = [car.plate, car.plateRegion].filter(Boolean).join(' ')
 

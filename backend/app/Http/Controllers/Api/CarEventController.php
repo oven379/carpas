@@ -112,6 +112,7 @@ class CarEventController extends Controller
             'masterName' => ['nullable', 'string', 'max:255'],
             'workItems' => ['nullable', 'array'],
             'partsItems' => ['nullable', 'array'],
+            'warrantyText' => ['nullable', 'string', 'max:5000'],
             'internalNote' => ['nullable', 'string', 'max:1000'],
             'nextContactAt' => ['nullable', 'string'],
             'careTips' => ['nullable', 'array'],
@@ -179,6 +180,7 @@ class CarEventController extends Controller
             'master_name' => isset($data['masterName']) ? trim((string) $data['masterName']) : null,
             'work_items' => isset($data['workItems']) && is_array($data['workItems']) ? $data['workItems'] : [],
             'parts_items' => isset($data['partsItems']) && is_array($data['partsItems']) ? $data['partsItems'] : [],
+            'warranty_text' => isset($data['warrantyText']) ? trim((string) $data['warrantyText']) : null,
             'internal_note' => $data['internalNote'] ?? null,
             'next_contact_at' => $data['nextContactAt'] ?? null,
             'care_tips' => CareTips::normalize($data['careTips'] ?? null),
@@ -242,6 +244,9 @@ class CarEventController extends Controller
         }
         if (array_key_exists('partsItems', $data) && is_array($data['partsItems'])) {
             $evt->parts_items = $data['partsItems'];
+        }
+        if (array_key_exists('warrantyText', $data)) {
+            $evt->warranty_text = $data['warrantyText'] !== null ? trim((string) $data['warrantyText']) : null;
         }
         if (array_key_exists('internalNote', $data)) {
             $evt->internal_note = $data['internalNote'];

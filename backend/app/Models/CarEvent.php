@@ -33,6 +33,7 @@ class CarEvent extends Model
         'master_name',
         'work_items',
         'parts_items',
+        'warranty_text',
         'internal_note',
         'next_contact_at',
         'care_tips',
