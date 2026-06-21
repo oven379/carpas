@@ -1630,6 +1630,20 @@ export default function HistoryPage() {
                 </div>
               ) : null}
               <div className="formGrid historyFormGrid">
+            {mode === 'detailing' ? (
+              <div className="field">
+                <span className="field__label">Мастер-приёмщик</span>
+                <Input
+                  className="input"
+                  maxLength={255}
+                  value={draft.masterName}
+                  disabled={formLocked}
+                  placeholder="Имя мастера для этого визита"
+                  onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
+                />
+              </div>
+            ) : null}
             <div className="field serviceHint__fieldWrap" id={FORM_TITLE_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">Заголовок</span>
@@ -1667,7 +1681,7 @@ export default function HistoryPage() {
                   setDraft((d) => {
                     const nextRaw = normDigits(e.target.value, { maxLen: 7 })
                     const n = nextRaw ? Number(nextRaw) : 0
-                    if (Number.isFinite(n) && n > 1000000) return d // мягко блокируем ввод сверх лимита
+                    if (Number.isFinite(n) && n > 1000000) return d
                     return { ...d, mileageKm: nextRaw }
                   })
                 }
@@ -1675,6 +1689,66 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
+            {mode === 'detailing' ? (
+              <div className="field field--full">
+                <span className="field__label">Причина обращения</span>
+                <Textarea
+                  className="textarea"
+                  rows={2}
+                  maxLength={1000}
+                  value={draft.reason}
+                  disabled={formLocked}
+                  placeholder="Что беспокоит клиента: царапины, запах, не работает кондиционер…"
+                  onChange={(e) => setDraft((d) => ({ ...d, reason: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, reason: next })))}
+                />
+              </div>
+            ) : null}
+            {mode === 'detailing' || mode === 'owner' ? (
+              <VisitFormServicesBlock
+                scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
+                detailing={detailing}
+                useFullCatalogFallback={mode === 'owner'}
+                services={draft.services}
+                maintenanceServices={draft.maintenanceServices}
+                onServicesChange={(next) => setDraft((d) => ({ ...d, services: next }))}
+                onMaintenanceChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
+                disabled={formLocked}
+                hintSlot={
+                  <ServiceHint
+                    scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
+                    variant="compact"
+                    label={FORM_SERVICES_VISIT_BLOCK_HINT.label}
+                  >
+                    <p className="serviceHint__panelText">
+                      {mode === 'owner'
+                        ? FORM_SERVICES_VISIT_BLOCK_HINT.textOwner
+                        : FORM_SERVICES_VISIT_BLOCK_HINT.textDetailing}
+                    </p>
+                  </ServiceHint>
+                }
+              />
+            ) : null}
+            {mode === 'detailing' ? (
+              <div className="field field--full">
+                <span className="field__label">Выполненные работы (с ценами)</span>
+                <WorkItemsEditor
+                  items={draft.workItems}
+                  disabled={formLocked}
+                  onChange={(next) => setDraft((d) => ({ ...d, workItems: next }))}
+                />
+              </div>
+            ) : null}
+            {mode === 'detailing' ? (
+              <div className="field field--full">
+                <span className="field__label">Запасные части и материалы</span>
+                <PartsItemsEditor
+                  items={draft.partsItems}
+                  disabled={formLocked}
+                  onChange={(next) => setDraft((d) => ({ ...d, partsItems: next }))}
+                />
+              </div>
+            ) : null}
             <div className="field field--full serviceHint__fieldWrap" id={FORM_COMMENT_HINT.scopeId}>
               <div className="field__top serviceHint__fieldTop">
                 <span className="field__label">{mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}</span>
@@ -1700,83 +1774,38 @@ export default function HistoryPage() {
               />
             </div>
             {mode === 'detailing' ? (
-              <div className="field field--full topBorder visitOrderBlock">
-                <div className="visitOrderBlock__head">
-                  <span className="field__label">Заказ-наряд</span>
-                  <span className="muted small">Для печати ЗН укажите работы и запчасти</span>
-                </div>
-                <div className="field">
-                  <span className="field__label">Причина обращения</span>
-                  <Textarea
-                    className="textarea"
-                    rows={2}
-                    maxLength={1000}
-                    value={draft.reason}
-                    disabled={formLocked}
-                    placeholder="Что беспокоит клиента: царапины, запах, не работает кондиционер…"
-                    onChange={(e) => setDraft((d) => ({ ...d, reason: e.target.value }))}
-                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, reason: next })))}
-                  />
-                </div>
-                <div className="field">
-                  <span className="field__label">Особые отметки и рекомендации</span>
-                  <Textarea
-                    className="textarea"
-                    rows={2}
-                    maxLength={3000}
-                    value={draft.specialNotes}
-                    disabled={formLocked}
-                    placeholder="Дополнительные условия, отметки о кузове, требования клиента…"
-                    onChange={(e) => setDraft((d) => ({ ...d, specialNotes: e.target.value }))}
-                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, specialNotes: next })))}
-                  />
-                </div>
-                <div className="field field--full">
-                  <span className="field__label">Гарантийные обязательства</span>
-                  <Textarea
-                    className="textarea"
-                    rows={3}
-                    maxLength={5000}
-                    value={draft.warrantyText}
-                    disabled={formLocked}
-                    placeholder={String(detailing?.warrantyText || '').trim() || 'Оставьте пустым — будет использован текст из настроек сервиса'}
-                    onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
-                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-                  />
-                  {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
-                    <p className="muted small" style={{ marginTop: 4 }}>
-                      Будет использован текст гарантии из настроек сервиса.
-                    </p>
-                  ) : null}
-                </div>
-                <div className="field">
-                  <span className="field__label">Мастер-приёмщик</span>
-                  <Input
-                    className="input"
-                    maxLength={255}
-                    value={draft.masterName}
-                    disabled={formLocked}
-                    placeholder="Имя мастера для этого визита"
-                    onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
-                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
-                  />
-                </div>
-                <div className="field field--full">
-                  <span className="field__label">Выполненные работы (с ценами)</span>
-                  <WorkItemsEditor
-                    items={draft.workItems}
-                    disabled={formLocked}
-                    onChange={(next) => setDraft((d) => ({ ...d, workItems: next }))}
-                  />
-                </div>
-                <div className="field field--full">
-                  <span className="field__label">Запасные части и материалы</span>
-                  <PartsItemsEditor
-                    items={draft.partsItems}
-                    disabled={formLocked}
-                    onChange={(next) => setDraft((d) => ({ ...d, partsItems: next }))}
-                  />
-                </div>
+              <div className="field field--full">
+                <span className="field__label">Особые отметки и рекомендации</span>
+                <Textarea
+                  className="textarea"
+                  rows={2}
+                  maxLength={3000}
+                  value={draft.specialNotes}
+                  disabled={formLocked}
+                  placeholder="Дополнительные условия, отметки о кузове, требования клиента…"
+                  onChange={(e) => setDraft((d) => ({ ...d, specialNotes: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, specialNotes: next })))}
+                />
+              </div>
+            ) : null}
+            {mode === 'detailing' ? (
+              <div className="field field--full">
+                <span className="field__label">Гарантийные обязательства</span>
+                <Textarea
+                  className="textarea"
+                  rows={3}
+                  maxLength={5000}
+                  value={draft.warrantyText}
+                  disabled={formLocked}
+                  placeholder={String(detailing?.warrantyText || '').trim() || 'Оставьте пустым — будет использован текст из настроек сервиса'}
+                  onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                />
+                {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
+                  <p className="muted small" style={{ marginTop: 4 }}>
+                    Будет использован текст гарантии из настроек сервиса.
+                  </p>
+                ) : null}
               </div>
             ) : null}
             {mode === 'detailing' ? (
@@ -1831,31 +1860,6 @@ export default function HistoryPage() {
                   </div>
                 </div>
               </>
-            ) : null}
-            {mode === 'detailing' || mode === 'owner' ? (
-              <VisitFormServicesBlock
-                scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
-                detailing={detailing}
-                useFullCatalogFallback={mode === 'owner'}
-                services={draft.services}
-                maintenanceServices={draft.maintenanceServices}
-                onServicesChange={(next) => setDraft((d) => ({ ...d, services: next }))}
-                onMaintenanceChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
-                disabled={formLocked}
-                hintSlot={
-                  <ServiceHint
-                    scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
-                    variant="compact"
-                    label={FORM_SERVICES_VISIT_BLOCK_HINT.label}
-                  >
-                    <p className="serviceHint__panelText">
-                      {mode === 'owner'
-                        ? FORM_SERVICES_VISIT_BLOCK_HINT.textOwner
-                        : FORM_SERVICES_VISIT_BLOCK_HINT.textDetailing}
-                    </p>
-                  </ServiceHint>
-                }
-              />
             ) : null}
             {mode === 'owner' &&
             showNew &&
