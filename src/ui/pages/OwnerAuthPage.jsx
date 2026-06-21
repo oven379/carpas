@@ -387,12 +387,11 @@ export default function OwnerAuthPage() {
             </div>
           )}
           {nativeApp && (
-            <p className="muted small" style={{ textAlign: 'center', marginTop: 12 }}>
-              Войти как сервис?{' '}
-              <a className="link" href="#/auth/partner">
+            <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: 24 }}>
+              <a className="btn" data-variant="ghost" href="#/auth/partner">
                 Вход для партнёров
               </a>
-            </p>
+            </div>
           )}
         </div>
       </div>
