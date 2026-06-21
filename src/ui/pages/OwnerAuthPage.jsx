@@ -354,36 +354,46 @@ export default function OwnerAuthPage() {
               )}
             </div>
           </Card>
-          <div className="authAppDownloads" aria-label="Скачать приложение CarPasss">
-            <p className="muted small authAppDownloads__title">Мобильное приложение</p>
-            <div className="authAppDownloads__grid">
-              <a
-                className="authAppDownloadBtn authAppDownloadBtn--ios"
-                href={IOS_APP_URL}
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Скачать приложение CarPasss для iOS в App Store"
-              >
-                <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--ios" aria-hidden="true" />
-                <span className="authAppDownloadBtn__copy">
-                  <span className="authAppDownloadBtn__label">Скачать приложение</span>
-                  <span className="authAppDownloadBtn__store">iOS · App Store</span>
-                </span>
-              </a>
-              <button
-                className="authAppDownloadBtn authAppDownloadBtn--android"
-                type="button"
-                disabled
-                aria-label="Скачать приложение CarPasss для Android"
-              >
-                <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />
-                <span className="authAppDownloadBtn__copy">
-                  <span className="authAppDownloadBtn__label">Скачать приложение</span>
-                  <span className="authAppDownloadBtn__store">Android · скоро</span>
-                </span>
-              </button>
+          {!nativeApp && (
+            <div className="authAppDownloads" aria-label="Скачать приложение CarPasss">
+              <p className="muted small authAppDownloads__title">Мобильное приложение</p>
+              <div className="authAppDownloads__grid">
+                <a
+                  className="authAppDownloadBtn authAppDownloadBtn--ios"
+                  href={IOS_APP_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Скачать приложение CarPasss для iOS в App Store"
+                >
+                  <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--ios" aria-hidden="true" />
+                  <span className="authAppDownloadBtn__copy">
+                    <span className="authAppDownloadBtn__label">Скачать приложение</span>
+                    <span className="authAppDownloadBtn__store">iOS · App Store</span>
+                  </span>
+                </a>
+                <button
+                  className="authAppDownloadBtn authAppDownloadBtn--android"
+                  type="button"
+                  disabled
+                  aria-label="Скачать приложение CarPasss для Android"
+                >
+                  <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />
+                  <span className="authAppDownloadBtn__copy">
+                    <span className="authAppDownloadBtn__label">Скачать приложение</span>
+                    <span className="authAppDownloadBtn__store">Android · скоро</span>
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+          {nativeApp && (
+            <p className="muted small" style={{ textAlign: 'center', marginTop: 12 }}>
+              Войти как сервис?{' '}
+              <a className="link" href="#/auth/partner">
+                Вход для партнёров
+              </a>
+            </p>
+          )}
         </div>
       </div>
     </div>
