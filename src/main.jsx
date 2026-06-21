@@ -7,6 +7,7 @@ import './index.css'
 import './App.css'
 import App from './App.jsx'
 
+clearTimeout(window.__appLoadTimer)
 window.__cpLog = (tag, ...args) => {
   try { console.log(`[CP:${tag}]`, ...args) } catch {}
 }
