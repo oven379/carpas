@@ -76,7 +76,7 @@ export default function PartsItemsEditor({ items = [], onChange, disabled }) {
               type="number"
               min="0.01"
               step="0.01"
-              placeholder="1"
+              placeholder="Кол-во"
               value={it.qty}
               disabled={disabled}
               onChange={(e) => update(it.id, { qty: e.target.value })}
@@ -87,7 +87,7 @@ export default function PartsItemsEditor({ items = [], onChange, disabled }) {
               type="number"
               min="0"
               step="0.01"
-              placeholder="0"
+              placeholder="Цена, ₽"
               value={it.price}
               disabled={disabled}
               onChange={(e) => update(it.id, { price: e.target.value })}
@@ -98,7 +98,7 @@ export default function PartsItemsEditor({ items = [], onChange, disabled }) {
               type="number"
               min="0"
               step="0.01"
-              placeholder="0"
+              placeholder="Скидка, ₽"
               value={it.discount}
               disabled={disabled}
               onChange={(e) => update(it.id, { discount: e.target.value })}

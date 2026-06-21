@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { getApiBaseUrl } from '../../api/client.js'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
 import {
@@ -215,18 +216,6 @@ export default function OwnerAuthPage() {
                 <li>Фото и документы к работам, понятная хронология обслуживания.</li>
                 <li>Публичная ссылка на историю — когда нужно показать авто партнёру или покупателю, без доступа к кабинету.</li>
               </ul>
-              <div id="owner-auth-intro-hint" className="row gap wrap" style={{ alignItems: 'center', marginTop: 12 }}>
-                <span className="muted small" style={{ margin: 0 }}>
-                  Вход и регистрация
-                </span>
-                <ServiceHint scopeId="owner-auth-intro-hint" variant="compact" label="Справка: мой гараж">
-                  <p className="serviceHint__panelText">
-                    <strong>Вход</strong> — почта, пароль и «В гараж». <strong>Регистрация</strong> — те же поля плюс имя;
-                    на форме одна кнопка <strong>«Зарегистрироваться»</strong> — после создания аккаунта откроются настройки: сначала настройте публичную страницу гаража.
-                    Пароль не короче {OWNER_PASSWORD_MIN_LEN} символов.
-                  </p>
-                </ServiceHint>
-              </div>
             </div>
           </div>
         </aside>
@@ -371,18 +360,17 @@ export default function OwnerAuthPage() {
                     <span className="authAppDownloadBtn__store">iOS · App Store</span>
                   </span>
                 </a>
-                <button
+                <a
                   className="authAppDownloadBtn authAppDownloadBtn--android"
-                  type="button"
-                  disabled
+                  href={`${getApiBaseUrl()}/download/android`}
                   aria-label="Скачать приложение CarPasss для Android"
                 >
                   <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />
                   <span className="authAppDownloadBtn__copy">
                     <span className="authAppDownloadBtn__label">Скачать приложение</span>
-                    <span className="authAppDownloadBtn__store">Android · скоро</span>
+                    <span className="authAppDownloadBtn__store">Android · APK</span>
                   </span>
-                </button>
+                </a>
               </div>
             </div>
           )}

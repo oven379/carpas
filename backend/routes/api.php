@@ -31,6 +31,13 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 Route::get('/health', fn () => response()->json(['ok' => true]));
+Route::get('/download/android', function () {
+    $path = storage_path('app/carpas-release.apk');
+    abort_if(!file_exists($path), 404);
+    return response()->download($path, 'carpas-release.apk', [
+        'Content-Type' => 'application/vnd.android.package-archive',
+    ]);
+});
 Route::get('/push/settings', [AdminPushController::class, 'publicSettings']);
 
 Route::post('/support/tickets', [SupportTicketController::class, 'store']);

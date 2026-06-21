@@ -12419,3 +12419,76 @@ a.btn.carPage__recsAddVisitFull,
     grid-template-columns: 20px 60px 1fr 55px 75px 65px 75px 28px;
   }
 }
+
+@media (max-width: 560px) {
+  /* WorkItemsEditor — карточки */
+  .workItemsEditor { gap: 8px; }
+  .workItemsEditor__header { display: none; }
+  .workItemsEditor__num { display: none; }
+  .workItemsEditor__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 30px;
+    grid-template-areas:
+      "title title del"
+      "qty   price price"
+      "total total total";
+    gap: 6px 4px;
+    padding: 10px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+  .workItemsEditor__col--title { grid-area: title; }
+  .workItemsEditor__col--qty   { grid-area: qty; }
+  .workItemsEditor__col--price { grid-area: price; }
+  .workItemsEditor__col--del   { grid-area: del; }
+  .workItemsEditor__col--total {
+    grid-area: total;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-h);
+  }
+  .workItemsEditor__col--total::before {
+    content: "Итого: ";
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  /* PartsItemsEditor — карточки */
+  .partsItemsEditor { gap: 8px; }
+  .partsItemsEditor__header { display: none; }
+  .partsItemsEditor__col--num { display: none; }
+  .partsItemsEditor__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 30px;
+    grid-template-areas:
+      "art   art   art   del"
+      "title title title title"
+      "qty   price disc  disc"
+      "total total total total";
+    gap: 6px 4px;
+    padding: 10px;
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+  .partsItemsEditor__col--article  { grid-area: art; }
+  .partsItemsEditor__col--title    { grid-area: title; }
+  .partsItemsEditor__col--qty      { grid-area: qty; }
+  .partsItemsEditor__col--price    { grid-area: price; }
+  .partsItemsEditor__col--discount { grid-area: disc; }
+  .partsItemsEditor__col--del      { grid-area: del; }
+  .partsItemsEditor__col--total {
+    grid-area: total;
+    text-align: right;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-h);
+  }
+  .partsItemsEditor__col--total::before {
+    content: "Итого: ";
+    font-weight: 400;
+    color: var(--muted);
+  }
+}
