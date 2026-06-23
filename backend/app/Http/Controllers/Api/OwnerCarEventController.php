@@ -93,9 +93,9 @@ class OwnerCarEventController extends Controller
         $isDraft = $request->boolean('isDraft');
         $incomingKm = isset($data['mileageKm']) ? (int) $data['mileageKm'] : 0;
         $min = CarMileageSync::minAllowedMileageForVisit($car, null);
-        if (! $isDraft && $incomingKm <= $min) {
+        if (! $isDraft && $incomingKm < $min) {
             throw ValidationException::withMessages([
-                'mileageKm' => ['Пробег визита должен быть больше текущего по карточке и истории ('.$min.' км).'],
+                'mileageKm' => ['Пробег визита должен быть не меньше текущего по карточке и истории ('.$min.' км).'],
             ]);
         }
 
@@ -178,9 +178,9 @@ class OwnerCarEventController extends Controller
         }
 
         $min = CarMileageSync::minAllowedMileageForVisit($car, (int) $evt->id);
-        if (! $evt->is_draft && ($wasDraft || array_key_exists('mileageKm', $data)) && (int) $evt->mileage_km <= $min) {
+        if (! $evt->is_draft && ($wasDraft || array_key_exists('mileageKm', $data)) && (int) $evt->mileage_km < $min) {
             throw ValidationException::withMessages([
-                'mileageKm' => ['Пробег визита должен быть больше текущего по карточке и истории ('.$min.' км).'],
+                'mileageKm' => ['Пробег визита должен быть не меньше текущего по карточке и истории ('.$min.' км).'],
             ]);
         }
 
