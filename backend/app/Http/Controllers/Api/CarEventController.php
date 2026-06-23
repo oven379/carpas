@@ -141,9 +141,9 @@ class CarEventController extends Controller
                 ], 422));
             }
             $min = CarMileageSync::minAllowedMileageForVisit($car, null);
-            if ($incomingKm <= $min) {
+            if ($incomingKm < $min) {
                 throw ValidationException::withMessages([
-                    'mileageKm' => ['Пробег визита должен быть больше текущего по карточке и истории ('.$min.' км).'],
+                    'mileageKm' => ['Пробег визита должен быть не меньше текущего по карточке и истории ('.$min.' км).'],
                 ]);
             }
         }

@@ -82,7 +82,7 @@ function isIncompleteDetailingDraft(draft, minAllowedKm) {
   if (!title) return true
   if (!km) return true
   if (!serviceCount) return true
-  if (minAllowedKm && km <= minAllowedKm) return true
+  if (minAllowedKm && km < minAllowedKm) return true
   return false
 }
 
@@ -630,8 +630,7 @@ export default function HistoryPage() {
     if (!e) return false
     if (mode !== 'owner') return false
     if (e.source !== 'owner') return false
-    if (e.isDraft) return true
-    return isWithinEditWindow(e)
+    return true
   }
 
   const canEditAny = (e) => canEdit(e) || canEditOwner(e)
@@ -1027,7 +1026,7 @@ export default function HistoryPage() {
       let eventId = editingId
       if (!eventId) {
         const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-        if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
+        if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
           alert(
             `Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км). Укажите корректный пробег и попробуйте снова.`,
           )
@@ -1339,6 +1338,16 @@ export default function HistoryPage() {
                     </button>
                   </div>
                 ) : null}
+                {visitExpanded && (() => {
+                  const created = e.createdAt ? new Date(e.createdAt).getTime() : 0
+                  const updated = e.updatedAt ? new Date(e.updatedAt).getTime() : 0
+                  if (!updated || Math.abs(updated - created) < 60_000) return null
+                  return (
+                    <div className="muted small visitCardEditedAt">
+                      Изменён: {fmtDateTime(e.updatedAt)}
+                    </div>
+                  )
+                })()}
                 {visitExpanded && visitReadonlyCard ? (
                   <div className="visitCardReadonlyRow">
                     <span className="pill visitCardReadonlyPill" data-tone="neutral">
@@ -2121,7 +2130,7 @@ export default function HistoryPage() {
                     return
                   }
                   const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                  if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
+                  if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
                     alert(`Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                     return
                   }
@@ -2249,7 +2258,7 @@ export default function HistoryPage() {
                       return
                     }
                     const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                    if (minMileageKmForVisitForm && nextMileage <= minMileageKmForVisitForm) {
+                    if (minMileageKmForVisitForm && nextMileage < minMileageKmForVisitForm) {
                       alert(`Пробег визита должен быть больше текущего (${fmtInt(minMileageKmForVisitForm)} км).`)
                       return
                     }

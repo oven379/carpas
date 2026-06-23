@@ -3331,6 +3331,10 @@ summary.carPage__recsSelect::-webkit-details-marker {
   border-color: color-mix(in oklab, var(--border) 65%, var(--text-h) 18%);
 }
 
+.visitCardEditedAt {
+  margin-top: 4px;
+}
+
 .visitCardReadonlyRow {
   margin-top: 8px;
 }
