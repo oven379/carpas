@@ -85,7 +85,7 @@ export default function RequestsPage() {
     }
   }, [r, r._version, mode, detailingId, loc.pathname, loc.key])
 
-  if (mode !== 'detailing' && mode !== 'owner') return <Navigate to="/cars" replace />
+  if (mode !== 'detailing' && mode !== 'owner') return <Navigate to="/garage" replace />
 
   if (loading) {
     return (

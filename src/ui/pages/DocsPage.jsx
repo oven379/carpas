@@ -81,7 +81,7 @@ export default function DocsPage() {
       </div>
     )
   }
-  if (!car) return <Navigate to="/cars" replace />
+  if (!car) return <Navigate to="/garage" replace />
 
   const carCardHref = `/car/${id}${buildCarFromQuery(sp.get('from'))}`
 

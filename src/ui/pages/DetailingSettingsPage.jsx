@@ -145,7 +145,7 @@ export default function DetailingSettingsPage() {
 
   const catalogOfferSet = useMemo(() => new Set([...DETAILING_ITEM_SET, ...MAINTENANCE_ITEM_SET]), [])
 
-  if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (mode !== 'detailing' || !detailingId) return <Navigate to="/garage" replace />
   if (loading) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
@@ -153,7 +153,7 @@ export default function DetailingSettingsPage() {
       </div>
     )
   }
-  if (!detailing) return <Navigate to="/cars" replace />
+  if (!detailing) return <Navigate to="/garage" replace />
   const publicPath = publicDetailingPath(detailing ? { ...detailing, id: detailingId } : { id: detailingId })
 
   function toggleService(item) {

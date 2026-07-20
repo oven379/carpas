@@ -1,5 +1,5 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { Card, ServiceHint } from '../components.jsx'
+import { BackNav, Card, ServiceHint } from '../components.jsx'
 import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -19,6 +19,7 @@ export default function AuthPage() {
       <div className="authSplit authSplit--hub">
         <div className="authHub__info authSplit__lede">
           <div id="auth-hub-hint" className="row gap wrap" style={{ alignItems: 'center', marginBottom: 8 }}>
+            <BackNav to="/" title="На главную" />
             <p className="authSplit__tagline" style={{ margin: 0 }}>
               Вход в сервис
             </p>
@@ -49,31 +50,11 @@ export default function AuthPage() {
                 <Link className="btn authHub__btn authHub__btn--neutral authHub__btn--role" to="/auth/owner" state={{ from }}>
                   Я владелец авто
                 </Link>
-                <ServiceHint
-                  scopeId="auth-role-owner-hint"
-                  variant="compact"
-                  label="Справка: кабинет владельца"
-                >
-                  <p className="serviceHint__panelText">
-                    Гараж и карточки авто, своя история и документы, публичная ссылка на машину. Записи можно добавлять
-                    самостоятельно; записи сервиса отображаются отдельно в общей ленте.
-                  </p>
-                </ServiceHint>
               </div>
               <div className="authHub__roleRow">
                 <Link className="btn authHub__btn authHub__btn--accent authHub__btn--role" to="/auth/partner" state={{ from }}>
                   Сервис (детейлинг / СТО)
                 </Link>
-                <ServiceHint
-                  scopeId="auth-role-partner-hint"
-                  variant="compact"
-                  label="Справка: кабинет сервиса"
-                >
-                  <p className="serviceHint__panelText">
-                    Автомобили клиентов, визиты и фото, лендинг с услугами и контактами. Первый вход — настройка страницы
-                    для клиентов; далее вход или регистрация партнёра.
-                  </p>
-                </ServiceHint>
               </div>
             </div>
             <p className="muted small" style={{ margin: '14px 0 0', lineHeight: 1.45 }}>

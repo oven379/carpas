@@ -21,7 +21,7 @@ export default function AboutPage() {
           удобная CRM с визитами, фотоотчетами и напоминаниями.
         </p>
         <div className="row gap wrap">
-          <Link className="btn" data-variant="primary" to="/owners">
+          <Link className="btn" data-variant="primary" to="/">
             Владельцам авто
           </Link>
           <Link className="btn" data-variant="outline" to="/business">

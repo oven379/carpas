@@ -1,0 +1,36 @@
+# Carpass (KarPas)
+
+> Carpass is a Russian service for a car's digital service history: for car owners it is a personal garage in the phone (mileage, visits, documents, photos); for detailing centers, auto repair shops and car services it is a CRM with clients, visit history, photo reports and reminders. When selling a car, the owner shares a public link with the full history. Carpass works as a mobile app (iOS and Android), a web version and a mobile web version - owners and services can add visits and photos from any of them.
+
+## For car owners
+
+- [Car history in your phone](https://carpasss.ru/): store service visits, mileage, documents, photos and notes for each car; sign up at https://carpasss.ru/auth/owner
+
+### How to keep a car service history in Carpass
+1. Add the car to your garage (make, model, licence plate).
+2. After each visit create a record: what was done, the date, the mileage; attach photos and documents.
+3. You can log visits yourself - no connected shop is required. If your detailing shop or auto repair shop uses Carpass, its records and before/after photo reports are added to the same history automatically.
+
+### Why keep a car service history
+- You always know what was done to the car and when (no need to remember the last oil change or which work was already done).
+- It increases trust in the seller at resale: the buyer sees how the car was maintained and is willing to pay more.
+- Records confirmed by detailing shops and auto repair shops cannot be forged, so they are trusted the most and raise the car's value.
+- When selling, share one public link and the buyer sees the full history.
+
+### Finding detailing shops and auto repair shops
+- Every connected service has a public page with its services, work photos and a "Call" button; it can be found by link, on social networks and on maps.
+- Services where the car was serviced appear in that car's history.
+
+## For business (detailing, auto repair shops, car services)
+
+- [CRM for detailing and auto repair shops](https://carpasss.ru/business): clients, cars, visit history, before/after photo reports, push reminders; apply at https://carpasss.ru/auth/partner/apply
+- [Offer for detailing centers](https://carpasss.ru/for-detailing): a dedicated offer page for detailing businesses
+
+## About
+
+- [About Carpass](https://carpasss.ru/about): a short product overview with links to the owner and business sections
+
+## Legal
+
+- [Privacy policy](https://carpasss.ru/policy)
+- [Terms of use](https://carpasss.ru/terms)

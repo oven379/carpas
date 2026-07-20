@@ -13,4 +13,4 @@ Disallow: /requests
 Disallow: /create
 Disallow: /market
 
-Sitemap: https://www.carpass.ru/sitemap.xml
+Sitemap: https://carpasss.ru/sitemap.xml

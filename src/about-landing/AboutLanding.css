@@ -82,7 +82,7 @@
   padding: 5px 12px;
   font-size: 12px;
   font-weight: 500;
-  color: #666;
+  color: #9a9a9a;
   text-decoration: none;
   border: 0.5px solid #2a2a2a;
   border-radius: 6px;
@@ -122,7 +122,7 @@
 .al-hero {
   padding: 56px 0 40px;
   background: var(--bg-base);
-  border-bottom: 0.5px solid #141414;
+  border-bottom: 1px solid #1c1c1c;
 }
 
 .al-eyebrow {
@@ -164,7 +164,7 @@
   margin: 0 0 28px;
   max-width: 420px;
   font-size: 15px;
-  color: #555;
+  color: #b3b3b3;
   line-height: 1.6;
 }
 
@@ -173,6 +173,90 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 10px;
+}
+
+.al-heroNote {
+  margin: 22px 0 0;
+  padding: 12px 14px;
+  max-width: 460px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: 10px;
+  font-size: 13px;
+  color: #b3b3b3;
+  line-height: 1.55;
+}
+
+.al-heroNote b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ——— APP DOWNLOAD ——— */
+.al-appDl {
+  margin-top: 20px;
+}
+
+.al-appDl__title {
+  margin: 0 0 10px;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.al-appDl__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.al-appDlBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px 8px 14px;
+  min-height: 48px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.al-appDlBtn:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+}
+
+.al-appDlBtn__ic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.al-appDlBtn__copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.al-appDlBtn__top {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.al-appDlBtn__store {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .al-btnPrimarySolid {
@@ -195,9 +279,32 @@
   filter: brightness(1.06);
 }
 
+.al-btnOutline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  background: transparent;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.al-btnOutline:hover {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
 .al-hero__scrollLink {
   font-size: 14px;
-  color: #555;
+  color: #b3b3b3;
   text-decoration: none;
   background: none;
   border: none;
@@ -211,38 +318,11 @@
   color: var(--text-secondary);
 }
 
-.al-hero__stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 28px;
-  padding-top: 28px;
-  margin-top: 36px;
-  border-top: 0.5px solid #161616;
-}
-
-.al-stat__val {
-  font-size: 24px;
-  font-weight: 300;
-  color: var(--text-primary);
-}
-
-.al-stat__val b {
-  font-weight: 600;
-}
-
-.al-stat__label {
-  margin-top: 2px;
-  font-size: 11px;
-  color: #3a3a3a;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
 /* ——— TIMELINE ——— */
 .al-timeline {
   padding: 48px 0;
   background: var(--bg-base);
-  border-bottom: 0.5px solid #141414;
+  border-bottom: 1px solid #1c1c1c;
 }
 
 .al-sectionTitle {
@@ -259,7 +339,7 @@
 .al-sectionSub {
   margin: 6px 0 28px;
   font-size: 13px;
-  color: #444;
+  color: #b3b3b3;
   line-height: 1.5;
 }
 
@@ -326,18 +406,18 @@
 }
 
 .al-tlItem__date--muted {
-  color: #2a2a2a;
+  color: #888888;
 }
 
 .al-tlCard {
-  background: #111;
-  border: 0.5px solid #1e1e1e;
+  background: #161616;
+  border: 1px solid #2a2a2a;
   border-radius: 8px;
   padding: 12px 14px;
 }
 
 .al-tlItem--faded .al-tlCard {
-  opacity: 0.35;
+  opacity: 0.6;
 }
 
 .al-tlCard__top {
@@ -356,7 +436,7 @@
 
 .al-tlCard__badge {
   font-size: 10px;
-  color: #555;
+  color: #b3b3b3;
   border: 0.5px solid #222;
   border-radius: 3px;
   padding: 2px 6px;
@@ -365,7 +445,7 @@
 .al-tlCard__text {
   margin: 0;
   font-size: 12px;
-  color: #555;
+  color: #b3b3b3;
   line-height: 1.5;
 }
 
@@ -377,16 +457,16 @@
   gap: 8px;
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 0.5px solid #161616;
+  border-top: 1px solid #2a2a2a;
 }
 
 .al-tlCard__master {
   font-size: 11px;
-  color: #3a3a3a;
+  color: #9a9a9a;
 }
 
 .al-tlCard__master span {
-  color: #666;
+  color: #9a9a9a;
 }
 
 .al-tlCard__status {
@@ -398,8 +478,8 @@
 .al-carCard {
   width: 175px;
   flex-shrink: 0;
-  background: #111;
-  border: 0.5px solid #1e1e1e;
+  background: #161616;
+  border: 1px solid #2a2a2a;
   border-radius: 10px;
   overflow: hidden;
 }
@@ -418,24 +498,13 @@
   object-fit: cover;
 }
 
-.al-carPhoto__ph {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #2a2a2a;
-  letter-spacing: 2px;
-  pointer-events: none;
-}
 
 .al-carPhoto__label {
   position: absolute;
   left: 8px;
   bottom: 6px;
   font-size: 9px;
-  color: #3a3a3a;
+  color: #9a9a9a;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -453,7 +522,7 @@
 
 .al-carCard__model {
   font-size: 11px;
-  color: #555;
+  color: #b3b3b3;
   margin-bottom: 8px;
 }
 
@@ -472,12 +541,12 @@
 }
 
 .al-carStatRow + .al-carStatRow {
-  border-top: 0.5px solid #161616;
+  border-top: 1px solid #2a2a2a;
 }
 
 .al-carStatRow__k {
   font-size: 10px;
-  color: #3a3a3a;
+  color: #9a9a9a;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
@@ -492,7 +561,7 @@
 
 .al-carCard__footer {
   padding: 10px 14px;
-  border-top: 0.5px solid #161616;
+  border-top: 1px solid #2a2a2a;
 }
 
 .al-carCard__share {
@@ -501,7 +570,7 @@
   box-sizing: border-box;
   text-align: center;
   font-size: 11px;
-  color: #444;
+  color: #b3b3b3;
   padding: 5px 10px;
   border: 0.5px solid #222;
   border-radius: 5px;
@@ -515,7 +584,7 @@
   padding: 52px 12px 56px;
   scroll-margin-top: 56px;
   background: #0d0d0d;
-  border-bottom: 0.5px solid #141414;
+  border-bottom: 1px solid #1c1c1c;
 }
 
 .al-how__list {
@@ -576,7 +645,7 @@
 .al-step__desc {
   margin: 0;
   font-size: 12px;
-  color: #444;
+  color: #b3b3b3;
   line-height: 1.55;
 }
 
@@ -584,7 +653,7 @@
 .al-det {
   padding: 40px 0;
   background: var(--bg-base);
-  border-bottom: 0.5px solid #141414;
+  border-bottom: 1px solid #1c1c1c;
 }
 
 .al-det__inner {
@@ -594,7 +663,7 @@
 .al-det__eyebrow {
   margin-bottom: 8px;
   font-size: 10px;
-  color: #3a3a3a;
+  color: #9a9a9a;
   letter-spacing: 2px;
   text-transform: uppercase;
 }
@@ -610,7 +679,7 @@
 .al-det__sub {
   margin: 0;
   font-size: 13px;
-  color: #444;
+  color: #b3b3b3;
   line-height: 1.55;
 }
 
@@ -624,6 +693,14 @@
 
 .al-det__link:hover {
   text-decoration: underline;
+}
+
+.al-det__link--secondary {
+  color: #888;
+}
+
+.al-det__link--secondary:hover {
+  color: var(--text-primary);
 }
 
 /* ——— FINAL CTA ——— */
@@ -656,13 +733,13 @@
 .al-final__sub {
   margin: 0 0 24px;
   font-size: 13px;
-  color: #444;
+  color: #b3b3b3;
 }
 
 .al-final__note {
   margin: 10px 0 0;
   font-size: 11px;
-  color: #333;
+  color: #9a9a9a;
 }
 
 .al-final__note a {
@@ -702,12 +779,308 @@
 
 .al-footer__links a {
   font-size: 11px;
-  color: #2a2a2a;
+  color: #888888;
   text-decoration: none;
 }
 
 .al-footer__links a:hover {
   color: var(--text-muted);
+}
+
+/* ——— BENEFIT GRID (owners/business pages) ——— */
+.al-benefits {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.al-benefitCard {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  padding: 22px 20px 24px;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease;
+}
+
+.al-benefitCard:hover {
+  border-color: var(--accent-border);
+  background: var(--bg-elevated);
+}
+
+.al-benefitCard__title {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.al-benefitCard__text {
+  margin: 0;
+  font-size: 13px;
+  color: #b3b3b3;
+  line-height: 1.6;
+}
+
+/* ——— SHOWCASE (text left, visual right) ——— */
+.al-showcase {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 40px;
+  align-items: center;
+}
+
+.al-showcase__text {
+  min-width: 0;
+}
+
+.al-showcase__lead {
+  margin: 0;
+  font-size: 14px;
+  color: #888;
+  line-height: 1.7;
+}
+
+.al-featureList {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+}
+
+.al-featureList li {
+  position: relative;
+  padding-left: 22px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: #999;
+  line-height: 1.5;
+}
+
+.al-featureList li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-size: 12px;
+}
+
+/* ——— PUBLIC DETAILING PAGE PREVIEW ("лендинг в подарок") ——— */
+.al-dPreview {
+  width: 100%;
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.al-dPreview__banner {
+  height: 120px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.al-dPreview__banner img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.al-dPreview__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  margin-top: -28px;
+}
+
+.al-dPreview__avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid #111;
+  overflow: hidden;
+  background: #0a0a0a;
+}
+
+.al-dPreview__avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.al-dPreview__headText {
+  min-width: 0;
+  padding-top: 32px;
+}
+
+.al-dPreview__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.al-dPreview__meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #b3b3b3;
+}
+
+.al-dPreview__callBtn {
+  margin-left: auto;
+  margin-top: 32px;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--bg-base);
+  background: var(--accent);
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: default;
+}
+
+.al-dPreview__gallery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  margin-top: 16px;
+  background: #1e1e1e;
+}
+
+.al-dPreview__photo {
+  position: relative;
+  height: 96px;
+  background: #0a0a0a;
+  overflow: hidden;
+}
+
+.al-dPreview__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.al-dPreview__photoLabel {
+  position: absolute;
+  left: 8px;
+  bottom: 6px;
+  font-size: 9px;
+  color: #ccc;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+/* ——— NOTIFICATION TOAST (booking request demo) ——— */
+.al-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.al-toast__dot {
+  width: 8px;
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.al-toast__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.al-toast__title {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.al-toast__text {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.al-toast__action {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: transparent;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 6px 10px;
+  cursor: default;
+}
+
+/* ——— FAQ accordion ——— */
+.al-faq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.al-faq__item {
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.al-faq__q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.al-faq__chev {
+  flex-shrink: 0;
+  color: #b3b3b3;
+  transition: transform 200ms ease;
+}
+
+.al-faq__chev--open {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+.al-faq__a {
+  padding: 0 16px 16px;
+  font-size: 12px;
+  color: #b3b3b3;
+  line-height: 1.6;
 }
 
 /* ——— responsive ——— */
@@ -733,5 +1106,29 @@
   .al-shell {
     padding-left: 16px;
     padding-right: 16px;
+  }
+
+  .al-benefits {
+    grid-template-columns: 1fr;
+  }
+
+  .al-showcase {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+
+  .al-dPreview__callBtn {
+    display: none;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 900px) {
+  .al-benefits {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .al-showcase {
+    grid-template-columns: 1fr 340px;
+    gap: 28px;
   }
 }

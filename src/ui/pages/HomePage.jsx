@@ -3,14 +3,15 @@ import { useMemo } from 'react'
 import { Seo } from '../../seo/Seo.jsx'
 import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
 import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
+import { buildFaqJsonLd } from '../../seo/marketingJsonLd.js'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import AboutLanding from '../../about-landing/AboutLanding.tsx'
+import AboutLanding, { ownerFaqItems } from '../../about-landing/AboutLanding.tsx'
 
 export default function HomePage() {
   const { detailing } = useDetailing()
-  const homeJsonLd = useMemo(() => buildHomePageJsonLd(), [])
+  const homeJsonLd = useMemo(() => [...buildHomePageJsonLd(), buildFaqJsonLd(ownerFaqItems)], [])
   const seoDesc = truncateMetaDescription(HOME_META_DESCRIPTION)
 
   if (hasOwnerSession()) return <Navigate to="/garage" replace />

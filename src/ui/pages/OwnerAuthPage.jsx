@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { getApiBaseUrl } from '../../api/client.js'
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
 import {
@@ -26,9 +25,7 @@ import { isNativeApp } from '../../lib/nativePlatform.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import Logo from '../Logo.jsx'
-
-const IOS_APP_URL =
-  'https://apps.apple.com/ru/app/carpasss-%D0%BA%D0%B0%D1%80%D0%BF%D0%B0%D1%81%D1%81%D1%81/id6768924960'
+import { IOS_APP_URL, androidApkUrl } from '../../lib/appLinks.js'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
@@ -362,7 +359,7 @@ export default function OwnerAuthPage() {
                 </a>
                 <a
                   className="authAppDownloadBtn authAppDownloadBtn--android"
-                  href={`${getApiBaseUrl()}/download/android`}
+                  href={androidApkUrl()}
                   aria-label="Скачать приложение CarPasss для Android"
                 >
                   <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />

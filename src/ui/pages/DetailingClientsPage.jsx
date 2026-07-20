@@ -275,7 +275,7 @@ export default function DetailingClientsPage() {
     setPhotoLb({ items, startIndex })
   }
 
-  if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (mode !== 'detailing' || !detailingId) return <Navigate to="/garage" replace />
   if (loading || busy) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>

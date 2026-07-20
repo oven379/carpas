@@ -28,7 +28,7 @@ export default function PartnerLoginPage() {
   const from = safeAuthReturnPath(loc.state?.from) || ''
   const authHubLinkState = from ? { from } : undefined
 
-  if (hasOwnerSession()) return <Navigate to="/cars" replace />
+  if (hasOwnerSession()) return <Navigate to="/garage" replace />
   if (hasDetailingSession()) {
     if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />

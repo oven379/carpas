@@ -7521,6 +7521,7 @@ button.garageSettings__thumb:focus-visible {
 
 .authHub__card {
   width: 100%;
+  box-sizing: border-box;
   margin-top: 18px;
 }
 
@@ -9715,13 +9716,7 @@ a.btn.carPage__recsAddVisitFull,
   }
 
   .authHub__roleRow {
-    flex-direction: column;
-    align-items: stretch;
     gap: 8px;
-  }
-
-  .authHub__roleRow .authHub__btn--role {
-    width: 100%;
   }
 
   :is(.authHub, .homeLandingHub) .btn.authHub__btn {

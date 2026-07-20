@@ -13,8 +13,8 @@ import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
 import CookieBanner from './ui/CookieBanner.jsx'
 import { ToastProvider } from './ui/toast.jsx'
+import HomePage from './ui/pages/HomePage.jsx'
 import AboutPage from './ui/pages/AboutPage.jsx'
-import OwnersSeoPage from './ui/pages/OwnersSeoPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
 import NotificationsPage from './ui/pages/NotificationsPage.jsx'
 import CarPage from './ui/pages/CarPage.jsx'
@@ -38,11 +38,15 @@ import PolicyPage from './ui/pages/PolicyPage.jsx'
 import TermsPage from './ui/pages/TermsPage.jsx'
 import DetOfferPage from './ui/pages/DetOfferPage.jsx'
 
-/** Гостевой маркетинг на `/about` и `/for-detailing` — без общей шапки приложения. */
+/** Гостевой маркетинг на `/`, `/about`, `/business` и `/for-detailing` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return pathname === '/about' || pathname === '/for-detailing'
+  return (
+    pathname === '/' ||
+    pathname === '/about' ||
+    pathname === '/business' ||
+    pathname === '/for-detailing'
+  )
 }
-
 
 function RequireAuth({ children }) {
   const loc = useLocation()
@@ -136,9 +140,9 @@ export default function App() {
         <ScrollToTopOnRouteChange />
         <CabinetRouteSeo />
         <Routes>
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <HomePage />} />
             <Route path="/about" element={<AboutPage />} />
-            <Route path="/owners" element={<OwnersSeoPage />} />
+            <Route path="/owners" element={<Navigate to="/" replace />} />
             <Route path="/business" element={<BusinessSeoPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />

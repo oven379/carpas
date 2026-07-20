@@ -343,7 +343,7 @@ export default function DetailingDashboardPage() {
     }
   }
 
-  if (mode !== 'detailing' || !detailingId) return <Navigate to="/cars" replace />
+  if (mode !== 'detailing' || !detailingId) return <Navigate to="/garage" replace />
   if (loading) {
     return (
       <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
