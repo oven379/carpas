@@ -24,7 +24,6 @@
 ## For business (detailing, auto repair shops, car services)
 
 - [CRM for detailing and auto repair shops](https://carpasss.ru/business): clients, cars, visit history, before/after photo reports, push reminders; apply at https://carpasss.ru/auth/partner/apply
-- [Offer for detailing centers](https://carpasss.ru/for-detailing): a dedicated offer page for detailing businesses
 
 ## About
 

@@ -36,16 +36,10 @@ import AdminLoginPage from './ui/pages/AdminLoginPage.jsx'
 import AdminPanelPage from './ui/pages/AdminPanelPage.jsx'
 import PolicyPage from './ui/pages/PolicyPage.jsx'
 import TermsPage from './ui/pages/TermsPage.jsx'
-import DetOfferPage from './ui/pages/DetOfferPage.jsx'
 
-/** Гостевой маркетинг на `/`, `/about`, `/business` и `/for-detailing` — без общей шапки приложения. */
+/** Гостевой маркетинг на `/`, `/about` и `/business` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return (
-    pathname === '/' ||
-    pathname === '/about' ||
-    pathname === '/business' ||
-    pathname === '/for-detailing'
-  )
+  return pathname === '/' || pathname === '/about' || pathname === '/business'
 }
 
 function RequireAuth({ children }) {
@@ -245,7 +239,7 @@ export default function App() {
             <Route path="/d/:id" element={<PublicDetailingPage />} />
             <Route path="/g/:slug" element={<Navigate to="/" replace />} />
             <Route path="/share/:token" element={<PublicCarPage />} />
-            <Route path="/for-detailing" element={<DetOfferPage />} />
+            <Route path="/for-detailing" element={<Navigate to="/business" replace />} />
             <Route path="/policy" element={<PolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/auth" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <AuthPage />} />
