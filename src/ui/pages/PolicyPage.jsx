@@ -1,3 +1,6 @@
+import { Seo } from '../../seo/Seo.jsx'
+import { buildBreadcrumbJsonLd } from '../../seo/marketingJsonLd.js'
+
 const SECTIONS = [
   {
     header: null,
@@ -102,8 +105,19 @@ const SECTIONS = [
 ]
 
 export default function PolicyPage() {
+  const jsonLd = buildBreadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Политика конфиденциальности', path: '/policy' },
+  ])
+
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
+      <Seo
+        title="Политика конфиденциальности · КарПас"
+        description="Политика конфиденциальности КарПас: какие персональные данные обрабатываются, цели и правовые основания обработки, сроки хранения и права пользователя."
+        canonicalPath="/policy"
+        jsonLd={jsonLd}
+      />
       <div style={{ maxWidth: 760 }}>
         {SECTIONS.map((section, si) => {
           if (section.title) {

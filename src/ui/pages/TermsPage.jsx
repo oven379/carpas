@@ -1,3 +1,6 @@
+import { Seo } from '../../seo/Seo.jsx'
+import { buildBreadcrumbJsonLd } from '../../seo/marketingJsonLd.js'
+
 const SECTIONS = [
   {
     title: 'Условия использования сервиса',
@@ -94,8 +97,19 @@ const SECTIONS = [
 ]
 
 export default function TermsPage() {
+  const jsonLd = buildBreadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Условия использования', path: '/terms' },
+  ])
+
   return (
     <div className="container" style={{ paddingTop: 32, paddingBottom: 64 }}>
+      <Seo
+        title="Условия использования · КарПас"
+        description="Условия использования сервиса КарПас: регистрация, функциональность гаража и партнёрского доступа, ответственность сторон и порядок разрешения споров."
+        canonicalPath="/terms"
+        jsonLd={jsonLd}
+      />
       <div style={{ maxWidth: 760 }}>
         {SECTIONS.map((section, si) => {
           if (section.title) {
