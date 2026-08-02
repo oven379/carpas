@@ -579,6 +579,66 @@
   font-family: inherit;
 }
 
+/* ——— APP SCREENS (реальные скриншоты приложения) ——— */
+.al-screens {
+  padding: 52px 12px 56px;
+  background: #0a0a0a;
+  border-bottom: 1px solid #1c1c1c;
+}
+
+.al-screensGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+.al-screen {
+  margin: 0;
+  background: #161616;
+  border: 1px solid #2a2a2a;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.al-screen__photo {
+  background: #0a0a0a;
+  aspect-ratio: 9 / 16;
+  overflow: hidden;
+}
+
+.al-screen__photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.al-screen__caption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px 16px;
+}
+
+.al-screen__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.al-screen__text {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.5;
+}
+
+.al-screens__dl {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+}
+
 /* ——— HOW ——— */
 .al-how {
   padding: 52px 12px 56px;
@@ -1141,6 +1201,11 @@
   .al-dPreview__callBtn {
     display: none;
   }
+
+  .al-screensGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
 }
 
 @media (min-width: 640px) and (max-width: 900px) {
@@ -1151,5 +1216,9 @@
   .al-showcase {
     grid-template-columns: 1fr 340px;
     gap: 28px;
+  }
+
+  .al-screensGrid {
+    grid-template-columns: 1fr 1fr;
   }
 }

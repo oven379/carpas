@@ -1,11 +1,57 @@
 import { Link } from 'react-router-dom'
 import carPhotoSrc from '../assets/bmw.jpg?url'
+import screenGarageSrc from '../assets/app-screen-garage.jpg?url'
+import screenCarCardSrc from '../assets/app-screen-car-card.jpg?url'
+import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
+import screenNewVisitSrc from '../assets/app-screen-new-visit.jpg?url'
+import screenHistoryOwnerSrc from '../assets/app-screen-history-owner.jpg?url'
+import screenHistoryServiceSrc from '../assets/app-screen-history-service.jpg?url'
 import { FadeSection } from './FadeSection.tsx'
 import { LandingNav } from './LandingNav.tsx'
 import { LandingFooter } from './LandingFooter.tsx'
 import { HowStep, TimelineItem, FaqAccordion } from './LandingPrimitives.tsx'
 import { AppDownload } from './AppDownload.tsx'
 import './AboutLanding.css'
+
+/** Реальные скриншоты приложения — для секции «Как выглядит КарПас». */
+const appScreens = [
+  {
+    src: screenGarageSrc,
+    alt: 'Экран «Гараж» в приложении КарПас со списком автомобилей',
+    title: 'Гараж',
+    text: 'Все ваши автомобили в одном месте — с фото, годом и пробегом.',
+  },
+  {
+    src: screenCarCardSrc,
+    alt: 'Карточка автомобиля в приложении КарПас с фото и последним визитом',
+    title: 'Карточка авто',
+    text: 'Фото, госномер, VIN, пробег и последний визит — коротко и по делу.',
+  },
+  {
+    src: screenHistoryListSrc,
+    alt: 'Экран истории автомобиля с фильтрами «Все», «От сервиса», «Моя история»',
+    title: 'История визитов',
+    text: 'Вся история одним списком: свои записи и подтверждённые визиты сервиса — с фильтром.',
+  },
+  {
+    src: screenNewVisitSrc,
+    alt: 'Форма добавления нового визита в приложении КарПас',
+    title: 'Новый визит',
+    text: 'Пробег, услуги, фото — черновик сохраняется сам, можно вернуться и дозаполнить.',
+  },
+  {
+    src: screenHistoryOwnerSrc,
+    alt: 'Личная запись владельца в истории автомобиля с фотографиями',
+    title: 'Ваша запись',
+    text: 'Вносите визиты сами: что делали, при каком пробеге, с фото — без привязки к сервису.',
+  },
+  {
+    src: screenHistoryServiceSrc,
+    alt: 'Подтверждённый визит от детейлинг-студии с фото до/после и кнопкой «Записаться»',
+    title: 'Подтверждено сервисом',
+    text: 'Если студия подключена к КарПас — её визиты с фото до/после добавляются в ту же историю сами.',
+  },
+]
 
 /** FAQ владельца — экспортируется, чтобы HomePage добавил FAQPage в JSON-LD. */
 export const ownerFaqItems = [
@@ -152,6 +198,29 @@ export default function AboutLanding() {
                 </button>
               </div>
             </aside>
+          </div>
+        </FadeSection>
+
+        <FadeSection className="al-screens">
+          <h2 className="al-sectionTitle">
+            Как это выглядит <b>в приложении</b>
+          </h2>
+          <p className="al-sectionSub">Реальные экраны КарПас — гараж, карточка авто и история визитов.</p>
+          <div className="al-screensGrid">
+            {appScreens.map((s) => (
+              <figure className="al-screen" key={s.title}>
+                <div className="al-screen__photo">
+                  <img src={s.src} alt={s.alt} loading="lazy" />
+                </div>
+                <figcaption className="al-screen__caption">
+                  <span className="al-screen__title">{s.title}</span>
+                  <span className="al-screen__text">{s.text}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+          <div className="al-screens__dl">
+            <AppDownload title="Скачать приложение" />
           </div>
         </FadeSection>
 
