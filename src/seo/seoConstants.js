@@ -1,8 +1,8 @@
 /** Единый бренд в title и og:site_name */
 export const SITE_NAME = 'КарПас'
 
-/** Подстановка для og:image, если нет фото страницы (относительный путь от корня сайта). */
-export const SEO_DEFAULT_OG_IMAGE_PATH = '/logo.svg'
+/** Подстановка для og:image, если нет фото страницы (PNG 1200×630 — для превью при шаринге в соцсетях). */
+export const SEO_DEFAULT_OG_IMAGE_PATH = '/og.png'
 
 /** Маркетинговая главная (маршрут /) */
 export const HOME_TITLE = 'КарПас — история авто в вашем телефоне'
