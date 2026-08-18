@@ -42,7 +42,7 @@ Route::get('/push/settings', [AdminPushController::class, 'publicSettings']);
 
 Route::post('/support/tickets', [SupportTicketController::class, 'store']);
 
-Route::post('/admin/support/login', [AdminSupportController::class, 'login']);
+Route::post('/admin/support/login', [AdminSupportController::class, 'login'])->middleware('throttle:10,1');
 
 Route::middleware('admin.support')->group(function () {
     Route::get('/admin/support/overview', [AdminSupportController::class, 'overview']);
@@ -72,14 +72,14 @@ Route::get('/public/detailings/{id}', [PublicShowcaseController::class, 'detaili
 Route::get('/public/garages/{slug}', [PublicShowcaseController::class, 'ownerGarage']);
 
 Route::post('/detailings', [DetailingAuthController::class, 'register']);
-Route::post('/detailings/login', [DetailingAuthController::class, 'login']);
-Route::post('/detailings/forgot-password', [DetailingAuthController::class, 'forgotPassword']);
+Route::post('/detailings/login', [DetailingAuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/detailings/forgot-password', [DetailingAuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::get('/detailings/oauth/yandex/url', [DetailingYandexOAuthController::class, 'url']);
 Route::post('/detailings/oauth/yandex/callback', [DetailingYandexOAuthController::class, 'callback']);
 
 Route::post('/owners/register', [OwnerAuthController::class, 'register']);
-Route::post('/owners/login', [OwnerAuthController::class, 'login']);
-Route::post('/owners/forgot-password', [OwnerAuthController::class, 'forgotPassword']);
+Route::post('/owners/login', [OwnerAuthController::class, 'login'])->middleware('throttle:10,1');
+Route::post('/owners/forgot-password', [OwnerAuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 
 Route::get('/share/{token}', [CarShareController::class, 'byToken']);
 
