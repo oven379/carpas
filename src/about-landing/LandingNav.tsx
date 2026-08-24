@@ -13,13 +13,13 @@ export function LandingNav() {
         </Link>
         <div className="al-nav__links">
           <NavLink to="/" end className={navLinkClass}>
+            О сервисе
+          </NavLink>
+          <NavLink to="/owners" className={navLinkClass}>
             Владельцам
           </NavLink>
           <NavLink to="/business" className={navLinkClass}>
             Бизнесу
-          </NavLink>
-          <NavLink to="/about" className={navLinkClass}>
-            О сервисе
           </NavLink>
         </div>
         <div className="al-nav__actions">

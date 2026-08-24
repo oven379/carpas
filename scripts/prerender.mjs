@@ -18,7 +18,7 @@ import { fileURLToPath } from 'node:url'
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
-const ROUTES = ['/', '/about', '/business']
+const ROUTES = ['/', '/owners', '/business']
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',

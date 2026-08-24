@@ -10,9 +10,9 @@ export function LandingFooter() {
         <Logo tagline={false} size={14} />
       </Link>
       <div className="al-footer__links">
-        <Link to="/">Владельцам</Link>
+        <Link to="/">О сервисе</Link>
+        <Link to="/owners">Владельцам</Link>
         <Link to="/business">Бизнесу</Link>
-        <Link to="/about">О сервисе</Link>
         <span className="al-footer__sep" aria-hidden="true">·</span>
         <Link to="/terms">Условия</Link>
         <Link to="/policy">Конфиденциальность</Link>

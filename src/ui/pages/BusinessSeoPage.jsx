@@ -76,7 +76,7 @@ export default function BusinessSeoPage() {
               <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
                 Подключить сервис
               </Link>
-              <Link to="/" className="al-hero__scrollLink">
+              <Link to="/owners" className="al-hero__scrollLink">
                 Для владельцев авто →
               </Link>
             </div>

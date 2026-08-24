@@ -14,7 +14,7 @@ import { isNativeApp } from './lib/nativePlatform.js'
 import CookieBanner from './ui/CookieBanner.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 import HomePage from './ui/pages/HomePage.jsx'
-import AboutPage from './ui/pages/AboutPage.jsx'
+import OwnersPage from './ui/pages/OwnersPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
 import PitchPage from './ui/pages/PitchPage.jsx'
 import NotificationsPage from './ui/pages/NotificationsPage.jsx'
@@ -38,9 +38,14 @@ import AdminPanelPage from './ui/pages/AdminPanelPage.jsx'
 import PolicyPage from './ui/pages/PolicyPage.jsx'
 import TermsPage from './ui/pages/TermsPage.jsx'
 
-/** Гостевой маркетинг на `/`, `/about` и `/business` — без общей шапки приложения. */
+/** Гостевой маркетинг на `/`, `/owners`, `/business` и `/pitch` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return pathname === '/' || pathname === '/about' || pathname === '/business' || pathname === '/pitch'
+  return (
+    pathname === '/' ||
+    pathname === '/owners' ||
+    pathname === '/business' ||
+    pathname === '/pitch'
+  )
 }
 
 function RequireAuth({ children }) {
@@ -136,8 +141,8 @@ export default function App() {
         <CabinetRouteSeo />
         <Routes>
             <Route path="/" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <HomePage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/owners" element={<Navigate to="/" replace />} />
+            <Route path="/owners" element={<OwnersPage />} />
+            <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/business" element={<BusinessSeoPage />} />
             <Route path="/pitch" element={<PitchPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
