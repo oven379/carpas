@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import carPhotoSrc from '../assets/bmw.jpg?url'
 import screenGarageSrc from '../assets/app-screen-garage.jpg?url'
 import screenCarCardSrc from '../assets/app-screen-car-card.jpg?url'
 import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
@@ -9,7 +8,7 @@ import screenHistoryServiceSrc from '../assets/app-screen-history-service.jpg?ur
 import { FadeSection } from './FadeSection.tsx'
 import { LandingNav } from './LandingNav.tsx'
 import { LandingFooter } from './LandingFooter.tsx'
-import { HowStep, TimelineItem, FaqAccordion } from './LandingPrimitives.tsx'
+import { HowStep, FaqAccordion } from './LandingPrimitives.tsx'
 import { AppDownload } from './AppDownload.tsx'
 import './AboutLanding.css'
 
@@ -126,78 +125,30 @@ export default function AboutLanding() {
           </h2>
           <p className="al-sectionSub">Каждый визит — новая запись. Вносите сами или сервис добавит за вас.</p>
 
-          <div className="al-timeline__layout">
-            <div className="al-timeline__feed">
-              <TimelineItem
-                index={0}
-                active
-                hasStem
-                date="14 апреля 2025"
-                name="Керамическое покрытие"
-                badge="Кузов"
-                text="Нанесение двухслойного керамического покрытия. Предварительная полировка 2 step. Срок защиты — 3 года."
-                footerLeft={
-                  <>
-                    Мастер: <span>Luxe Auto Detailing</span>
-                  </>
-                }
-                footerRight="✓ Подтверждено"
-              />
-              <TimelineItem
-                index={1}
-                active
-                hasStem
-                date="01 марта 2025"
-                name="Химчистка салона"
-                badge="Салон"
-                text="Полная химчистка велюровых сидений и потолка. Озонирование."
-                footerLeft={
-                  <>
-                    Мастер: <span>Clean Studio</span>
-                  </>
-                }
-                footerRight="✓ Подтверждено"
-              />
-              <TimelineItem
-                index={2}
-                active={false}
-                hasStem={false}
-                muted
-                date="Январь 2025"
-                name="Полировка кузова"
-                badge="Кузов"
-                text="Удаление голограмм, мойка, сушка."
+          <div className="al-showcase al-showcase--top">
+            <div className="al-showcase__text">
+              <ul className="al-featureList">
+                <li>
+                  <b>Каждый визит — новая запись с фото.</b> Что делали, при каком пробеге, с фотоотчётом и документами.
+                </li>
+                <li>
+                  <b>Свои записи и визиты сервиса — одной лентой.</b> Фильтр «Все», «От сервиса», «Моя история».
+                </li>
+                <li>
+                  <b>Подтверждённые визиты нельзя подделать.</b> Записи от детейлингов и СТО повышают доверие к истории.
+                </li>
+                <li>
+                  <b>Прозрачная история — дороже при продаже.</b> Покупатель видит, как обслуживалась машина.
+                </li>
+              </ul>
+            </div>
+            <div className="al-phoneShot">
+              <img
+                src={screenHistoryListSrc}
+                alt="История визитов автомобиля в приложении КарПас: свои записи и подтверждённые визиты сервиса одной лентой"
+                loading="lazy"
               />
             </div>
-
-            <aside className="al-carCard">
-              <div className="al-carPhoto car-photo-placeholder">
-                <img src={carPhotoSrc} alt="BMW M5 headlight" />
-                <span className="al-carPhoto__label">BMW M5 · 2021</span>
-              </div>
-              <div className="al-carCard__body">
-                <div className="al-carCard__plate">A 777 AA</div>
-                <div className="al-carCard__model">BMW M5 · F90 · 2021</div>
-                <div className="al-carCard__goldLine" aria-hidden />
-                <div className="al-carStatRow">
-                  <span className="al-carStatRow__k">Пробег</span>
-                  <span className="al-carStatRow__v">42 100 км</span>
-                </div>
-                <div className="al-carStatRow">
-                  <span className="al-carStatRow__k">Визитов</span>
-                  <span className="al-carStatRow__v al-carStatRow__v--accent">3</span>
-                </div>
-                <div className="al-carStatRow">
-                  <span className="al-carStatRow__k">Последний</span>
-                  <span className="al-carStatRow__v">14 апр</span>
-                </div>
-              </div>
-              <div className="al-carCard__footer">
-                <button type="button" className="al-carCard__share">
-                  Поделиться ↗
-                </button>
-              </div>
-            </aside>
           </div>
         </FadeSection>
 

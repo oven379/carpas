@@ -1,0 +1,288 @@
+/* Вариант лендинга из презентации. Опирается на токены и классы AboutLanding.css;
+   здесь — только новые секции (pl-*). Цвета — var() из index.css, иначе hex из ТЗ. */
+
+/* ——— Eyebrow «danger» для секции проблемы ——— */
+.al-eyebrow--danger .al-eyebrow__text {
+  color: #d98b6a;
+}
+
+/* ——— ПРОБЛЕМА ——— */
+.pl-pain {
+  padding-top: 40px;
+}
+
+.pl-painGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+@media (min-width: 760px) {
+  .pl-painGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+.pl-painCard {
+  padding: 20px;
+  background: #161616;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 14px;
+}
+
+.pl-painCard__title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.pl-painCard__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #b3b3b3;
+}
+
+.pl-solve {
+  margin-top: 24px;
+  padding: 20px 22px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-border);
+  border-radius: 14px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+
+.pl-solve b {
+  color: var(--accent);
+}
+
+/* ——— ДВЕ СТОРОНЫ ——— */
+.pl-sides {
+  padding-top: 64px;
+}
+
+.pl-sidesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: center;
+  margin-top: 28px;
+}
+
+@media (min-width: 860px) {
+  .pl-sidesGrid {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+  }
+}
+
+.pl-sideCard {
+  padding: 22px;
+  background: #161616;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 16px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.pl-sideCard--client {
+  border-color: var(--accent-border);
+  background: linear-gradient(180deg, rgba(200, 169, 110, 0.06), #161616);
+}
+
+.pl-sideCard__tag {
+  display: inline-block;
+  margin-bottom: 14px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 999px;
+}
+
+.pl-sideCard__tag--client {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+.pl-sidesLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--accent);
+  transform: rotate(90deg);
+}
+
+@media (min-width: 860px) {
+  .pl-sidesLink {
+    transform: none;
+  }
+}
+
+.pl-sides__note {
+  margin-top: 20px;
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #b3b3b3;
+  border-left: 2px solid var(--accent-border);
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0 10px 10px 0;
+}
+
+/* ——— ПАНЕЛЬ СЕРВИСА / ЛЕНДИНГ ПАРТНЁРА ——— */
+.pl-panel {
+  padding-top: 64px;
+}
+
+/* ——— ЧТО ДАЁТ БИЗНЕСУ ——— */
+.pl-valueGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+@media (min-width: 760px) {
+  .pl-valueGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+.pl-valueCard {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  background: #161616;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 14px;
+}
+
+.pl-valueCard__num {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent-border);
+  border-radius: 50%;
+  background: var(--accent-dim);
+}
+
+.pl-valueCard__title {
+  margin: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.pl-valueCard__text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #b3b3b3;
+}
+
+.pl-gift {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 22px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(200, 169, 110, 0.08), #161616);
+  border: 1px solid var(--accent-border);
+  border-radius: 16px;
+}
+
+.pl-gift__badge {
+  align-self: center;
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  border: 0.5px solid var(--accent-border);
+  border-radius: 999px;
+}
+
+.pl-gift__text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.55;
+  color: #b3b3b3;
+}
+
+.pl-gift__text b {
+  color: var(--text-primary);
+}
+
+/* ——— ФИНАЛ: две кнопки ——— */
+.pl-final {
+  text-align: center;
+  padding: 72px 0 88px;
+}
+
+.pl-finalCtas {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  max-width: 620px;
+  margin: 28px auto 0;
+}
+
+@media (min-width: 640px) {
+  .pl-finalCtas {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.pl-finalCta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 20px;
+  background: #161616;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 16px;
+}
+
+.pl-finalCta__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.pl-finalCta__note {
+  font-size: 13px;
+  color: #9a9a9a;
+}
+
+.pl-finalCta__note a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pl-finalCta__note a:hover {
+  text-decoration: underline;
+}

@@ -6,10 +6,8 @@ import { LandingFooter } from '../../about-landing/LandingFooter.tsx'
 import { FadeSection } from '../../about-landing/FadeSection.tsx'
 import { HowStep, FaqAccordion } from '../../about-landing/LandingPrimitives.tsx'
 import { AppDownload } from '../../about-landing/AppDownload.tsx'
-import bannerSrc from '../../assets/demo-detailing-banner.jpg?url'
-import avatarSrc from '../../assets/demo-detailing-avatar.jpg?url'
-import beforeSrc from '../../assets/demo-visit-before.jpg?url'
-import afterSrc from '../../assets/demo-visit-after.jpg?url'
+import crmPanelSrc from '../../assets/crm-panel.png?url'
+import partnerLandingSrc from '../../assets/partner-landing.png?url'
 import '../../about-landing/AboutLanding.css'
 
 const title = 'CRM для детейлинга и СТО — КарПас'
@@ -94,75 +92,69 @@ export default function BusinessSeoPage() {
               Публичная страница — <b>в подарок</b>
             </h2>
             <p className="al-sectionSub">Готовый лендинг сервиса — сразу после подключения.</p>
-            <div className="al-showcase">
+            <div className="al-showcase al-showcase--wide">
               <div className="al-showcase__text">
                 <p className="al-showcase__lead">
                   Вам не нужен отдельный сайт: КарПас даёт публичную страницу сервиса, которую можно указать
                   в соцсетях, на картах и в визитке.
                 </p>
                 <ul className="al-featureList">
-                  <li>Баннер и аватар вашего бренда</li>
+                  <li>Баннер, логотип и описание вашего бренда</li>
                   <li>Список услуг и режим работы</li>
-                  <li>Галерея фото работ «до / после»</li>
-                  <li>Кнопка «Позвонить» — клиент звонит в один тап</li>
+                  <li>Галерея фото работ</li>
+                  <li>Кнопка «Позвонить» и контакты — клиент звонит в один тап</li>
                 </ul>
               </div>
-              <div className="al-dPreview">
-                <div className="al-dPreview__banner">
-                  <img src={bannerSrc} alt="Баннер студии детейлинга" />
+              <div className="al-frame">
+                <div className="al-frame__bar" aria-hidden="true">
+                  <span className="al-frame__dot" />
+                  <span className="al-frame__dot" />
+                  <span className="al-frame__dot" />
                 </div>
-                <div className="al-dPreview__head">
-                  <div className="al-dPreview__avatar">
-                    <img src={avatarSrc} alt="Аватар сервиса" />
-                  </div>
-                  <div className="al-dPreview__headText">
-                    <div className="al-dPreview__name">Luxe Auto Detailing</div>
-                    <div className="al-dPreview__meta">Детейлинг · Москва</div>
-                  </div>
-                  <span className="al-dPreview__callBtn" aria-hidden="true">
-                    Позвонить
-                  </span>
-                </div>
-                <div className="al-dPreview__gallery">
-                  <div className="al-dPreview__photo">
-                    <img src={beforeSrc} alt="Полировка кузова — в процессе" />
-                    <span className="al-dPreview__photoLabel">Процесс</span>
-                  </div>
-                  <div className="al-dPreview__photo">
-                    <img src={afterSrc} alt="Автомобиль после детейлинга" />
-                    <span className="al-dPreview__photoLabel">Результат</span>
-                  </div>
-                </div>
+                <img
+                  className="al-frame__img"
+                  src={partnerLandingSrc}
+                  alt="Публичная страница детейлинг-студии в КарПас: услуги, фото работ и кнопка «Позвонить»"
+                  loading="lazy"
+                />
               </div>
             </div>
           </FadeSection>
 
           <FadeSection className="al-timeline">
             <h2 className="al-sectionTitle">
-              Запись клиентов — <b>в один тап</b>
+              Все клиенты и авто — <b>в одном месте</b>
             </h2>
-            <p className="al-sectionSub">Клиент нажимает «Записаться» — вы получаете заявку.</p>
-            <div className="al-showcase">
+            <p className="al-sectionSub">Панель сервиса: база клиентов, история и заявки на запись.</p>
+            <div className="al-showcase al-showcase--wide al-showcase--reverse">
               <div className="al-showcase__text">
-                <p className="al-showcase__lead">
-                  На визите от вашего сервиса в истории клиента появляется кнопка «Записаться». Он запрашивает
-                  повтор в один клик, вы получаете уведомление и перезваниваете, чтобы назначить удобное время.
-                </p>
                 <ul className="al-featureList">
-                  <li>Заявка приходит push-уведомлением</li>
-                  <li>Видно клиента, услугу и автомобиль</li>
-                  <li>Звонок и запись на удобное время</li>
+                  <li>
+                    <b>Поиск за 3 секунды.</b> По имени, телефону, VIN-коду и госномеру.
+                  </li>
+                  <li>
+                    <b>Фильтр «Давно не были».</b> Видно, кого не было больше 15 дней — кому напомнить.
+                  </li>
+                  <li>
+                    <b>Карточка клиента с заметкой.</b> Предпочтения и важные детали под рукой.
+                  </li>
+                  <li>
+                    <b>Заявки на запись.</b> Клиент нажал «Записаться» — приходит уведомление, вы перезваниваете.
+                  </li>
                 </ul>
               </div>
-              <div className="al-toast">
-                <span className="al-toast__dot" aria-hidden="true" />
-                <div className="al-toast__body">
-                  <div className="al-toast__title">Заявка</div>
-                  <div className="al-toast__text">Иван И. — «Записаться»: Мойка, BMW M5 · сегодня, 10:24</div>
+              <div className="al-frame">
+                <div className="al-frame__bar" aria-hidden="true">
+                  <span className="al-frame__dot" />
+                  <span className="al-frame__dot" />
+                  <span className="al-frame__dot" />
                 </div>
-                <span className="al-toast__action" aria-hidden="true">
-                  Перезвонить
-                </span>
+                <img
+                  className="al-frame__img"
+                  src={crmPanelSrc}
+                  alt="Панель сервиса КарПас: список клиентов и автомобилей с поиском и карточкой клиента"
+                  loading="lazy"
+                />
               </div>
             </div>
           </FadeSection>

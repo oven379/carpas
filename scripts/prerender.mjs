@@ -143,7 +143,7 @@ async function prerenderRoute(cdp, baseUrl, route) {
   await cdp.send(
     'Runtime.evaluate',
     {
-      expression: `(() => { const s=document.createElement('style'); s.textContent='.al-hero,.al-timeline,.al-how,.al-det,.al-final,.al-tlItem{opacity:1!important;transform:none!important}'; document.head.appendChild(s); })()`,
+      expression: `(() => { const s=document.createElement('style'); s.textContent='.aboutLanding section{opacity:1!important;transform:none!important}'; document.head.appendChild(s); })()`,
     },
     sessionId,
   )

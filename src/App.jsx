@@ -16,6 +16,7 @@ import { ToastProvider } from './ui/toast.jsx'
 import HomePage from './ui/pages/HomePage.jsx'
 import AboutPage from './ui/pages/AboutPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
+import PitchPage from './ui/pages/PitchPage.jsx'
 import NotificationsPage from './ui/pages/NotificationsPage.jsx'
 import CarPage from './ui/pages/CarPage.jsx'
 import CarEditPage from './ui/pages/CarEditPage.jsx'
@@ -39,7 +40,7 @@ import TermsPage from './ui/pages/TermsPage.jsx'
 
 /** Гостевой маркетинг на `/`, `/about` и `/business` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
-  return pathname === '/' || pathname === '/about' || pathname === '/business'
+  return pathname === '/' || pathname === '/about' || pathname === '/business' || pathname === '/pitch'
 }
 
 function RequireAuth({ children }) {
@@ -138,6 +139,7 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/owners" element={<Navigate to="/" replace />} />
             <Route path="/business" element={<BusinessSeoPage />} />
+            <Route path="/pitch" element={<PitchPage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
             <Route path="/admin/379team" element={<AdminLoginPage />} />
