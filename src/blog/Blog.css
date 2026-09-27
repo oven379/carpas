@@ -185,3 +185,42 @@
   color: #9a9a9a;
   text-align: center;
 }
+
+/* ——— Призыв в конце статьи ——— */
+.blogCta {
+  max-width: 720px;
+  margin: 40px auto 8px;
+  padding: 30px 24px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(200, 169, 110, 0.08), #161616);
+  border: 1px solid var(--accent-border);
+  border-radius: 18px;
+}
+
+.blogCta__title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-primary);
+  margin: 0 0 8px;
+}
+
+.blogCta__sub {
+  font-size: 15px;
+  line-height: 1.5;
+  color: #b3b3b3;
+  margin: 0 0 20px;
+}
+
+.blogCta__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 22px;
+}
+
+.blogCta .al-appDl {
+  max-width: 440px;
+  margin: 0 auto;
+}

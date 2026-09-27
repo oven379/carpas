@@ -4,6 +4,7 @@ import { buildBreadcrumbJsonLd } from '../seo/marketingJsonLd.js'
 import { buildArticleJsonLd } from './blogJsonLd.js'
 import { LandingNav } from '../about-landing/LandingNav.tsx'
 import { LandingFooter } from '../about-landing/LandingFooter.tsx'
+import { AppDownload } from '../about-landing/AppDownload.tsx'
 import { getPostBySlug, blogPosts } from './posts.jsx'
 import '../about-landing/AboutLanding.css'
 import './Blog.css'
@@ -56,6 +57,41 @@ export default function BlogArticlePage() {
             <div className="blogArticle__body">
               <Body />
             </div>
+
+            <aside className="blogCta">
+              {post.cta === 'business' ? (
+                <>
+                  <h2 className="blogCta__title">Подключите сервис к КарПас</h2>
+                  <p className="blogCta__sub">
+                    На этапе запуска бесплатно — с настройкой и публичным лендингом в подарок.
+                  </p>
+                  <div className="blogCta__row">
+                    <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+                      Подключить сервис
+                    </Link>
+                    <Link to="/business" className="al-btnOutline">
+                      Подробнее о CRM
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h2 className="blogCta__title">Заведите электронную сервисную книжку</h2>
+                  <p className="blogCta__sub">
+                    Бесплатно. Вся история обслуживания авто — всегда в телефоне.
+                  </p>
+                  <div className="blogCta__row">
+                    <Link to="/auth/owner" className="al-btnPrimarySolid">
+                      Добавить авто
+                    </Link>
+                    <Link to="/owners" className="al-btnOutline">
+                      Как это работает
+                    </Link>
+                  </div>
+                </>
+              )}
+              <AppDownload title="Скачать приложение" />
+            </aside>
           </article>
 
           {others.length > 0 && (
