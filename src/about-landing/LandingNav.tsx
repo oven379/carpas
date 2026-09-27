@@ -21,6 +21,9 @@ export function LandingNav() {
           <NavLink to="/business" className={navLinkClass}>
             Бизнесу
           </NavLink>
+          <NavLink to="/blog" className={navLinkClass}>
+            Блог
+          </NavLink>
         </div>
         <div className="al-nav__actions">
           <Link to="/auth" className="al-nav__btnGhost">

@@ -13,6 +13,7 @@ export function LandingFooter() {
         <Link to="/">О сервисе</Link>
         <Link to="/owners">Владельцам</Link>
         <Link to="/business">Бизнесу</Link>
+        <Link to="/blog">Блог</Link>
         <span className="al-footer__sep" aria-hidden="true">·</span>
         <Link to="/terms">Условия</Link>
         <Link to="/policy">Конфиденциальность</Link>

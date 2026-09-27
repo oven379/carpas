@@ -17,6 +17,8 @@ import HomePage from './ui/pages/HomePage.jsx'
 import OwnersPage from './ui/pages/OwnersPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
 import PitchPage from './ui/pages/PitchPage.jsx'
+import BlogIndexPage from './blog/BlogIndexPage.jsx'
+import BlogArticlePage from './blog/BlogArticlePage.jsx'
 import NotificationsPage from './ui/pages/NotificationsPage.jsx'
 import CarPage from './ui/pages/CarPage.jsx'
 import CarEditPage from './ui/pages/CarEditPage.jsx'
@@ -44,7 +46,9 @@ function guestMarketingSoloPath(pathname) {
     pathname === '/' ||
     pathname === '/owners' ||
     pathname === '/business' ||
-    pathname === '/pitch'
+    pathname === '/pitch' ||
+    pathname === '/blog' ||
+    pathname.startsWith('/blog/')
   )
 }
 
@@ -165,6 +169,8 @@ export default function App() {
             <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/business" element={<BusinessSeoPage />} />
             <Route path="/pitch" element={<PitchPage />} />
+            <Route path="/blog" element={<BlogIndexPage />} />
+            <Route path="/blog/:slug" element={<BlogArticlePage />} />
             <Route path="/notifications" element={<NotificationsPage />} />
             <Route path="/admin/preview" element={<Navigate to="/admin/379team" replace />} />
             <Route path="/admin/379team" element={<AdminLoginPage />} />
