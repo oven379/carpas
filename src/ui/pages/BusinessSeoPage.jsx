@@ -8,6 +8,7 @@ import { HowStep, FaqAccordion } from '../../about-landing/LandingPrimitives.tsx
 import { AppDownload } from '../../about-landing/AppDownload.tsx'
 import crmPanelSrc from '../../assets/crm-panel.png?url'
 import partnerLandingSrc from '../../assets/partner-landing.png?url'
+import { businessCities } from './businessCities.js'
 import '../../about-landing/AboutLanding.css'
 
 const title = 'CRM для детейлинга, тюнинга и СТО — КарПас'
@@ -258,6 +259,20 @@ export default function BusinessSeoPage() {
             </h2>
             <p className="al-sectionSub">Коротко о подключении и синхронизации истории.</p>
             <FaqAccordion items={faqItems} />
+          </FadeSection>
+
+          <FadeSection className="geoCities">
+            <h2 className="al-sectionTitle">
+              CRM для детейлинга и СТО <b>по городам</b>
+            </h2>
+            <p className="al-sectionSub">Подключение онлайн — КарПас работает по всей России.</p>
+            <div className="geoCities__list">
+              {businessCities.map((c) => (
+                <Link key={c.slug} to={`/business/${c.slug}`} className="geoCities__link">
+                  {c.name}
+                </Link>
+              ))}
+            </div>
           </FadeSection>
 
           <FadeSection className="al-final">

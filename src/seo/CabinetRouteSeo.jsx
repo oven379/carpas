@@ -4,9 +4,9 @@ import { CABINET_META_DESCRIPTION } from './seoConstants.js'
 
 /**
  * Мета по умолчанию для кабинета, авторизации и служебных маршрутов (noindex).
- * Публичные /, /owners, /business, /pitch, /policy, /terms, /d/*, /share/* задают свой <Seo> на странице —
- * их нужно исключать здесь, иначе одновременно монтируются два <Seo> и результат (noindex/index)
- * зависит от порядка рендера, а не от намеренной настройки страницы.
+ * Публичные /, /owners, /business, /business/*, /blog, /blog/*, /pitch, /policy, /terms, /d/*, /share/*
+ * задают свой <Seo> на странице — их нужно исключать здесь, иначе одновременно монтируются два <Seo>
+ * и результат (noindex/index) зависит от порядка рендера, а не от намеренной настройки страницы.
  */
 export function CabinetRouteSeo() {
   const { pathname } = useLocation()
@@ -16,10 +16,13 @@ export function CabinetRouteSeo() {
     pathname === '/owners' ||
     pathname === '/business' ||
     pathname === '/pitch' ||
+    pathname === '/blog' ||
     pathname === '/policy' ||
     pathname === '/terms'
   )
     return null
+  if (pathname.startsWith('/business/')) return null
+  if (pathname.startsWith('/blog/')) return null
   if (pathname.startsWith('/admin/')) return null
   if (/^\/d\/[^/]+\/?$/.test(pathname)) return null
   if (/^\/g\/[^/]+\/?$/.test(pathname)) return null

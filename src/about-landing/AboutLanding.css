@@ -928,3 +928,29 @@
 .al-final .al-appDl__grid {
   justify-content: center;
 }
+
+/* ——— Список городов (гео-страницы бизнеса) ——— */
+.geoCities__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.geoCities__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #b3b3b3;
+  text-decoration: none;
+  background: #161616;
+  border: 0.5px solid #2a2a2a;
+  border-radius: 999px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.geoCities__link:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}

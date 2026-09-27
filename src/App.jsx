@@ -16,6 +16,7 @@ import { ToastProvider } from './ui/toast.jsx'
 import HomePage from './ui/pages/HomePage.jsx'
 import OwnersPage from './ui/pages/OwnersPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
+import BusinessGeoPage from './ui/pages/BusinessGeoPage.jsx'
 import PitchPage from './ui/pages/PitchPage.jsx'
 import BlogIndexPage from './blog/BlogIndexPage.jsx'
 import BlogArticlePage from './blog/BlogArticlePage.jsx'
@@ -46,6 +47,7 @@ function guestMarketingSoloPath(pathname) {
     pathname === '/' ||
     pathname === '/owners' ||
     pathname === '/business' ||
+    pathname.startsWith('/business/') ||
     pathname === '/pitch' ||
     pathname === '/blog' ||
     pathname.startsWith('/blog/')
@@ -168,6 +170,7 @@ export default function App() {
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/about" element={<Navigate to="/" replace />} />
             <Route path="/business" element={<BusinessSeoPage />} />
+            <Route path="/business/:city" element={<BusinessGeoPage />} />
             <Route path="/pitch" element={<PitchPage />} />
             <Route path="/blog" element={<BlogIndexPage />} />
             <Route path="/blog/:slug" element={<BlogArticlePage />} />
