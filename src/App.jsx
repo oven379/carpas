@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { getApiBaseUrl } from './api/client.js'
 import './App.css'
 import { TopNav } from './ui/components.jsx'
@@ -67,6 +67,25 @@ function ScrollToTopOnRouteChange() {
       window.scrollTo(0, 0)
     }
   }, [loc.pathname])
+  return null
+}
+
+/** ID счётчика Яндекс.Метрики (счётчик подключён в index.html). */
+const YM_COUNTER_ID = 113104738
+
+/** SPA-переходы: базовый счётчик считает только первую загрузку, поэтому на смену маршрута шлём hit. */
+function MetrikaRouteTracker() {
+  const loc = useLocation()
+  const firstRender = useRef(true)
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
+    if (typeof window.ym === 'function') {
+      window.ym(YM_COUNTER_ID, 'hit', window.location.href, { referer: document.referrer })
+    }
+  }, [loc.pathname, loc.search])
   return null
 }
 
@@ -138,6 +157,7 @@ export default function App() {
         className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${nativeAuthChrome ? ' main--nativeAuth' : ''}`}
       >
         <ScrollToTopOnRouteChange />
+        <MetrikaRouteTracker />
         <CabinetRouteSeo />
         <Routes>
             <Route path="/" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <HomePage />} />

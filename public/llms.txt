@@ -4,7 +4,7 @@
 
 ## For car owners
 
-- [Car history in your phone](https://carpasss.ru/): store service visits, mileage, documents, photos and notes for each car; sign up at https://carpasss.ru/auth/owner
+- [Car history in your phone (owners landing)](https://carpasss.ru/owners): a digital service book - store service visits, mileage, documents, photos and notes for each car; sign up at https://carpasss.ru/auth/owner
 
 ### How to keep a car service history in Carpass
 1. Add the car to your garage (make, model, licence plate).
@@ -25,9 +25,9 @@
 
 - [CRM for detailing and auto repair shops](https://carpasss.ru/business): clients, cars, visit history, before/after photo reports, push reminders; apply at https://carpasss.ru/auth/partner/apply
 
-## About
+## Overview
 
-- [About Carpass](https://carpasss.ru/about): a short product overview with links to the owner and business sections
+- [About Carpass (home)](https://carpasss.ru/): a short product overview with links to the owner (/owners) and business (/business) sections
 
 ## Legal
 

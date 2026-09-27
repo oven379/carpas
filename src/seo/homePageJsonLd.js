@@ -10,9 +10,13 @@ export function buildHomePageJsonLd() {
     name: 'КарПас',
     alternateName: ['Кар Пас', 'карпас', 'карпасс', 'карпассс', 'Car Passs', 'Carpas', 'carpasss', 'carpass'],
     description:
-      'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга и СТО. Публичная ссылка на историю при продаже авто.',
+      'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга, тюнинга и СТО. Публичная ссылка на историю при продаже авто.',
+    // sameAs: добавить ссылки на VK, Дзен и Telegram, когда будут — усилит бренд в выдаче.
   }
-  if (absOk) org.url = homeUrl
+  if (absOk) {
+    org.url = homeUrl
+    org.logo = absoluteUrl('/apple-touch-icon.png')
+  }
 
   const website = {
     '@context': 'https://schema.org',
