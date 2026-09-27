@@ -224,3 +224,8 @@
   max-width: 440px;
   margin: 0 auto;
 }
+
+/* Кнопки скачивания в CTA — по центру (на лендинге они слева, тут центрируем) */
+.blogCta .al-appDl__grid {
+  justify-content: center;
+}
