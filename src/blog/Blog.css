@@ -151,3 +151,37 @@
   max-width: 900px;
   margin: 8px auto 0;
 }
+
+/* ——— Иллюстрации в статье ——— */
+.blogFig {
+  margin: 26px 0;
+}
+
+.blogFig img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 0.5px solid #2a2a2a;
+}
+
+.blogFig--phone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.blogFig--phone img {
+  max-height: 560px;
+  width: auto;
+  max-width: 100%;
+  border-radius: 20px;
+}
+
+.blogFig figcaption {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #9a9a9a;
+  text-align: center;
+}
