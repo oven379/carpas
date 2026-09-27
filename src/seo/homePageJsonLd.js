@@ -8,7 +8,22 @@ export function buildHomePageJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'КарПас',
-    alternateName: ['Кар Пас', 'карпас', 'карпасс', 'карпассс', 'Car Passs', 'Carpas', 'carpasss', 'carpass'],
+    alternateName: [
+      'КарПас',
+      'КарПасс',
+      'Кар Пас',
+      'Кар Пасс',
+      'кар пасс',
+      'кар пассс',
+      'карпас',
+      'карпасс',
+      'карпассс',
+      'Car Passs',
+      'Carpas',
+      'Carpass',
+      'carpass',
+      'carpasss',
+    ],
     description:
       'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга, тюнинга и СТО. Публичная ссылка на историю при продаже авто.',
     // sameAs: добавить ссылки на VK, Дзен и Telegram, когда будут — усилит бренд в выдаче.
