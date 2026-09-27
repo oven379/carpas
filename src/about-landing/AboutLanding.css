@@ -919,3 +919,12 @@
 .al-footer__sep {
   color: #3a3a3a;
 }
+
+/* Кнопки скачивания в финальном блоке (главная) — по центру, блок центрированный */
+.al-final .al-appDl {
+  display: inline-block;
+}
+
+.al-final .al-appDl__grid {
+  justify-content: center;
+}
