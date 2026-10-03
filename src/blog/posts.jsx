@@ -15,8 +15,8 @@ function Fig({ src, alt, caption, phone = false }) {
   )
 }
 
-/** Встроенное видео RuTube (16:9) + ссылка «Смотреть на RuTube». id — хэш из URL видео. */
-function VideoEmbed({ id, href, title }) {
+/** Встроенное видео RuTube (16:9) + ссылки «Смотреть на RuTube / YouTube». id — хэш из URL RuTube. */
+function VideoEmbed({ id, href, title, youtube }) {
   return (
     <figure className="blogVideo">
       <div className="blogVideo__frame">
@@ -33,6 +33,14 @@ function VideoEmbed({ id, href, title }) {
         <a href={href} target="_blank" rel="noopener noreferrer">
           Смотреть на RuTube →
         </a>
+        {youtube ? (
+          <>
+            {' · '}
+            <a href={`https://youtu.be/${youtube}`} target="_blank" rel="noopener noreferrer">
+              Смотреть на YouTube →
+            </a>
+          </>
+        ) : null}
       </figcaption>
     </figure>
   )
@@ -520,6 +528,7 @@ blogPosts.push(
         <VideoEmbed
           id="48b5d1c6fdb4bb56af45be7974c7df4f"
           href="https://rutube.ru/video/48b5d1c6fdb4bb56af45be7974c7df4f/"
+          youtube="AvdMkUHT8qI"
           title="Что такое КарПас — видеообзор"
         />
 
