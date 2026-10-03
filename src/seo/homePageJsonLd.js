@@ -30,7 +30,7 @@ export function buildHomePageJsonLd() {
     ],
     description:
       'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга, тюнинга и СТО. Публичная ссылка на историю при продаже авто.',
-    // sameAs: добавить ссылки на VK, Дзен и Telegram, когда будут — усилит бренд в выдаче.
+    sameAs: ['https://rutube.ru/channel/32016425/', 'https://dzen.ru/itteam379'],
   }
   if (absOk) {
     org.url = homeUrl

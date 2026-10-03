@@ -18,6 +18,13 @@ export function LandingFooter() {
         <Link to="/terms">Условия</Link>
         <Link to="/policy">Конфиденциальность</Link>
         <Link to="/auth/partner">Партнёрам</Link>
+        <span className="al-footer__sep" aria-hidden="true">·</span>
+        <a href="https://rutube.ru/channel/32016425/" target="_blank" rel="noopener noreferrer">
+          RuTube
+        </a>
+        <a href="https://dzen.ru/itteam379" target="_blank" rel="noopener noreferrer">
+          Дзен
+        </a>
       </div>
       <a
         href={SUPPORT_LINK_HREF}
