@@ -229,3 +229,41 @@
 .blogCta .al-appDl__grid {
   justify-content: center;
 }
+
+/* ——— Встроенное видео (RuTube) ——— */
+.blogVideo {
+  margin: 28px 0;
+}
+
+.blogVideo__frame {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 0.5px solid #2a2a2a;
+  background: #0d0d0d;
+}
+
+.blogVideo__frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.blogVideo figcaption {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.blogVideo figcaption a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.blogVideo figcaption a:hover {
+  text-decoration: underline;
+}

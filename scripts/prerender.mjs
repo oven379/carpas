@@ -37,6 +37,8 @@ const ROUTES = [
   '/blog/elektronnaya-servisnaya-knizhka-belgee',
   '/blog/elektronnaya-servisnaya-knizhka-geely',
   '/blog/elektronnaya-servisnaya-knizhka-chery',
+  '/blog/chto-takoe-carpas',
+  '/blog/carpas-tochka-sbora-2026',
 ]
 
 const MIME = {
