@@ -34,6 +34,9 @@ const ROUTES = [
   '/blog/elektronnaya-servisnaya-knizhka',
   '/blog/programma-dlya-avtoservisa',
   '/blog/kak-vesti-istoriyu-obsluzhivaniya-avto',
+  '/blog/elektronnaya-servisnaya-knizhka-belgee',
+  '/blog/elektronnaya-servisnaya-knizhka-geely',
+  '/blog/elektronnaya-servisnaya-knizhka-chery',
 ]
 
 const MIME = {
