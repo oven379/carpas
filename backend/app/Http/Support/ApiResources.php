@@ -52,6 +52,7 @@ class ApiResources
             'legalName' => $d->legal_name ?? '',
             'masterName' => $d->master_name ?? '',
             'warrantyText' => $d->warranty_text ?? '',
+            'workOrderEnabled' => (bool) ($d->work_order_enabled ?? false),
             'description' => $d->description ?? '',
             'workingHours' => $d->working_hours ?? '',
             'website' => $d->website ?? '',

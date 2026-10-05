@@ -265,6 +265,9 @@ class DetailingAuthController extends Controller
             }
             $d->warranty_text = $wt;
         }
+        if (array_key_exists('workOrderEnabled', $patch)) {
+            $d->work_order_enabled = filter_var($patch['workOrderEnabled'], FILTER_VALIDATE_BOOLEAN);
+        }
         if (array_key_exists('description', $patch)) {
             $d->description = trim((string) $patch['description']);
         }
