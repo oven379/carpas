@@ -11,6 +11,7 @@ use App\Models\Detailing;
 use App\Models\Owner;
 use App\Services\InternalNotificationService;
 use Illuminate\Http\Request;
+use App\Services\TelegramNotifier;
 use Illuminate\Validation\ValidationException;
 
 class CarClaimController extends Controller
@@ -134,6 +135,14 @@ class CarClaimController extends Controller
             if ($owner) {
                 CarGarageMerge::mergeOwnerPersonalDuplicatesIntoCar($car, $owner);
             }
+
+            $carLabel = trim("{$car->make} {$car->model}") ?: 'Авто';
+            app(TelegramNotifier::class)->send(
+                "🔁 Авто передано (привязка к сервису одобрена)\n{$carLabel}".
+                ($car->plate ? ' · '.$car->plate : '').
+                "\nВладелец: ".($owner?->name ?? ('#'.$claim->owner_id)).
+                "\nСервис: {$d->name}"
+            );
         }
 
         $claim->load('owner');

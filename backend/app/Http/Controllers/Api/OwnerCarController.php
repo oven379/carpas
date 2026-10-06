@@ -13,6 +13,7 @@ use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\Owner;
 use Illuminate\Http\Request;
+use App\Services\TelegramNotifier;
 use Illuminate\Validation\ValidationException;
 
 class OwnerCarController extends Controller
@@ -139,6 +140,14 @@ class OwnerCarController extends Controller
         }
 
         CarGarageMerge::mergeOrphanStudioCarsByVinIntoOwnerCar($car->fresh());
+
+        $carLabel = trim("{$car->make} {$car->model}") ?: 'Авто';
+        app(TelegramNotifier::class)->send(
+            "🚗 Добавлено авто\n{$carLabel}".
+            ($car->plate ? ' · '.$car->plate : '').
+            ($car->vin ? "\nVIN: {$car->vin}" : '').
+            "\nВладелец: {$owner->name}"
+        );
 
         return response()->json(ApiResources::car($car->fresh()->load('owner')));
     }

@@ -12,6 +12,7 @@ use App\Http\Support\TextFormat;
 use App\Models\Owner;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
+use App\Services\TelegramNotifier;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -68,6 +69,11 @@ class OwnerAuthController extends Controller
         }
 
         PendingOwnerCars::claimForOwner($owner);
+
+        app(TelegramNotifier::class)->send(
+            "🆕 Новый владелец\nИмя: {$owner->name}\nEmail: {$owner->email}".
+            ($owner->phone ? "\nТел: {$owner->phone}" : '')
+        );
 
         $token = $owner->createToken('owner')->plainTextToken;
 

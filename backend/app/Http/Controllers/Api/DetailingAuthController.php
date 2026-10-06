@@ -11,6 +11,7 @@ use App\Http\Support\ServiceOfferedCatalog;
 use App\Http\Support\TextFormat;
 use App\Models\Detailing;
 use Illuminate\Http\Request;
+use App\Services\TelegramNotifier;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -96,6 +97,11 @@ class DetailingAuthController extends Controller
             'profile_completed' => false,
             'verification_approved_at' => null,
         ]);
+
+        app(TelegramNotifier::class)->send(
+            "🆕 Новый партнёр (детейлинг/СТО)\nНазвание: {$d->name}\nГород: {$d->city}\nКонтакт: {$d->contact_name}".
+            ($d->phone ? "\nТел: {$d->phone}" : '')."\nEmail: {$d->email}\nТребуется верификация."
+        );
 
         return response()->json([
             'detailing' => ApiResources::detailing($d->fresh()),

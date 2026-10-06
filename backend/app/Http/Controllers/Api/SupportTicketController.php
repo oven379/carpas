@@ -7,6 +7,7 @@ use App\Models\Detailing;
 use App\Models\Owner;
 use App\Models\SupportTicket;
 use Illuminate\Http\Request;
+use App\Services\TelegramNotifier;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -103,6 +104,13 @@ class SupportTicketController extends Controller
                 $ticket->update(['attachment_path' => $path]);
             }
         }
+
+        $who = $role === 'guest'
+            ? ($guestEmail ?: 'гость')
+            : ($role === 'owner' ? "владелец ({$guestEmail})" : "партнёр #{$detailingId}");
+        app(TelegramNotifier::class)->send(
+            "✉️ Новое обращение\nОт: {$who}\nСтраница: {$ticket->page_path}\n\n".mb_substr($ticket->body, 0, 500)
+        );
 
         return response()->json($this->serializeForUser($ticket->fresh()), 201);
     }
