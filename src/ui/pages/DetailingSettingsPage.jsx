@@ -94,6 +94,7 @@ export default function DetailingSettingsPage() {
     legalName: '',
     masterName: '',
     warrantyText: '',
+    workOrderEnabled: false,
     description: '',
     workingHours: '',
     website: '',
@@ -119,6 +120,7 @@ export default function DetailingSettingsPage() {
       legalName: detailing.legalName || '',
       masterName: detailing.masterName || '',
       warrantyText: detailing.warrantyText || '',
+      workOrderEnabled: Boolean(detailing.workOrderEnabled),
       description: detailing.description || '',
       workingHours: String(detailing.workingHours ?? detailing.working_hours ?? '').trim() || '',
       website: detailing.website || '',
@@ -371,46 +373,67 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
-          <Field label="ИНН / ОГРНИП" hint="для заказ-нарядов · необязательно">
-            <Input
-              className="input"
-              value={draft.inn}
-              maxLength={30}
-              onChange={(e) => setDraft((d) => ({ ...d, inn: e.target.value }))}
-              placeholder="773179709430"
-            />
-          </Field>
-          <Field label="Юридическое название" hint="ИП / ООО — выводится в шапке ЗН · необязательно">
-            <Input
-              className="input"
-              value={draft.legalName}
-              maxLength={255}
-              onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))}
-              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, legalName: next })))}
-              placeholder="ИП Иванов Иван Иванович"
-            />
-          </Field>
-          <Field label="Мастер-приёмщик (по умолчанию)" hint="для заказ-нарядов · необязательно">
-            <Input
-              className="input"
-              value={draft.masterName}
-              maxLength={255}
-              onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
-              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
-              placeholder="Иван Иванов"
-            />
-          </Field>
-          <Field className="field--full" label="Гарантийные обязательства" hint="текст для нижней части ЗН · необязательно">
-            <Textarea
-              className="textarea"
-              rows={4}
-              value={draft.warrantyText}
-              maxLength={5000}
-              onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
-              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-              placeholder="Исполнитель несёт гарантийные обязательства при условии соблюдения правил эксплуатации…"
-            />
-          </Field>
+          <div className="field field--full">
+            <label className="detailingSettings__checkRow" htmlFor="detailing-settings-work-order">
+              <input
+                id="detailing-settings-work-order"
+                type="checkbox"
+                className="detailingSettings__checkInput"
+                checked={draft.workOrderEnabled}
+                onChange={(e) => setDraft((d) => ({ ...d, workOrderEnabled: e.target.checked }))}
+              />
+              <span>
+                <span className="field__label">Заказ-наряд</span>
+                <span className="muted small" style={{ display: 'block' }}>
+                  Поля заказ-наряда в визите (мастер-приёмщик, причина обращения, работы и запчасти с ценами, гарантия) и печать ЗН в PDF
+                </span>
+              </span>
+            </label>
+          </div>
+          {draft.workOrderEnabled ? (
+            <>
+              <Field label="ИНН / ОГРНИП" hint="для заказ-нарядов · необязательно">
+                <Input
+                  className="input"
+                  value={draft.inn}
+                  maxLength={30}
+                  onChange={(e) => setDraft((d) => ({ ...d, inn: e.target.value }))}
+                  placeholder="773179709430"
+                />
+              </Field>
+              <Field label="Юридическое название" hint="ИП / ООО — выводится в шапке ЗН · необязательно">
+                <Input
+                  className="input"
+                  value={draft.legalName}
+                  maxLength={255}
+                  onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, legalName: next })))}
+                  placeholder="ИП Иванов Иван Иванович"
+                />
+              </Field>
+              <Field label="Мастер-приёмщик (по умолчанию)" hint="для заказ-нарядов · необязательно">
+                <Input
+                  className="input"
+                  value={draft.masterName}
+                  maxLength={255}
+                  onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
+                  placeholder="Иван Иванов"
+                />
+              </Field>
+              <Field className="field--full" label="Гарантийные обязательства" hint="текст для нижней части ЗН · необязательно">
+                <Textarea
+                  className="textarea"
+                  rows={4}
+                  value={draft.warrantyText}
+                  maxLength={5000}
+                  onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                  placeholder="Исполнитель несёт гарантийные обязательства при условии соблюдения правил эксплуатации…"
+                />
+              </Field>
+            </>
+          ) : null}
           <Field
             className="field--full"
             label="Режим работы"

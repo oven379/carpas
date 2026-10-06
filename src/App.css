@@ -12491,3 +12491,21 @@ a.btn.carPage__recsAddVisitFull,
     color: var(--muted);
   }
 }
+
+.detailingSettings__checkRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.45;
+}
+
+.detailingSettings__checkInput {
+  margin-top: 3px;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}

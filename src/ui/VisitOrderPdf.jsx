@@ -257,7 +257,6 @@ function buildHtml({ event, car, detailing }) {
   </div>
 
   ${event.reason ? `<div class="section-label">Причины обращения:</div><div class="section-text">${event.reason}</div>` : ''}
-  ${event.specialNotes ? `<div class="section-label">Особые отметки и рекомендации:</div><div class="section-text">${event.specialNotes}</div>` : ''}
 
   <!-- Выполненные работы -->
   ${workItems.length > 0 ? `

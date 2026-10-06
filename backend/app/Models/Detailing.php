@@ -26,6 +26,7 @@ class Detailing extends Authenticatable
         'legal_name',
         'master_name',
         'warranty_text',
+        'work_order_enabled',
         'description',
         'working_hours',
         'website',
@@ -51,6 +52,7 @@ class Detailing extends Authenticatable
         'maintenance_services_offered' => 'array',
         'custom_service_categories' => 'array',
         'profile_completed' => 'boolean',
+        'work_order_enabled' => 'boolean',
         'verification_approved_at' => 'datetime',
     ];
 

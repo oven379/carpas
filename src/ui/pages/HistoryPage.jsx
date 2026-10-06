@@ -323,6 +323,8 @@ export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
   const { detailingId, detailing, owner, mode, loading } = useDetailing()
+  /** Заказ-наряд включается чекбоксом в настройках сервиса: без него поля ЗН и печать скрыты. */
+  const workOrderEnabled = mode === 'detailing' && Boolean(detailing?.workOrderEnabled)
   const ownerEmailResolved = String(owner?.email || '').trim()
   const scope = useMemo(
     () => (mode === 'owner' ? { ownerEmail: ownerEmailResolved } : { detailingId }),
@@ -1461,7 +1463,7 @@ export default function HistoryPage() {
                     ) : null}
                   </div>
                 ) : null}
-                {visitExpanded && mode === 'detailing' && e.source === 'service' && !e.isDraft ? (
+                {visitExpanded && workOrderEnabled && e.source === 'service' && !e.isDraft ? (
                   <div
                     className="historyVisitPdfBtn"
                     onClick={(ev) => ev.stopPropagation()}
@@ -1639,7 +1641,7 @@ export default function HistoryPage() {
                 </div>
               ) : null}
               <div className="formGrid historyFormGrid">
-            {mode === 'detailing' ? (
+            {workOrderEnabled ? (
               <div className="field">
                 <span className="field__label">Мастер-приёмщик</span>
                 <Input
@@ -1698,7 +1700,7 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
-            {mode === 'detailing' ? (
+            {workOrderEnabled ? (
               <div className="field field--full">
                 <span className="field__label">Причина обращения</span>
                 <Textarea
@@ -1738,7 +1740,7 @@ export default function HistoryPage() {
                 }
               />
             ) : null}
-            {mode === 'detailing' ? (
+            {workOrderEnabled ? (
               <div className="field field--full">
                 <span className="field__label">Выполненные работы (с ценами)</span>
                 <WorkItemsEditor
@@ -1748,7 +1750,7 @@ export default function HistoryPage() {
                 />
               </div>
             ) : null}
-            {mode === 'detailing' ? (
+            {workOrderEnabled ? (
               <div className="field field--full">
                 <span className="field__label">Запасные части и материалы</span>
                 <PartsItemsEditor
@@ -1782,22 +1784,7 @@ export default function HistoryPage() {
                 disabled={formLocked}
               />
             </div>
-            {mode === 'detailing' ? (
-              <div className="field field--full">
-                <span className="field__label">Особые отметки и рекомендации</span>
-                <Textarea
-                  className="textarea"
-                  rows={2}
-                  maxLength={3000}
-                  value={draft.specialNotes}
-                  disabled={formLocked}
-                  placeholder="Дополнительные условия, отметки о кузове, требования клиента…"
-                  onChange={(e) => setDraft((d) => ({ ...d, specialNotes: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, specialNotes: next })))}
-                />
-              </div>
-            ) : null}
-            {mode === 'detailing' ? (
+            {workOrderEnabled ? (
               <div className="field field--full">
                 <span className="field__label">Гарантийные обязательства</span>
                 <Textarea
