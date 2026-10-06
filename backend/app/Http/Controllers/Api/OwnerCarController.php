@@ -143,10 +143,7 @@ class OwnerCarController extends Controller
 
         $carLabel = trim("{$car->make} {$car->model}") ?: 'Авто';
         app(TelegramNotifier::class)->send(
-            "🚗 Добавлено авто\n{$carLabel}".
-            ($car->plate ? ' · '.$car->plate : '').
-            ($car->vin ? "\nVIN: {$car->vin}" : '').
-            "\nВладелец: {$owner->name}"
+            "🚗 Добавлено авто\n{$carLabel}".($car->year ? ", {$car->year}" : '')
         );
 
         return response()->json(ApiResources::car($car->fresh()->load('owner')));

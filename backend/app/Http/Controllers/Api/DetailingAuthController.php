@@ -99,8 +99,7 @@ class DetailingAuthController extends Controller
         ]);
 
         app(TelegramNotifier::class)->send(
-            "🆕 Новый партнёр (детейлинг/СТО)\nНазвание: {$d->name}\nГород: {$d->city}\nКонтакт: {$d->contact_name}".
-            ($d->phone ? "\nТел: {$d->phone}" : '')."\nEmail: {$d->email}\nТребуется верификация."
+            "🆕 Новый партнёр (детейлинг/СТО)\nНазвание: {$d->name}\nГород: {$d->city}\nТребуется верификация."
         );
 
         return response()->json([
