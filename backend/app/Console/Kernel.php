@@ -16,6 +16,7 @@ class Kernel extends ConsoleKernel
     protected function schedule(Schedule $schedule)
     {
         $schedule->command('notifications:send-due-next-contacts')->hourly()->withoutOverlapping();
+        $schedule->command('telegram:daily-digest')->dailyAt('21:00')->timezone('Europe/Moscow')->withoutOverlapping();
     }
 
     /**
