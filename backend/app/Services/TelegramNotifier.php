@@ -44,16 +44,27 @@ class TelegramNotifier
     {
         $token = trim((string) config('services.telegram.bot_token'));
         $chatId = trim((string) config('services.telegram.admin_chat_id'));
+        $base = rtrim(trim((string) config('services.telegram.api_base')) ?: 'https://api.telegram.org', '/');
+        $proxy = trim((string) config('services.telegram.proxy'));
         try {
-            $resp = Http::timeout(5)->post("https://api.telegram.org/bot{$token}/sendMessage", [
+            $http = Http::timeout(5);
+            if ($proxy !== '') {
+                $http = $http->withOptions(['proxy' => $proxy]);
+            }
+            $resp = $http->post("{$base}/bot{$token}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => mb_substr($text, 0, 3900),
                 'disable_web_page_preview' => true,
             ]);
 
+            if (! $resp->successful()) {
+                Log::warning('TelegramNotifier: HTTP '.$resp->status().' '.mb_substr($resp->body(), 0, 300));
+            }
+
             return $resp->successful();
         } catch (\Throwable $e) {
-            Log::warning('TelegramNotifier: '.$e->getMessage());
+            // Токен входит в URL и попадает в текст исключения — вырезаем его из лога.
+            Log::warning('TelegramNotifier: '.str_replace($token, '***', $e->getMessage()));
 
             return false;
         }
