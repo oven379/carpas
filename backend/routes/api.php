@@ -50,6 +50,7 @@ Route::middleware('admin.support')->group(function () {
     Route::get('/admin/support/partners/{id}/summary', [AdminRegistryController::class, 'partnerSummary']);
     Route::get('/admin/support/registry/owners', [AdminRegistryController::class, 'owners']);
     Route::get('/admin/support/registry/owners/{id}', [AdminRegistryController::class, 'ownerShow']);
+    Route::post('/admin/support/registry/owners/{id}/car-limit', [AdminRegistryController::class, 'increaseOwnerCarLimit']);
     Route::get('/admin/support/registry/cars', [AdminRegistryController::class, 'cars']);
     Route::get('/admin/support/registry/cars/{id}', [AdminRegistryController::class, 'carShow']);
     Route::get('/admin/support/partner-registrations/pending', [AdminSupportController::class, 'partnerRegistrationsPending']);

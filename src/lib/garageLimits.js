@@ -26,18 +26,21 @@ export const OWNER_MAX_TOTAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
 
 /**
  * @param {Array<{ detailingId?: string|null }>} cars — список авто владельца из репозитория
- * @param {{ isPremium?: boolean }} [options] — у владельца включён Premium (обход лимита)
+ * @param {{ isPremium?: boolean, carLimit?: number }} [options]
+ *   isPremium — обход лимита; carLimit — персональный лимит аккаунта (по умолчанию бесплатный).
  */
 export function ownerGarageLimits(cars, options = {}) {
   const isPremium = Boolean(options.isPremium)
+  const carLimit = Math.max(1, Number(options.carLimit) || OWNER_MAX_FREE_GARAGE_CARS)
   const list = Array.isArray(cars) ? cars : []
   const manualCount = list.filter((c) => !c?.detailingId).length
   const totalCount = list.length
-  const canAddMore = isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS
+  const canAddMore = isPremium || totalCount < carLimit
   return {
     manualCount,
     totalCount,
     isPremium,
+    carLimit,
     /** Можно добавить ещё одно авто в гараж (создание карточки или привязка по VIN). */
     canAddManual: canAddMore,
     canVinClaim: canAddMore,

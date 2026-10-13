@@ -192,7 +192,10 @@ export default function OwnerGaragePage() {
   }
   if (!ownerEmail) return <Navigate to="/auth/owner" replace />
 
-  const limits = ownerGarageLimits(cars, { isPremium: Boolean(owner?.isPremium) })
+  const limits = ownerGarageLimits(cars, {
+    isPremium: Boolean(owner?.isPremium),
+    carLimit: owner?.garageCarLimit,
+  })
   const createFromGarageHref = '/create?from=%2Fgarage'
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const ownerEmailTrim = String(owner?.email || '').trim()

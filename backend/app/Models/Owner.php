@@ -31,7 +31,11 @@ class Owner extends Authenticatable
         'show_phone_public',
         'is_premium',
         'garage_private',
+        'garage_car_limit',
     ];
+
+    /** Максимум авто в гараже, до которого администратор может поднять лимит по заявке. */
+    public const GARAGE_CAR_LIMIT_MAX = 3;
 
     protected $hidden = [
         'password',
@@ -46,6 +50,7 @@ class Owner extends Authenticatable
         'is_premium' => 'boolean',
         'garage_private' => 'boolean',
         'garage_banner_enabled' => 'boolean',
+        'garage_car_limit' => 'integer',
     ];
 
     public function cars(): HasMany

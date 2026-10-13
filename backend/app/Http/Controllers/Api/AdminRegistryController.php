@@ -8,6 +8,7 @@ use App\Application\Admin\AdminOwnerDetail;
 use App\Application\Admin\AdminOwnersList;
 use App\Application\Admin\AdminPartnerOperationalSummary;
 use App\Http\Controllers\Controller;
+use App\Models\Owner;
 
 class AdminRegistryController extends Controller
 {
@@ -32,6 +33,26 @@ class AdminRegistryController extends Controller
         }
 
         return response()->json($payload);
+    }
+
+    /** Повысить лимит авто в гараже владельца на 1 (не выше Owner::GARAGE_CAR_LIMIT_MAX). */
+    public function increaseOwnerCarLimit(int $id)
+    {
+        $owner = Owner::query()->find($id);
+        if ($owner === null) {
+            return response()->json(['ok' => false, 'message' => 'Пользователь не найден.'], 404);
+        }
+
+        $current = max(1, (int) ($owner->garage_car_limit ?? 1));
+        $next = min(Owner::GARAGE_CAR_LIMIT_MAX, $current + 1);
+        $owner->garage_car_limit = $next;
+        $owner->save();
+
+        return response()->json([
+            'ok' => true,
+            'garageCarLimit' => $next,
+            'max' => Owner::GARAGE_CAR_LIMIT_MAX,
+        ]);
     }
 
     public function cars()

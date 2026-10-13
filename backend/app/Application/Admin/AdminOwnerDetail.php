@@ -41,6 +41,7 @@ final class AdminOwnerDetail
                 'garageSlug' => (string) ($o->garage_slug ?? ''),
                 'garageCity' => (string) ($o->garage_city ?? ''),
                 'isPremium' => (bool) $o->is_premium,
+                'garageCarLimit' => (int) ($o->garage_car_limit ?? 1),
                 'createdAt' => optional($o->created_at)->toISOString(),
             ],
             'stats' => [
