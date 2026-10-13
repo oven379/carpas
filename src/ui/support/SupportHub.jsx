@@ -9,7 +9,7 @@ import { Button, Field, Input, Textarea } from '../components.jsx'
 import { SupportContext } from './supportContext.js'
 import { supportPageTitle } from './supportPageTitle.js'
 import { useSupport } from './useSupport.js'
-import { PREMIUM_GARAGE_REQUEST_PREFIX } from '../../lib/supportTicketPresets.js'
+import { PREMIUM_GARAGE_REQUEST_PREFIX, PREMIUM_GARAGE_INTRO_TEXT } from '../../lib/supportTicketPresets.js'
 
 async function buildSupportContext(r, { pathname, mode, detailingId, detailing, carId }) {
   const page_title = supportPageTitle(pathname)
@@ -260,7 +260,7 @@ export function SupportProvider({ children }) {
           >
             <div className="supportModal__head row spread gap wrap">
               <h2 id="support-modal-title" className="h2 supportModal__title">
-                {modalOpts.premiumGarageFlow ? 'Расширение гаража (Premium)' : 'Поддержка КарПас'}
+                {modalOpts.premiumGarageFlow ? 'Лимит автомобилей в гараже' : 'Поддержка КарПас'}
               </h2>
               <button type="button" className="btn" data-variant="ghost" onClick={closeModal} aria-label="Закрыть">
                 ×
@@ -268,11 +268,7 @@ export function SupportProvider({ children }) {
             </div>
             <p className="muted small supportModal__lead">
               {modalOpts.premiumGarageFlow ? (
-                <>
-                  В бесплатном гараже — до двух автомобилей. Чтобы добавить третий и далее, отправьте заявку на Premium: мы
-                  свяжемся с вами. Ограничение касается только личного гаража владельца; в кабинете партнёра (детейлинга) сервис
-                  по-прежнему может вести любое число карточек клиентов.
-                </>
+                <>{PREMIUM_GARAGE_INTRO_TEXT}</>
               ) : (
                 <>
                   Опишите проблему, вопрос или идею. Мы ответим на указанный e-mail (для гостей) или покажем ответ здесь, если вы
@@ -299,10 +295,17 @@ export function SupportProvider({ children }) {
             ) : null}
 
             {formOk ? (
-              <p className="supportModal__ok muted small" role="status">
-                {modalOpts.successMessage ||
-                  'Сообщение отправлено. Спасибо! Мы свяжемся с вами при необходимости.'}
-              </p>
+              <div className="supportModal__okWrap">
+                <p className="supportModal__ok muted small" role="status">
+                  {modalOpts.successMessage ||
+                    'Сообщение отправлено. Спасибо! Мы свяжемся с вами при необходимости.'}
+                </p>
+                <div className="supportModal__submitRow">
+                  <Button type="button" variant="primary" onClick={closeModal}>
+                    Хорошо
+                  </Button>
+                </div>
+              </div>
             ) : null}
 
             {modalOpts.premiumGarageFlow && !formOk ? (
@@ -314,15 +317,17 @@ export function SupportProvider({ children }) {
                   aria-busy={submitting || undefined}
                   onClick={() => void onPremiumConnectClick()}
                 >
-                  {submitting ? 'Отправка…' : 'Подключить премиум'}
+                  {submitting ? 'Отправка…' : 'Увеличить лимит'}
                 </Button>
-                <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.5, maxWidth: '52ch' }}>
-                  Заявка уйдёт в поддержку КарПас с пометкой «Premium» и данными вашего аккаунта. При необходимости допишите пожелания
-                  в поле ниже и нажмите «Отправить».
-                </p>
+                {formError ? (
+                  <p className="supportModal__err small" role="alert" style={{ marginTop: 10 }}>
+                    {formError}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
+            {!modalOpts.premiumGarageFlow && !formOk ? (
             <form className="supportModal__form" onSubmit={(e) => void onSubmit(e)}>
               {!hasOwnerSession() && !hasDetailingSession() ? (
                 <Field label="Ваш e-mail" hint="чтобы ответить на обращение">
@@ -389,6 +394,7 @@ export function SupportProvider({ children }) {
                 </Button>
               </div>
             </form>
+            ) : null}
           </div>
         </div>
       ) : null}

@@ -16,7 +16,7 @@ export function dedupeCarsById(cars) {
 }
 
 /** Сколько автомобилей можно держать в гараже на бесплатном тарифе. */
-export const OWNER_MAX_FREE_GARAGE_CARS = 2
+export const OWNER_MAX_FREE_GARAGE_CARS = 1
 
 /** @deprecated то же число, что и OWNER_MAX_FREE_GARAGE_CARS (оставлено для старых импортов) */
 export const OWNER_MAX_MANUAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
@@ -33,7 +33,7 @@ export function ownerGarageLimits(cars, options = {}) {
   const list = Array.isArray(cars) ? cars : []
   const manualCount = list.filter((c) => !c?.detailingId).length
   const totalCount = list.length
-  const canAddMore = true || isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS // лимит временно отключён
+  const canAddMore = isPremium || totalCount < OWNER_MAX_FREE_GARAGE_CARS
   return {
     manualCount,
     totalCount,

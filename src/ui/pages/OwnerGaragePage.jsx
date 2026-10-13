@@ -11,7 +11,7 @@ import { displayRuPhone, fmtDate, fmtKm, normalizeHttpUrl } from '../../lib/form
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
-import { dedupeCarsById, OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { dedupeCarsById, ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
 import { normalizeCarEventServices } from '../../lib/serviceCatalogs.js'
@@ -197,8 +197,7 @@ export default function OwnerGaragePage() {
   const displayName = String(owner?.name || '').trim() || 'Владелец'
   const ownerEmailTrim = String(owner?.email || '').trim()
   const cityLine = String(owner?.garageCity || '').trim()
-  const addCarPremiumBtnLabel =
-    `Лимит бесплатного гаража (${OWNER_MAX_FREE_GARAGE_CARS} авто): открыть заявку на Premium`
+  const addCarPremiumBtnLabel = 'Лимит гаража: увеличить лимит авто (заявка в поддержку)'
   const { display: phoneDisplay } = displayRuPhone(owner?.phone)
   const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
 const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
@@ -389,8 +388,8 @@ const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
                   </SupportButton>
                   <ServiceHint scopeId="owner-garage-free-limit" variant="compact" label="Справка: лимит гаража">
                     <p className="serviceHint__panelText">
-                      Бесплатно в гараже — до {OWNER_MAX_FREE_GARAGE_CARS} авто. Чтобы добавить ещё одно, оформите Premium — при
-                      нажатии «Добавить авто» откроется заявка в поддержку.
+                      Бесплатно можно вести один автомобиль. Чтобы добавить ещё, нажмите «Добавить авто» и увеличьте лимит
+                      на аккаунте — откроется заявка в поддержку.
                     </p>
                   </ServiceHint>
                 </>
