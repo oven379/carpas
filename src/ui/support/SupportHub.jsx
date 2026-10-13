@@ -6,6 +6,7 @@ import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { useRepo } from '../useRepo.js'
 import { Button, Field, Input, Textarea } from '../components.jsx'
+import { showToast } from '../toast.jsx'
 import { SupportContext } from './supportContext.js'
 import { supportPageTitle } from './supportPageTitle.js'
 import { useSupport } from './useSupport.js'
@@ -217,7 +218,11 @@ export function SupportProvider({ children }) {
     e.preventDefault()
     setFormError('')
     setFormOk(false)
-    await runSubmitTicket(body)
+    const ok = await runSubmitTicket(body)
+    if (ok) {
+      showToast('Ваше обращение отправлено. Скоро свяжемся и поможем.', 'success')
+      closeModal()
+    }
   }
 
   const onPremiumConnectClick = async () => {
