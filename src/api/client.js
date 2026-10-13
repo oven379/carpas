@@ -667,6 +667,13 @@ export function createApiClient() {
       return await req(`admin/support/registry/owners/${encodeURIComponent(String(ownerId))}`, { token: adminToken })
     },
 
+    async adminIncreaseOwnerCarLimit(adminToken, ownerId) {
+      return await req(`admin/support/registry/owners/${encodeURIComponent(String(ownerId))}/car-limit`, {
+        method: 'POST',
+        token: adminToken,
+      })
+    },
+
     async adminRegistryCars(adminToken) {
       return await req('admin/support/registry/cars', { token: adminToken })
     },

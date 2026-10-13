@@ -1338,6 +1338,30 @@ function PanelUsers() {
               <li>Обращений в поддержку: {st.supportTicketsTotal ?? 0}</li>
               <li>Без ответа администратора: {st.supportTicketsAwaitingAdminReply ?? 0}</li>
             </ul>
+            <div className="row gap wrap" style={{ marginTop: 12, alignItems: 'center' }}>
+              <span className="muted small">
+                Лимит авто в гараже: <strong>{detail.owner.garageCarLimit ?? 1}</strong> / 3
+              </span>
+              {(detail.owner.garageCarLimit ?? 1) < 3 ? (
+                <button
+                  type="button"
+                  className="btn"
+                  data-variant="primary"
+                  onClick={async () => {
+                    try {
+                      await getApi().adminIncreaseOwnerCarLimit(getAdminApiToken(), detail.owner.id)
+                      openOwner(detail.owner.id)
+                    } catch (e) {
+                      setDetailErr(formatHttpErrorMessage(e))
+                    }
+                  }}
+                >
+                  Увеличить лимит
+                </button>
+              ) : (
+                <span className="muted small">(достигнут максимум)</span>
+              )}
+            </div>
           </div>
         ) : null}
       </AdminDetailModal>

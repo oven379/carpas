@@ -108,8 +108,10 @@ class SupportTicketController extends Controller
         $who = $role === 'guest'
             ? ($guestEmail ?: 'гость')
             : ($role === 'owner' ? "владелец ({$guestEmail})" : "партнёр #{$detailingId}");
+        $isLimitReq = is_array($contextArr) && ($contextArr['request_type'] ?? null) === 'premium_garage';
+        $header = $isLimitReq ? '🔓 Запрос на увеличение лимита авто' : '✉️ Новое обращение';
         app(TelegramNotifier::class)->send(
-            "✉️ Новое обращение\nОт: {$who}\nСтраница: {$ticket->page_path}\n\n".mb_substr($ticket->body, 0, 500)
+            "{$header}\nОт: {$who}\nСтраница: {$ticket->page_path}\n\n".mb_substr($ticket->body, 0, 500)
         );
 
         return response()->json($this->serializeForUser($ticket->fresh()), 201);

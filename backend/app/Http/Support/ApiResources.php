@@ -90,6 +90,7 @@ class ApiResources
             'garageAvatar' => MediaStorage::publicUrl($o->garage_avatar ?? null),
             'showPhonePublic' => (bool) $o->show_phone_public,
             'isPremium' => (bool) $o->is_premium,
+            'garageCarLimit' => (int) ($o->garage_car_limit ?? 1),
             'garagePrivate' => (bool) ($o->garage_private ?? true),
         ];
     }
