@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import productOverviewSrc from '../assets/product-overview.png?url'
 import crmPanelSrc from '../assets/crm-panel.png?url'
+import partnerNndSrc from '../assets/partner-nnd.png?url'
 import partnerLandingSrc from '../assets/partner-landing.png?url'
 import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
 import screenNewVisitSrc from '../assets/app-screen-new-visit.jpg?url'
@@ -625,6 +626,88 @@ blogPosts.push(
     ),
   },
 )
+
+blogPosts.push({
+  slug: 'noname-detailing-voronezh',
+  cta: 'business',
+  title: 'NoName Detailing (Воронеж) — первый партнёр КарПас с историей авто',
+  description:
+    'NoName Detailing из Воронежа — первый партнёр КарПас: оклейка плёнкой, полировка, тонировка, керамика и комплексный детейлинг. Теперь клиенты ведут историю своего авто с фотоотчётами.',
+  datePublished: '2026-10-14',
+  Body: () => (
+    <>
+      <p>
+        Рады рассказать о нашем <strong>первом партнёре</strong> — детейлинг-студии{' '}
+        <strong>NoName Detailing (NND)</strong> из Воронежа. Уже месяц ребята работают в КарПас и дают своим клиентам
+        возможность вести историю автомобиля — с фотоотчётами и заботой о каждой машине.
+      </p>
+
+      <Fig
+        src={partnerNndSrc}
+        alt="Публичная страница NoName Detailing в КарПас: услуги, контакты и фото работ"
+        caption="Публичная страница NoName Detailing в КарПас — carpasss.ru/d/nnd"
+      />
+
+      <h2>Кто такие NoName Detailing</h2>
+      <p>
+        NoName Detailing — это студия в Воронеже (ул. Шишкова, 142/3), где автомобили становятся лучше. Ребята делают
+        полный спектр детейлинга:
+      </p>
+      <ul>
+        <li>оклейка защитными и цветными плёнками, тонировка;</li>
+        <li>полировка кузова — от лёгкой до глубокой абразивной, полировка и бронирование фар;</li>
+        <li>керамика, жидкое стекло, кварцевые и защитные покрытия;</li>
+        <li>комплексная мойка (3- и 4-фазная) и химчистка салона со снятием;</li>
+        <li>комплексный уход за автомобилем под ключ.</li>
+      </ul>
+      <p>
+        Их цель — не просто оказать услугу, а подарить владельцу ощущение нового автомобиля и уверенность в его
+        безупречном состоянии. Работают без перерывов и выходных, с 09:00 до 21:00.
+      </p>
+
+      <h2>Как NoName Detailing работает с КарПас</h2>
+      <p>
+        Теперь каждый визит в студию сохраняется в <Link to="/business">КарПас</Link>: услуги, пробег и фотоотчёты
+        «до/после». Клиент видит все работы прямо в приложении, у него формируется{' '}
+        <Link to="/blog/elektronnaya-servisnaya-knizhka">электронная сервисная книжка</Link> автомобиля, а записи от
+        сервиса подтверждены — их нельзя подделать.
+      </p>
+
+      <Fig
+        src={screenHistoryListSrc}
+        alt="История визитов автомобиля в приложении КарПас с фотоотчётами"
+        caption="Клиент видит историю работ и фото прямо в приложении"
+        phone
+      />
+
+      <h2>Что это даёт клиентам студии</h2>
+      <ul>
+        <li>вся история ухода за авто — в телефоне, с фотографиями работ;</li>
+        <li>прозрачность: видно, что и когда делали, при каком пробеге;</li>
+        <li>при продаже история повышает доверие и цену автомобиля;</li>
+        <li>можно записаться на повтор в один тап.</li>
+      </ul>
+      <p>
+        Посмотреть студию и услуги можно на публичной странице:{' '}
+        <a href="https://carpasss.ru/d/nnd" target="_blank" rel="noopener noreferrer">
+          carpasss.ru/d/nnd
+        </a>
+        , а их работы — во{' '}
+        <a href="https://vk.ru/noname_detailing" target="_blank" rel="noopener noreferrer">
+          ВКонтакте
+        </a>
+        . Телефон студии: +7 919 232 60 00, Воронеж, ул. Шишкова, 142/3.
+      </p>
+
+      <h2>Ваш сервис тоже может так</h2>
+      <p>
+        Если у вас детейлинг, тюнинг-ателье, автомойка или СТО — подключайтесь к КарПас, как NoName Detailing: ведите
+        историю клиентов, показывайте фотоотчёты и получите публичную страницу-витрину в подарок.{' '}
+        <Link to="/auth/partner/apply">Оставьте заявку</Link> — на этапе запуска бесплатно.
+      </p>
+    </>
+  ),
+})
 
 export function getPostBySlug(slug) {
   return blogPosts.find((p) => p.slug === slug) || null
