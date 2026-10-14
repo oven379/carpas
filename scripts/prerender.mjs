@@ -40,6 +40,10 @@ const ROUTES = [
   '/blog/chto-takoe-carpas',
   '/blog/carpas-tochka-sbora-2026',
   '/blog/noname-detailing-voronezh',
+  '/blog/oklejka-plenkoy-avto-voronezh',
+  '/blog/keramika-avto-voronezh',
+  '/blog/polirovka-kuzova-voronezh',
+  '/blog/himchistka-salona-avto-voronezh',
 ]
 
 const MIME = {
