@@ -29,6 +29,10 @@ return [
         // Бот-уведомитель администратора о событиях сервиса.
         'bot_token' => env('TELEGRAM_BOT_TOKEN'),
         'admin_chat_id' => env('TELEGRAM_ADMIN_CHAT_ID'),
+        // Если api.telegram.org недоступен с сервера: свой reverse-proxy (напр. Cloudflare Worker)
+        'api_base' => env('TELEGRAM_API_BASE', 'https://api.telegram.org'),
+        // …или HTTP/SOCKS5-прокси, напр. socks5h://user:pass@host:1080
+        'proxy' => env('TELEGRAM_PROXY'),
     ],
 
     'ses' => [
