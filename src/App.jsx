@@ -33,6 +33,8 @@ import PublicCarPage from './ui/pages/PublicCarPage.jsx'
 import RequestsPage from './ui/pages/RequestsPage.jsx'
 import DetailingSettingsPage from './ui/pages/DetailingSettingsPage.jsx'
 import DetailingClientsPage from './ui/pages/DetailingClientsPage.jsx'
+import TechCardsPage from './detailing/TechCardsPage.jsx'
+import TechCardPage from './detailing/TechCardPage.jsx'
 import PublicDetailingPage from './ui/pages/PublicDetailingPage.jsx'
 import OwnerGaragePage from './ui/pages/OwnerGaragePage.jsx'
 import GarageSettingsPage from './ui/pages/GarageSettingsPage.jsx'
@@ -269,6 +271,22 @@ export default function App() {
               element={
                 <RequireAuth>
                   <DetailingClientsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/detailing/tech-cards"
+              element={
+                <RequireAuth>
+                  <TechCardsPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/detailing/tech-cards/:slug"
+              element={
+                <RequireAuth>
+                  <TechCardPage />
                 </RequireAuth>
               }
             />

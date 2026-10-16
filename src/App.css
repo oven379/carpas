@@ -1307,6 +1307,58 @@ button.nav__notifyLink {
   flex: 0 0 auto;
 }
 
+.nav__toolsWrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.partnerToolsMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 60;
+  min-width: 190px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--surface, #161616);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+.partnerToolsMenu__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text, #f0f0f0);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.partnerToolsMenu__item:hover,
+.partnerToolsMenu__item:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  outline: none;
+}
+
+.partnerToolsMenu__item--muted {
+  color: var(--muted, #b3b3b3);
+}
+
+.partnerToolsMenu__sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
 .nav__notifySvg {
   display: block;
 }

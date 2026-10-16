@@ -1,0 +1,148 @@
+/* База знаний «Техкарты детейлинга» — закрытый раздел кабинета. */
+
+.techHub__intro {
+  margin: 16px 0 8px;
+  line-height: 1.55;
+}
+
+.techHub__group {
+  margin-top: 26px;
+}
+
+.techHub__groupHead {
+  margin-bottom: 12px;
+}
+
+.techHub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.techCardTile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--surface, #161616);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.techCardTile:hover {
+  border-color: var(--accent, #c8a96e);
+  transform: translateY(-2px);
+  background: #1b1b1b;
+}
+
+.techCardTile__title {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.techCardTile__summary {
+  font-size: 13px;
+  color: var(--muted, #b3b3b3);
+  line-height: 1.45;
+}
+
+.techCardTile__chem {
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--accent, #c8a96e);
+}
+
+/* ── Карточка техкарты ── */
+.techCard__card {
+  margin-top: 16px;
+}
+
+.techCard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.techCard__field {
+  display: block;
+}
+
+.techCard__fieldTitle {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #c8a96e);
+  margin-bottom: 7px;
+}
+
+.techCard__list {
+  margin: 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.techCard__list li {
+  margin-bottom: 3px;
+}
+
+.techCard__steps {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.techCard__steps li {
+  margin-bottom: 5px;
+}
+
+.techCard__stepGroup {
+  margin-bottom: 14px;
+}
+
+.techCard__stepGroup:last-child {
+  margin-bottom: 0;
+}
+
+.techCard__stepGroupName {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--text, #f0f0f0);
+}
+
+.techCard__hint {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent, #c8a96e);
+  background: rgba(200, 169, 110, 0.08);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: var(--muted, #b3b3b3);
+}
+
+/* ── Таблицы ── */
+.techTableWrap {
+  overflow-x: auto;
+}
+
+.techTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.techTable th,
+.techTable td {
+  padding: 8px 12px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.techTable th {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+  color: var(--accent, #c8a96e);
+}

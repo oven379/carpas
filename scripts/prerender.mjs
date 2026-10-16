@@ -44,6 +44,7 @@ const ROUTES = [
   '/blog/keramika-avto-voronezh',
   '/blog/polirovka-kuzova-voronezh',
   '/blog/himchistka-salona-avto-voronezh',
+  '/blog/kak-prohodit-moyka-detailing-voronezh',
 ]
 
 const MIME = {
