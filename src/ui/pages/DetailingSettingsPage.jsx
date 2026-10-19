@@ -29,6 +29,7 @@ import {
 } from '../../lib/serviceCatalogs.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
+import { BUSINESS_TYPES } from '../../lib/businessTypes.js'
 import {
   CITY_FIELD_DD_HINT,
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
@@ -85,6 +86,7 @@ export default function DetailingSettingsPage() {
 
   const [draft, setDraft] = useState(() => ({
     name: '',
+    businessType: 'detailing',
     servicesOffered: [],
     customServiceCategories: [],
     phone: '',
@@ -109,6 +111,7 @@ export default function DetailingSettingsPage() {
     if (!detailing) return
     setDraft({
       name: detailing.name || '',
+      businessType: detailing.businessType || 'detailing',
       servicesOffered: Array.isArray(detailing.servicesOffered) ? detailing.servicesOffered : [],
       customServiceCategories: Array.isArray(detailing.customServiceCategories)
         ? detailing.customServiceCategories.map((c, i) => ({ ...c, _id: String(i) }))
@@ -340,6 +343,19 @@ export default function DetailingSettingsPage() {
               placeholder="Название студии / СТО"
               autoComplete="organization"
             />
+          </Field>
+          <Field label="Тип бизнеса">
+            <select
+              className="input"
+              value={draft.businessType || 'detailing'}
+              onChange={(e) => setDraft((d) => ({ ...d, businessType: e.target.value }))}
+            >
+              {BUSINESS_TYPES.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Телефон">
             <PhoneRuInput

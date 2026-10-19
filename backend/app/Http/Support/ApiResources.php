@@ -43,6 +43,7 @@ class ApiResources
             'id' => (string) $d->id,
             'publicSlug' => trim((string) ($d->public_slug ?? '')),
             'name' => $d->name,
+            'businessType' => $d->business_type ?: 'detailing',
             'email' => $d->email,
             'contactName' => $d->contact_name ?? '',
             'phone' => $d->phone ?? '',

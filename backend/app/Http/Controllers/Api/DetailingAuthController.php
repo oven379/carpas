@@ -62,6 +62,7 @@ class DetailingAuthController extends Controller
             'phone' => ['required', 'string', 'max:80'],
             'city' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
+            'businessType' => ['nullable', 'string', 'in:detailing,sto,wash,tuning,prigon'],
             'servicesOffered' => ['nullable', 'array'],
             'servicesOffered.*' => ['string', 'max:255'],
         ]);
@@ -86,6 +87,7 @@ class DetailingAuthController extends Controller
 
         $d = Detailing::query()->create([
             'name' => TextFormat::mbUcfirst($data['name']),
+            'business_type' => $data['businessType'] ?? 'detailing',
             'email' => $email,
             'password' => Hash::make($pwd),
             'contact_name' => TextFormat::mbUcfirst($data['contactName']),
@@ -98,8 +100,10 @@ class DetailingAuthController extends Controller
             'verification_approved_at' => null,
         ]);
 
+        $typeLabels = ['detailing' => 'Детейлинг', 'sto' => 'СТО', 'wash' => 'Автомойка', 'tuning' => 'Тюнинг-ателье', 'prigon' => 'Пригон авто'];
+        $typeLabel = $typeLabels[$d->business_type] ?? 'Детейлинг';
         app(TelegramNotifier::class)->send(
-            "🆕 Новый партнёр (детейлинг/СТО)\nНазвание: {$d->name}\nГород: {$d->city}\nТребуется верификация."
+            "🆕 Новый партнёр\nТип: {$typeLabel}\nНазвание: {$d->name}\nГород: {$d->city}\nТребуется верификация."
         );
 
         return response()->json([
@@ -239,6 +243,12 @@ class DetailingAuthController extends Controller
         $patch = $request->all();
         if (array_key_exists('name', $patch)) {
             $d->name = TextFormat::mbUcfirst((string) $patch['name']);
+        }
+        if (array_key_exists('businessType', $patch)) {
+            $bt = (string) $patch['businessType'];
+            if (in_array($bt, ['detailing', 'sto', 'wash', 'tuning', 'prigon'], true)) {
+                $d->business_type = $bt;
+            }
         }
         if (array_key_exists('contactName', $patch)) {
             $d->contact_name = TextFormat::mbUcfirst((string) $patch['contactName']);

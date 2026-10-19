@@ -2,7 +2,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams, useSearchParams } 
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { BackNav, Card, DropdownCaretIcon, HeroCoverStat, PageLoadSpinner, Pill } from '../components.jsx'
+import { BackNav, Card, HeroCoverStat, PageLoadSpinner, Pill } from '../components.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 import { displayRuPhone } from '../../lib/format.js'
@@ -10,6 +10,7 @@ import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
+import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -41,6 +42,27 @@ function mediaUrlToOgImage(url) {
   return absoluteUrl(u.startsWith('/') ? u : `/${u}`)
 }
 
+/** Категория услуг на публичном лендинге: сворачиваемый заголовок со счётчиком.
+ *  По умолчанию раскрыта, если услуг немного (≤ порога), и свёрнута, если их много. */
+function ServiceCategory({ title, items, collapseThreshold = 6 }) {
+  const list = (Array.isArray(items) ? items : []).map((s) => String(s).trim()).filter(Boolean)
+  if (!list.length) return null
+  const defaultOpen = list.length <= collapseThreshold
+  return (
+    <details className="detPublicSvcCat" open={defaultOpen}>
+      <summary className="detPublicSvcCat__summary">
+        <span className="cardTitle detPublicSvcCat__title">{title}</span>
+        <span className="detPublicSvcCat__count">{list.length}</span>
+      </summary>
+      <div className="row gap wrap detPublicSvcCat__body">
+        {list.map((s, i) => (
+          <Pill key={`${i}-${s}`}>{s}</Pill>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 export default function PublicDetailingPage() {
   const { id } = useParams()
   const [sp] = useSearchParams()
@@ -50,13 +72,8 @@ export default function PublicDetailingPage() {
   const { detailingId: sessionDetailingId, mode } = useDetailing()
   const [photoLb, setPhotoLb] = useState(null)
   const [payload, setPayload] = useState(undefined)
-  const [servicesExpanded, setServicesExpanded] = useState(true)
 
   const idNorm = String(id || '').trim()
-
-  useEffect(() => {
-    setServicesExpanded(true)
-  }, [idNorm])
 
   useEffect(() => {
     let cancelled = false
@@ -119,11 +136,12 @@ export default function PublicDetailingPage() {
 
   const devName = String(det.name || 'Сервис').trim()
   const citySeo = String(det.city || '').trim()
+  const bizType = det.businessType || 'detailing'
   const seoTitle = `${devName} — услуги и контакты${citySeo ? `, ${citySeo}` : ''} · КарПас`
   const servicesLine = Array.isArray(det.servicesOffered) ? det.servicesOffered.slice(0, 6).join(', ') : ''
   const seoDescRaw =
     String(det.description || '').trim() ||
-    [servicesLine && `Услуги: ${servicesLine}.`, `${devName} — детейлинг и СТО в КарПас.`, citySeo && citySeo].filter(Boolean).join(' ')
+    [servicesLine && `Услуги: ${servicesLine}.`, `${devName} — ${businessTypeSeo(bizType)} в КарПас.`, citySeo && citySeo].filter(Boolean).join(' ')
   const seoDesc = truncateMetaDescription(seoDescRaw)
   const canonicalPath = `/d/${encodeURIComponent(slugForCanonical)}`
   const ogImage = mediaUrlToOgImage(det.cover)
@@ -187,10 +205,6 @@ export default function PublicDetailingPage() {
   const customCategories = Array.isArray(det.customServiceCategories)
     ? det.customServiceCategories.filter((c) => Array.isArray(c?.services) && c.services.length > 0)
     : []
-  const servicesPreviewCount = 3
-  const hasMoreServices = services.length > servicesPreviewCount
-  const servicesVisible =
-    !hasMoreServices || servicesExpanded ? services : services.slice(0, servicesPreviewCount)
   const socials = [
     det.website ? { label: 'Сайт', value: String(det.website || '').trim() } : null,
     det.telegram ? { label: 'Telegram', value: String(det.telegram || '').trim() } : null,
@@ -221,7 +235,7 @@ export default function PublicDetailingPage() {
           <div className="breadcrumbs">
             <Link to="/">Главная</Link>
             <span> / </span>
-            <span>Страница детейлинга</span>
+            <span>Страница · {businessTypeLabel(bizType)}</span>
           </div>
           <div className="row gap wrap carPage__titleRow" style={{ alignItems: 'center' }}>
             <BackNav
@@ -392,46 +406,20 @@ export default function PublicDetailingPage() {
 
         <div className="col gap">
           <Card className="card pad detPublicServicesCard">
-            {hasMoreServices ? (
-              <button
-                type="button"
-                className="dropdownCaretBtn dropdownCaretBtn--floating detPublicServicesCard__expand"
-                aria-expanded={servicesExpanded ? 'true' : 'false'}
-                onClick={() => setServicesExpanded((v) => !v)}
-                title={servicesExpanded ? 'Свернуть' : 'Показать все услуги'}
-                aria-label={servicesExpanded ? 'Свернуть список услуг' : 'Развернуть список услуг'}
-              >
-                <DropdownCaretIcon open={servicesExpanded} />
-              </button>
-            ) : null}
-            <div
-              className={`cardTitle detPublicServicesCard__title${hasMoreServices ? ' detPublicServicesCard__title--withExpand' : ''}`}
-              style={{ marginBottom: 0 }}
-            >
-              Услуги
-            </div>
             {services.length ? (
-              <div className="row gap wrap" style={{ marginTop: 12 }}>
-                {servicesVisible.map((s, i) => (
-                  <Pill key={`${i}-${String(s)}`}>{s}</Pill>
-                ))}
-              </div>
+              <ServiceCategory title="Услуги" items={services} />
             ) : customCategories.length === 0 ? (
-              <p className="muted small" style={{ marginTop: 12 }}>
-                Список услуг пока не выбран.
-              </p>
+              <>
+                <div className="cardTitle" style={{ marginBottom: 0 }}>
+                  Услуги
+                </div>
+                <p className="muted small" style={{ marginTop: 12 }}>
+                  Список услуг пока не выбран.
+                </p>
+              </>
             ) : null}
             {customCategories.map((cat, idx) => (
-              <div key={cat.title || idx} className="topBorder">
-                <div className="cardTitle" style={{ margin: '0 0 10px' }}>
-                  {cat.title || 'Категория'}
-                </div>
-                <div className="row gap wrap">
-                  {cat.services.map((s) => (
-                    <Pill key={s}>{s}</Pill>
-                  ))}
-                </div>
-              </div>
+              <ServiceCategory key={cat.title || idx} title={cat.title || 'Категория'} items={cat.services} />
             ))}
           </Card>
 
@@ -441,7 +429,7 @@ export default function PublicDetailingPage() {
                 <div className="cardTitle" style={{ marginBottom: 0 }}>
                   Связаться
                 </div>
-                <div className="muted small">Нажмите, чтобы позвонить в детейлинг.</div>
+                <div className="muted small">Нажмите, чтобы позвонить в {businessTypeCall(bizType)}.</div>
               </div>
               {phoneTelHref ? (
                 <a className="btn" data-variant="primary" href={phoneTelHref} style={{ whiteSpace: 'nowrap' }}>

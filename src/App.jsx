@@ -99,24 +99,55 @@ function MetrikaRouteTracker() {
 
 function BackendHealthCheck() {
   useEffect(() => {
+    // В нативном приложении перезагрузка вебвью даёт чёрный экран — восстановление связи там на стороне приложения.
+    if (isNativeApp()) return undefined
+
     const INTERVAL_MS = 30_000
-    const TIMEOUT_MS = 5_000
+    const TIMEOUT_MS = 10_000
+    const MAX_FAILURES = 3
+    let failures = 0
+    let stopped = false
+
+    /** Пользователь что-то вводит — перезагрузку откладываем, чтобы не стереть заполняемую форму. */
+    const isEditing = () => {
+      const el = document.activeElement
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true
+    }
 
     async function check() {
+      if (stopped || document.visibilityState === 'hidden') return
       const ctrl = new AbortController()
       const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS)
+      let ok = false
       try {
-        await fetch(`${getApiBaseUrl()}/health`, { signal: ctrl.signal })
+        const res = await fetch(`${getApiBaseUrl()}/health`, { signal: ctrl.signal, cache: 'no-store' })
+        ok = res.ok
       } catch {
-        window.location.reload()
+        ok = false
       } finally {
         clearTimeout(timer)
       }
+      if (ok) {
+        failures = 0
+        return
+      }
+      failures += 1
+      // Перезагружаем только после нескольких неудач ПОДРЯД и только когда пользователь ничего не вводит,
+      // чтобы случайный сбой мобильной сети не стирал форму и не показывал чёрный экран.
+      if (failures >= MAX_FAILURES && !isEditing()) {
+        failures = 0
+        window.location.reload()
+      }
     }
 
-    check()
+    // Первую проверку не делаем сразу при открытии (на медленной сети это вызывало мгновенную перезагрузку).
     const id = setInterval(check, INTERVAL_MS)
-    return () => clearInterval(id)
+    return () => {
+      stopped = true
+      clearInterval(id)
+    }
   }, [])
   return null
 }

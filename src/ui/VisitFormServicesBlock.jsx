@@ -334,7 +334,7 @@ export function VisitFormServicesBlock({
           applyServices(next)
         }
         return (
-        <details className="svcdd__group visitFormSvc__details" open>
+        <details className="svcdd__group visitFormSvc__details">
           <summary className="svcdd__title visitFormSvc__summary">
             <span>Кузов</span>
             <span className="svcdd__count">

@@ -16,11 +16,13 @@ import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath, setSessionDet
 import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { CITY_FIELD_DD_HINT, formatPhoneRuInput } from '../../lib/format.js'
+import { BUSINESS_TYPES, DEFAULT_BUSINESS_TYPE } from '../../lib/businessTypes.js'
 
 export default function PartnerApplyPage() {
   const r = useRepo()
   const { detailing } = useDetailing()
   const [regName, setRegName] = useState('')
+  const [regType, setRegType] = useState(DEFAULT_BUSINESS_TYPE)
   const [regContactName, setRegContactName] = useState('')
   const [regEmail, setRegEmail] = useState('')
   const [regPhone, setRegPhone] = useState('')
@@ -84,6 +86,19 @@ export default function PartnerApplyPage() {
                   placeholder="Например: Студия Детейлинг"
                   autoComplete="organization"
                 />
+              </Field>
+              <Field className="field--full" label="Тип бизнеса">
+                <select
+                  className="input"
+                  value={regType}
+                  onChange={(e) => setRegType(e.target.value)}
+                >
+                  {BUSINESS_TYPES.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field className="field--full" label="Имя" hint="контактное лицо">
                 <Input
@@ -150,6 +165,7 @@ export default function PartnerApplyPage() {
                     try {
                       const res = await r.registerDetailing({
                         name: regName,
+                        businessType: regType,
                         contactName: regContactName,
                         email: regEmail,
                         phone: formatPhoneRuInput(regPhone).trim(),

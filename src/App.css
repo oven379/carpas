@@ -3057,6 +3057,69 @@ summary.carPage__recsSelect::-webkit-details-marker {
   padding-top: 2px;
 }
 
+/* Сворачиваемые категории услуг на публичном лендинге (/d/…) */
+.detPublicSvcCat {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.detPublicSvcCat:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.detPublicSvcCat__summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.detPublicSvcCat__summary::-webkit-details-marker {
+  display: none;
+}
+
+.detPublicSvcCat__summary::after {
+  content: '';
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid var(--muted, #9a9a9a);
+  border-bottom: 2px solid var(--muted, #9a9a9a);
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.detPublicSvcCat[open] > .detPublicSvcCat__summary::after {
+  transform: rotate(-135deg);
+}
+
+.detPublicSvcCat__title {
+  margin: 0;
+}
+
+.detPublicSvcCat__count {
+  margin-left: auto;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted, #9a9a9a);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+
+.detPublicSvcCat__body {
+  margin-top: 12px;
+}
+
 .detailingCustomOfferRow {
   display: flex;
   gap: 10px;

@@ -15,6 +15,7 @@ class Detailing extends Authenticatable
 
     protected $fillable = [
         'name',
+        'business_type',
         'email',
         'password',
         'yandex_id',

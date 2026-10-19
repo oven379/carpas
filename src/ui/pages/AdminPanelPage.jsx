@@ -8,6 +8,7 @@ import { getApi } from '../../api/index.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { OPEN_SERVICE_ABOUT_STATE } from '../../lib/serviceLandingNav.js'
 import { publicDetailingPath } from '../serviceLinkUi.js'
+import { BUSINESS_TYPES, businessTypeLabel } from '../../lib/businessTypes.js'
 
 const NAV = [
   { id: 'dash', label: 'Статистика' },
@@ -1580,6 +1581,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
   const [detailLoading, setDetailLoading] = useState(false)
   const [detailErr, setDetailErr] = useState('')
   const [partnerDetail, setPartnerDetail] = useState(null)
+  const [typeFilter, setTypeFilter] = useState('all')
 
   const reload = useCallback(async () => {
     if (!hasAdminApiToken()) return
@@ -1644,8 +1646,15 @@ function PanelPartners({ onPartnersPipelineChanged }) {
     )
   }
 
-  const pending = items.filter((row) => row.kind === 'registration_pending')
-  const approved = items.filter((row) => row.kind === 'partner')
+  const matchesType = (row) => typeFilter === 'all' || (row.businessType || 'detailing') === typeFilter
+  const pending = items.filter((row) => row.kind === 'registration_pending' && matchesType(row))
+  const approved = items.filter((row) => row.kind === 'partner' && matchesType(row))
+  const typeCounts = items.reduce((acc, row) => {
+    if (row.kind !== 'partner' && row.kind !== 'registration_pending') return acc
+    const key = row.businessType || 'detailing'
+    acc[key] = (acc[key] || 0) + 1
+    return acc
+  }, {})
 
   const pendingTable = (
     <div className="adminPreview__tableWrap" style={{ marginTop: 12 }}>
@@ -1654,6 +1663,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
           <tr>
             <th>ID</th>
             <th>Название</th>
+            <th>Тип</th>
             <th>Контакт</th>
             <th>Город</th>
             <th>Дата</th>
@@ -1668,6 +1678,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
                 <code className="adminMono">{row.id}</code>
               </td>
               <td>{row.name || '—'}</td>
+              <td>{businessTypeLabel(row.businessType || 'detailing')}</td>
               <td>
                 <div style={{ fontSize: 13 }}>{row.email || '—'}</div>
                 <div className="muted small">{[row.contactName, row.phone].filter(Boolean).join(' · ') || '—'}</div>
@@ -1729,6 +1740,25 @@ function PanelPartners({ onPartnersPipelineChanged }) {
           <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
             Список
           </h2>
+          <div className="row gap wrap" style={{ alignItems: 'center' }}>
+            <label className="muted small" htmlFor="admin-partner-type-filter">
+              Категория:
+            </label>
+            <select
+              id="admin-partner-type-filter"
+              className="input"
+              style={{ width: 'auto', minWidth: 160 }}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+            >
+              <option value="all">Все ({items.filter((r) => r.kind === 'partner' || r.kind === 'registration_pending').length})</option>
+              {BUSINESS_TYPES.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label} ({typeCounts[t.key] || 0})
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             type="button"
             className="btn"
@@ -1794,7 +1824,8 @@ function PanelPartners({ onPartnersPipelineChanged }) {
                     <div>
                       <div className="adminPreview__partnerName">{p.name || '—'}</div>
                       <div className="muted" style={{ fontSize: 12 }}>
-                        {p.city || '—'} · авто в базе: {p.carsCount ?? 0} · <code className="adminMono">{p.id}</code>
+                        {businessTypeLabel(p.businessType || 'detailing')} · {p.city || '—'} · авто в базе: {p.carsCount ?? 0} ·{' '}
+                        <code className="adminMono">{p.id}</code>
                       </div>
                     </div>
                     <div className="row gap wrap" style={{ alignItems: 'center', justifyContent: 'flex-end' }}>
