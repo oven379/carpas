@@ -1,9 +1,9 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { getApiBaseUrl } from './api/client.js'
 import './App.css'
-import { TopNav } from './ui/components.jsx'
+import { PageLoadSpinner, TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
 import FooterSupport from './ui/FooterSupport.jsx'
@@ -17,31 +17,64 @@ import HomePage from './ui/pages/HomePage.jsx'
 import OwnersPage from './ui/pages/OwnersPage.jsx'
 import BusinessSeoPage from './ui/pages/BusinessSeoPage.jsx'
 import BusinessGeoPage from './ui/pages/BusinessGeoPage.jsx'
-import PitchPage from './ui/pages/PitchPage.jsx'
-import BlogIndexPage from './blog/BlogIndexPage.jsx'
-import BlogArticlePage from './blog/BlogArticlePage.jsx'
-import NotificationsPage from './ui/pages/NotificationsPage.jsx'
-import CarPage from './ui/pages/CarPage.jsx'
-import CarEditPage from './ui/pages/CarEditPage.jsx'
-import HistoryPage from './ui/pages/HistoryPage.jsx'
-import DocsPage from './ui/pages/DocsPage.jsx'
-import AuthPage from './ui/pages/AuthPage.jsx'
-import OwnerAuthPage from './ui/pages/OwnerAuthPage.jsx'
-import PartnerLoginPage from './ui/pages/PartnerLoginPage.jsx'
-import PartnerApplyPage from './ui/pages/PartnerApplyPage.jsx'
-import PublicCarPage from './ui/pages/PublicCarPage.jsx'
-import RequestsPage from './ui/pages/RequestsPage.jsx'
-import DetailingSettingsPage from './ui/pages/DetailingSettingsPage.jsx'
-import DetailingClientsPage from './ui/pages/DetailingClientsPage.jsx'
-import TechCardsPage from './detailing/TechCardsPage.jsx'
-import TechCardPage from './detailing/TechCardPage.jsx'
-import PublicDetailingPage from './ui/pages/PublicDetailingPage.jsx'
-import OwnerGaragePage from './ui/pages/OwnerGaragePage.jsx'
-import GarageSettingsPage from './ui/pages/GarageSettingsPage.jsx'
-import AdminLoginPage from './ui/pages/AdminLoginPage.jsx'
-import AdminPanelPage from './ui/pages/AdminPanelPage.jsx'
-import PolicyPage from './ui/pages/PolicyPage.jsx'
-import TermsPage from './ui/pages/TermsPage.jsx'
+const PitchPage = lazyRetry(() => import('./ui/pages/PitchPage.jsx'))
+const BlogIndexPage = lazyRetry(() => import('./blog/BlogIndexPage.jsx'))
+const BlogArticlePage = lazyRetry(() => import('./blog/BlogArticlePage.jsx'))
+const NotificationsPage = lazyRetry(() => import('./ui/pages/NotificationsPage.jsx'))
+const CarPage = lazyRetry(() => import('./ui/pages/CarPage.jsx'))
+const CarEditPage = lazyRetry(() => import('./ui/pages/CarEditPage.jsx'))
+const HistoryPage = lazyRetry(() => import('./ui/pages/HistoryPage.jsx'))
+const DocsPage = lazyRetry(() => import('./ui/pages/DocsPage.jsx'))
+const AuthPage = lazyRetry(() => import('./ui/pages/AuthPage.jsx'))
+const OwnerAuthPage = lazyRetry(() => import('./ui/pages/OwnerAuthPage.jsx'))
+const PartnerLoginPage = lazyRetry(() => import('./ui/pages/PartnerLoginPage.jsx'))
+const PartnerApplyPage = lazyRetry(() => import('./ui/pages/PartnerApplyPage.jsx'))
+const PublicCarPage = lazyRetry(() => import('./ui/pages/PublicCarPage.jsx'))
+const RequestsPage = lazyRetry(() => import('./ui/pages/RequestsPage.jsx'))
+const DetailingSettingsPage = lazyRetry(() => import('./ui/pages/DetailingSettingsPage.jsx'))
+const DetailingClientsPage = lazyRetry(() => import('./ui/pages/DetailingClientsPage.jsx'))
+const TechCardsPage = lazyRetry(() => import('./detailing/TechCardsPage.jsx'))
+const TechCardPage = lazyRetry(() => import('./detailing/TechCardPage.jsx'))
+const PublicDetailingPage = lazyRetry(() => import('./ui/pages/PublicDetailingPage.jsx'))
+const OwnerGaragePage = lazyRetry(() => import('./ui/pages/OwnerGaragePage.jsx'))
+const GarageSettingsPage = lazyRetry(() => import('./ui/pages/GarageSettingsPage.jsx'))
+const AdminLoginPage = lazyRetry(() => import('./ui/pages/AdminLoginPage.jsx'))
+const AdminPanelPage = lazyRetry(() => import('./ui/pages/AdminPanelPage.jsx'))
+const PolicyPage = lazyRetry(() => import('./ui/pages/PolicyPage.jsx'))
+const TermsPage = lazyRetry(() => import('./ui/pages/TermsPage.jsx'))
+
+/**
+ * React.lazy с повтором: после деплоя старые хэшированные чанки исчезают с сервера, и открытая вкладка
+ * падает на ChunkLoadError. Раз в 10 секунд перезагружаем страницу за свежим index.html; если не помогло — ошибка
+ * уходит в RootErrorBoundary.
+ */
+function lazyRetry(factory) {
+  return lazy(() =>
+    factory().catch((err) => {
+      try {
+        const KEY = 'carpas.chunkReloadAt'
+        const last = Number(sessionStorage.getItem(KEY) || 0)
+        if (Date.now() - last > 10_000) {
+          sessionStorage.setItem(KEY, String(Date.now()))
+          window.location.reload()
+          return new Promise(() => {})
+        }
+      } catch {
+        /* sessionStorage недоступен (приватный режим) — просто пробрасываем ошибку */
+      }
+      throw err
+    }),
+  )
+}
+
+/** Заглушка на время подгрузки чанка страницы. */
+function RouteFallback() {
+  return (
+    <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+      <PageLoadSpinner />
+    </div>
+  )
+}
 
 /** Гостевой маркетинг на `/`, `/owners`, `/business` и `/pitch` — без общей шапки приложения. */
 function guestMarketingSoloPath(pathname) {
@@ -198,7 +231,8 @@ export default function App() {
         <ScrollToTopOnRouteChange />
         <MetrikaRouteTracker />
         <CabinetRouteSeo />
-        <Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
             <Route path="/" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <HomePage />} />
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/about" element={<Navigate to="/" replace />} />
@@ -333,6 +367,7 @@ export default function App() {
             <Route path="/auth/partner" element={<PartnerLoginPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          </Suspense>
       </main>
       {soloChrome ? null : (
         <footer className="footer">
