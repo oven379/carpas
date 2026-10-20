@@ -52,8 +52,6 @@ expo/android/local.properties
 ios/App/Pods
 ios/App/App/public
 ios/.xcode.env.local
-public/robots.txt
-public/sitemap.xml
 
 # Личные/служебные заметки — не коммитить (репозиторий публичный)
 zn.txt

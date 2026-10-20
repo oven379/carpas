@@ -1078,6 +1078,70 @@ blogPosts.push({
   ),
 })
 
+/**
+ * Дополнительные поля для SEO и перелинковки (отдельно от текста статей):
+ *  - tags — темы; по ним подбираются «Читайте также», чтобы статьи ссылались друг на друга по смыслу;
+ *  - seoTitle — короткий <title> (до ~65 символов с «— КарПас»), если основной заголовок длиннее и обрезается в выдаче.
+ */
+const POST_META = {
+  'elektronnaya-servisnaya-knizhka': {
+    tags: ['servisnaya-knizhka', 'owners'],
+    seoTitle: 'Электронная сервисная книжка: что это и как вести',
+  },
+  'programma-dlya-avtoservisa': { tags: ['business', 'crm'] },
+  'kak-vesti-istoriyu-obsluzhivaniya-avto': { tags: ['servisnaya-knizhka', 'owners'] },
+  'elektronnaya-servisnaya-knizhka-belgee': {
+    tags: ['servisnaya-knizhka', 'brands'],
+    seoTitle: 'Сервисная книжка Belgee (Белджи): как посмотреть',
+  },
+  'elektronnaya-servisnaya-knizhka-geely': {
+    tags: ['servisnaya-knizhka', 'brands'],
+    seoTitle: 'Сервисная книжка Geely (Джили): как посмотреть',
+  },
+  'elektronnaya-servisnaya-knizhka-chery': {
+    tags: ['servisnaya-knizhka', 'brands'],
+    seoTitle: 'Сервисная книжка Chery (Чери): как посмотреть',
+  },
+  'chto-takoe-carpas': { tags: ['about', 'owners', 'business'] },
+  'carpas-tochka-sbora-2026': { tags: ['about', 'business'] },
+  'noname-detailing-voronezh': { tags: ['voronezh', 'detailing', 'partners', 'business'] },
+  'oklejka-plenkoy-avto-voronezh': { tags: ['voronezh', 'detailing', 'partners'] },
+  'keramika-avto-voronezh': { tags: ['voronezh', 'detailing', 'partners'] },
+  'polirovka-kuzova-voronezh': { tags: ['voronezh', 'detailing', 'partners'] },
+  'himchistka-salona-avto-voronezh': { tags: ['voronezh', 'detailing', 'partners'] },
+  'kak-prohodit-moyka-detailing-voronezh': {
+    tags: ['voronezh', 'detailing', 'partners', 'owners'],
+    seoTitle: 'Как проходит детейлинг-мойка в NND, Воронеж',
+  },
+  'prigon-avto-cifrovoy-pasport': {
+    tags: ['prigon', 'partners', 'servisnaya-knizhka', 'owners'],
+    seoTitle: 'Пригон авто с цифровым паспортом в КарПас',
+  },
+}
+for (const p of blogPosts) Object.assign(p, POST_META[p.slug] || {})
+
+/**
+ * «Читайте также»: статьи с наибольшим числом общих тем, при равенстве — свежие. Если общих тем нет, берём свежие.
+ * Раньше блок всегда показывал первые две статьи списка, и остальные получали по одной входящей ссылке.
+ */
+export function relatedPosts(post, limit = 3) {
+  const mine = new Set(post.tags || [])
+  const n = blogPosts.length
+  const at = blogPosts.findIndex((p) => p.slug === post.slug)
+  return blogPosts
+    .map((p, i) => ({
+      p,
+      score: (p.tags || []).filter((t) => mine.has(t)).length,
+      // При равенстве тем — «следующие по списку» циклически: так входящие ссылки распределяются равномерно,
+      // а не достаются всегда одним и тем же статьям.
+      next: (i - at + n) % n,
+    }))
+    .filter((x) => x.p.slug !== post.slug)
+    .sort((a, b) => b.score - a.score || a.next - b.next)
+    .slice(0, limit)
+    .map((x) => x.p)
+}
+
 export function getPostBySlug(slug) {
   return blogPosts.find((p) => p.slug === slug) || null
 }

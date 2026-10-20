@@ -12,5 +12,7 @@ Disallow: /detailing
 Disallow: /requests
 Disallow: /create
 Disallow: /market
+Disallow: /notifications
+Disallow: /api/
 
 Sitemap: https://carpasss.ru/sitemap.xml

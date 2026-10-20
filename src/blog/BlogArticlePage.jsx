@@ -5,7 +5,7 @@ import { buildArticleJsonLd } from './blogJsonLd.js'
 import { LandingNav } from '../about-landing/LandingNav.tsx'
 import { LandingFooter } from '../about-landing/LandingFooter.tsx'
 import { AppDownload } from '../about-landing/AppDownload.tsx'
-import { getPostBySlug, blogPosts } from './posts.jsx'
+import { getPostBySlug, relatedPosts } from './posts.jsx'
 import '../about-landing/AboutLanding.css'
 import './Blog.css'
 
@@ -32,13 +32,13 @@ export default function BlogArticlePage() {
     buildArticleJsonLd(post),
   ]
 
-  const others = blogPosts.filter((p) => p.slug !== post.slug).slice(0, 2)
+  const others = relatedPosts(post, 3)
   const Body = post.Body
 
   return (
     <div className="aboutLanding">
       <Seo
-        title={`${post.title} — КарПас`}
+        title={`${post.seoTitle || post.title} — КарПас`}
         description={post.description}
         canonicalPath={`/blog/${post.slug}`}
         ogType="article"
