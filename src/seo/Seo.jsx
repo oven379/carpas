@@ -1,4 +1,3 @@
-import { Helmet } from 'react-helmet-async'
 import { useEffect, useMemo } from 'react'
 import { absoluteUrl } from '../lib/siteOrigin.js'
 import { truncateMetaDescription } from './seoUtils.js'
@@ -31,6 +30,8 @@ function upsertCanonical(href) {
 }
 
 /**
+ * Теги <head> пишутся только прямой записью в DOM (один механизм): в index.html уже есть title/description/og:*,
+ * а react-helmet-async добавлял вторые копии (двойные canonical, robots, OG и JSON-LD в пререндере).
  * @param {object} props
  * @param {string} props.title — полная строка <title> (уже с «· КарПас» или маркетинговый вариант).
  * @param {string} [props.description]
@@ -80,6 +81,7 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
     if (ogImageFinal) upsertMeta('meta[property="og:image"]', { property: 'og:image', content: ogImageFinal })
 
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: ogImageFinal ? 'summary_large_image' : 'summary' })
+    if (ogImageFinal) upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: ogImageFinal })
     upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title })
     if (desc) upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: desc })
 
@@ -93,34 +95,5 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
     })
   }, [canonical, desc, googleVerification, ldList, noindex, ogImageFinal, ogType, title, yandexVerification])
 
-  return (
-    <Helmet prioritizeSeoTags>
-      <title>{title}</title>
-      {desc ? <meta name="description" content={desc} /> : null}
-      <meta name="robots" content={noindex ? 'noindex, nofollow' : 'index, follow'} />
-      {googleVerification ? (
-        <meta name="google-site-verification" content={googleVerification} />
-      ) : null}
-      {yandexVerification ? <meta name="yandex-verification" content={yandexVerification} /> : null}
-      {canonical ? <link rel="canonical" href={canonical} /> : null}
-
-      <meta property="og:site_name" content={SITE_NAME} />
-      <meta property="og:title" content={title} />
-      {desc ? <meta property="og:description" content={desc} /> : null}
-      {canonical ? <meta property="og:url" content={canonical} /> : null}
-      <meta property="og:type" content={ogType} />
-      <meta property="og:locale" content="ru_RU" />
-      {ogImageFinal ? <meta property="og:image" content={ogImageFinal} /> : null}
-
-      <meta name="twitter:card" content={ogImageFinal ? 'summary_large_image' : 'summary'} />
-      <meta name="twitter:title" content={title} />
-      {desc ? <meta name="twitter:description" content={desc} /> : null}
-
-      {ldList.map((obj, i) => (
-        <script key={i} type="application/ld+json">
-          {JSON.stringify(obj)}
-        </script>
-      ))}
-    </Helmet>
-  )
+  return null
 }
