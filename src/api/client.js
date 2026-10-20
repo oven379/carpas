@@ -55,7 +55,10 @@ export function getApiBaseUrl() {
   if (typeof window !== 'undefined' && window.location.protocol !== 'file:') {
     if (isSameOriginApiHost(window.location.hostname)) return '/api'
   }
-  return 'http://localhost:8088/api'
+  // Прод/натив по умолчанию: реальный HTTPS-API (абсолютный URL работает и из WebView c file://).
+  // Раньше здесь был http://localhost:8088/api — на телефоне это сам телефон, все запросы висели до таймаута
+  // («превысил лимит времени на запрос») и экран оставался чёрным.
+  return 'https://carpasss.ru/api'
 }
 
 function baseUrl() {
