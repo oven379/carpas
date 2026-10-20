@@ -13,6 +13,35 @@ class Detailing extends Authenticatable
     use HasFactory;
     use HasApiTokens;
 
+    /** Типы бизнеса партнёра: ключ (хранится в БД, приходит с фронта) => подпись. Единый источник правды. */
+    public const BUSINESS_TYPES = [
+        'detailing' => 'Детейлинг',
+        'sto' => 'СТО',
+        'wash' => 'Автомойка',
+        'tuning' => 'Тюнинг-ателье',
+        'prigon' => 'Пригон авто',
+    ];
+
+    public const DEFAULT_BUSINESS_TYPE = 'detailing';
+
+    /** Допустимые ключи — для правил валидации и проверок. */
+    public static function businessTypeKeys(): array
+    {
+        return array_keys(self::BUSINESS_TYPES);
+    }
+
+    /** Ключ типа с запасным значением (для старых записей без типа). */
+    public static function normalizeBusinessType(?string $key): string
+    {
+        return isset(self::BUSINESS_TYPES[(string) $key]) ? (string) $key : self::DEFAULT_BUSINESS_TYPE;
+    }
+
+    /** Человекочитаемая подпись типа (уведомления, админка). */
+    public static function businessTypeLabel(?string $key): string
+    {
+        return self::BUSINESS_TYPES[self::normalizeBusinessType($key)];
+    }
+
     protected $fillable = [
         'name',
         'business_type',

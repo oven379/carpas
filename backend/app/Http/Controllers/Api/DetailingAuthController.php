@@ -15,6 +15,7 @@ use App\Services\TelegramNotifier;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class DetailingAuthController extends Controller
@@ -62,7 +63,7 @@ class DetailingAuthController extends Controller
             'phone' => ['required', 'string', 'max:80'],
             'city' => ['required', 'string', 'max:255'],
             'address' => ['required', 'string', 'max:500'],
-            'businessType' => ['nullable', 'string', 'in:detailing,sto,wash,tuning,prigon'],
+            'businessType' => ['nullable', 'string', Rule::in(Detailing::businessTypeKeys())],
             'servicesOffered' => ['nullable', 'array'],
             'servicesOffered.*' => ['string', 'max:255'],
         ]);
@@ -102,8 +103,7 @@ class DetailingAuthController extends Controller
             'verification_approved_at' => null,
         ]);
 
-        $typeLabels = ['detailing' => 'Детейлинг', 'sto' => 'СТО', 'wash' => 'Автомойка', 'tuning' => 'Тюнинг-ателье', 'prigon' => 'Пригон авто'];
-        $typeLabel = $typeLabels[$d->business_type] ?? 'Детейлинг';
+        $typeLabel = Detailing::businessTypeLabel($d->business_type);
         app(TelegramNotifier::class)->send(
             "🆕 Новый партнёр\nТип: {$typeLabel}\nНазвание: {$d->name}\nГород: {$d->city}\nТребуется верификация."
         );
@@ -248,7 +248,7 @@ class DetailingAuthController extends Controller
         }
         if (array_key_exists('businessType', $patch)) {
             $bt = (string) $patch['businessType'];
-            if (in_array($bt, ['detailing', 'sto', 'wash', 'tuning', 'prigon'], true)) {
+            if (in_array($bt, Detailing::businessTypeKeys(), true)) {
                 $d->business_type = $bt;
             }
         }
