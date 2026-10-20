@@ -56,10 +56,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-#social .button-icon {
-  filter: invert(1) brightness(2);
-}
-
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -124,35 +120,12 @@ p {
 }
 
 /* Labels / uppercase meta */
-.label-caps {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
 
 /* Thin horizontal divider */
-.divider {
-  height: 0.5px;
-  background: var(--border-subtle);
-  border: none;
-}
 
 /* Accent dot — use for "active", "verified", "new" status */
-.accent-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--accent);
-}
 
 /* Accent gradient line — use as decorative separator under hero text */
-.accent-line {
-  height: 1px;
-  background: var(--accent-line);
-  width: 80px;
-}
 
 code,
 .counter {

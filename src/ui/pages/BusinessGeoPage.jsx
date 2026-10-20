@@ -8,6 +8,8 @@ import { HowStep, FaqAccordion } from '../../about-landing/LandingPrimitives.tsx
 import { AppDownload } from '../../about-landing/AppDownload.tsx'
 import { getCityBySlug, businessCities } from './businessCities.js'
 import '../../about-landing/AboutLanding.css'
+// .blogCrumbs (хлебные крошки) определён в Blog.css: подключаем явно, иначе при ленивой загрузке блога стили пропадают.
+import '../../blog/Blog.css'
 
 export default function BusinessGeoPage() {
   const { city: slug } = useParams()
