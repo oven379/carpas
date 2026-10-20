@@ -72,13 +72,13 @@ Route::get('/public/landing/garage-cards', [PublicShowcaseController::class, 'la
 Route::get('/public/detailings/{id}', [PublicShowcaseController::class, 'detailing']);
 Route::get('/public/garages/{slug}', [PublicShowcaseController::class, 'ownerGarage']);
 
-Route::post('/detailings', [DetailingAuthController::class, 'register']);
+Route::post('/detailings', [DetailingAuthController::class, 'register'])->middleware('throttle:10,10');
 Route::post('/detailings/login', [DetailingAuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/detailings/forgot-password', [DetailingAuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 Route::get('/detailings/oauth/yandex/url', [DetailingYandexOAuthController::class, 'url']);
 Route::post('/detailings/oauth/yandex/callback', [DetailingYandexOAuthController::class, 'callback']);
 
-Route::post('/owners/register', [OwnerAuthController::class, 'register']);
+Route::post('/owners/register', [OwnerAuthController::class, 'register'])->middleware('throttle:10,10');
 Route::post('/owners/login', [OwnerAuthController::class, 'login'])->middleware('throttle:10,1');
 Route::post('/owners/forgot-password', [OwnerAuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
 

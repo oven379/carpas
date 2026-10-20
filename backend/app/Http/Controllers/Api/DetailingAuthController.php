@@ -76,7 +76,9 @@ class DetailingAuthController extends Controller
 
         $pwd = trim((string) ($data['password'] ?? ''));
         if ($pwd === '') {
-            $pwd = '1111';
+            // Пароль не задан клиентом: ставим случайный. Реальный пароль партнёр получает по почте после
+            // подтверждения аккаунта админом (AdminSupportController::approvePartnerRegistration).
+            $pwd = bin2hex(random_bytes(16));
         }
 
         $offered = $data['servicesOffered'] ?? [];

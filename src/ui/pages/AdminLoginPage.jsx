@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import Logo from '../Logo.jsx'
 import { Button, Input, PasswordInput } from '../components.jsx'
-import { adminGateCredentialsOk } from '../../lib/adminGateCredentials.js'
 import { hasAdminMockSession, setAdminMockSession } from '../../lib/adminMockSession.js'
 import { getApi } from '../../api/index.js'
 import { HttpError } from '../../api/http.js'
@@ -45,14 +44,13 @@ export default function AdminLoginPage() {
         setBusy(false)
         return
       }
-    }
-    setBusy(false)
-    if (adminGateCredentialsOk(login, password)) {
-      setAdminMockSession()
-      nav('/admin/panel', { replace: true })
+      setError('Сервер недоступен. Проверьте соединение и попробуйте ещё раз.')
+      setBusy(false)
       return
     }
+    // Ответ без токена — вход не выполнен (пароль проверяет только сервер, в клиенте его нет).
     setError('Неверный логин или пароль.')
+    setBusy(false)
   }
 
   return (
