@@ -17,7 +17,7 @@ export function buildArticleJsonLd({ slug, title, description, datePublished, da
       name: 'КарПас',
       logo: { '@type': 'ImageObject', url: absoluteUrl('/apple-touch-icon.png') },
     },
-    image: absoluteUrl('/og.png'),
+    image: absoluteUrl(`/og/${slug}.jpg`),
   }
   if (url.startsWith('http')) {
     jsonLd.url = url

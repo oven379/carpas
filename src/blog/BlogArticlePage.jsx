@@ -42,6 +42,7 @@ export default function BlogArticlePage() {
         description={post.description}
         canonicalPath={`/blog/${post.slug}`}
         ogType="article"
+        ogImage={`/og/${post.slug}.jpg`}
         jsonLd={jsonLd}
       />
       <LandingNav />
