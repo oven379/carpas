@@ -4,13 +4,7 @@ export const VISIT_TITLE_MAX_LEN = 40
 /** Свободный комментарий к визиту (что обслуживали). */
 export const VISIT_NOTE_MAX_LEN = 2000
 
-/** Лимит поля `garage_visit_self_advice` в API (настройки гаража больше не редактируют его в UI). */
-export const GARAGE_VISIT_SELF_ADVICE_MAX_LEN = 2000
 
-/**
- * @deprecated Старый лимит одной строки «Важно»/«Совет N». Используйте VISIT_CARE_ADVICE_MAX_LEN.
- */
-export const VISIT_CARE_TIP_MAX_LEN = 120
 
 /** Единый текст совета детейлинга для владельца (форма визита и карточка авто). */
 export const VISIT_CARE_ADVICE_MAX_LEN = 2000
@@ -50,8 +44,6 @@ export const DETAILING_WORKING_HOURS_MAX_LEN = 200
  */
 export const DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN = 50
 
-/** Подпись в пустых зонах выбора изображения (баннер, аватар, обложка карточки). */
-export const IMAGE_UPLOAD_EMPTY_CTA = 'Нажмите для загрузки'
 
 /** Горизонтальная ориентация снимков (обложка, визит, баннер и т.д.). */
 export const PHOTO_UPLOAD_LANDSCAPE_LINE =
@@ -67,8 +59,6 @@ export const PHOTO_UPLOAD_HINTS_PARAGRAPH = `${PHOTO_UPLOAD_LANDSCAPE_LINE} ${PH
 /** Для короткой подписи в пустой миниатюре (рядом с полным текстом снизу). */
 export const PHOTO_UPLOAD_EMPTY_THUMB_HINT = 'Альбомная съёмка · без госномера в кадре'
 
-/** Демо: раньше был единый пароль; оставлен для совместимости со старыми подсказками в коде партнёров. */
-export const OWNER_DEMO_PASSWORD = '1111'
 
 /** Минимальная длина пароля владельца в локальном режиме. */
 export const OWNER_PASSWORD_MIN_LEN = 8
@@ -97,9 +87,6 @@ export function fmtKm(n) {
   return `${fmtInt(n)} км`
 }
 
-export function fmtUsd(n) {
-  return `${fmtInt(n)} $`
-}
 
 export function fmtRub(n) {
   const v = Number.isFinite(Number(n)) ? Number(n) : 0
@@ -411,37 +398,6 @@ const CYR_TO_LATIN_SLUG = {
   ґ: 'g',
 }
 
-export function translitCyrillicForSlug(raw) {
-  let out = ''
-  for (const ch of String(raw)) {
-    const low = ch.toLocaleLowerCase('ru-RU')
-    const rep = CYR_TO_LATIN_SLUG[low]
-    if (rep !== undefined) out += rep
-    else out += ch
-  }
-  return out
-}
-
-/** Ввод адреса гаража: транслит + только a-z, 0-9, дефис (как в репозитории). */
-export function normalizeGarageSlugInput(raw) {
-  const s = translitCyrillicForSlug(raw)
-  return String(s || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40)
-}
-
-/** Публичная страница на улице: не показываем полный VIN. */
-export function fmtVinPublic(vin) {
-  const v = normVin(vin)
-  if (!v) return '—'
-  if (v.length <= 6) return '••••••'
-  return `${v.slice(0, 4)}…${v.slice(-3)}`
-}
 
 /** До 10 цифр национальной части (без кода страны), с нормализацией 8/7. */
 export function getPhoneRuNationalDigits(raw) {
@@ -504,33 +460,7 @@ export function displayRuPhone(raw) {
   return { display, telHref }
 }
 
-/** Публичная страница на улице: не показываем полный номер. */
-export function fmtPlatePublic(plate, plateRegion) {
-  const full = fmtPlateFull(plate, plateRegion)
-  if (!full) return '—'
-  if (full.length <= 3) return '•••'
-  return `${full.slice(0, 2)}•••${full.slice(-2)}`
-}
 
-/** Короткая подпись ссылки для карточек (домен + усечённый путь). */
-export function shortExternalLinkLabel(href, rawLine = '') {
-  const h = String(href || '').trim()
-  if (!h) {
-    const s = String(rawLine || '').trim()
-    return s.length > 44 ? `${s.slice(0, 42)}…` : s
-  }
-  try {
-    const u = new URL(h)
-    const host = u.hostname.replace(/^www\./i, '')
-    let path = u.pathname + u.search
-    if (path === '/' || path === '') return host
-    if (path.length > 30) path = `${path.slice(0, 28)}…`
-    return `${host}${path}`
-  } catch {
-    const s = String(rawLine || h).trim()
-    return s.length > 44 ? `${s.slice(0, 42)}…` : s
-  }
-}
 
 /** Сайт и строки соцсетей: только http/https. */
 export function normalizeHttpUrl(raw) {
@@ -550,18 +480,6 @@ export function normalizeHttpUrl(raw) {
   }
 }
 
-export function parseGarageSocialLines(raw) {
-  return String(raw ?? '')
-    .split(/\r?\n/)
-    .map((x) => x.trim())
-    .filter(Boolean)
-}
-
-/** Одна ссылка для поля в настройках гаража (остальные строки при сохранении отбрасываются). */
-export function firstGarageSocialLine(raw) {
-  const [first] = parseGarageSocialLines(raw)
-  return first || ''
-}
 
 /**
  * Флаги публичности «улицы» владельца: `Boolean("false")` в JS даёт true — явный разбор.

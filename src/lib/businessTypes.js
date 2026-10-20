@@ -10,7 +10,7 @@ export const BUSINESS_TYPES = [
   { key: 'prigon', label: 'Пригон авто', call: 'компанию по пригону авто', seo: 'Пригон авто' },
 ]
 
-export const BUSINESS_TYPE_KEYS = BUSINESS_TYPES.map((t) => t.key)
+
 export const DEFAULT_BUSINESS_TYPE = 'detailing'
 
 /** Через сколько дней без визита клиент попадает в фильтр «Давно не были» (по типу бизнеса). */

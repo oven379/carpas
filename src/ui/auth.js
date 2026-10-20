@@ -232,8 +232,4 @@ export function clearDetailingSession() {
   bumpSessionRefresh()
 }
 
-/** @deprecated используйте setSessionDetailingId(id, token) */
-export function setDetailingToken(token) {
-  if (token) writePersistentSession(SESSION_DETAILING_TOKEN_KEY, String(token))
-  else removePersistentSession(SESSION_DETAILING_TOKEN_KEY)
-}
+

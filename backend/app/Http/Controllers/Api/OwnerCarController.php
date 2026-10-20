@@ -19,6 +19,16 @@ use Illuminate\Validation\ValidationException;
 class OwnerCarController extends Controller
 {
     /** Не даём двум карточкам одного владельца с тем же VIN или той же парой госномер+регион. */
+    /** Лимит гаража на сервере: правило нельзя обойти прямым запросом к API (UI лишь скрывает кнопку). */
+    private function assertGarageHasRoom(Owner $owner): void
+    {
+        if (! $owner->canAddCarToGarage()) {
+            throw ValidationException::withMessages([
+                'garage' => ['Достигнут лимит автомобилей в гараже. Чтобы увеличить лимит, напишите в поддержку.'],
+            ]);
+        }
+    }
+
     private function assertOwnerCarIdentifiersUnique(Owner $owner, string $vin, string $plate, string $region, ?int $exceptCarId = null): void
     {
         $vin = trim($vin);
@@ -81,6 +91,7 @@ class OwnerCarController extends Controller
     {
         /** @var Owner $owner */
         $owner = $request->user();
+        $this->assertGarageHasRoom($owner);
 
         $data = $request->validate([
             'vin' => ['nullable', 'string'],
@@ -288,6 +299,7 @@ class OwnerCarController extends Controller
     {
         /** @var Owner $owner */
         $owner = $request->user();
+        $this->assertGarageHasRoom($owner);
         $data = $request->validate(['carId' => ['required', 'integer']]);
         $car = Car::query()->with('owner')->findOrFail($data['carId']);
 

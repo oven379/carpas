@@ -148,36 +148,4 @@ export function removeSS(key) {
   }
 }
 
-export function resetAll() {
-  const keys = []
-  if (!lsMemoryOnly) {
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i)
-        if (k?.startsWith(PREFIX)) keys.push(k)
-      }
-      for (const k of keys) localStorage.removeItem(k)
-    } catch {
-      lsMemoryOnly = true
-    }
-  }
-  for (const k of [...memLS.keys()]) {
-    if (k.startsWith(PREFIX)) memLS.delete(k)
-  }
 
-  const sKeys = []
-  if (!ssMemoryOnly) {
-    try {
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const k = sessionStorage.key(i)
-        if (k?.startsWith(PREFIX)) sKeys.push(k)
-      }
-      for (const k of sKeys) sessionStorage.removeItem(k)
-    } catch {
-      ssMemoryOnly = true
-    }
-  }
-  for (const k of [...memSS.keys()]) {
-    if (k.startsWith(PREFIX)) memSS.delete(k)
-  }
-}

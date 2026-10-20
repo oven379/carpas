@@ -18,11 +18,7 @@ export function dedupeCarsById(cars) {
 /** Сколько автомобилей можно держать в гараже на бесплатном тарифе. */
 export const OWNER_MAX_FREE_GARAGE_CARS = 1
 
-/** @deprecated то же число, что и OWNER_MAX_FREE_GARAGE_CARS (оставлено для старых импортов) */
-export const OWNER_MAX_MANUAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
 
-/** @deprecated раньше было 5; лимит объединён с бесплатным гаражом */
-export const OWNER_MAX_TOTAL_CARS = OWNER_MAX_FREE_GARAGE_CARS
 
 /**
  * @param {Array<{ detailingId?: string|null }>} cars — список авто владельца из репозитория

@@ -58,6 +58,20 @@ class Owner extends Authenticatable
         return $this->hasMany(Car::class, 'owner_id');
     }
 
+    /**
+     * Можно ли добавить ещё одно авто в гараж (создание карточки или привязка по VIN).
+     * Premium — без ограничений; иначе число авто должно быть меньше личного лимита (по умолчанию 1).
+     */
+    public function canAddCarToGarage(): bool
+    {
+        if ($this->is_premium) {
+            return true;
+        }
+        $limit = max(1, (int) ($this->garage_car_limit ?: 1));
+
+        return $this->cars()->count() < $limit;
+    }
+
     public function supportTickets(): HasMany
     {
         return $this->hasMany(SupportTicket::class, 'owner_id');
