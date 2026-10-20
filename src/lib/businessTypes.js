@@ -13,6 +13,17 @@ export const BUSINESS_TYPES = [
 export const BUSINESS_TYPE_KEYS = BUSINESS_TYPES.map((t) => t.key)
 export const DEFAULT_BUSINESS_TYPE = 'detailing'
 
+/** Через сколько дней без визита клиент попадает в фильтр «Давно не были» (по типу бизнеса). */
+const STALE_VISIT_DAYS_BY_TYPE = {
+  detailing: 19,
+  wash: 19,
+}
+const STALE_VISIT_DAYS_DEFAULT = 25
+
+export function staleVisitDays(key) {
+  return STALE_VISIT_DAYS_BY_TYPE[key] ?? STALE_VISIT_DAYS_DEFAULT
+}
+
 function findType(key) {
   return BUSINESS_TYPES.find((t) => t.key === key) || BUSINESS_TYPES[0]
 }

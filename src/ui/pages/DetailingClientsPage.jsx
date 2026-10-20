@@ -16,8 +16,8 @@ import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
+import { staleVisitDays } from '../../lib/businessTypes.js'
 
-const STALE_VISIT_DAYS = 25
 const CLIENT_FILTERS = new Set(['all', 'today', 'stale'])
 const PAGE_SIZE = 5
 
@@ -87,19 +87,19 @@ function isLastVisitToday(row) {
   return t >= dayStart && t < dayStart + 24 * 60 * 60 * 1000
 }
 
-function isLastVisitStale(row) {
+function isLastVisitStale(row, staleDays) {
   const t = lastVisitTime(row)
   if (!t) return false
-  return t < startOfLocalDay() - STALE_VISIT_DAYS * 24 * 60 * 60 * 1000
+  return t < startOfLocalDay() - staleDays * 24 * 60 * 60 * 1000
 }
 
 function sortByLastVisitDesc(a, b) {
   return lastVisitTime(b) - lastVisitTime(a) || rowUpdatedTime(b) - rowUpdatedTime(a)
 }
 
-function matchesFilter(row, filter) {
+function matchesFilter(row, filter, staleDays) {
   if (filter === 'today') return isLastVisitToday(row)
-  if (filter === 'stale') return isLastVisitStale(row)
+  if (filter === 'stale') return isLastVisitStale(row, staleDays)
   return true
 }
 
@@ -140,7 +140,8 @@ export default function DetailingClientsPage() {
   const r = useRepo()
   const nav = useNavigate()
   const [sp, setSp] = useSearchParams()
-  const { detailingId, mode, loading } = useDetailing()
+  const { detailingId, mode, loading, detailing } = useDetailing()
+  const staleDays = staleVisitDays(detailing?.businessType)
   const [data, setData] = useState({ items: [], stats: {} })
   const [busy, setBusy] = useState(true)
   const [error, setError] = useState('')
@@ -189,10 +190,10 @@ export default function DetailingClientsPage() {
 
   const rows = useMemo(() => {
     return (data.items || [])
-      .filter((row) => matchesFilter(row, filter))
+      .filter((row) => matchesFilter(row, filter, staleDays))
       .filter((row) => matchesQuery(row, query))
       .sort(sortByLastVisitDesc)
-  }, [data.items, filter, query])
+  }, [data.items, filter, query, staleDays])
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const pageRows = rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
@@ -204,7 +205,10 @@ export default function DetailingClientsPage() {
     setClientNoteDraft(String(selected?.client?.note || ''))
     setClientDiscountDraft(selected?.client?.discountPercent != null ? String(selected.client.discountPercent) : '')
   }, [selected?.id, selected?.client?.note, selected?.client?.discountPercent])
-  const staleCount = useMemo(() => (data.items || []).filter(isLastVisitStale).length, [data.items])
+  const staleCount = useMemo(
+    () => (data.items || []).filter((row) => isLastVisitStale(row, staleDays)).length,
+    [data.items, staleDays],
+  )
   const filters = useMemo(() => [
     { id: 'all', label: 'Все' },
     { id: 'today', label: 'Сегодня' },
@@ -307,7 +311,7 @@ export default function DetailingClientsPage() {
             <ServiceHint scopeId="det-crm-head" variant="compact" label="Справка: CRM">
               <p className="serviceHint__panelText">
                 CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Давно не были»
-                показывает клиентов, у которых последний визит был больше 25 дней назад.
+                показывает клиентов, у которых последний визит был больше {staleDays} дней назад.
               </p>
             </ServiceHint>
           </div>
