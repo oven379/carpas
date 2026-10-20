@@ -668,6 +668,37 @@
   line-height: 1.6;
 }
 
+/* Две аудитории на главной: крупнее, кнопка прижата к низу карточки */
+.al-benefits--audience {
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.al-benefitCard--audience {
+  display: flex;
+  flex-direction: column;
+  padding: 26px 24px;
+}
+
+.al-benefitCard--audience .al-benefitCard__title {
+  font-size: 18px;
+}
+
+.al-benefitCard--audience .al-benefitCard__text {
+  font-size: 14px;
+}
+
+.al-benefitCard__cta {
+  align-self: flex-start;
+  margin-top: 18px;
+}
+
+@media (max-width: 720px) {
+  .al-benefits--audience {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ——— SHOWCASE (text left, visual right) ——— */
 .al-showcase {
   display: grid;
