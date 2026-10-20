@@ -9,6 +9,7 @@ import { displayRuPhone } from '../../lib/format.js'
 import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
+import NotFoundPage from './NotFoundPage.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
 function ensureUrl(raw) {
@@ -132,7 +133,7 @@ export default function PublicDetailingPage() {
       </div>
     )
   }
-  if (!det) return <Navigate to="/" replace />
+  if (!det) return <NotFoundPage />
 
   const devName = String(det.name || 'Сервис').trim()
   const citySeo = String(det.city || '').trim()

@@ -42,6 +42,7 @@ const AdminLoginPage = lazyRetry(() => import('./ui/pages/AdminLoginPage.jsx'))
 const AdminPanelPage = lazyRetry(() => import('./ui/pages/AdminPanelPage.jsx'))
 const PolicyPage = lazyRetry(() => import('./ui/pages/PolicyPage.jsx'))
 const TermsPage = lazyRetry(() => import('./ui/pages/TermsPage.jsx'))
+const NotFoundPage = lazyRetry(() => import('./ui/pages/NotFoundPage.jsx'))
 
 /**
  * React.lazy с повтором: после деплоя старые хэшированные чанки исчезают с сервера, и открытая вкладка
@@ -365,7 +366,7 @@ export default function App() {
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
             <Route path="/auth/partner" element={<PartnerLoginPage />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={isNativeApp() ? <Navigate to="/" replace /> : <NotFoundPage />} />
           </Routes>
           </Suspense>
       </main>
