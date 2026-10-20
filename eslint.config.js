@@ -27,7 +27,10 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // `_name` и поля, выброшенные через rest-деструктуризацию ({ _id, ...rest }), — намеренно неиспользуемые.
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      // Только подсказка для HMR в dev (смешанные экспорты компонентов и констант); на прод не влияет.
+      'react-refresh/only-export-components': 'warn',
       // Синхронизация форм/URL из useEffect — нормальный паттерн для MVP; правила React Compiler слишком шумные
       'react-hooks/set-state-in-effect': 'off',
       'react-hooks/preserve-manual-memoization': 'off',

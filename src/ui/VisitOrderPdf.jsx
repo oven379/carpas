@@ -9,11 +9,11 @@ function fmt(n) {
   const v = Number.isFinite(Number(n)) ? Number(n) : 0
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0, useGrouping: true })
     .format(Math.round(v))
-    .replace(/ | /g, ' ')
+    .replace(/\u202F|\u00A0/g, '\u00A0')
 }
 
 function fmtRub(n) {
-  return `${fmt(n)} ₽`
+  return `${fmt(n)}\u00A0₽`
 }
 
 function parseNum(raw) {

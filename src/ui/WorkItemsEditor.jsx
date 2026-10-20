@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import { fmtInt } from '../lib/format.js'
 
 function newWorkItem() {
@@ -16,8 +15,6 @@ export function calcWorkItemsTotal(items) {
 }
 
 export default function WorkItemsEditor({ items = [], onChange, disabled }) {
-  const labelId = useId()
-
   const update = (id, patch) => {
     onChange(items.map((it) => (it.id === id ? { ...it, ...patch } : it)))
   }

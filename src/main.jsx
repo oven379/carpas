@@ -9,7 +9,7 @@ import App from './App.jsx'
 
 clearTimeout(window.__appLoadTimer)
 window.__cpLog = (tag, ...args) => {
-  try { console.log(`[CP:${tag}]`, ...args) } catch {}
+  try { console.log(`[CP:${tag}]`, ...args) } catch { /* console может быть недоступна */ }
 }
 window.addEventListener('error', (e) => {
   console.error('[CP:error]', e.message, e.filename, e.lineno, e.colno, e.error)

@@ -58,8 +58,8 @@ import {
 } from '../../lib/historyVisitHints.js'
 import { detailingBrandHref } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
-import WorkItemsEditor, { calcWorkItemsTotal } from '../WorkItemsEditor.jsx'
-import PartsItemsEditor, { calcPartsItemsTotal, calcPartsItemsDiscount } from '../PartsItemsEditor.jsx'
+import WorkItemsEditor from '../WorkItemsEditor.jsx'
+import PartsItemsEditor from '../PartsItemsEditor.jsx'
 import { openVisitOrderPrint } from '../VisitOrderPdf.jsx'
 import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import { isSameCalendarDayAsVisit, visitReadonlyFormNotice } from '../../lib/visitEditCalendar.js'
@@ -70,7 +70,6 @@ import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
 import { resolveMinMileageKmForVisitForm } from '../../lib/carMileage.js'
 
-const EDIT_WINDOW_MS = 3 * 60 * 60 * 1000
 const VISIT_INTERNAL_NOTE_MAX_LEN = 1000
 
 /** Не хватает данных для «завершённого» визита — при «Назад» спрашиваем про черновик. */
@@ -603,16 +602,6 @@ export default function HistoryPage() {
       if (draftSaveNoticeTimerRef.current) window.clearTimeout(draftSaveNoticeTimerRef.current)
     }
   }, [])
-  const isWithinEditWindow = useCallback(
-    (e) => {
-      const base = e?.updatedAt || e?.createdAt || e?.at || null
-      const t = base ? new Date(base).getTime() : NaN
-      if (!Number.isFinite(t)) return false
-      return nowMs - t <= EDIT_WINDOW_MS
-    },
-    [nowMs],
-  )
-
   const canOpen = useCallback((e) => {
     if (!e) return false
     if (mode === 'detailing') return e.source === 'service'

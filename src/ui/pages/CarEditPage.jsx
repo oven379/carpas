@@ -25,7 +25,6 @@ import {
   describeVinValidationError,
   formatPhoneRuInput,
   fmtInt,
-  fmtPlateFull,
   normDigits,
   normPlateBase,
   normPlateBaseUi,
@@ -46,7 +45,7 @@ import {
   getCustomModelsByMake,
 } from '../../lib/customDicts.js'
 import { buildCarFromQuery, ownerGarageListCrumbLabel, resolveCarListReturnPath } from '../carNav.js'
-import { OWNER_MAX_FREE_GARAGE_CARS, ownerGarageLimits } from '../../lib/garageLimits.js'
+import { ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { MediaThumbRemoveButton } from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage } from '../../api/http.js'
@@ -331,16 +330,23 @@ export default function CarEditPage({ mode }) {
         const cl = await r.listCars({ ownerEmail: owner.email })
         if (!cancelled)
           setOwnerCreateLimits(
-            ownerGarageLimits(Array.isArray(cl) ? cl : [], { isPremium: Boolean(owner?.isPremium) }),
+            ownerGarageLimits(Array.isArray(cl) ? cl : [], {
+              isPremium: Boolean(owner?.isPremium),
+              carLimit: owner?.garageCarLimit,
+            }),
           )
       } catch {
-        if (!cancelled) setOwnerCreateLimits(ownerGarageLimits([], { isPremium: Boolean(owner?.isPremium) }))
+        if (!cancelled) {
+          setOwnerCreateLimits(
+            ownerGarageLimits([], { isPremium: Boolean(owner?.isPremium), carLimit: owner?.garageCarLimit }),
+          )
+        }
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [mode, who, owner?.email, owner?.isPremium, r, r._version])
+  }, [mode, who, owner?.email, owner?.isPremium, owner?.garageCarLimit, r, r._version])
 
   useEffect(() => {
     if (mode === 'create' && who === 'owner') {
@@ -394,7 +400,7 @@ export default function CarEditPage({ mode }) {
     return () => {
       cancelled = true
     }
-  }, [mode, who, sp, r])
+  }, [mode, who, sp, r, toast])
 
   if ((who === 'owner' || who === 'detailing') && loading) {
     return (
@@ -424,10 +430,10 @@ export default function CarEditPage({ mode }) {
         </div>
       )
     }
-    if (false && !ownerCreateLimits.canAddManual) {
+    if (!ownerCreateLimits.canAddManual) {
       const fromParamEarly = sp.get('from') || ''
       const listReturnEarly = resolveCarListReturnPath('owner', fromParamEarly)
-      const limitDetail = `В бесплатном гараже — не больше ${OWNER_MAX_FREE_GARAGE_CARS} автомобилей.`
+      const limitDetail = `В вашем гараже автомобилей: ${ownerCreateLimits.totalCount}, лимит — ${ownerCreateLimits.carLimit}.`
       return (
         <div className="container">
           <div className="row spread gap" style={{ marginBottom: 12 }}>
@@ -447,13 +453,11 @@ export default function CarEditPage({ mode }) {
           </div>
           <Card className="card pad">
             <p className="muted small" style={{ margin: '0 0 12px', lineHeight: 1.55, maxWidth: '64ch' }}>
-              {limitDetail} Чтобы добавить третье и следующие авто, оформите Premium — откроется заявка в поддержку КарПас; по ней
-              с вами свяжутся и подключат расширенный гараж. Это ограничение только для личного гаража владельца: в кабинете детейлинга
-              партнёр может заводить неограниченное число карточек клиентов.
+              {limitDetail} Чтобы добавить ещё одно авто, отправьте запрос в поддержку — мы свяжемся с вами и увеличим лимит.
             </p>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
               <SupportButton className="btn" data-variant="primary" openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}>
-                Заявка на Premium
+                Увеличить лимит
               </SupportButton>
               <Link className="btn" data-variant="ghost" to={listReturnEarly}>
                 Назад к списку
