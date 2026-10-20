@@ -50,8 +50,8 @@ export function ComboBox({
       if (!el) return
       if (!el.contains(e.target)) setOpen(false)
     }
-    document.addEventListener('mousedown', onDocDown)
-    return () => document.removeEventListener('mousedown', onDocDown)
+    document.addEventListener('pointerdown', onDocDown)
+    return () => document.removeEventListener('pointerdown', onDocDown)
   }, [])
 
   function commit(next) {

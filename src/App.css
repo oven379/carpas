@@ -10090,7 +10090,8 @@ a.btn.carPage__recsAddVisitFull,
 
   .nav__linksScroll--partnerTools {
     flex-wrap: nowrap;
-    overflow-x: auto;
+    /* Не auto: иначе обрезается выпадающее меню шестерёнки (.partnerToolsMenu) */
+    overflow: visible;
     justify-content: flex-end;
     gap: 6px;
     padding: 3px 4px;

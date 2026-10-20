@@ -169,8 +169,8 @@ export function VisitFormServicesBlock({
     const onDoc = (ev) => {
       if (rootRef.current && !rootRef.current.contains(ev.target)) setSugOpen(false)
     }
-    document.addEventListener('mousedown', onDoc)
-    return () => document.removeEventListener('mousedown', onDoc)
+    document.addEventListener('pointerdown', onDoc)
+    return () => document.removeEventListener('pointerdown', onDoc)
   }, [sugOpen])
 
   const applyServices = (next) => onServicesChange(dedupeOfferedStrings(next, OFFERED_SERVICE_MAX_LEN))

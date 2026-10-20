@@ -127,11 +127,11 @@ export default function ServiceHint({ scopeId, label, children, variant = 'compa
     const onKey = (e) => {
       if (e.key === 'Escape') closeUser()
     }
-    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('pointerdown', onDoc)
     document.addEventListener('keydown', onKey)
     document.addEventListener('touchstart', onDoc, { passive: true })
     return () => {
-      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('pointerdown', onDoc)
       document.removeEventListener('keydown', onKey)
       document.removeEventListener('touchstart', onDoc)
     }
