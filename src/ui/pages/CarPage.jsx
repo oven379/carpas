@@ -27,6 +27,7 @@ import {
 } from '../../lib/carPageExpandPrefs.js'
 import { resolveEffectiveMileageKm } from '../../lib/carMileage.js'
 import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -375,7 +376,8 @@ export default function CarPage() {
     <div className="washGallery carPage__lastVisitPhotosGallery">
       <div className="washViewer">
         <a
-          className="washGallery__viewer"
+          className="washGallery__viewer photoFrame"
+          style={photoBgStyle(visitGalleryDisplay[washIdx])}
           href={visitGalleryDisplay[washIdx]}
           target="_blank"
           rel="noreferrer"
@@ -934,7 +936,8 @@ export default function CarPage() {
                         <button
                           key={d.id}
                           type="button"
-                          className="thumb thumb--lb"
+                          className="thumb thumb--lb photoFrame"
+                          style={photoBgStyle(src)}
                           aria-label={d.title ? `Открыть: ${d.title}` : 'Открыть'}
                           onClick={() =>
                             setPhotoLb({
@@ -946,7 +949,7 @@ export default function CarPage() {
                           <img alt={d.title} src={src} />
                         </button>
                       ) : (
-                        <a key={d.id} className="thumb" href={src} target="_blank" rel="noreferrer">
+                        <a key={d.id} className="thumb photoFrame" style={photoBgStyle(src)} href={src} target="_blank" rel="noreferrer">
                           <img alt={d.title} src={src} />
                         </a>
                       )

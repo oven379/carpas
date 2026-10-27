@@ -13,6 +13,7 @@ import NotFoundPage from './NotFoundPage.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
 import { GOALS, reachGoal } from '../../lib/metrika.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -384,7 +385,8 @@ export default function PublicDetailingPage() {
                   <button
                     key={item.id}
                     type="button"
-                    className="thumb thumb--lb"
+                    className="thumb thumb--lb photoFrame"
+                    style={photoBgStyle(item.url)}
                     title="Открыть фото"
                     aria-label="Открыть фото работы"
                     onClick={() =>

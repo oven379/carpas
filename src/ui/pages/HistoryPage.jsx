@@ -69,6 +69,7 @@ import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocDeletableByOwner } from '../../lib/carDocDisplay.js'
 import { resolveMinMileageKmForVisitForm } from '../../lib/carMileage.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 
 const VISIT_INTERNAL_NOTE_MAX_LEN = 1000
 
@@ -126,7 +127,8 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
       {openGallery ? (
         <button
           type="button"
-          className="thumb thumb--lb"
+          className="thumb thumb--lb photoFrame"
+          style={photoBgStyle(displayUrl)}
           aria-label={doc.title ? `Открыть фото: ${doc.title}` : 'Открыть фото'}
           onClick={(ev) => {
             ev.preventDefault()
@@ -137,7 +139,7 @@ function HistoryEventDocThumb({ doc, canReplace, onAddPhoto, openGallery }) {
           {img}
         </button>
       ) : (
-        <a className="thumb" href={displayUrl} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()}>
+        <a className="thumb photoFrame" style={photoBgStyle(displayUrl)} href={displayUrl} target="_blank" rel="noreferrer" onClick={(ev) => ev.stopPropagation()}>
           {img}
         </a>
       )}
@@ -242,7 +244,7 @@ function EditingVisitPhoto({ doc, editAllowed, canDeleteDoc, onDeleted, onDelete
           <span className="muted small">{editAllowed ? 'Нет файла' : 'Фото недоступно'}</span>
         </div>
       ) : (
-        <a className="thumb" href={displayUrl} target="_blank" rel="noreferrer">
+        <a className="thumb photoFrame" style={photoBgStyle(displayUrl)} href={displayUrl} target="_blank" rel="noreferrer">
           <img alt={doc.title} src={displayUrl} onError={() => setBroken(true)} />
         </a>
       )}

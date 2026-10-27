@@ -12,6 +12,7 @@ import { absoluteUrl } from '../../lib/siteOrigin.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 
 function mask(s, { keepStart = 0, keepEnd = 0 } = {}) {
   const v = String(s || '')
@@ -226,7 +227,8 @@ export default function PublicCarPage() {
                 <button
                   key={d.id}
                   type="button"
-                  className="thumb thumb--lb"
+                  className="thumb thumb--lb photoFrame"
+                  style={photoBgStyle(d.url)}
                   aria-label={d.title ? `Открыть фото: ${d.title}` : 'Открыть фото'}
                   onClick={() =>
                     setPhotoLb({
@@ -238,7 +240,7 @@ export default function PublicCarPage() {
                   <img alt={d.title} src={d.url} />
                 </button>
               ) : (
-                <a key={d.id} className="thumb" href={d.url} target="_blank" rel="noreferrer">
+                <a key={d.id} className="thumb photoFrame" style={photoBgStyle(d.url)} href={d.url} target="_blank" rel="noreferrer">
                   <img alt={d.title} src={d.url} />
                 </a>
               )

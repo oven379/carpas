@@ -16,6 +16,7 @@ import {
   carDocFileBadgeLabel,
   carDocHasImageThumbnail,
 } from '../../lib/carDocDisplay.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 
 const MAX_DOC_FILE_BYTES = 4 * 1024 * 1024
 
@@ -246,7 +247,8 @@ export default function DocsPage() {
                   return gi >= 0 ? (
                     <button
                       type="button"
-                      className="thumbCard__img thumbCard__img--btn"
+                      className="thumbCard__img thumbCard__img--btn photoFrame"
+                      style={photoBgStyle(src)}
                       aria-label={d.title ? `Открыть: ${d.title}` : 'Открыть'}
                       onClick={() =>
                         setPhotoLb({
@@ -258,7 +260,7 @@ export default function DocsPage() {
                       <img alt={d.title} src={src} />
                     </button>
                   ) : (
-                    <a className="thumbCard__img" href={src} target="_blank" rel="noreferrer">
+                    <a className="thumbCard__img photoFrame" style={photoBgStyle(src)} href={src} target="_blank" rel="noreferrer">
                       <img alt={d.title} src={src} />
                     </a>
                   )

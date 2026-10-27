@@ -17,6 +17,7 @@ import { docsToPhotoItems } from '../../lib/photoGallery.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { staleVisitDays } from '../../lib/businessTypes.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 
 const CLIENT_FILTERS = new Set(['all', 'today', 'stale'])
 const PAGE_SIZE = 5
@@ -123,7 +124,8 @@ function LastVisitPhotoStrip({ photos, onOpen }) {
         <button
           key={photo.id || `${photo.url}-${idx}`}
           type="button"
-          className="detCrmVisitPhotos__item"
+          className="detCrmVisitPhotos__item photoFrame"
+          style={photoBgStyle(photo.url)}
           onClick={() => onOpen(idx)}
         >
           <img src={photo.url} alt={photo.title || 'Фото последнего визита'} />

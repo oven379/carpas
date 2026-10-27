@@ -6722,6 +6722,22 @@ a.detBadge.detBadge--btn:active {
   background: color-mix(in oklab, var(--code-bg) 55%, var(--bg));
 }
 
+/* Фото целиком + то же фото размытым фоном вместо чёрных полей (--photo-bg задаёт photoBgStyle). */
+.photoFrame {
+  position: relative;
+  isolation: isolate;
+}
+
+.photoFrame::before {
+  content: "";
+  position: absolute;
+  inset: -12px;
+  z-index: -1;
+  background: var(--photo-bg, none) center / cover no-repeat;
+  filter: blur(16px) brightness(0.62) saturate(1.1);
+  transform: translateZ(0);
+}
+
 /* Фото показываем целиком (портрет и пейзаж), без обрезки по краям. */
 .thumb img {
   width: 100%;
