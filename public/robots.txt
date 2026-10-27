@@ -16,3 +16,17 @@ Disallow: /notifications
 Disallow: /api/
 
 Sitemap: https://carpasss.ru/sitemap.xml
+
+# SEO-сканеры и копировальщики контента (законопослушные боты уважают этот файл; остальных режет nginx).
+User-agent: AhrefsBot
+User-agent: SemrushBot
+User-agent: MJ12bot
+User-agent: DotBot
+User-agent: BLEXBot
+User-agent: Bytespider
+User-agent: PetalBot
+User-agent: CCBot
+User-agent: Diffbot
+User-agent: ImagesiftBot
+User-agent: omgili
+Disallow: /

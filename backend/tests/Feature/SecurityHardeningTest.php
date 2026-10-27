@@ -82,6 +82,21 @@ class SecurityHardeningTest extends FeatureTestCase
         $this->assertSame('Новое имя', $fresh->name, 'обычные поля должны обновляться');
     }
 
+    public function test_api_tokens_expire_after_the_configured_period(): void
+    {
+        $this->assertSame(60 * 24 * 180, (int) config('sanctum.expiration'), 'срок жизни токена по умолчанию — 180 дней');
+
+        $owner = Owner::query()->create(['email' => 'tok-'.uniqid().'@example.test', 'password' => Hash::make('secret')]);
+
+        $fresh = $owner->createToken('owner')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer '.$fresh)->getJson('/api/owners/me')->assertOk();
+
+        $old = $owner->createToken('owner');
+        $old->accessToken->forceFill(['created_at' => now()->subDays(200)])->save();
+        $this->app['auth']->forgetGuards();
+        $this->withHeader('Authorization', 'Bearer '.$old->plainTextToken)->getJson('/api/owners/me')->assertStatus(401);
+    }
+
     public function test_partner_cannot_self_verify_through_profile_update(): void
     {
         $d = $this->detailing(['verification_approved_at' => null, 'email' => 'p-'.uniqid().'@example.test']);

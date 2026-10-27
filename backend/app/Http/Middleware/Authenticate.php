@@ -14,7 +14,9 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
-        if (! $request->expectsJson()) {
+        // Это API без веб-входа: маршрута login нет, поэтому запрос без заголовка Accept: application/json раньше
+        // заканчивался ошибкой 500 вместо 401. Теперь всегда 401 в JSON.
+        if (! $request->expectsJson() && ! $request->is('api/*')) {
             return route('login');
         }
     }

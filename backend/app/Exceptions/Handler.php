@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Throwable;
 
@@ -46,5 +47,17 @@ class Handler extends ExceptionHandler
         $this->reportable(function (Throwable $e) {
             //
         });
+    }
+
+    /**
+     * У API нет веб-страницы входа (маршрута login): без заголовка Accept: application/json вместо 401 получалась ошибка 500.
+     */
+    protected function unauthenticated($request, AuthenticationException $exception)
+    {
+        if ($request->is('api/*') || $request->expectsJson()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        return parent::unauthenticated($request, $exception);
     }
 }

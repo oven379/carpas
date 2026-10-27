@@ -5,6 +5,17 @@ import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
  * Открывает новое окно с документом и вызывает window.print().
  */
 
+/** Экранирование для вставки в HTML: данные пользователей (названия работ, имена, заметки) нельзя подставлять как есть. */
+function esc(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
+}
+
+/** Адрес картинки: только http(s) или путь от корня сайта (без javascript:, data: и т.п.). */
+function safeImgUrl(u) {
+  const v = String(u || '').trim()
+  return /^(https?:\/\/|\/(?!\/))/i.test(v) ? v : ''
+}
+
 function fmt(n) {
   const v = Number.isFinite(Number(n)) ? Number(n) : 0
   return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0, useGrouping: true })
@@ -24,7 +35,7 @@ function parseNum(raw) {
 function fmtDateStr(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
+  if (Number.isNaN(d.getTime())) return esc(iso)
   return new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
   }).format(d)
@@ -33,7 +44,7 @@ function fmtDateStr(iso) {
 function fmtDateOnly(iso) {
   if (!iso) return '—'
   const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
+  if (Number.isNaN(d.getTime())) return esc(iso)
   return new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(d)
 }
 
@@ -63,21 +74,23 @@ function buildHtml({ event, car, detailing }) {
   const partsTotal = calcPartsTotal(partsItems)
   const partsDiscount = calcPartsDiscount(partsItems)
   const grandTotal = workTotal + partsTotal
-  const masterName = event.masterName || detailing?.masterName || detailing?.contactName || ''
-  const orderNum = event.orderNumber || `ЗН-${event.id}`
-  const clientName = car.clientName || car.ownerName || '—'
-  const clientPhone = car.clientPhone || car.ownerAccountPhone || ''
+  const masterName = esc(event.masterName || detailing?.masterName || detailing?.contactName || '')
+  const orderNum = esc(event.orderNumber || `ЗН-${event.id}`)
+  const clientName = esc(car.clientName || car.ownerName || '—')
+  const clientPhone = esc(car.clientPhone || car.ownerAccountPhone || '')
   const logoResolved = resolvePublicMediaUrl(detailing?.logo || '')
-  const logoUrl = logoResolved && logoResolved.startsWith('/')
-    ? `${window.location.origin}${logoResolved}`
-    : logoResolved
-  const inn = detailing?.inn || ''
-  const legalName = detailing?.legalName || detailing?.name || ''
-  const address = detailing?.address || ''
-  const phone = detailing?.phone || ''
-  const warrantyText = String(event.warrantyText || '').trim() || String(detailing?.warrantyText || '').trim()
+  const logoUrl = esc(
+    safeImgUrl(
+      logoResolved && logoResolved.startsWith('/') ? `${window.location.origin}${logoResolved}` : logoResolved,
+    ),
+  )
+  const inn = esc(detailing?.inn || '')
+  const legalName = esc(detailing?.legalName || detailing?.name || '')
+  const address = esc(detailing?.address || '')
+  const phone = esc(detailing?.phone || '')
+  const warrantyText = esc(String(event.warrantyText || '').trim() || String(detailing?.warrantyText || '').trim())
 
-  const plate = [car.plate, car.plateRegion].filter(Boolean).join(' ')
+  const plate = esc([car.plate, car.plateRegion].filter(Boolean).join(' '))
 
   const workRowsHtml = workItems.map((it, i) => {
     const qty = parseNum(it.qty)
@@ -85,7 +98,7 @@ function buildHtml({ event, car, detailing }) {
     const total = qty * price
     return `<tr>
       <td class="center">${i + 1}</td>
-      <td>${it.title || ''}</td>
+      <td>${esc(it.title)}</td>
       <td class="center">${qty % 1 === 0 ? qty : qty.toFixed(2)}</td>
       <td class="right">${fmtRub(price)}</td>
       <td class="right">${fmtRub(total)}</td>
@@ -99,8 +112,8 @@ function buildHtml({ event, car, detailing }) {
     const total = calcPartTotal(it)
     return `<tr>
       <td class="center">${i + 1}</td>
-      <td>${it.number || ''}</td>
-      <td>${it.title || ''}</td>
+      <td>${esc(it.number)}</td>
+      <td>${esc(it.title)}</td>
       <td class="center">${qty % 1 === 0 ? qty : qty.toFixed(2)} шт</td>
       <td class="right">${fmtRub(price)}</td>
       <td class="right">${discount > 0 ? fmtRub(discount) : '—'}</td>
@@ -197,7 +210,7 @@ function buildHtml({ event, car, detailing }) {
       ? `<img class="header__logo" src="${logoUrl}" alt="Логотип">`
       : `<div class="header__logo-placeholder">Лого</div>`}
     <div class="header__info">
-      <div class="header__name">${legalName || detailing?.name || 'Сервис'}</div>
+      <div class="header__name">${legalName || esc(detailing?.name) || 'Сервис'}</div>
       ${inn ? `<div class="header__sub">ИНН ${inn}</div>` : ''}
       ${address ? `<div class="header__sub">${address}</div>` : ''}
       ${phone ? `<div class="header__sub">Тел.: ${phone}</div>` : ''}
@@ -232,15 +245,15 @@ function buildHtml({ event, car, detailing }) {
     <div class="car-block__title">Автомобиль</div>
     <div>
       <div class="car-block__label">Марка / модель</div>
-      <div class="car-block__value">${[car.make, car.model].filter(Boolean).join(' ') || '—'}</div>
+      <div class="car-block__value">${esc([car.make, car.model].filter(Boolean).join(' ') || '—')}</div>
     </div>
     <div>
       <div class="car-block__label">Год выпуска</div>
-      <div class="car-block__value">${car.year || '—'}</div>
+      <div class="car-block__value">${esc(car.year || '—')}</div>
     </div>
     <div>
       <div class="car-block__label">Цвет</div>
-      <div class="car-block__value">${car.color || '—'}</div>
+      <div class="car-block__value">${esc(car.color || '—')}</div>
     </div>
     <div>
       <div class="car-block__label">Гос. номер</div>
@@ -248,7 +261,7 @@ function buildHtml({ event, car, detailing }) {
     </div>
     <div>
       <div class="car-block__label">VIN</div>
-      <div class="car-block__value">${car.vin || '—'}</div>
+      <div class="car-block__value">${esc(car.vin || '—')}</div>
     </div>
     <div>
       <div class="car-block__label">Пробег</div>
@@ -256,7 +269,7 @@ function buildHtml({ event, car, detailing }) {
     </div>
   </div>
 
-  ${event.reason ? `<div class="section-label">Причины обращения:</div><div class="section-text">${event.reason}</div>` : ''}
+  ${event.reason ? `<div class="section-label">Причины обращения:</div><div class="section-text">${esc(event.reason)}</div>` : ''}
 
   <!-- Выполненные работы -->
   ${workItems.length > 0 ? `
@@ -285,7 +298,7 @@ function buildHtml({ event, car, detailing }) {
   <!-- Услуги из системы (если нет work_items) -->
   ${workItems.length === 0 && services.length > 0 ? `
   <div class="section-label" style="margin-top:12px;">Выполненные работы / услуги</div>
-  <div class="services-list section-text">${services.map((s, i) => `${i + 1}. ${s}`).join('\n')}</div>` : ''}
+  <div class="services-list section-text">${services.map((s, i) => `${i + 1}. ${esc(s)}`).join('\n')}</div>` : ''}
 
   <!-- Запасные части -->
   ${partsItems.length > 0 ? `
@@ -339,7 +352,7 @@ function buildHtml({ event, car, detailing }) {
   </div>` : ''}
 
   <!-- Рекомендации мастера -->
-  ${event.note ? `<div class="section-label" style="margin-top:12px;">Рекомендации мастера:</div><div class="section-text">${event.note}</div>` : ''}
+  ${event.note ? `<div class="section-label" style="margin-top:12px;">Рекомендации мастера:</div><div class="section-text">${esc(event.note)}</div>` : ''}
 
   <!-- Гарантия -->
   ${warrantyText ? `<div class="warranty">${warrantyText}</div>` : ''}
@@ -375,6 +388,8 @@ function buildHtml({ event, car, detailing }) {
 </body>
 </html>`
 }
+
+export { buildHtml as buildVisitOrderHtml }
 
 export function openVisitOrderPrint({ event, car, detailing }) {
   const html = buildHtml({ event, car, detailing })

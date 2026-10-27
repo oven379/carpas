@@ -23,6 +23,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Страховка: в production подробные ошибки (стек, пути, SQL) никогда не показываются, даже если APP_DEBUG включили по ошибке.
+        if ($this->app->environment('production')) {
+            config(['app.debug' => false]);
+        }
+
         //
     }
 }
