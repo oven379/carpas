@@ -40,7 +40,7 @@ Route::get('/download/android', function () {
 });
 Route::get('/push/settings', [AdminPushController::class, 'publicSettings']);
 
-Route::post('/support/tickets', [SupportTicketController::class, 'store']);
+Route::post('/support/tickets', [SupportTicketController::class, 'store'])->middleware('throttle:support');
 
 Route::post('/admin/support/login', [AdminSupportController::class, 'login'])->middleware('throttle:10,1');
 
@@ -67,7 +67,6 @@ Route::middleware('admin.support')->group(function () {
 });
 
 Route::get('/public/stats', [PublicShowcaseController::class, 'stats']);
-Route::get('/public/cars/recent', [PublicShowcaseController::class, 'recentCars']);
 Route::get('/public/landing/garage-cards', [PublicShowcaseController::class, 'landingGarageCards']);
 Route::get('/public/detailings/{id}', [PublicShowcaseController::class, 'detailing']);
 Route::get('/public/garages/{slug}', [PublicShowcaseController::class, 'ownerGarage']);

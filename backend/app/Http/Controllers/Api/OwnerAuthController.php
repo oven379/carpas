@@ -281,9 +281,7 @@ class OwnerAuthController extends Controller
         if (array_key_exists('garagePrivate', $patch)) {
             $o->garage_private = (bool) $patch['garagePrivate'];
         }
-        if (array_key_exists('isPremium', $patch)) {
-            $o->is_premium = (bool) $patch['isPremium'];
-        }
+        // isPremium и лимит гаража здесь НЕ принимаются: их выдаёт только поддержка (раньше владелец мог выдать себе Premium).
 
         try {
             $o->save();

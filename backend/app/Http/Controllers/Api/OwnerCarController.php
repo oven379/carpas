@@ -286,9 +286,13 @@ class OwnerCarController extends Controller
             return response()->json(['status' => 'claimed']);
         }
 
+        // Владелец сам ввёл этот VIN, поэтому его можно вернуть целиком; контакты и прочее скрыты.
+        $orphan = ApiResources::carSearchResult($car);
+        $orphan['vin'] = (string) $car->vin;
+
         return response()->json([
             'status' => 'orphan',
-            'car' => ApiResources::car($car),
+            'car' => $orphan,
         ]);
     }
 

@@ -33,6 +33,59 @@ class ApiResources
         return $url.$sep.'v='.$ts;
     }
 
+    /**
+     * Авто для ЧУЖИХ глаз (поиск дублей, привязка по VIN): строгий список разрешённых полей.
+     * Контакты владельца и клиента (email, телефоны, имена), госномер и полный VIN не отдаются —
+     * иначе любой зарегистрированный пользователь мог бы выгрузить чужие контакты поиском.
+     *
+     * @return array<string, mixed>
+     */
+    public static function carSearchResult(Car $c): array
+    {
+        $full = self::car($c);
+        $out = array_intersect_key($full, array_flip([
+            'id', 'detailingId', 'detailingPublicSlug', 'detailingIsPersonal', 'detailingName', 'detailingLogo',
+            'make', 'model', 'year', 'mileageKm', 'color', 'city', 'hero', 'segment',
+        ]));
+        $vin = (string) ($full['vin'] ?? '');
+        $out['vin'] = $vin === '' ? '' : str_repeat('*', max(0, strlen($vin) - 4)).substr($vin, -4);
+
+        return $out;
+    }
+
+    /**
+     * Авто на публичной ссылке «поделиться историей» (/share/{token}): только то, что видит покупатель.
+     * VIN скрыт, контактов владельца и клиентов нет.
+     *
+     * @return array<string, mixed>
+     */
+    public static function carPublic(Car $c): array
+    {
+        $full = self::car($c);
+        $out = array_intersect_key($full, array_flip([
+            'id', 'make', 'model', 'year', 'mileageKm', 'color', 'city', 'hero', 'plate', 'plateRegion', 'createdAt', 'updatedAt',
+        ]));
+        $out['vin'] = '';
+        $seller = $full['seller'] ?? null;
+        $out['seller'] = is_array($seller) ? array_intersect_key($seller, array_flip(['name', 'type'])) : null;
+
+        return $out;
+    }
+
+    /**
+     * Партнёр для публичной страницы /d/…: без логин-почты, ИНН, юрлица, мастера и служебных полей.
+     *
+     * @return array<string, mixed>
+     */
+    public static function detailingPublic(Detailing $d): array
+    {
+        return array_intersect_key(self::detailing($d), array_flip([
+            'id', 'publicSlug', 'name', 'businessType', 'phone', 'city', 'address', 'description', 'workingHours',
+            'website', 'telegram', 'instagram', 'logo', 'cover', 'servicesOffered', 'detailingServicesOffered',
+            'maintenanceServicesOffered', 'customServiceCategories',
+        ]));
+    }
+
     public static function detailing(Detailing $d): array
     {
         $det = is_array($d->services_offered) ? $d->services_offered : [];

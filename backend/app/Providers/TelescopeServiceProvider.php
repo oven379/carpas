@@ -33,7 +33,9 @@ class TelescopeServiceProvider extends TelescopeApplicationServiceProvider
     protected function gate(): void
     {
         Gate::define('viewTelescope', function ($user = null) {
-            return config('telescope.enabled', false);
+            // Только локально: панель отладки показывает запросы, SQL и заголовки — на проде она не должна открываться,
+            // даже если TELESCOPE_ENABLED включили по ошибке.
+            return config('telescope.enabled', false) && app()->environment('local');
         });
     }
 }

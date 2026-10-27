@@ -48,7 +48,7 @@ class CarSearchController extends Controller
             ->take(20)
             ->values()
             ->map(function (Car $c) {
-                $row = ApiResources::car($c);
+                $row = ApiResources::carSearchResult($c);
                 $row['detailingName'] = $c->detailing?->name ?? '';
                 $row['vinHitFromOwnerGarage'] = OwnerGarageCar::isGarageOnly($c);
 
@@ -263,7 +263,7 @@ class CarSearchController extends Controller
 
         return response()->json(
             $cars->map(function (Car $c) {
-                $row = ApiResources::car($c);
+                $row = ApiResources::carSearchResult($c);
                 $row['detailingName'] = $c->detailing?->name ?? '';
 
                 return $row;
@@ -290,7 +290,7 @@ class CarSearchController extends Controller
 
         return response()->json(
             $cars->map(function (Car $c) {
-                $row = ApiResources::car($c);
+                $row = ApiResources::carSearchResult($c);
                 $row['detailingName'] = $c->detailing?->name ?? '';
 
                 return $row;

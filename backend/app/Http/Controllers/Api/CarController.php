@@ -50,8 +50,17 @@ class CarController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $id);
+        $data = ApiResources::car($car);
 
-        return response()->json(ApiResources::car($car));
+        // «Сетевая» карточка без владельца открыта любому партнёру для ведения визитов, но контакты клиента другой студии
+        // (имя, телефон, email) видит только студия, которой карточка принадлежит или у которой есть визиты по этому авто.
+        if (! DetailingCarAccess::detailingMayEditCarScalars($d, $car)) {
+            $data = array_diff_key($data, array_flip([
+                'clientName', 'clientPhone', 'clientEmail', 'ownerPhone', 'ownerEmail', 'ownerName', 'ownerAccountPhone',
+            ]));
+        }
+
+        return response()->json($data);
     }
 
     /**

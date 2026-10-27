@@ -65,7 +65,8 @@
       ym(113104738, 'init', {
         defer: true,
         ssr: true,
-        webvisor: true,
+        // Вебвизор выключен: он записывал бы кабинет и админку (имена, телефоны и госномера клиентов — персональные данные).
+        webvisor: false,
         clickmap: true,
         ecommerce: 'dataLayer',
         accurateTrackBounce: true,

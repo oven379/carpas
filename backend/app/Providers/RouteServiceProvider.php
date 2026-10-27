@@ -54,6 +54,11 @@ class RouteServiceProvider extends ServiceProvider
             return Limit::perMinute(240)->by($key);
         });
 
+        // Заявки в поддержку доступны и без входа (гости): ограничиваем, чтобы не заваливали поддержку и Telegram.
+        RateLimiter::for('support', function (Request $request) {
+            return Limit::perMinutes(10, 8)->by('support|'.$request->ip());
+        });
+
         // Регистрация: свой счётчик, не пересекается с throttle:10,1 на логинах (они делят один ключ на IP).
         RateLimiter::for('register', function (Request $request) {
             return Limit::perMinutes(10, 10)->by('register|'.$request->ip());

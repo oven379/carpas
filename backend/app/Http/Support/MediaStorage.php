@@ -236,12 +236,14 @@ final class MediaStorage
         if ($raw === false) {
             return null;
         }
-        $ext = match ($mime) {
-            'image/jpeg', 'image/jpg' => 'jpg',
+        // Тип определяем по СОДЕРЖИМОМУ, а не по заявленному в data:-строке MIME: иначе можно загрузить HTML/скрипт под видом
+        // картинки. SVG не принимаем совсем — он может содержать <script> и выполняется при открытии файла по ссылке.
+        $real = strtolower((string) (new \finfo(FILEINFO_MIME_TYPE))->buffer($raw));
+        $ext = match ($real) {
+            'image/jpeg' => 'jpg',
             'image/png' => 'png',
             'image/webp' => 'webp',
             'image/gif' => 'gif',
-            'image/svg+xml' => 'svg',
             'application/pdf' => 'pdf',
             default => null,
         };
@@ -249,7 +251,7 @@ final class MediaStorage
             return null;
         }
 
-        return ['binary' => $raw, 'ext' => $ext, 'mime' => $mime];
+        return ['binary' => $raw, 'ext' => $ext, 'mime' => $real];
     }
 
     public static function deleteStoredFileIfManaged(?string $stored): void

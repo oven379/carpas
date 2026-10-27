@@ -48,7 +48,7 @@ class CarSearchForOwnerClaimTest extends FeatureTestCase
 
     public function test_finds_by_client_email_non_personal_only(): void
     {
-        $this->partnerCar([
+        $car = $this->partnerCar([
             'client_email' => 'client-match@example.test',
         ]);
 
@@ -57,21 +57,26 @@ class CarSearchForOwnerClaimTest extends FeatureTestCase
         $res = $this->getJson('/api/owners/cars/search-for-claim?q='.urlencode('client-match@example.test'));
         $res->assertOk();
         $res->assertJsonCount(1);
-        $res->assertJsonPath('0.clientEmail', 'client-match@example.test');
+        // Карточка найдена по email клиента, но сам email в ответе не возвращается (чужие контакты).
+        $res->assertJsonPath('0.id', (string) $car->id);
+        $this->assertArrayNotHasKey('clientEmail', $res->json('0'));
+        $this->assertStringNotContainsString('client-match@example.test', $res->getContent());
         $res->assertJsonPath('0.vinHitFromOwnerGarage', false);
     }
 
     public function test_finds_by_vin(): void
     {
         $vin = strtoupper(substr(str_replace('-', '', (string) Str::uuid()), 0, 17));
-        $this->partnerCar(['vin' => $vin]);
+        $car = $this->partnerCar(['vin' => $vin]);
 
         Sanctum::actingAs($this->actingOwner());
 
         $res = $this->getJson('/api/owners/cars/search-for-claim?q='.urlencode($vin));
         $res->assertOk();
         $res->assertJsonCount(1);
-        $res->assertJsonPath('0.vin', $vin);
+        $res->assertJsonPath('0.id', (string) $car->id);
+        // VIN в результатах поиска маскируется: видны только последние 4 символа.
+        $res->assertJsonPath('0.vin', str_repeat('*', 13).substr($vin, -4));
     }
 
     public function test_phone_search_skips_owner_garage_without_studio(): void
@@ -99,7 +104,7 @@ class CarSearchForOwnerClaimTest extends FeatureTestCase
             'client_email' => '',
         ]);
 
-        $this->partnerCar([
+        $car = $this->partnerCar([
             'client_phone' => '+79165550102',
         ]);
 
@@ -108,7 +113,8 @@ class CarSearchForOwnerClaimTest extends FeatureTestCase
         $res = $this->getJson('/api/owners/cars/search-for-claim?q='.urlencode('9165550102'));
         $res->assertOk();
         $res->assertJsonCount(1);
-        $res->assertJsonPath('0.clientPhone', '+79165550102');
+        $res->assertJsonPath('0.id', (string) $car->id);
+        $this->assertStringNotContainsString('9165550102', $res->getContent());
     }
 
     public function test_empty_query_returns_empty_array(): void

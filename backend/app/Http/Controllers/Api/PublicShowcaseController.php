@@ -125,24 +125,6 @@ class PublicShowcaseController extends Controller
         ]);
     }
 
-    public function recentCars(Request $request)
-    {
-        $limit = min(20, max(1, (int) $request->query('limit', 6)));
-
-        $cars = Car::query()
-            ->whereHas(
-                'detailing',
-                fn ($q) => $q->whereNotNull('verification_approved_at'),
-            )
-            ->with('owner')
-            ->orderByDesc('updated_at')
-            ->limit($limit)
-            ->get();
-
-        return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
-    }
-
-    /** Числовой сегмент в URL — совместимость со старыми ссылками по id. */
     private function ownerFromBearerForPublicShowcase(Request $request): ?Owner
     {
         $raw = $request->bearerToken();
@@ -262,7 +244,7 @@ class PublicShowcaseController extends Controller
         }
 
         return response()->json([
-            'detailing' => ApiResources::detailing($d),
+            'detailing' => ApiResources::detailingPublic($d),
             'carsCount' => $cars->count(),
             'lastWorkPhotos' => $uniq,
         ]);

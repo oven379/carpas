@@ -83,8 +83,7 @@ class CarShareController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $publicCar = ApiResources::car($car);
-        $publicCar['vin'] = '';
+        $publicCar = ApiResources::carPublic($car);
 
         return response()->json([
             'car' => $publicCar,
