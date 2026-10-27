@@ -17,6 +17,7 @@ import { partnerApplyErrorMessage } from '../authPartnerMessages.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { CITY_FIELD_DD_HINT, formatPhoneRuInput } from '../../lib/format.js'
 import { BUSINESS_TYPES, DEFAULT_BUSINESS_TYPE } from '../../lib/businessTypes.js'
+import { GOALS, reachGoal } from '../../lib/metrika.js'
 
 export default function PartnerApplyPage() {
   const r = useRepo()
@@ -173,6 +174,7 @@ export default function PartnerApplyPage() {
                         address: regAddress,
                         servicesOffered: [],
                       })
+                      reachGoal(GOALS.partnerApplySubmit)
                       if (res?.pendingVerification) {
                         alert(
                           String(

@@ -8,6 +8,7 @@ import { AppDownload } from '../about-landing/AppDownload.tsx'
 import { getPostBySlug, relatedPosts } from './posts.jsx'
 import '../about-landing/AboutLanding.css'
 import './Blog.css'
+import { GOALS, reachGoal } from '../lib/metrika.js'
 
 function formatDate(iso) {
   try {
@@ -67,7 +68,11 @@ export default function BlogArticlePage() {
                     На этапе запуска бесплатно — с настройкой и публичным лендингом в подарок.
                   </p>
                   <div className="blogCta__row">
-                    <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+                    <Link
+                      to="/auth/partner/apply"
+                      className="al-btnPrimarySolid"
+                      onClick={() => reachGoal(GOALS.blogCtaBusiness)}
+                    >
                       Подключить сервис
                     </Link>
                     <Link to="/business" className="al-btnOutline">
@@ -82,7 +87,11 @@ export default function BlogArticlePage() {
                     Бесплатно. Вся история обслуживания авто — всегда в телефоне.
                   </p>
                   <div className="blogCta__row">
-                    <Link to="/auth/owner" className="al-btnPrimarySolid">
+                    <Link
+                      to="/auth/owner"
+                      className="al-btnPrimarySolid"
+                      onClick={() => reachGoal(GOALS.blogCtaOwner)}
+                    >
                       Добавить авто
                     </Link>
                     <Link to="/owners" className="al-btnOutline">

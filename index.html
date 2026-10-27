@@ -60,7 +60,10 @@
           a.parentNode.insertBefore(k, a)
       })(window, document, 'script', 'https://mc.yandex.ru/metrika/tag.js?id=113104738', 'ym')
 
+      // defer: true — автохит при загрузке отключён; просмотры шлёт MetrikaRouteTracker (src/lib/metrika.js)
+      // уже после того, как страница выставила свой заголовок.
       ym(113104738, 'init', {
+        defer: true,
         ssr: true,
         webvisor: true,
         clickmap: true,

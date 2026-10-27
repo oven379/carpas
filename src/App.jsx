@@ -11,6 +11,7 @@ import DevHud from './ui/DevHud.jsx'
 import { isAuthed } from './ui/auth.js'
 import { refreshAllClientData } from './ui/useRepo.js'
 import { isNativeApp } from './lib/nativePlatform.js'
+import { shouldTrackPath, trackHit } from './lib/metrika.js'
 import CookieBanner from './ui/CookieBanner.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 import HomePage from './ui/pages/HomePage.jsx'
@@ -112,21 +113,15 @@ function ScrollToTopOnRouteChange() {
   return null
 }
 
-/** ID счётчика Яндекс.Метрики (счётчик подключён в index.html). */
-const YM_COUNTER_ID = 113104738
-
-/** SPA-переходы: базовый счётчик считает только первую загрузку, поэтому на смену маршрута шлём hit. */
+/** Просмотры страниц в Яндекс.Метрику (включая первую загрузку: автохит в index.html отключён через defer). */
 function MetrikaRouteTracker() {
   const loc = useLocation()
-  const firstRender = useRef(true)
+  const lastUrl = useRef(typeof document !== 'undefined' ? document.referrer : '')
   useEffect(() => {
-    if (firstRender.current) {
-      firstRender.current = false
-      return
-    }
-    if (typeof window.ym === 'function') {
-      window.ym(YM_COUNTER_ID, 'hit', window.location.href, { referer: document.referrer })
-    }
+    if (!shouldTrackPath(loc.pathname)) return
+    const url = window.location.href
+    trackHit({ url, referer: lastUrl.current, prevTitle: document.title })
+    lastUrl.current = url
   }, [loc.pathname, loc.search])
   return null
 }

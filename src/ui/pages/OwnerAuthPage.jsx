@@ -26,6 +26,7 @@ import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import Logo from '../Logo.jsx'
 import { IOS_APP_URL, androidApkUrl } from '../../lib/appLinks.js'
+import { GOALS, reachGoal } from '../../lib/metrika.js'
 
 export default function OwnerAuthPage() {
   const r = useRepo()
@@ -182,6 +183,7 @@ export default function OwnerAuthPage() {
         return
       }
       setSessionOwner(snap, reg.token)
+      reachGoal(GOALS.ownerRegister)
       refreshAllClientData()
       const dest = resolveAfterRegister()
       nav(dest, { replace: true })

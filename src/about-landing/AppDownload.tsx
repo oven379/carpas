@@ -1,4 +1,5 @@
 import { IOS_APP_URL, androidApkUrl } from '../lib/appLinks.js'
+import { GOALS, reachGoal } from '../lib/metrika.js'
 
 function AppleGlyph() {
   // Логотип Apple, серый (как в присланной иконке).
@@ -48,6 +49,7 @@ export function AppDownload({ title = 'Мобильное приложение' 
           href={IOS_APP_URL}
           target="_blank"
           rel="noreferrer"
+          onClick={() => reachGoal(GOALS.appStoreClick)}
           aria-label="Скачать приложение КарПас для iOS в App Store"
         >
           <span className="al-appDlBtn__ic">
@@ -61,6 +63,7 @@ export function AppDownload({ title = 'Мобильное приложение' 
         <a
           className="al-appDlBtn"
           href={androidApkUrl()}
+          onClick={() => reachGoal(GOALS.androidApkClick)}
           aria-label="Скачать приложение КарПас для Android (APK-файл)"
         >
           <span className="al-appDlBtn__ic">

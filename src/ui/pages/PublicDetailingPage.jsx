@@ -12,6 +12,7 @@ import { Seo } from '../../seo/Seo.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
+import { GOALS, reachGoal } from '../../lib/metrika.js'
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -433,7 +434,13 @@ export default function PublicDetailingPage() {
                 <div className="muted small">Нажмите, чтобы позвонить в {businessTypeCall(bizType)}.</div>
               </div>
               {phoneTelHref ? (
-                <a className="btn" data-variant="primary" href={phoneTelHref} style={{ whiteSpace: 'nowrap' }}>
+                <a
+                  className="btn"
+                  data-variant="primary"
+                  href={phoneTelHref}
+                  style={{ whiteSpace: 'nowrap' }}
+                  onClick={() => reachGoal(GOALS.partnerPhoneClick)}
+                >
                   Позвонить
                 </a>
               ) : null}
