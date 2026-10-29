@@ -5893,6 +5893,45 @@ button.garageSettings__thumb:focus-visible {
   gap: 12px;
 }
 
+/* Лендинг партнёра: на телефоне порядок — информация, услуги, связаться, описание, фото; на компьютере две колонки. */
+.detPublicLayout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 981px) {
+  .detPublicLayout {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "info services"
+      "info contact"
+      "desc desc"
+      "photos photos";
+    align-items: start;
+  }
+
+  .detPublicLayout__info {
+    grid-area: info;
+  }
+
+  .detPublicLayout__services {
+    grid-area: services;
+  }
+
+  .detPublicLayout__contact {
+    grid-area: contact;
+  }
+
+  .detPublicLayout__desc {
+    grid-area: desc;
+  }
+
+  .detPublicLayout__photos {
+    grid-area: photos;
+  }
+}
+
 .authHub__intro {
   margin: 0;
   line-height: 1.55;
