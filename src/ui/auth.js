@@ -138,14 +138,6 @@ export function mergeSessionOwnerScalars(patch) {
     garageSlug: patch.garageSlug != null ? String(patch.garageSlug) : cur.garageSlug,
     garagePrivate:
       patch.garagePrivate !== undefined ? Boolean(patch.garagePrivate) : Boolean(cur.garagePrivate),
-    garageBannerEnabled:
-      patch.garageBannerEnabled !== undefined ? Boolean(patch.garageBannerEnabled) : cur.garageBannerEnabled === true,
-    garageBanner:
-      Object.prototype.hasOwnProperty.call(patch, 'garageBanner') && patch.garageBanner
-        ? String(patch.garageBanner)
-        : Object.prototype.hasOwnProperty.call(patch, 'garageBanner')
-          ? ''
-          : (cur.garageBanner ?? ''),
     garageAvatar:
       Object.prototype.hasOwnProperty.call(patch, 'garageAvatar') && patch.garageAvatar
         ? String(patch.garageAvatar)
@@ -191,8 +183,6 @@ export function ownerToSessionSnapshot(o) {
     garageCity: o.garageCity != null ? String(o.garageCity) : '',
     garageSlug: slug != null && slug !== '' ? String(slug) : '',
     garagePrivate: Boolean(o.garagePrivate),
-    garageBannerEnabled: o.garageBannerEnabled === true,
-    garageBanner: typeof o.garageBanner === 'string' ? o.garageBanner : '',
     garageAvatar: typeof o.garageAvatar === 'string' ? o.garageAvatar : '',
     showPhonePublic: ownerPublicFlagTrue(o.showPhonePublic),
     garageWebsite: o.garageWebsite != null ? String(o.garageWebsite) : '',

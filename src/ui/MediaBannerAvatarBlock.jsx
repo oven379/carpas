@@ -8,7 +8,6 @@ import { photoBgStyle } from '../lib/photoBg.js'
 
 const PRESETS = {
   garage: {
-    banner: { maxW: 2000, maxH: 1200, quality: 0.82, maxBytes: 2.5 * 1024 * 1024 },
     avatar: { maxW: 512, maxH: 512, quality: 0.86, maxBytes: 1024 * 1024 },
   },
   detailing: {

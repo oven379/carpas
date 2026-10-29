@@ -4192,32 +4192,6 @@ a.backNav {
   position: relative;
 }
 
-.detHero__editBtn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  min-height: 44px;
-}
-
-.detHero__editBtn--icon {
-  width: 46px;
-  height: 46px;
-  min-height: 46px;
-  padding: 0;
-  border-radius: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in oklab, var(--bg) 78%, transparent);
-  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
-  backdrop-filter: blur(10px);
-}
-
-.detHero__editIcon {
-  width: 22px;
-  height: 22px;
-}
-
 .detHero__bottomRow {
   width: 100%;
   display: flex;
@@ -4336,23 +4310,7 @@ a.backNav {
   letter-spacing: 0;
 }
 
-.garageHero__avatarFallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 22px;
-  letter-spacing: 0;
-  color: var(--text-h);
-  background: color-mix(in oklab, var(--bg) 58%, var(--code-bg));
-}
-
 /* Герой гаража: тот же угол, что и у детейлинга (логотип внизу справа на баннере) */
-.garageHero .detHero__logo {
-  right: 16px;
-  left: auto;
-  bottom: 14px;
-}
 
 /* Гараж владельца: заголовок страницы + имя поменьше */
 .garagePage__ownerName {
@@ -4434,10 +4392,6 @@ a.backNav {
 }
 
 /* Страница гаража: баннер сразу под шапкой сайта, без блока заголовка над ним */
-.garagePage .detHero.detHero--card.garageHero {
-  margin-top: 0;
-  height: 300px;
-}
 
 .visuallyHidden {
   position: absolute;
@@ -4453,35 +4407,6 @@ a.backNav {
 }
 
 /* Гараж с пользовательским баннером: широкая обложка, затем отступ и блок профиля как на макете */
-.garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero {
-  height: clamp(220px, 34vw, 320px);
-  border-radius: 16px;
-  box-shadow: 0 14px 48px color-mix(in oklab, #000 45%, transparent);
-}
-
-.garagePage.garagePage--hasBanner .detHero__overlay--garageOwner {
-  background: linear-gradient(
-    to top,
-    color-mix(in oklab, black 40%, transparent),
-    transparent 55%
-  );
-}
-
-.garageDash--belowBanner {
-  margin-top: 24px;
-}
-
-.garagePage--hasBanner .garageDash__name,
-.garagePage--hasBanner .garageDash__nameBtn {
-  font-size: 1.32rem;
-  margin-bottom: 4px;
-}
-
-.garageDash__nameRow {
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 10px;
-}
 
 /* Гараж владельца: шапка (владелец слева, сервис справа), вкладки, сетка авто */
 .garageDash.card {
@@ -5056,50 +4981,8 @@ a.btn.btn--asDisabled {
 /* Очень узкие экраны и малые WebView: не сжимать имя до нуля, подсказка под аватаром короче */
 
 /* Герой гаража: иконка настроек; баннер меняется в /garage/settings */
-.detHero__overlay--garageOwner {
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-end;
-}
 
 /* Гараж владельца: счётчик перенесён в карточку профиля (справа от кнопок). */
-.detHero__overlay--garageOwner .detHero__bottomRow {
-  justify-content: flex-start;
-}
-
-.detHero__overlay--garageOwner .garageHero__bottomRow {
-  align-items: flex-start;
-}
-
-.garageHero__bottomRow {
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 10px;
-}
-
-.garageHero__bannerRow {
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 10px 14px;
-}
-
-.garageHero__bannerRow .detHero__pills {
-  justify-content: flex-end;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.garageHero--noBanner .detHero__overlay--card {
-  background: linear-gradient(
-    to top,
-    color-mix(in oklab, black 72%, transparent) 0%,
-    color-mix(in oklab, black 22%, transparent) 55%,
-    transparent 72%
-  );
-}
 
 .rowItem--static {
   cursor: default;
@@ -5236,44 +5119,6 @@ a.btn.btn--asDisabled {
 }
 
 /* Переключатель баннера: как у полей с ServiceHint (подпись + кнопка «i») */
-.garageSettings__bannerField {
-  margin: 0 0 16px;
-}
-
-.garageSettings__bannerField .serviceHint__fieldTop {
-  align-items: flex-start;
-}
-
-.garageSettings__bannerCheckGroup {
-  margin: 0;
-  padding: 0;
-  min-width: 0;
-}
-
-.garageSettings__bannerCheckRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  cursor: pointer;
-  user-select: none;
-  line-height: 1.45;
-}
-
-.garageSettings__bannerCheckInput {
-  margin-top: 3px;
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.garageSettings__bannerCheckText {
-  display: block;
-  min-width: 0;
-}
 
 .garageSettings__mediaCols {
   display: flex;
@@ -8368,41 +8213,8 @@ a.btn.carPage__recsAddVisitFull,
     height: 200px;
   }
 
-  .garagePage .detHero.detHero--card.garageHero {
-    height: 240px;
-  }
-
-  .garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero {
-    height: clamp(200px, 42vw, 280px);
-  }
-
-  .garageDash--belowBanner {
-    margin-top: 18px;
-  }
-
-  .garageHero__bannerRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .garageHero__bannerRow .detHero__pills {
-    justify-content: flex-start;
-  }
-
   .detHero__overlay--card {
     padding: 10px;
-  }
-
-  .detHero__editBtn {
-    top: 10px;
-    right: 10px;
-  }
-
-  .detHero__editBtn--icon {
-    width: 44px;
-    height: 44px;
-    min-height: 44px;
-    border-radius: 14px;
   }
 
   .detHero__bottomRow {
@@ -8424,19 +8236,9 @@ a.btn.carPage__recsAddVisitFull,
     border-radius: 14px;
   }
 
-  .garageHero .detHero__logo {
-    right: 12px;
-    left: auto;
-    bottom: 12px;
-  }
-
   /* Две метрики — логотип выше, иначе наезжает на подписи (узкий экран) */
   .detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
     bottom: 126px;
-  }
-
-  .garageHero .detHero__overlay--card.detHero__overlay--bannerMetrics .detHero__logo {
-    bottom: 120px;
   }
 
   /* Герой карточки: цвет / год / пробег (и владелец, и детейлинг; без VIN и номера на обложке) */
