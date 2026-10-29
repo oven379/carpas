@@ -4,7 +4,6 @@ import { compressImageFile } from '../lib/imageCompression.js'
 import DefaultAvatar from './DefaultAvatar.jsx'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 import { photoBgStyle } from '../lib/photoBg.js'
-import brandWordmarkSrc from '../assets/brand-wordmark.svg?url'
 
 const PRESETS = {
   garage: {
@@ -165,7 +164,7 @@ export default function MediaBannerAvatarBlock({
               <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />
               <button
                 type="button"
-                className={`garageSettings__thumb garageSettings__thumb--banner${bannerUrl ? " photoFrame" : " garageSettings__thumb--bannerDefault"}`}
+                className={`garageSettings__thumb garageSettings__thumb--banner${bannerUrl ? " photoFrame" : ""}`}
                 style={bannerUrl ? photoBgStyle(bannerSrc) : undefined}
                 onClick={() => bannerRef.current?.click?.()}
                 aria-label={bannerUrl ? `Заменить ${bannerLabel.toLowerCase()}` : `Загрузить ${bannerLabel.toLowerCase()}`}
@@ -173,20 +172,12 @@ export default function MediaBannerAvatarBlock({
                 {bannerUrl ? (
                   <img alt={`Превью: ${bannerLabel}`} src={bannerSrc} />
                 ) : (
-                  <>
-                    <img
-                      className={`garageSettings__bannerDefaultLogo${avatarSrc ? "" : " garageSettings__bannerDefaultLogo--brand"}`}
-                      src={avatarSrc || brandWordmarkSrc}
-                      alt=""
-                      aria-hidden="true"
-                    />
                   <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
                     <span className="garageSettings__thumbEmptyPrimary">{bannerEmptyHint}</span>
                     {showPhotoUploadHints && showBannerEmptyThumbHint ? (
                       <span className="garageSettings__thumbEmptySecondary">{PHOTO_UPLOAD_EMPTY_THUMB_HINT}</span>
                     ) : null}
                   </span>
-                  </>
                 )}
               </button>
               {bannerUrl ? (
