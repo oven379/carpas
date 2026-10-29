@@ -8,7 +8,8 @@ import { useDetailing } from '../useDetailing.js'
 import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerGarageAddCarHint from '../OwnerGarageAddCarHint.jsx'
 import { displayRuPhone, fmtDate, fmtKm } from '../../lib/format.js'
-import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
+import { photoBgStyle } from '../../lib/photoBg.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
 import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import { dedupeCarsById, ownerGarageLimits } from '../../lib/garageLimits.js'
@@ -251,9 +252,12 @@ const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
       ) : null}
       {cars.length > 0 && bannerSurfaceVisible ? (
         <div
-          className="detHero detHero--card garageHero"
-          style={{ backgroundImage: resolvedBackgroundImageUrl(owner.garageBanner) }}
+          className={`detHero detHero--card garageHero${owner.garageBanner ? " detHero--coverFit photoFrame" : ""}`}
+          style={owner.garageBanner ? photoBgStyle(resolvePublicMediaUrl(owner.garageBanner)) : undefined}
         >
+          {owner.garageBanner ? (
+            <img className="detHero__coverImg" src={resolvePublicMediaUrl(owner.garageBanner)} alt="" decoding="async" />
+          ) : null}
           <div className="detHero__overlay detHero__overlay--card detHero__overlay--garageOwner">
             <Link
               className="btn detHero__editBtn detHero__editBtn--icon"

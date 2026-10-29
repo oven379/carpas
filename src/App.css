@@ -4112,7 +4112,9 @@ a.backNav {
 }
 
 /* Баннер партнёра на лендинге: показываем целиком (любые пропорции), поля — размытый фон из него же. */
-.detHero--coverFit.detHero--card {
+.detHero--coverFit.detHero--card,
+.garagePage .detHero.detHero--card.garageHero.detHero--coverFit,
+.garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero.detHero--coverFit {
   height: auto;
   display: flex;
   align-items: center;
@@ -5389,6 +5391,10 @@ button.garageSettings__thumb:focus-visible {
   aspect-ratio: 3 / 1;
   min-height: 96px;
   max-height: 160px;
+}
+
+.garageSettings__thumb--banner.photoFrame img {
+  object-fit: contain;
 }
 
 .garageSettings__thumb--avatar img,
