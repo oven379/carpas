@@ -4114,7 +4114,6 @@ a.backNav {
 /* Баннер партнёра на лендинге: показываем целиком (любые пропорции), поля — размытый фон из него же. */
 .detHero--coverFit.detHero--card {
   height: auto;
-  min-height: 120px;
   display: flex;
   align-items: center;
 }
