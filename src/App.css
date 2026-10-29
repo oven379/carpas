@@ -4118,9 +4118,8 @@ a.backNav {
   align-items: center;
 }
 
-/* Баннер не загружен: фирменный фон и тусклый логотип (партнёра, иначе КарПас) как водяной знак. */
-.detHero--defaultBanner.detHero--card,
-.garageSettings__thumb--bannerDefault {
+/* Баннер не загружен: фирменный фон и тусклый логотип КарПас как водяной знак. */
+.detHero--defaultBanner.detHero--card {
   background:
     repeating-linear-gradient(
       115deg,
@@ -5490,29 +5489,7 @@ button.garageSettings__thumb:focus-visible {
   color: color-mix(in oklab, var(--accent) 55%, var(--text));
 }
 
-.garageSettings__thumb--banner .garageSettings__bannerDefaultLogo {
-  position: absolute;
-  inset: auto;
-  top: 50%;
-  left: 50%;
-  width: auto;
-  height: 62%;
-  max-width: 46%;
-  transform: translate(-50%, -50%);
-  object-fit: contain;
-  border-radius: 10px;
-  opacity: 0.22;
-  pointer-events: none;
-}
-
-.garageSettings__thumb--banner .garageSettings__bannerDefaultLogo--brand {
-  height: 30%;
-  border-radius: 0;
-  opacity: 0.3;
-}
-
 .garageSettings__thumbEmpty--banner {
-  position: relative;
   font-size: 12px;
   padding: 14px 18px;
 }

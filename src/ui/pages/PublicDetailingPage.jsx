@@ -261,12 +261,7 @@ export default function PublicDetailingPage() {
           <img className="detHero__coverImg" src={publicCoverUrl} alt="" decoding="async" />
         ) : (
           <div className="detHero__defaultBanner" aria-hidden="true">
-            <img
-              className={`detHero__defaultBannerLogo${det.logo ? "" : " detHero__defaultBannerLogo--brand"}`}
-              src={det.logo ? resolvePublicMediaUrl(det.logo) : brandWordmarkSrc}
-              alt=""
-              decoding="async"
-            />
+            <img className="detHero__defaultBannerLogo detHero__defaultBannerLogo--brand" src={brandWordmarkSrc} alt="" decoding="async" />
           </div>
         )}
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
