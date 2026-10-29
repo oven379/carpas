@@ -14,6 +14,7 @@ import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
 import { GOALS, reachGoal } from '../../lib/metrika.js'
 import { photoBgStyle } from '../../lib/photoBg.js'
+import brandWordmarkSrc from '../../assets/brand-wordmark.svg?url'
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''
@@ -253,10 +254,21 @@ export default function PublicDetailingPage() {
       </div>
 
       <div
-        className={`detHero detHero--card detHero--publicDetailing detHero--detailingHero${publicCoverUrl ? " detHero--coverFit photoFrame" : ""}`}
+        className={`detHero detHero--card detHero--publicDetailing detHero--detailingHero${publicCoverUrl ? " detHero--coverFit photoFrame" : " detHero--defaultBanner"}`}
         style={publicCoverUrl ? photoBgStyle(publicCoverUrl) : undefined}
       >
-        {publicCoverUrl ? <img className="detHero__coverImg" src={publicCoverUrl} alt="" decoding="async" /> : null}
+        {publicCoverUrl ? (
+          <img className="detHero__coverImg" src={publicCoverUrl} alt="" decoding="async" />
+        ) : (
+          <div className="detHero__defaultBanner" aria-hidden="true">
+            <img
+              className={`detHero__defaultBannerLogo${det.logo ? "" : " detHero__defaultBannerLogo--brand"}`}
+              src={det.logo ? resolvePublicMediaUrl(det.logo) : brandWordmarkSrc}
+              alt=""
+              decoding="async"
+            />
+          </div>
+        )}
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">

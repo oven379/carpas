@@ -4118,6 +4118,47 @@ a.backNav {
   align-items: center;
 }
 
+/* Баннер не загружен: фирменный фон и тусклый логотип (партнёра, иначе КарПас) как водяной знак. */
+.detHero--defaultBanner.detHero--card {
+  height: 140px;
+  background:
+    repeating-linear-gradient(
+      115deg,
+      color-mix(in oklab, var(--accent) 9%, transparent) 0 14px,
+      transparent 14px 64px
+    ),
+    color-mix(in oklab, var(--accent) 5%, var(--bg));
+}
+
+@media (min-width: 981px) {
+  .detHero--defaultBanner.detHero--card {
+    height: 180px;
+  }
+}
+
+.detHero__defaultBanner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.detHero__defaultBannerLogo {
+  height: 62%;
+  max-width: 46%;
+  object-fit: contain;
+  border-radius: 14px;
+  opacity: 0.3;
+}
+
+.detHero__defaultBannerLogo--brand {
+  height: 34%;
+  border-radius: 0;
+  opacity: 0.38;
+}
+
 .detHero__coverImg {
   display: block;
   width: 100%;
