@@ -4111,6 +4111,29 @@ a.backNav {
   font-size: 17px;
 }
 
+/* Баннер партнёра на лендинге: показываем целиком (любые пропорции), поля — размытый фон из него же. */
+.detHero--coverFit.detHero--card {
+  height: auto;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+}
+
+.detHero__coverImg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  object-fit: contain;
+}
+
+.detHero--coverFit .detHero__overlay--card {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  background: none;
+}
+
 .detHero__overlay--card {
   height: 100%;
   display: flex;

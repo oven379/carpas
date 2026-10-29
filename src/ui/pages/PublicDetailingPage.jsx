@@ -7,7 +7,7 @@ import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import { urlsToPhotoItems } from '../../lib/photoGallery.js'
 import { displayRuPhone } from '../../lib/format.js'
 import { absoluteUrl } from '../../lib/siteOrigin.js'
-import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
+import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
 import { Seo } from '../../seo/Seo.jsx'
 import NotFoundPage from './NotFoundPage.jsx'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
@@ -190,7 +190,7 @@ export default function PublicDetailingPage() {
         ]
       : null
 
-  const publicCoverBg = resolvedBackgroundImageUrl(det.cover)
+  const publicCoverUrl = det.cover ? resolvePublicMediaUrl(det.cover) : ""
   const detInitials = String(det?.name || 'Д').trim().slice(0, 2).toUpperCase()
 
   const fromSetup = sp.get('from') === 'setup'
@@ -253,9 +253,10 @@ export default function PublicDetailingPage() {
       </div>
 
       <div
-        className="detHero detHero--card detHero--publicDetailing detHero--detailingHero"
-        style={publicCoverBg ? { backgroundImage: publicCoverBg } : undefined}
+        className={`detHero detHero--card detHero--publicDetailing detHero--detailingHero${publicCoverUrl ? " detHero--coverFit photoFrame" : ""}`}
+        style={publicCoverUrl ? photoBgStyle(publicCoverUrl) : undefined}
       >
+        {publicCoverUrl ? <img className="detHero__coverImg" src={publicCoverUrl} alt="" decoding="async" /> : null}
         <div className="detHero__overlay detHero__overlay--card detHero__overlay--bannerMetrics">
           <div className="detHero__bottomRow">
             <div className="row gap wrap carHero__pills detHero__pills detHero__pills--right">
