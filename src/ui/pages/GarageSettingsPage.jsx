@@ -21,8 +21,6 @@ export default function GarageSettingsPage() {
     name: '',
     phone: '',
     garageCity: '',
-    garageBannerEnabled: false,
-    garageBanner: '',
     garageAvatar: '',
   })
 
@@ -32,8 +30,6 @@ export default function GarageSettingsPage() {
       name: owner.name || '',
       phone: formatPhoneRuInput(owner.phone || ''),
       garageCity: owner.garageCity || '',
-      garageBannerEnabled: owner.garageBannerEnabled === true,
-      garageBanner: owner.garageBanner || '',
       garageAvatar: owner.garageAvatar || '',
     })
   }, [
@@ -41,8 +37,6 @@ export default function GarageSettingsPage() {
     owner?.name,
     owner?.phone,
     owner?.garageCity,
-    owner?.garageBannerEnabled,
-    owner?.garageBanner,
     owner?.garageAvatar,
   ])
 
@@ -188,56 +182,23 @@ export default function GarageSettingsPage() {
         <div className="topBorder garageSettings__mediaWrap">
           <div className="garageSettings__mediaHeadRow" id="garage-settings-media">
             <div className="garageSettings__mediaHeading">
-              {draft.garageBannerEnabled ? 'Аватар и баннер' : 'Аватар'}
+              Аватар
             </div>
             <ServiceHint scopeId="garage-settings-media" variant="compact" label="Справка: фото гаража">
               <p className="serviceHint__panelText">
-                Нажмите на превью, чтобы выбрать или заменить фото. Аватар — квадратное фото для узнаваемости. Баннер — широкая
-                картинка сверху страницы гаража. Включить или скрыть баннер на странице можно переключателем ниже (рядом со своей
-                справкой). Убрать загруженное фото — крестик в углу превью.
+                Нажмите на превью, чтобы выбрать или заменить фото. Аватар — квадратное фото для узнаваемости. Убрать
+                загруженное фото — крестик в углу превью.
               </p>
               <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
                 {PHOTO_UPLOAD_HINTS_PARAGRAPH}
               </p>
             </ServiceHint>
           </div>
-          <div
-            className="field field--full serviceHint__fieldWrap garageSettings__bannerField"
-            id="garage-settings-banner"
-          >
-            <div className="field__top serviceHint__fieldTop">
-              <div className="field__label garageSettings__bannerCheckGroup">
-                <label className="garageSettings__bannerCheckRow" htmlFor="garage-settings-banner-enabled">
-                  <input
-                    id="garage-settings-banner-enabled"
-                    type="checkbox"
-                    className="garageSettings__bannerCheckInput"
-                    checked={draft.garageBannerEnabled}
-                    onChange={(e) => setDraft((d) => ({ ...d, garageBannerEnabled: e.target.checked }))}
-                  />
-                  <span className="garageSettings__bannerCheckText">Показывать баннер на странице гаража</span>
-                </label>
-              </div>
-              <ServiceHint scopeId="garage-settings-banner" variant="compact" label="Справка: баннер гаража">
-                <p className="serviceHint__panelText">
-                  Широкое фото сверху страницы «Гараж». То же изображение может использоваться как фон на публичной странице
-                  гаража, если она у вас включена.
-                </p>
-                <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
-                  Если выключить показ баннера, обложка не отображается, но файл в профиле сохраняется — позже показ можно снова
-                  включить.
-                </p>
-              </ServiceHint>
-            </div>
-          </div>
           <MediaBannerAvatarBlock
             variant="garage"
             title=""
-            bannerLabel="Настройка баннера"
-            showBannerColumn={draft.garageBannerEnabled}
-            bannerUrl={draft.garageBanner}
+            showBannerColumn={false}
             avatarUrl={draft.garageAvatar}
-            onBannerUrl={(url) => setDraft((d) => ({ ...d, garageBanner: url }))}
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, garageAvatar: url }))}
             placeholderEmail={ownerEmail}
             placeholderFallback={String(draft.name || '').trim()}
@@ -289,19 +250,11 @@ export default function GarageSettingsPage() {
             aria-busy={saveLock.pending || undefined}
             onClick={() =>
               void saveLock.run(async () => {
-                const prevBanner = owner?.garageBanner ?? ''
                 const prevAvatar = owner?.garageAvatar ?? ''
-                const prevBannerEnabled = owner?.garageBannerEnabled === true
                 const patch = {
                   name: draft.name.trim(),
                   phone: formatPhoneRuInput(draft.phone).trim(),
                   garageCity: draft.garageCity.trim(),
-                }
-                if (draft.garageBannerEnabled !== prevBannerEnabled) {
-                  patch.garageBannerEnabled = draft.garageBannerEnabled
-                }
-                if ((draft.garageBanner || '') !== (prevBanner || '')) {
-                  patch.garageBanner = draft.garageBanner
                 }
                 if ((draft.garageAvatar || '') !== (prevAvatar || '')) {
                   patch.garageAvatar = draft.garageAvatar

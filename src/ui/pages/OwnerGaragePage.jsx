@@ -9,9 +9,7 @@ import { OwnerGarageCarList } from '../OwnerGarageCarList.jsx'
 import OwnerGarageAddCarHint from '../OwnerGarageAddCarHint.jsx'
 import { displayRuPhone, fmtDate, fmtKm } from '../../lib/format.js'
 import { resolvePublicMediaUrl } from '../../lib/mediaUrl.js'
-import { photoBgStyle } from '../../lib/photoBg.js'
 import DefaultAvatar from '../DefaultAvatar.jsx'
-import { isGarageBannerImageVisible } from '../../lib/garageBanner.js'
 import { dedupeCarsById, ownerGarageLimits } from '../../lib/garageLimits.js'
 import { PREMIUM_GARAGE_MODAL_OPTIONS } from '../../lib/supportTicketPresets.js'
 import { buildCarSubRoutePath } from '../carNav.js'
@@ -203,14 +201,10 @@ export default function OwnerGaragePage() {
   const cityLine = String(owner?.garageCity || '').trim()
   const addCarPremiumBtnLabel = 'Лимит гаража: увеличить лимит авто (заявка в поддержку)'
   const { display: phoneDisplay } = displayRuPhone(owner?.phone)
-  const bannerSurfaceVisible = isGarageBannerImageVisible(owner)
-const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
 
   return (
     <div
-      className={`container garagePage${cars.length ? '' : ' garagePage--emptyOnboarding'}${
-        hasGarageBanner ? ' garagePage--hasBanner' : ''
-      }`}
+      className={`container garagePage${cars.length ? '' : ' garagePage--emptyOnboarding'}`}
       data-carpas-garage-ui={__APP_VERSION__}
     >
       {showSetupBanner ? (
@@ -250,31 +244,9 @@ const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
           </div>
         </Card>
       ) : null}
-      {cars.length > 0 && bannerSurfaceVisible ? (
-        <div
-          className={`detHero detHero--card garageHero${owner.garageBanner ? " detHero--coverFit photoFrame" : ""}`}
-          style={owner.garageBanner ? photoBgStyle(resolvePublicMediaUrl(owner.garageBanner)) : undefined}
-        >
-          {owner.garageBanner ? (
-            <img className="detHero__coverImg" src={resolvePublicMediaUrl(owner.garageBanner)} alt="" decoding="async" />
-          ) : null}
-          <div className="detHero__overlay detHero__overlay--card detHero__overlay--garageOwner">
-            <Link
-              className="btn detHero__editBtn detHero__editBtn--icon"
-              data-variant="ghost"
-              to="/garage/settings"
-              aria-label="Настройки гаража: баннер, аватар, контакты, адрес страницы"
-              title="Настройки гаража"
-            >
-              <span className="carPage__icon carPage__icon--edit detHero__editIcon" aria-hidden="true" />
-            </Link>
-          </div>
-        </div>
-      ) : null}
-
       {cars.length > 0 ? (
         <Card
-          className={`card pad garageDash${hasGarageBanner ? ' garageDash--belowBanner' : ''}`}
+          className="card pad garageDash"
           style={{ marginBottom: 16 }}
         >
           <div className="garageDashMobile">
@@ -319,18 +291,12 @@ const hasGarageBanner = cars.length > 0 && bannerSurfaceVisible
                 </div>
               </Link>
               <div className="garageDash__ownerText">
-                {hasGarageBanner ? (
-                  <h1 className="visuallyHidden">Гараж</h1>
-                ) : (
-                  <h1 className="garageDash__garageTitle h2" style={{ margin: '0 0 6px' }}>
+                <h1 className="garageDash__garageTitle h2" style={{ margin: '0 0 6px' }}>
                     Гараж
                   </h1>
-                )}
                 <div
-                  className={`row gap wrap align-center${hasGarageBanner ? ' garageDash__nameRow' : ''}`}
-                  style={hasGarageBanner ? { marginBottom: 8 } : undefined}
-                >
-                  <h2 className="garageDash__name" style={{ margin: hasGarageBanner ? 0 : undefined }}>
+                  className="row gap wrap align-center">
+                  <h2 className="garageDash__name">
                     {displayName}
                   </h2>
                 </div>

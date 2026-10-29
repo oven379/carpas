@@ -4112,9 +4112,7 @@ a.backNav {
 }
 
 /* Баннер партнёра на лендинге: показываем целиком (любые пропорции), поля — размытый фон из него же. */
-.detHero--coverFit.detHero--card,
-.garagePage .detHero.detHero--card.garageHero.detHero--coverFit,
-.garagePage.garagePage--hasBanner .detHero.detHero--card.garageHero.detHero--coverFit {
+.detHero--coverFit.detHero--card {
   height: auto;
   display: flex;
   align-items: center;
