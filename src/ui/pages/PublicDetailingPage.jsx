@@ -272,6 +272,7 @@ export default function PublicDetailingPage() {
       </div>
 
       <div className="detPublicLayout" style={{ marginTop: 12 }}>
+        <div className="detPublicLayout__col detPublicLayout__col--left">
         <Card className="card pad detPublicLayout__info">
           <div className="detPublicInfoCard__headRow">
             <div className="detPublicInfoCard__headMain">
@@ -360,6 +361,62 @@ export default function PublicDetailingPage() {
           </div>
         </Card>
 
+        <Card className="card pad detPublicLayout__desc">
+          <div>
+            <div className="cardTitle" style={{ marginBottom: 8 }}>
+              Описание
+            </div>
+            {det.description ? (
+              <p className="muted" style={{ lineHeight: 1.55 }}>
+                {det.description}
+              </p>
+            ) : (
+              <p className="muted small">
+                Описание пока не заполнено. Обычно здесь пишут специализацию, режим работы, гарантию и чем вы отличаетесь.
+              </p>
+            )}
+          </div>
+
+        </Card>
+
+        <Card className="card pad detPublicLayout__photos">
+          <div>
+            <div className="row gap wrap" style={{ alignItems: 'center' }}>
+              <div className="cardTitle" style={{ margin: 0 }}>
+                Фото работ
+              </div>
+            </div>
+            {workGalleryItems.length ? (
+              <div className="thumbs" style={{ marginTop: 12 }}>
+                {workGalleryItems.map((item, idx) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="thumb thumb--lb photoFrame"
+                    style={photoBgStyle(item.url)}
+                    title="Открыть фото"
+                    aria-label="Открыть фото работы"
+                    onClick={() =>
+                      setPhotoLb({
+                        items: workGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                        startIndex: idx,
+                      })
+                    }
+                  >
+                    <img alt="Фото работы" src={item.url} loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="muted small" style={{ marginTop: 12 }}>
+                Пока нет фото. Добавьте снимки к визиту в истории или после мойки — они подтянутся сюда.
+              </div>
+            )}
+          </div>
+        </Card>
+        </div>
+
+        <div className="detPublicLayout__col detPublicLayout__col--right">
         <Card className="card pad detPublicServicesCard detPublicLayout__services">
             {services.length ? (
               <ServiceCategory title="Услуги" items={services} />
@@ -429,60 +486,7 @@ export default function PublicDetailingPage() {
               </div>
             ) : null}
           </Card>
-
-        <Card className="card pad detPublicLayout__desc">
-          <div>
-            <div className="cardTitle" style={{ marginBottom: 8 }}>
-              Описание
-            </div>
-            {det.description ? (
-              <p className="muted" style={{ lineHeight: 1.55 }}>
-                {det.description}
-              </p>
-            ) : (
-              <p className="muted small">
-                Описание пока не заполнено. Обычно здесь пишут специализацию, режим работы, гарантию и чем вы отличаетесь.
-              </p>
-            )}
-          </div>
-
-        </Card>
-
-        <Card className="card pad detPublicLayout__photos">
-          <div>
-            <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <div className="cardTitle" style={{ margin: 0 }}>
-                Фото работ
-              </div>
-            </div>
-            {workGalleryItems.length ? (
-              <div className="thumbs" style={{ marginTop: 12 }}>
-                {workGalleryItems.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="thumb thumb--lb photoFrame"
-                    style={photoBgStyle(item.url)}
-                    title="Открыть фото"
-                    aria-label="Открыть фото работы"
-                    onClick={() =>
-                      setPhotoLb({
-                        items: workGalleryItems.map((x) => ({ url: x.url, title: x.title })),
-                        startIndex: idx,
-                      })
-                    }
-                  >
-                    <img alt="Фото работы" src={item.url} loading="lazy" />
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="muted small" style={{ marginTop: 12 }}>
-                Пока нет фото. Добавьте снимки к визиту в истории или после мойки — они подтянутся сюда.
-              </div>
-            )}
-          </div>
-        </Card>
+        </div>
       </div>
       <PhotoLightbox
         open={Boolean(photoLb)}

@@ -5893,42 +5893,70 @@ button.garageSettings__thumb:focus-visible {
   gap: 12px;
 }
 
-/* Лендинг партнёра: на телефоне порядок — информация, услуги, связаться, описание, фото; на компьютере две колонки. */
+/* Лендинг партнёра. Телефон: информация, услуги, связаться, описание, фото (колонки «растворяются», порядок через order).
+   Компьютер: слева одна составная карточка (информация, описание, фото), справа услуги и связь. */
 .detPublicLayout {
   display: grid;
   grid-template-columns: 1fr;
   gap: 12px;
 }
 
+.detPublicLayout__col {
+  display: contents;
+}
+
+.detPublicLayout__info {
+  order: 1;
+}
+
+.detPublicLayout__services {
+  order: 2;
+}
+
+.detPublicLayout__contact {
+  order: 3;
+}
+
+.detPublicLayout__desc {
+  order: 4;
+}
+
+.detPublicLayout__photos {
+  order: 5;
+}
+
 @media (min-width: 981px) {
   .detPublicLayout {
     grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "info services"
-      "info contact"
-      "desc desc"
-      "photos photos";
-    align-items: start;
   }
 
-  .detPublicLayout__info {
-    grid-area: info;
+  .detPublicLayout__col {
+    display: flex;
+    flex-direction: column;
   }
 
-  .detPublicLayout__services {
-    grid-area: services;
+  .detPublicLayout__col--right {
+    gap: 12px;
   }
 
-  .detPublicLayout__contact {
-    grid-area: contact;
+  /* Левая колонка выглядит как одна карточка с разделителями. */
+  .detPublicLayout__col--left > .card {
+    border-radius: 0;
   }
 
-  .detPublicLayout__desc {
-    grid-area: desc;
+  .detPublicLayout__col--left > .card:not(:last-child) {
+    border-bottom: 0;
   }
 
-  .detPublicLayout__photos {
-    grid-area: photos;
+  .detPublicLayout__col--left > .card:first-child {
+    border-top-left-radius: var(--radius-lg);
+    border-top-right-radius: var(--radius-lg);
+  }
+
+  .detPublicLayout__col--left > .card:last-child {
+    flex: 1;
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
   }
 }
 
