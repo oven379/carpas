@@ -4278,6 +4278,14 @@ a.backNav {
   background: color-mix(in oklab, var(--bg) 62%, var(--code-bg));
 }
 
+.detCrmRow__avatar .defaultAvatarImg {
+  font-size: 0.95rem;
+}
+
+.detCrmProfile__avatar .defaultAvatarImg {
+  font-size: 1.4rem;
+}
+
 .detHero__logo span {
   color: var(--text-h);
   font-weight: 800;
