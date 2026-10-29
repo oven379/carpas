@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import { PHOTO_UPLOAD_EMPTY_THUMB_HINT, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../lib/format.js'
+import { BANNER_UPLOAD_MAX_BYTES, PHOTO_UPLOAD_EMPTY_THUMB_HINT, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../lib/format.js'
+import { showToast } from './toast.jsx'
 import { compressImageFile } from '../lib/imageCompression.js'
 import DefaultAvatar from './DefaultAvatar.jsx'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
@@ -11,7 +12,7 @@ const PRESETS = {
     avatar: { maxW: 512, maxH: 512, quality: 0.86, maxBytes: 1024 * 1024 },
   },
   detailing: {
-    banner: { maxW: 1400, maxH: 700, quality: 0.82, maxBytes: 1024 * 1024 },
+    banner: { maxW: 1600, maxH: 800, quality: 0.82, maxBytes: 1.5 * 1024 * 1024 },
     avatar: { maxW: 360, maxH: 360, quality: 0.86, maxBytes: 512 * 1024 },
   },
 }
@@ -71,6 +72,8 @@ export default function MediaBannerAvatarBlock({
   showPhotoUploadHints = true,
   /** Вторая строка внутри пустого превью баннера (короткая). */
   showBannerEmptyThumbHint = true,
+  /** Строка про размер и форматы в пустой рамке баннера (например «1600×400 px · JPG, PNG, WebP · до 10 МБ»). */
+  bannerSpecHint = '',
   className = '',
 }) {
   const bannerRef = useRef(null)
@@ -83,11 +86,15 @@ export default function MediaBannerAvatarBlock({
     const f = e.target.files?.[0]
     e.target.value = ''
     if (!f) return
+    if (f.size > BANNER_UPLOAD_MAX_BYTES) {
+      showToast('Файл больше 10 МБ. Выберите фото поменьше.')
+      return
+    }
     try {
       const url = await compressImageFile(f, preset.banner)
       if (url) onBannerUrl?.(url)
     } catch {
-      /* ignore */
+      showToast('Не удалось загрузить фото. Подойдут JPG, PNG или WebP.')
     }
   }
 
@@ -174,6 +181,7 @@ export default function MediaBannerAvatarBlock({
                 ) : (
                   <span className="garageSettings__thumbEmpty garageSettings__thumbEmpty--banner">
                     <span className="garageSettings__thumbEmptyPrimary">{bannerEmptyHint}</span>
+                    {bannerSpecHint ? <span className="garageSettings__thumbEmptySpec">{bannerSpecHint}</span> : null}
                     {showPhotoUploadHints && showBannerEmptyThumbHint ? (
                       <span className="garageSettings__thumbEmptySecondary">{PHOTO_UPLOAD_EMPTY_THUMB_HINT}</span>
                     ) : null}

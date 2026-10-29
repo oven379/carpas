@@ -56,6 +56,12 @@ export const PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE =
 /** Два правила одним абзацем — под зоны загрузки фото. */
 export const PHOTO_UPLOAD_HINTS_PARAGRAPH = `${PHOTO_UPLOAD_LANDSCAPE_LINE} ${PHOTO_UPLOAD_NO_PLATE_IMPORTANT_LINE}`
 
+/** Максимальный размер файла баннера при выборе (дальше браузер сам уменьшает до нужного). */
+export const BANNER_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
+
+/** Размер и форматы баннера: короткая строка в пустой рамке. */
+export const BANNER_UPLOAD_SPEC_LINE = '1600×400 px · JPG, PNG, WebP · до 10 МБ'
+
 /** Для короткой подписи в пустой миниатюре (рядом с полным текстом снизу). */
 export const PHOTO_UPLOAD_EMPTY_THUMB_HINT = 'Альбомная съёмка · без госномера в кадре'
 

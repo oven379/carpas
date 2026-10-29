@@ -5477,7 +5477,8 @@ button.garageSettings__thumb:focus-visible {
   display: block;
 }
 
-.garageSettings__thumbEmptySecondary {
+.garageSettings__thumbEmptySecondary,
+.garageSettings__thumbEmptySpec {
   display: block;
   font-size: 11px;
   line-height: 1.35;

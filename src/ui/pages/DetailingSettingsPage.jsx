@@ -31,11 +31,11 @@ import { formatHttpErrorMessage } from '../../api/http.js'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { BUSINESS_TYPES } from '../../lib/businessTypes.js'
 import {
+  BANNER_UPLOAD_SPEC_LINE,
   CITY_FIELD_DD_HINT,
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
   DETAILING_WORKING_HOURS_MAX_LEN,
   formatPhoneRuInput,
-  PHOTO_UPLOAD_HINTS_PARAGRAPH,
 } from '../../lib/format.js'
 
 /** Локальное превью до сохранения: не подменять значением с сервера при фоновом GET /me. */
@@ -314,12 +314,17 @@ export default function DetailingSettingsPage() {
             placeholderEmail={String(detailing?.email || '').trim()}
             placeholderFallback={String(draft.name || detailing.name || '').trim()}
             avatarEmptyHint="Нажмите для загрузки"
-            bannerEmptyHint="Нажмите — широкое фото: фасад, зал или работа"
+            bannerEmptyHint="Нажмите, чтобы загрузить баннер"
+            bannerSpecHint={BANNER_UPLOAD_SPEC_LINE}
+            showPhotoUploadHints={false}
             avatarRemoveLabel="Убрать логотип"
             bannerRemoveLabel="Убрать обложку"
             bannerHintSlot={
               <ServiceHint scopeId="detailing-settings-banner-hint" variant="compact" label="Справка: баннер">
-                <p className="serviceHint__panelText">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
+                <p className="serviceHint__panelText">
+                  Баннер — широкое изображение 1600×400 px (4:1). Название и логотип на нём держите ближе к центру: на телефоне
+                  края могут обрезаться. Подойдут JPG, PNG и WebP до 10 МБ, мы сами уменьшим файл.
+                </p>
               </ServiceHint>
             }
           />
