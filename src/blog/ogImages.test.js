@@ -12,3 +12,11 @@ test('у каждой статьи блога есть превью для со�
   const missing = slugs.filter((s) => !existsSync(new URL(`public/og/${s}.jpg`, root)))
   assert.deepEqual(missing, [], `нет картинок для статей: ${missing.join(', ')}. Запустите: npm run og`)
 })
+
+test('каждая статья блога есть в scripts/routes.mjs (prerender и sitemap)', async () => {
+  const { ROUTES } = await import(new URL('scripts/routes.mjs', root))
+  const src = readFileSync(new URL('src/blog/posts.jsx', root), 'utf8')
+  const slugs = [...src.matchAll(/\n\s*slug:\s*'([^']+)'/g)].map((m) => m[1])
+  const missing = slugs.filter((s) => !ROUTES.includes(`/blog/${s}`))
+  assert.deepEqual(missing, [], `нет в scripts/routes.mjs: ${missing.join(', ')}`)
+})

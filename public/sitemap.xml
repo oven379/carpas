@@ -68,7 +68,7 @@
   </url>
   <url>
     <loc>https://carpasss.ru/blog</loc>
-    <lastmod>2026-10-20</lastmod>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.5</priority>
   </url>
@@ -159,6 +159,30 @@
   <url>
     <loc>https://carpasss.ru/blog/prigon-avto-cifrovoy-pasport</loc>
     <lastmod>2026-10-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://carpasss.ru/blog/kak-proverit-istoriyu-obsluzhivaniya-avto-pered-pokupkoj</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://carpasss.ru/blog/keramika-polirol-vosk-zhidkoe-steklo-chto-vybrat</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://carpasss.ru/blog/bortovoj-zhurnal-avtomobilya-v-telefone</loc>
+    <lastmod>2026-10-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://carpasss.ru/blog/istoriya-obsluzhivaniya-i-cena-avto-pri-prodazhe</loc>
+    <lastmod>2026-10-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

@@ -30,4 +30,8 @@ export const ROUTES = [
   '/blog/himchistka-salona-avto-voronezh',
   '/blog/kak-prohodit-moyka-detailing-voronezh',
   '/blog/prigon-avto-cifrovoy-pasport',
+  '/blog/kak-proverit-istoriyu-obsluzhivaniya-avto-pered-pokupkoj',
+  '/blog/keramika-polirol-vosk-zhidkoe-steklo-chto-vybrat',
+  '/blog/bortovoj-zhurnal-avtomobilya-v-telefone',
+  '/blog/istoriya-obsluzhivaniya-i-cena-avto-pri-prodazhe',
 ]
