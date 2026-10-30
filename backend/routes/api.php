@@ -128,6 +128,7 @@ Route::middleware(['auth:sanctum', 'ensure.owner'])->group(function () {
 
     Route::post('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'store']);
     Route::get('/owners/cars/{carId}/shares', [OwnerCarShareController::class, 'index']);
+    Route::get('/owners/cars/{carId}/share-eligibility', [OwnerCarShareController::class, 'eligibility']);
     Route::delete('/owners/shares/{token}', [OwnerCarShareController::class, 'revoke']);
 
     Route::post('/owners/service-booking-requests', [ServiceBookingRequestController::class, 'storeOwner']);

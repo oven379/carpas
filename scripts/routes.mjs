@@ -34,4 +34,5 @@ export const ROUTES = [
   '/blog/keramika-polirol-vosk-zhidkoe-steklo-chto-vybrat',
   '/blog/bortovoj-zhurnal-avtomobilya-v-telefone',
   '/blog/istoriya-obsluzhivaniya-i-cena-avto-pri-prodazhe',
+  '/blog/carpas-crm-i-gotovyj-lending-dlya-detejlinga',
 ]

@@ -429,6 +429,11 @@ export function createApiClient() {
       return await req(`owners/cars/${carId}/shares`, { token: oTok() })
     },
 
+    /** Условие доступности публичной ссылки: { eligible, visits, requiredVisits, requiredMonths, eligibleSince, … }. */
+    async getShareEligibility(carId) {
+      return await req(`owners/cars/${carId}/share-eligibility`, { token: oTok() })
+    },
+
     async createShare(carId) {
       flushCoalescedRequests()
       return await req(`owners/cars/${carId}/shares`, { method: 'POST', body: {}, token: oTok() })

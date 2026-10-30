@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Support\ShareEligibility;
 use App\Models\Car;
 use App\Models\CarShare;
 use App\Models\Owner;
@@ -31,7 +32,15 @@ class OwnerCarShareController extends Controller
     {
         /** @var Owner $owner */
         $owner = $request->user();
-        $this->assertOwnerCar($owner, $carId);
+        $car = $this->assertOwnerCar($owner, $carId);
+
+        $eligibility = ShareEligibility::forCar($car);
+        if (!$eligibility['eligible']) {
+            return response()->json([
+                'message' => 'Публичная ссылка станет доступна после '.ShareEligibility::MIN_VISITS.' визитов или через '.ShareEligibility::MIN_MONTHS.' месяца ведения истории.',
+                'eligibility' => $eligibility,
+            ], 403);
+        }
 
         $share = CarShare::query()->create([
             'car_id' => $carId,
@@ -41,6 +50,15 @@ class OwnerCarShareController extends Controller
         ]);
 
         return response()->json($this->shareOut($share));
+    }
+
+    public function eligibility(Request $request, $carId)
+    {
+        /** @var Owner $owner */
+        $owner = $request->user();
+        $car = $this->assertOwnerCar($owner, $carId);
+
+        return response()->json(ShareEligibility::forCar($car));
     }
 
     public function index(Request $request, $carId)

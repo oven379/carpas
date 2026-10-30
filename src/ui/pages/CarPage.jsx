@@ -28,6 +28,7 @@ import {
 import { resolveEffectiveMileageKm } from '../../lib/carMileage.js'
 import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 import { photoBgStyle } from '../../lib/photoBg.js'
+import { OwnerShareHistory } from '../OwnerShareHistory.jsx'
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -974,6 +975,8 @@ export default function CarPage() {
               )}
             </Card>
           ) : null}
+
+          {mode === 'owner' ? <OwnerShareHistory carId={id} /> : null}
         </div>
       </div>
       <PhotoLightbox

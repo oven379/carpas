@@ -63,9 +63,12 @@ class ApiResources
     {
         $full = self::car($c);
         $out = array_intersect_key($full, array_flip([
-            'id', 'make', 'model', 'year', 'mileageKm', 'color', 'city', 'hero', 'plate', 'plateRegion', 'createdAt', 'updatedAt',
+            'id', 'make', 'model', 'year', 'mileageKm', 'color', 'city', 'hero', 'createdAt', 'updatedAt',
         ]));
+        // VIN и госномер по публичной ссылке не отдаём вообще (на странице они показаны как скрытые).
         $out['vin'] = '';
+        $out['plate'] = '';
+        $out['plateRegion'] = '';
         $seller = $full['seller'] ?? null;
         $out['seller'] = is_array($seller) ? array_intersect_key($seller, array_flip(['name', 'type'])) : null;
 
