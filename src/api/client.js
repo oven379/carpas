@@ -58,7 +58,9 @@ export function getApiBaseUrl() {
   // Прод/натив по умолчанию: реальный HTTPS-API (абсолютный URL работает и из WebView c file://).
   // Раньше здесь был http://localhost:8088/api — на телефоне это сам телефон, все запросы висели до таймаута
   // («превысил лимит времени на запрос») и экран оставался чёрным.
-  return 'https://carpasss.ru/api'
+  // Боевой API живёт на back.carpasss.ru (на carpasss.ru/api отвечает сайт, а не API). Эта же константа сработает, если
+  // при сборке на сервере забыли задать VITE_API_BASE_URL.
+  return 'https://back.carpasss.ru/api'
 }
 
 function baseUrl() {

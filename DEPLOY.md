@@ -12,7 +12,7 @@
 
 ```bash
 export VITE_SITE_ORIGIN=https://carpasss.ru      # для canonical / Open Graph / sitemap
-# VITE_API_BASE_URL — не задавать в проде: клиент ходит на относительный /api
+# VITE_API_BASE_URL — в проде https://back.carpasss.ru/api (на carpasss.ru/api отвечает сайт, а не API); если не задан, клиент берёт тот же адрес по умолчанию
 # VITE_GOOGLE_SITE_VERIFICATION=...   # опционально, из Google Search Console
 # VITE_YANDEX_VERIFICATION=...        # опционально, из Яндекс.Вебмастера
 ```
