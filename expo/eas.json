@@ -15,14 +15,14 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_WEB_URL": "https://carpasss.ru/auth/owner",
-        "EXPO_PUBLIC_API_BASE_URL": "https://carpasss.ru/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://back.carpasss.ru/api"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_WEB_URL": "https://carpasss.ru/auth/owner",
-        "EXPO_PUBLIC_API_BASE_URL": "https://carpasss.ru/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://back.carpasss.ru/api"
       }
     }
   },
