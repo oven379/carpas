@@ -46,7 +46,7 @@ export default function BlogIndexPage() {
           </section>
 
           <section className="blogList">
-            {blogPosts.map((post) => (
+            {[...blogPosts].sort((a, b) => b.datePublished.localeCompare(a.datePublished)).map((post) => (
               <article className="blogCard" key={post.slug}>
                 <Link to={`/blog/${post.slug}`} className="blogCard__link">
                   <h2 className="blogCard__title">{post.title}</h2>

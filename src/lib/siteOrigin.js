@@ -6,6 +6,7 @@
 export function getSiteOrigin() {
   const env = import.meta.env.VITE_SITE_ORIGIN
   if (env && String(env).trim()) return String(env).trim().replace(/\/+$/, '')
+  if (import.meta.env.PROD) return 'https://carpasss.ru'
   if (typeof window !== 'undefined' && window.location?.origin) {
     return String(window.location.origin).replace(/\/+$/, '')
   }

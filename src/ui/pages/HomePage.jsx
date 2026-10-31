@@ -74,7 +74,7 @@ export default function HomePage() {
             </h1>
             <p className="al-hero__sub">
               Владельцам — личный гараж в телефоне с историей обслуживания, пробегом, фото и документами по каждому авто.
-              Детейлингам, мойкам, СТО, тюнинг-ателье и пригонщикам — бесплатная CRM с визитами, фотоотчётами,
+              Детейлингам, мойкам, СТО, тюнинг-ателье и пригонщикам — CRM, бесплатная на этапе запуска, с визитами, фотоотчётами,
               напоминаниями и публичной страницей-витриной. Одна история — обе стороны.
             </p>
             <div className="al-hero__ctaRow">
@@ -114,7 +114,7 @@ export default function HomePage() {
                 <h3 className="al-benefitCard__title">Владельцам авто</h3>
                 <p className="al-benefitCard__text">
                   Вся история обслуживания — в телефоне: визиты, пробег, фото работ, документы и напоминания о ТО.
-                  Прозрачная история повышает доверие и цену при продаже.
+                  История с фото и документами помогает показать покупателю, как обслуживалась машина.
                 </p>
                 <Link to="/owners" className="al-btnPrimarySolid al-benefitCard__cta">
                   Подробнее для владельцев
@@ -123,7 +123,7 @@ export default function HomePage() {
               <article className="al-benefitCard al-benefitCard--audience">
                 <h3 className="al-benefitCard__title">Сервисам и бизнесу</h3>
                 <p className="al-benefitCard__text">
-                  Детейлинг, мойка, СТО, тюнинг-ателье, пригон авто: бесплатная CRM — клиенты, визиты с фото, заметки и
+                  Детейлинг, мойка, СТО, тюнинг-ателье, пригон авто: CRM — клиенты, визиты с фото, заметки и
                   напоминания «давно не были». Публичная страница-витрина — в подарок.
                 </p>
                 <Link to="/business" className="al-btnOutline al-benefitCard__cta">
@@ -150,12 +150,11 @@ export default function HomePage() {
               <article className="al-benefitCard">
                 <h3 className="al-benefitCard__title">Подтверждённые записи</h3>
                 <p className="al-benefitCard__text">
-                  Визит, добавленный сервисом, нельзя подделать задним числом — такая история вызывает доверие
-                  покупателя.
+                  В истории видно, какие визиты добавлены владельцем, а какие — подключённым сервисом.
                 </p>
               </article>
               <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Бесплатная CRM для сервиса</h3>
+                <h3 className="al-benefitCard__title">CRM для сервиса</h3>
                 <p className="al-benefitCard__text">
                   Клиенты, автомобили, визиты, фотоотчёты и напоминания — без абонентской платы на этапе запуска.
                 </p>

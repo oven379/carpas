@@ -22,8 +22,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
-      # Без пререндера (нужен Chrome): проверяем, что проект собирается.
-      - run: npx vite build
+      - name: Сборка с обязательным пререндером и SEO-проверкой
+        run: npm run build
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          VITE_SITE_ORIGIN: https://carpasss.ru
 
   backend:
     name: Бэкенд (Laravel, тесты)

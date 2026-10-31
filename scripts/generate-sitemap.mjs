@@ -2,7 +2,7 @@
  * Генерация dist/sitemap.xml из единого списка маршрутов (scripts/routes.mjs) с честным <lastmod>.
  *
  * lastmod:
- *  - статьи блога — datePublished из src/blog/posts.jsx;
+ *  - статьи блога — dateModified, иначе datePublished из src/blog/posts.jsx;
  *  - остальные страницы — дата последнего git-коммита файлов страницы (если git доступен), иначе поле не пишется.
  * Запуск: node scripts/generate-sitemap.mjs (после vite build). Если dist/ нет — тихо пропускает.
  */
@@ -16,13 +16,17 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = path.join(ROOT, 'dist')
 const ORIGIN = (process.env.VITE_SITE_ORIGIN || 'https://carpasss.ru').replace(/\/+$/, '')
 
-/** Даты статей: для каждого `slug: '…'` берём ближайший следующий `datePublished: '…'`. */
+/** Даты обновления/публикации читаем внутри блока каждой статьи. */
 function blogDates() {
   const src = fs.readFileSync(path.join(ROOT, 'src/blog/posts.jsx'), 'utf8')
   const dates = {}
-  const re = /slug:\s*'([^']+)'[\s\S]*?datePublished:\s*'(\d{4}-\d{2}-\d{2})'/g
-  let m
-  while ((m = re.exec(src))) dates[m[1]] = m[2]
+  const blocks = src.split(/\bslug:\s*'/).slice(1)
+  for (const block of blocks) {
+    const slug = block.slice(0, block.indexOf("'"))
+    const published = block.match(/datePublished:\s*'(\d{4}-\d{2}-\d{2})'/)?.[1]
+    const modified = block.match(/dateModified:\s*'(\d{4}-\d{2}-\d{2})'/)?.[1]
+    if (published) dates[slug] = modified || published
+  }
   return dates
 }
 

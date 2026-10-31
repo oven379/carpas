@@ -1,4 +1,4 @@
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Seo } from '../seo/Seo.jsx'
 import { buildBreadcrumbJsonLd } from '../seo/marketingJsonLd.js'
 import { buildArticleJsonLd } from './blogJsonLd.js'
@@ -6,6 +6,7 @@ import { LandingNav } from '../about-landing/LandingNav.tsx'
 import { LandingFooter } from '../about-landing/LandingFooter.tsx'
 import { AppDownload } from '../about-landing/AppDownload.tsx'
 import { getPostBySlug, relatedPosts } from './posts.jsx'
+import NotFoundPage from '../ui/pages/NotFoundPage.jsx'
 import '../about-landing/AboutLanding.css'
 import './Blog.css'
 import { GOALS, reachGoal } from '../lib/metrika.js'
@@ -22,7 +23,7 @@ export default function BlogArticlePage() {
   const { slug } = useParams()
   const post = getPostBySlug(slug)
 
-  if (!post) return <Navigate to="/blog" replace />
+  if (!post) return <NotFoundPage />
 
   const jsonLd = [
     buildBreadcrumbJsonLd([
@@ -55,7 +56,10 @@ export default function BlogArticlePage() {
               <Link to="/">Главная</Link> · <Link to="/blog">Блог</Link>
             </nav>
             <h1 className="blogArticle__title">{post.title}</h1>
-            <p className="blogArticle__meta">{formatDate(post.datePublished)}</p>
+            <p className="blogArticle__meta">
+              Редакция КарПас · <time dateTime={post.datePublished}>{formatDate(post.datePublished)}</time>
+              {post.dateModified && <> · Обновлено <time dateTime={post.dateModified}>{formatDate(post.dateModified)}</time></>}
+            </p>
             <div className="blogArticle__body">
               <Body />
             </div>
@@ -84,7 +88,7 @@ export default function BlogArticlePage() {
                 <>
                   <h2 className="blogCta__title">Заведите электронную сервисную книжку</h2>
                   <p className="blogCta__sub">
-                    Бесплатно. Вся история обслуживания авто — всегда в телефоне.
+                    Начните с одного автомобиля бесплатно. Сохраняйте визиты, фото и документы в телефоне.
                   </p>
                   <div className="blogCta__row">
                     <Link
@@ -99,6 +103,13 @@ export default function BlogArticlePage() {
                     </Link>
                   </div>
                 </>
+              )}
+              {post.cta !== 'business' && (
+                <p className="blogCta__sub">
+                  Ссылка для покупателя доступна после 6 сохранённых визитов владельца или через 3 месяца после
+                  создания первой записи. По ней видны записи владельца и прикреплённые к ним документы;
+                  визиты сервиса в публичную историю не входят.
+                </p>
               )}
               <AppDownload title="Скачать приложение" />
             </aside>

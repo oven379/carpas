@@ -7,7 +7,7 @@
  *
  * Запуск: node scripts/prerender.mjs (после `vite build`).
  * Нужен установленный Chrome/Chromium. Путь можно задать переменной CHROME_PATH.
- * Если браузер не найден — скрипт МЯГКО пропускает пре-рендер (сборка не падает).
+ * Ошибка любой страницы останавливает сборку: неполный SEO-артефакт нельзя выкладывать.
  */
 import http from 'node:http'
 import fs from 'node:fs'
@@ -164,19 +164,16 @@ function outFile(route) {
 
 async function main() {
   if (!fs.existsSync(path.join(DIST, 'index.html'))) {
-    console.warn('[prerender] dist/index.html не найден — сначала `vite build`. Пропуск.')
-    return
+    throw new Error('dist/index.html не найден — сначала vite build')
   }
   const chrome = findChrome()
   if (!chrome) {
-    console.warn(
-      '[prerender] Chrome/Chromium не найден — пре-рендер пропущен (сборка не падает).\n' +
-        '            Установите Chrome или задайте CHROME_PATH, либо соберите локально и выложите dist/.',
-    )
-    return
+    throw new Error('Chrome/Chromium не найден. Установите браузер или задайте CHROME_PATH.')
   }
 
   const indexHtml = fs.readFileSync(path.join(DIST, 'index.html'), 'utf8')
+  // Для кабинетов нужен исходный shell, а не HTML пререндеренной главной.
+  fs.writeFileSync(path.join(DIST, 'spa.html'), indexHtml, 'utf8')
   const port = await freePort()
   const server = await startServer(port, indexHtml)
   const baseUrl = `http://127.0.0.1:${port}`
@@ -196,32 +193,31 @@ async function main() {
   )
 
   // из stderr Chrome выводит "DevTools listening on ws://..."
-  const wsUrl = await new Promise((resolve, reject) => {
-    const t = setTimeout(() => reject(new Error('Chrome не отдал DevTools ws за 15с')), 15000)
-    chromeProc.stderr.on('data', (d) => {
-      const m = /ws:\/\/[^\s]+/.exec(d.toString())
-      if (m) {
-        clearTimeout(t)
-        resolve(m[0])
-      }
-    })
-    chromeProc.on('exit', () => reject(new Error('Chrome завершился до старта')))
-  })
-
   let cdp
   try {
+    const wsUrl = await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Chrome не отдал DevTools ws за 15с')), 15000)
+      chromeProc.stderr.on('data', (d) => {
+        const m = /ws:\/\/[^\s]+/.exec(d.toString())
+        if (m) {
+          clearTimeout(t)
+          resolve(m[0])
+        }
+      })
+      chromeProc.on('error', (error) => { clearTimeout(t); reject(error) })
+      chromeProc.on('exit', () => reject(new Error('Chrome завершился до старта')))
+    })
+
     cdp = await cdpConnect(wsUrl)
     const results = []
     for (const route of ROUTES) {
       const { ok, html } = await prerenderRoute(cdp, baseUrl, route)
       results.push({ route, ok, len: html.length, html })
     }
+    const failed = results.filter((r) => !r.ok || r.len < 500)
+    if (failed.length) throw new Error('Не готовы страницы: ' + failed.map((r) => r.route).join(', '))
     // пишем снимки только после захвата всех маршрутов
     for (const r of results) {
-      if (!r.ok || r.len < 500) {
-        console.warn(`[prerender] ${r.route}: контент не готов (len=${r.len}) — пропуск`)
-        continue
-      }
       const file = outFile(r.route)
       fs.mkdirSync(path.dirname(file), { recursive: true })
       fs.writeFileSync(file, r.html, 'utf8')
@@ -230,6 +226,9 @@ async function main() {
   } finally {
     cdp?.ws?.close()
     chromeProc.kill('SIGKILL')
+    chromeProc.stderr.destroy()
+    chromeProc.unref()
+    server.closeAllConnections()
     server.close()
     try {
       fs.rmSync(userDataDir, { recursive: true, force: true })
@@ -240,6 +239,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  // пре-рендер — прогрессивное улучшение: не валим сборку
-  console.warn('[prerender] пропущено из-за ошибки:', e.message)
+  console.error('[prerender] сборка остановлена:', e.message)
+  process.exitCode = 1
 })

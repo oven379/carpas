@@ -1,85 +1,65 @@
-# Деплой и SEO-чеклист (КарПас, фронтенд)
+# Сборка и выкладка КарПас
 
-Домен: **https://carpasss.ru** (канонический, без www).
+Основной домен: https://carpasss.ru. Рабочая конфигурация: `nginx.production.conf`.
 
-## 1. Сборка и выкладка фронтенда
+## Сборка
 
-Фронтенд — SPA на Vite. При сборке запускается **пре-рендер** маркетинговых страниц
-(`/`, `/about`, `/business`) в статический HTML — чтобы поисковики (особенно Яндекс)
-видели контент, мета и JSON-LD без выполнения JavaScript. Пре-рендеру нужен Chrome/Chromium.
+Нужны Node.js 22+ и Chrome/Chromium. `CHROME_PATH` позволяет выбрать браузер.
 
-Переменные окружения задаются **до сборки** (Vite инлайнит их в бандл):
-
-```bash
-export VITE_SITE_ORIGIN=https://carpasss.ru      # для canonical / Open Graph / sitemap
-# VITE_API_BASE_URL — в проде https://back.carpasss.ru/api (на carpasss.ru/api отвечает сайт, а не API); если не задан, клиент берёт тот же адрес по умолчанию
-# VITE_GOOGLE_SITE_VERIFICATION=...   # опционально, из Google Search Console
-# VITE_YANDEX_VERIFICATION=...        # опционально, из Яндекс.Вебмастера
-```
-
-Вариант А — собрать локально (Chrome есть) и выложить `dist/`:
-
-```bash
+```sh
 npm ci
-npm run build          # vite build + пре-рендер /, /about, /business
-# → выложить каталог dist/ на сервер (rsync/scp)
+npm run verify
 ```
 
-Вариант Б — собрать на сервере (нужен Chromium):
+`build` создаёт Vite-артефакт, пререндерит все 32 маршрута из `scripts/routes.mjs`,
+генерирует sitemap и проверяет готовый HTML. Любая ошибка останавливает сборку.
+Не выкладывайте результат одного `vite build`: он не содержит SEO-страниц.
 
-```bash
-sudo apt install -y chromium-browser
-git pull
-CHROME_PATH=/usr/bin/chromium-browser npm ci && CHROME_PATH=/usr/bin/chromium-browser npm run build
-```
+`VITE_SITE_ORIGIN=https://carpasss.ru` задаётся до сборки. Production по умолчанию
+использует этот домен и без переменной. Для другого домена измените также robots.txt
+и nginx. API по умолчанию — https://back.carpasss.ru/api.
 
-Если Chrome не найден — пре-рендер **мягко пропускается** (сборка не падает), но
-маркетинговые страницы останутся SPA-«пустышкой» для краулеров. Для SEO Chrome нужен.
+`dist/index.html` — пререндер главной. `dist/spa.html` — отдельная оболочка для
+кабинетов и динамических страниц. При выкладке нужны оба файла и все вложенные
+каталоги, включая blog, business, owners, assets, og, robots.txt и sitemap.xml.
 
-## 2. Nginx (отдача dist/)
+## Сервер
 
-Обязателен SPA-фолбэк, чтобы `/about` и `/business` отдавали свои пре-рендер-снимки:
+1. Сохраните текущие dist и nginx-конфигурацию для отката.
+2. Выложите проверенный dist целиком; предпочтительно переключением каталога релиза.
+3. Примените `nginx.production.conf` с актуальными путями к dist и сертификатам.
+4. Сертификат фронтенда должен включать **carpasss.ru и www.carpasss.ru**.
+   Сертификат API должен включать **back.carpasss.ru**. Редирект www выполняется
+   после TLS: без подходящего сертификата редирект не исправит ошибку браузера.
+5. Выполните `sudo nginx -t`, затем `sudo systemctl reload nginx`.
+6. Проверьте публичные ответы по списку ниже. При сбое верните предыдущий релиз.
 
-```nginx
-server {
-    server_name carpasss.ru;
-    root /path/to/dist;
+Не заменяйте маршрутизацию универсальным `try_files ... /index.html`: неизвестные
+адреса должны возвращать 404, кабинеты — spa.html, маркетинг — свой HTML.
+Если SEO-страница отсутствует, сервер не должен подменять её главной.
 
-    location / {
-        try_files $uri $uri/ /index.html;   # /about → /about/index.html
-    }
+## Проверка после выкладки
 
-    location /api/     { proxy_pass http://127.0.0.1:8088; }   # Laravel
-    location /storage/ { proxy_pass http://127.0.0.1:8088; }
-}
-```
+- `/`, `/owners`, `/business`, `/blog` и новая статья: HTTP 200, контент и один H1
+  в исходном HTML, уникальные title и canonical, JSON-LD.
+- `/business/`: 301 на `/business`; HTTP и www: 301 на основной HTTPS-домен.
+- Случайный несуществующий адрес: HTTP 404, а не 200.
+- `/auth`: оболочка без контента/canonical главной, `X-Robots-Tag: noindex, nofollow`.
+- `/spa.html`: прямой внешний доступ запрещён (404).
+- `/robots.txt`, `/sitemap.xml`, `/og.png`: доступны; sitemap содержит все 32 URL.
+- HTML: Cache-Control no-cache; хешированные JS/CSS: immutable.
+- Присутствуют HSTS, X-Content-Type-Options, CSP и остальные защитные заголовки.
+- https://back.carpasss.ru/api/health: HTTP 200.
 
-- `http://carpasss.ru` и `https://www.carpasss.ru` → 301 на `https://carpasss.ru`.
-- Проверить, что по домену отдаются `/robots.txt`, `/sitemap.xml`, `/llms.txt`, `/og.png`.
+После выкладки отправьте sitemap и ключевые страницы на переобход в Яндекс.Вебмастере
+и Google Search Console. Подтверждение через DNS не требует meta verification.
 
-## 3. Мобильное приложение
+## Бэкенд и эксплуатация
 
-- **iOS** — ссылка на App Store (уже в коде, `src/lib/appLinks.js`).
-- **Android** — APK отдаёт бэкенд по `GET /api/download/android`.
-  Файл положить в **`backend/storage/app/carpas-release.apk`**.
+`docker-compose.yml` предназначен для разработки: в нём debug, стандартные пароли
+и открытые порты БД/Redis. Не используйте его как production-конфигурацию.
+В production нужны APP_ENV=production, APP_DEBUG=false, уникальные секреты,
+закрытые от интернета БД/Redis, резервные копии и проверка восстановления.
+Эти параметры нужно проверять на реальном сервере, исходники их не подтверждают.
 
-## 4. После деплоя — индексация и продвижение (вручную)
-
-1. **Google Search Console** (https://search.google.com/search-console):
-   добавить ресурс `carpasss.ru`, подтвердить, отправить `sitemap.xml`,
-   «Проверка URL» → «Запросить индексирование» для `/`, `/business`.
-2. **Яндекс.Вебмастер** (https://webmaster.yandex.ru):
-   файл верификации `public/yandex_55a126c4b2885fc6.html` уже в проекте —
-   подтвердить сайт, загрузить `sitemap.xml`, заказать переобход.
-3. **Проверить превью ссылки:** вставить `carpasss.ru` в Telegram/VK —
-   должна показаться карточка с OG-картинкой (`/og.png`, 1200×630).
-4. **Ссылки на сайт** (для запроса «карпас», конкуренция с `carpass.ru`):
-   соцсети, 2ГИС / Яндекс.Карты, публичные страницы сервисов `/d/<slug>`.
-
-## Что уже настроено в коде
-
-- Пре-рендер `/`, `/about`, `/business` (`scripts/prerender.mjs`, входит в `npm run build`).
-- Уникальные `title` / `description` / `canonical` / Open Graph / JSON-LD по страницам.
-- OG-картинка 1200×630 (`public/og.png`).
-- `robots.txt`, `sitemap.xml` (только индексируемые URL), `llms.txt` — домен `carpasss.ru`.
-- `noindex` на кабинете, входе, `/policy`, `/terms`, приватных `/share/…`.
+Android APK: backend/storage/app/carpas-release.apk, выдача /api/download/android.

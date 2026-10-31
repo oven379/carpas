@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:open": "vite --open",
-    "build": "vite build && node scripts/prerender.mjs && node scripts/generate-sitemap.mjs",
+    "build": "vite build && node scripts/prerender.mjs && node scripts/generate-sitemap.mjs && node scripts/check-seo.mjs",
     "expo:start": "npm --prefix expo run start",
     "expo:android": "npm --prefix expo run android",
     "expo:ios": "npm --prefix expo run ios",
@@ -20,7 +20,8 @@
     "test:backend": "docker compose run --rm backend php artisan test",
     "prerender": "node scripts/prerender.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
-    "og": "node scripts/generate-og-images.mjs"
+    "og": "node scripts/generate-og-images.mjs",
+    "check:seo": "node scripts/check-seo.mjs"
   },
   "dependencies": {
     "@al-bani/car-brands": "^1.4.0",
