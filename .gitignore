@@ -56,3 +56,6 @@ ios/.xcode.env.local
 # Личные/служебные заметки — не коммитить (репозиторий публичный)
 zn.txt
 ssl.txt
+
+# Экспорт из Dockerfile.frontend
+frontend-release/

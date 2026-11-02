@@ -1,0 +1,16 @@
+*
+!Dockerfile.frontend
+!package.json
+!package-lock.json
+!.npmrc
+!index.html
+!vite.config.js
+!postcss.config.js
+!tailwind.config.js
+!tsconfig.json
+!src/
+!src/**
+!public/
+!public/**
+!scripts/
+!scripts/**
