@@ -1,20 +1,17 @@
 import { Link } from 'react-router-dom'
 import { SupportButton } from './support/SupportHub.jsx'
 
-/**
- * Футер: слева политика и правила, справа кнопка «Поддержка» (открывает тикет в админ-панель).
- */
 export default function FooterSupport() {
   return (
     <div className="footer__bar">
       <nav className="footerLegal" aria-label="Правовая информация">
-        <Link className="authConsent__legalLink" to="/policy">
+        <Link className="footerLegal__link" to="/policy">
           Политика конфиденциальности
         </Link>
         <span className="footerLegal__sep" aria-hidden="true">
           ·
         </span>
-        <Link className="authConsent__legalLink" to="/terms">
+        <Link className="footerLegal__link" to="/terms">
           Условия использования
         </Link>
         {__APP_VERSION__ ? (
@@ -29,9 +26,7 @@ export default function FooterSupport() {
         ) : null}
       </nav>
       <div className="footerSupportSlot">
-        <SupportButton className="btn footerHelpDd__link" data-variant="outline">
-          Поддержка
-        </SupportButton>
+        <SupportButton className="btn footerHelpDd__link" data-variant="outline" />
       </div>
     </div>
   )

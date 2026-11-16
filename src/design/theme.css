@@ -1,0 +1,45 @@
+/* Светлая тема КарПас. Общая для маркетинга, кабинетов и WebView. */
+:root {
+  --bg-base: #f8f6f1;
+  --bg-surface: #fffefa;
+  --bg-elevated: #f0ece3;
+  --border-subtle: #ece6db;
+  --border-default: #ddd5c8;
+  --border-strong: #a89a86;
+  --text-primary: #231f1b;
+  --text-secondary: #514941;
+  --text-muted: #665d51;
+  --accent: #81551f;
+  --accent-dim: #f0e5d1;
+  --accent-line: linear-gradient(to right, var(--accent), transparent);
+  --accent-border: #b5905c;
+  --accent-solid: #79583f;
+  --accent-hover: #61422f;
+  --on-accent: #fffdf9;
+  --focus: #926124;
+  --danger: #9c302d;
+  --danger-soft: #f8e7e3;
+  --danger-border: #cd8f83;
+  --success: #266344;
+  --success-soft: #e6efe6;
+  --on-success: #fffefa;
+  --warning: #805116;
+  --warning-soft: #f7ecd6;
+  --warning-border: #d7b574;
+  --info: #315c74;
+  --on-media: #fffefa;
+  --media-scrim: #251d16;
+  --dialog-scrim: #231f1b99;
+  --open-action: #6b491f;
+  --social-bg: var(--bg-elevated);
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-weight-heading: 400;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-primary-button: 14px;
+  --radius-lg: 20px;
+  --radius-display: 28px;
+  --shadow: 0 1px 2px #31261b08, 0 10px 28px #31261b0b;
+  --shadow-float: 0 8px 28px #31261b26;
+  color-scheme: light;
+}

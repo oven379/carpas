@@ -1,4 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
+import { PartnerAuthLink } from '../about-landing/PartnerAuthLink.tsx'
 import { Seo } from '../seo/Seo.jsx'
 import { buildBreadcrumbJsonLd } from '../seo/marketingJsonLd.js'
 import { buildArticleJsonLd } from './blogJsonLd.js'
@@ -72,13 +73,13 @@ export default function BlogArticlePage() {
                     На этапе запуска бесплатно — с настройкой и публичным лендингом в подарок.
                   </p>
                   <div className="blogCta__row">
-                    <Link
+                    <PartnerAuthLink
                       to="/auth/partner/apply"
                       className="al-btnPrimarySolid"
                       onClick={() => reachGoal(GOALS.blogCtaBusiness)}
                     >
                       Подключить сервис
-                    </Link>
+                    </PartnerAuthLink>
                     <Link to="/business" className="al-btnOutline">
                       Подробнее о CRM
                     </Link>
@@ -124,7 +125,7 @@ export default function BlogArticlePage() {
                     <Link to={`/blog/${p.slug}`} className="blogCard__link">
                       <h3 className="blogCard__title">{p.title}</h3>
                       <p className="blogCard__desc">{p.description}</p>
-                      <span className="blogCard__meta">Читать →</span>
+                      <span className="blogCard__meta">Читать</span>
                     </Link>
                   </article>
                 ))}

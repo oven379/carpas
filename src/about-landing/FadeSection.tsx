@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 
 export function FadeSection({
   className,
@@ -10,11 +10,12 @@ export function FadeSection({
   id?: string
   children: ReactNode
 }) {
+  const reduceMotion = useReducedMotion()
   return (
     <motion.section
       id={id}
       className={className}
-      initial={{ opacity: 0 }}
+      initial={reduceMotion ? false : { opacity: 0 }}
       whileInView={{ opacity: 1 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
       viewport={{ once: true, amount: 0.15 }}

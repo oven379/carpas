@@ -1,53 +1,246 @@
 {
   "carpas": {
     "color": {
-      "bg": { "value": "#16171d", "type": "color" },
-      "text": { "value": "#9ca3af", "type": "color" },
-      "textHeading": { "value": "#f3f4f6", "type": "color" },
-      "border": { "value": "#2e303a", "type": "color" },
-      "codeBg": { "value": "#1f2028", "type": "color" },
-      "accent": { "value": "#c084fc", "type": "color" },
-      "accentBg": { "value": "rgba(192,132,252,0.15)", "type": "color" },
-      "accentBorder": { "value": "rgba(192,132,252,0.5)", "type": "color" },
-      "openAction": { "value": "#5eead4", "type": "color" },
-      "muted": { "value": "#8b92a3", "type": "color" },
-      "white": { "value": "#ffffff", "type": "color" },
-      "danger": { "value": "#ff3b3b", "type": "color" },
-      "cardFill": { "value": "#181920", "type": "color" }
+      "bg": {
+        "value": "#F8F6F1",
+        "type": "color"
+      },
+      "text": {
+        "value": "#514941",
+        "type": "color"
+      },
+      "textHeading": {
+        "value": "#231F1B",
+        "type": "color"
+      },
+      "border": {
+        "value": "#DDD5C8",
+        "type": "color"
+      },
+      "codeBg": {
+        "value": "#FFFEFA",
+        "type": "color"
+      },
+      "accent": {
+        "value": "#81551F",
+        "type": "color"
+      },
+      "accentBg": {
+        "value": "#F0E5D1",
+        "type": "color"
+      },
+      "accentBorder": {
+        "value": "#B5905C",
+        "type": "color"
+      },
+      "openAction": {
+        "value": "#6B491F",
+        "type": "color"
+      },
+      "muted": {
+        "value": "#665D51",
+        "type": "color"
+      },
+      "white": {
+        "value": "#ffffff",
+        "type": "color"
+      },
+      "danger": {
+        "value": "#9C302D",
+        "type": "color"
+      },
+      "cardFill": {
+        "value": "#FFFEFA",
+        "type": "color"
+      },
+      "socialBg": {
+        "value": "#F0ECE3",
+        "type": "color"
+      },
+      "bgElevated": {
+        "value": "#F0ECE3",
+        "type": "color"
+      },
+      "borderStrong": {
+        "value": "#A89A86",
+        "type": "color"
+      },
+      "accentSolid": {
+        "value": "#774A1B",
+        "type": "color"
+      },
+      "accentHover": {
+        "value": "#593610",
+        "type": "color"
+      },
+      "onAccent": {
+        "value": "#FFFEFA",
+        "type": "color"
+      },
+      "focus": {
+        "value": "#926124",
+        "type": "color"
+      },
+      "dangerSoft": {
+        "value": "#F8E7E3",
+        "type": "color"
+      },
+      "dangerBorder": {
+        "value": "#CD8F83",
+        "type": "color"
+      },
+      "success": {
+        "value": "#266344",
+        "type": "color"
+      },
+      "successSoft": {
+        "value": "#E6EFE6",
+        "type": "color"
+      },
+      "onSuccess": {
+        "value": "#FFFEFA",
+        "type": "color"
+      },
+      "warning": {
+        "value": "#805116",
+        "type": "color"
+      },
+      "warningSoft": {
+        "value": "#F7ECD6",
+        "type": "color"
+      },
+      "warningBorder": {
+        "value": "#D7B574",
+        "type": "color"
+      },
+      "info": {
+        "value": "#315C74",
+        "type": "color"
+      },
+      "onMedia": {
+        "value": "#FFFEFA",
+        "type": "color"
+      },
+      "mediaScrim": {
+        "value": "#251D16",
+        "type": "color"
+      },
+      "dialogScrim": {
+        "value": "#231F1B99",
+        "type": "color"
+      }
     },
     "radius": {
-      "sm": { "value": "4px", "type": "borderRadius" },
-      "md": { "value": "12px", "type": "borderRadius" },
-      "lg": { "value": "14px", "type": "borderRadius" },
-      "xl": { "value": "16px", "type": "borderRadius" },
-      "pill": { "value": "999px", "type": "borderRadius" }
+      "sm": {
+        "value": "8px",
+        "type": "borderRadius"
+      },
+      "md": {
+        "value": "12px",
+        "type": "borderRadius"
+      },
+      "lg": {
+        "value": "20px",
+        "type": "borderRadius"
+      },
+      "xl": {
+        "value": "28px",
+        "type": "borderRadius"
+      },
+      "pill": {
+        "value": "999px",
+        "type": "borderRadius"
+      }
     },
     "space": {
-      "2": { "value": "8px", "type": "spacing" },
-      "2.5": { "value": "10px", "type": "spacing" },
-      "3": { "value": "12px", "type": "spacing" },
-      "4": { "value": "16px", "type": "spacing" },
-      "5": { "value": "20px", "type": "spacing" },
-      "6": { "value": "24px", "type": "spacing" },
-      "7": { "value": "28px", "type": "spacing" }
+      "2": {
+        "value": "8px",
+        "type": "spacing"
+      },
+      "2.5": {
+        "value": "10px",
+        "type": "spacing"
+      },
+      "3": {
+        "value": "12px",
+        "type": "spacing"
+      },
+      "4": {
+        "value": "16px",
+        "type": "spacing"
+      },
+      "5": {
+        "value": "20px",
+        "type": "spacing"
+      },
+      "6": {
+        "value": "24px",
+        "type": "spacing"
+      },
+      "7": {
+        "value": "28px",
+        "type": "spacing"
+      }
     },
     "font": {
-      "sans": { "value": "Roboto", "type": "fontFamilies" },
-      "mono": { "value": "Consolas", "type": "fontFamilies" }
+      "sans": {
+        "value": "SF Pro",
+        "type": "fontFamilies"
+      },
+      "mono": {
+        "value": "Consolas",
+        "type": "fontFamilies"
+      }
+    },
+    "fontWeight": {
+      "heading": {
+        "value": "500",
+        "type": "fontWeights"
+      }
     },
     "fontSize": {
-      "xs": { "value": "12px", "type": "fontSizes" },
-      "sm": { "value": "13px", "type": "fontSizes" },
-      "base": { "value": "14px", "type": "fontSizes" },
-      "body": { "value": "15px", "type": "fontSizes" },
-      "bodyLg": { "value": "18px", "type": "fontSizes" },
-      "bodyLgMobile": { "value": "16px", "type": "fontSizes" },
-      "h2": { "value": "20px", "type": "fontSizes" },
-      "h1": { "value": "32px", "type": "fontSizes" }
+      "xs": {
+        "value": "12px",
+        "type": "fontSizes"
+      },
+      "sm": {
+        "value": "13px",
+        "type": "fontSizes"
+      },
+      "base": {
+        "value": "14px",
+        "type": "fontSizes"
+      },
+      "body": {
+        "value": "15px",
+        "type": "fontSizes"
+      },
+      "bodyLg": {
+        "value": "15px",
+        "type": "fontSizes"
+      },
+      "bodyLgMobile": {
+        "value": "15px",
+        "type": "fontSizes"
+      },
+      "h2": {
+        "value": "20px",
+        "type": "fontSizes"
+      },
+      "h1": {
+        "value": "32px",
+        "type": "fontSizes"
+      }
     },
     "sizing": {
-      "maxContent": { "value": "1126px", "type": "sizing" },
-      "touchMin": { "value": "44px", "type": "sizing" }
+      "maxContent": {
+        "value": "1126px",
+        "type": "sizing"
+      },
+      "touchMin": {
+        "value": "44px",
+        "type": "sizing"
+      }
     }
   }
 }

@@ -14,13 +14,11 @@ import {
   Input,
   PageLoadSpinner,
   PhoneRuInput,
-  ServiceHint,
 } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile } from '../../lib/imageCompression.js'
 import {
-  CITY_FIELD_DD_HINT,
   describeRuPlateValidationError,
   describeVinValidationError,
   formatPhoneRuInput,
@@ -33,8 +31,6 @@ import {
   parsePlateFull,
   PHOTO_UPLOAD_EMPTY_THUMB_HINT,
   PHOTO_UPLOAD_HINTS_PARAGRAPH,
-  RU_PLATE_HINT_PARAGRAPHS,
-  RU_PLATE_LAYOUT_DIAGRAM,
 } from '../../lib/format.js'
 import carBrands from '@al-bani/car-brands/assets/brands.json'
 import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
@@ -632,17 +628,6 @@ export default function CarEditPage({ mode }) {
             <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
               <BackNav to={backNavTo} title={backNavTitle} />
               <h1 className="h1">{title}</h1>
-              <ServiceHint scopeId="car-edit-page-hint" variant="compact" label="Справка: карточка авто">
-                <p className="serviceHint__panelText">
-                  Здесь основные данные автомобиля. История визитов, фото и документы — в карточке после сохранения.
-                </p>
-                {who === 'detailing' ? (
-                  <p className="serviceHint__panelText">
-                    Город и госномер — в том же формате, что в гараже владельца: для города доступны подсказки при вводе; номер
-                    вводится двумя полями — как на белой табличке (основная часть и код региона).
-                  </p>
-                ) : null}
-              </ServiceHint>
             </div>
           </div>
         </div>
@@ -651,38 +636,33 @@ export default function CarEditPage({ mode }) {
       <Card className="card pad">
         <div className="formGrid">
           <div className="field serviceHint__fieldWrap" id="car-edit-vin-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">VIN</span>
-              <ServiceHint scopeId="car-edit-vin-hint" variant="compact" label="Справка: VIN">
-                <p className="serviceHint__panelText">
-                  Ровно 17 символов: латиница (A–Z) и цифры. Пробелы и дефисы при вводе убираются автоматически.
-                </p>
-                <p className="serviceHint__panelText">
-                  Поле можно оставить пустым, если VIN пока неизвестен.
-                </p>
-              </ServiceHint>
-            </div>
-            <Input
-              id="car-edit-vin-input"
-              className="input mono"
-              value={draft.vin}
-              maxLength={17}
-              autoComplete="off"
-              autoCapitalize="characters"
-              autoCorrect="off"
-              spellCheck={false}
-              inputMode="text"
-              autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
-              disabled={isDetailingCreate && detailingVinPhase !== 'vin'}
-              onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
-              placeholder="WDD..."
-            />
+            <Field
+              label="VIN" insetLabel
+              hint={mode === 'create'
+                ? 'Введите VIN из 17 букв и цифр.'
+                : '17 букв и цифр. Если VIN неизвестен, оставьте поле пустым.'}
+            >
+              <Input
+                id="car-edit-vin-input"
+                className="input mono"
+                value={draft.vin}
+                maxLength={17}
+                autoComplete="off"
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                inputMode="text"
+                autoFocus={mode === 'create' && Boolean(createVinFromQuery)}
+                disabled={isDetailingCreate && detailingVinPhase !== 'vin'}
+                onChange={(e) => setDraft((d) => ({ ...d, vin: normVin(e.target.value) }))}
+              />
+            </Field>
             {isDetailingCreate && detailingVinPhase === 'vin' ? (
               <div style={{ marginTop: 10 }}>
                 {detailingVinError ? (
                   <p className="field__error" style={{ marginBottom: 8 }}>{detailingVinError}</p>
                 ) : null}
-                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <div className="formActions">
                   <Button
                     className="btn"
                     variant="primary"
@@ -700,7 +680,7 @@ export default function CarEditPage({ mode }) {
               </div>
             ) : null}
             {isDetailingCreate && detailingVinPhase === 'owner_garage' && detailingFoundCar ? (
-              <div className="detailingVinFoundBanner" style={{ marginTop: 10, padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 8, border: '0.5px solid var(--border-default)' }}>
+              <div className="detailingVinFoundBanner" style={{ marginTop: 10, padding: '12px 14px', background: 'var(--bg-surface)', borderRadius: 8 }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>
                   {[detailingFoundCar.make, detailingFoundCar.model].filter(Boolean).join(' ') || 'Авто'}
                   {detailingFoundCar.year ? `, ${detailingFoundCar.year} г.` : ''}
@@ -720,7 +700,7 @@ export default function CarEditPage({ mode }) {
               </div>
             ) : null}
             {isDetailingCreate && detailingVinPhase === 'other_detailing' && detailingFoundCar ? (
-              <div style={{ marginTop: 10, padding: '12px 14px', background: 'var(--color-warn-subtle, #fff8ec)', borderRadius: 8, border: '1px solid var(--color-warn-border, #f5d88a)' }}>
+              <div style={{ marginTop: 10, padding: '12px 14px', background: 'var(--warning-soft)', borderRadius: 8, border: '1px solid var(--warning-border)' }}>
                 <div style={{ fontWeight: 600, marginBottom: 4 }}>
                   {[detailingFoundCar.make, detailingFoundCar.model].filter(Boolean).join(' ') || 'Авто'}
                   {detailingFoundCar.year ? `, ${detailingFoundCar.year} г.` : ''}
@@ -729,7 +709,7 @@ export default function CarEditPage({ mode }) {
                   Карточка с этим VIN уже ведётся{detailingFoundCar.detailingName ? ` в сервисе «${detailingFoundCar.detailingName}»` : ' в другом сервисе'}.
                   Можно создать новую карточку в вашем кабинете или изменить VIN.
                 </p>
-                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <div className="formActions">
                   <Button
                     className="btn"
                     variant="primary"
@@ -750,7 +730,7 @@ export default function CarEditPage({ mode }) {
               </div>
             ) : null}
             {ownerVinFieldsLocked ? (
-              <div className="row gap wrap" style={{ marginTop: 10, alignItems: 'center' }}>
+              <div className="formActions" style={{ marginTop: 10 }}>
                 <Button
                   className="btn"
                   variant="primary"
@@ -805,32 +785,30 @@ export default function CarEditPage({ mode }) {
               </div>
             ) : null}
           </div>
-          <Field label="Марка">
+          <Field label="Марка" insetLabel>
             <ComboBox
               value={draft.make}
               options={makes}
-              placeholder="Начните вводить… (например: Volkswagen)"
               disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, make: v }))}
               onBlur={() => addCustomMake(draft.make)}
             />
           </Field>
-          <Field label="Модель">
+          <Field label="Модель" insetLabel>
             <ComboBox
               value={draft.model}
               options={modelOptions}
-              placeholder={draft.make ? 'Выберите из списка или введите вручную…' : 'Сначала выберите марку'}
+              placeholder={draft.make ? '' : 'Сначала выберите марку'}
               disabled={!draft.make || ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, model: v }))}
               emptyText={draft.make ? 'Нет моделей для этой марки' : 'Сначала выберите марку'}
               onBlur={() => addCustomModel(draft.make, draft.model)}
             />
           </Field>
-          <Field label="Год">
+          <Field label="Год" insetLabel>
             <ComboBox
               value={String(draft.year ?? '')}
               options={years}
-              placeholder="Например: 2020"
               maxItems={30}
               disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) =>
@@ -839,57 +817,37 @@ export default function CarEditPage({ mode }) {
             />
           </Field>
           <div className="field serviceHint__fieldWrap" id="car-edit-mileage-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Пробег (км)</span>
-              <ServiceHint scopeId="car-edit-mileage-hint" variant="compact" label="Справка: пробег">
-                {mode === 'edit' && minMileageKm ? (
-                  <p className="serviceHint__panelText">
-                    Минимум {fmtInt(minMileageKm)} км — по карточке и сохранённым визитам в истории.
-                  </p>
-                ) : (
-                  <p className="serviceHint__panelText">Укажите актуальный или ближайший к реальности пробег в километрах.</p>
-                )}
-              </ServiceHint>
-            </div>
-            <Input
-              className="input"
-              inputMode="numeric"
-              value={draft.mileageKm}
-              maxLength={7}
-              disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
-              onChange={(e) =>
-                setDraft((d) => {
-                  const nextRaw = normDigits(e.target.value, { maxLen: 7 })
-                  const n = nextRaw ? Number(nextRaw) : 0
-                  if (Number.isFinite(n) && n > 1000000) return d // мягко блокируем ввод сверх лимита
-                  return { ...d, mileageKm: nextRaw }
-                })
-              }
-              placeholder={mode === 'edit' && minMileageKm ? fmtInt(minMileageKm) : '12 000'}
-            />
+            <Field
+              label="Пробег (км)" insetLabel
+              hint={mode === 'edit' && minMileageKm ? `Минимум ${fmtInt(minMileageKm)} км` : undefined}
+            >
+              <Input
+                className="input"
+                inputMode="numeric"
+                value={draft.mileageKm}
+                maxLength={7}
+                disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
+                onChange={(e) =>
+                  setDraft((d) => {
+                    const nextRaw = normDigits(e.target.value, { maxLen: 7 })
+                    const n = nextRaw ? Number(nextRaw) : 0
+                    if (Number.isFinite(n) && n > 1000000) return d // мягко блокируем ввод сверх лимита
+                    return { ...d, mileageKm: nextRaw }
+                  })
+                }
+              />
+            </Field>
           </div>
-          <Field label="Цвет">
+          <Field label="Цвет" insetLabel>
             <ComboBox
               value={draft.color}
               options={COLOR_SUGGESTIONS}
-              placeholder="Например: Чёрный (можно свой вариант)"
               maxItems={20}
               disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
               onChange={(v) => setDraft((d) => ({ ...d, color: v }))}
             />
           </Field>
           <div className="field serviceHint__fieldWrap" id="car-edit-plate-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Госномер</span>
-              <ServiceHint scopeId="car-edit-plate-hint" variant="compact" label="Справка: госномер">
-                {RU_PLATE_HINT_PARAGRAPHS.map((text, i) => (
-                  <p key={i} className="serviceHint__panelText">
-                    {text}
-                  </p>
-                ))}
-                <pre className="serviceHint__panelPre mono">{RU_PLATE_LAYOUT_DIAGRAM}</pre>
-              </ServiceHint>
-            </div>
             <div className="row gap" style={{ alignItems: 'center' }}>
               <Input
                 className="input mono"
@@ -903,7 +861,8 @@ export default function CarEditPage({ mode }) {
                 disabled={ownerVinFieldsLocked || detailingFormFieldsDisabled}
                 title="Шесть знаков: буква АВЕКМНОРСТУХ, три цифры, две буквы (можно вводить кириллицей)"
                 onChange={(e) => setDraft((d) => ({ ...d, plate: normPlateBaseUi(e.target.value) }))}
-                placeholder="А777АА"
+                placeholder="Госномер"
+                aria-label="Госномер без региона"
               />
               <Input
                 className="input mono"
@@ -914,30 +873,29 @@ export default function CarEditPage({ mode }) {
                 onChange={(e) =>
                   setDraft((d) => ({ ...d, plateRegion: normPlateRegion(e.target.value) }))
                 }
-                placeholder="77"
+                placeholder="Регион"
+                aria-label="Код региона"
                 title="Код региона, 2–3 цифры"
               />
             </div>
           </div>
           <div className="field serviceHint__fieldWrap" id="car-edit-city-hint">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Город{isDetailingCreate && detailingVinPhase === 'owner_garage' ? ' (для подтверждения)' : ''}</span>
-              <ServiceHint scopeId="car-edit-city-hint" variant="compact" label="Справка: город">
-                <p className="serviceHint__panelText">{CITY_FIELD_DD_HINT}</p>
-              </ServiceHint>
-            </div>
-            <CityComboBox
-              value={draft.city}
-              maxItems={20}
-              disabled={ownerVinFieldsLocked || detailingCityDisabled}
-              onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
-            />
+            <Field
+              label={isDetailingCreate && detailingVinPhase === 'owner_garage' ? 'Город для подтверждения' : 'Город'}
+            >
+              <CityComboBox
+                value={draft.city}
+                maxItems={20}
+                disabled={ownerVinFieldsLocked || detailingCityDisabled}
+                onChange={(v) => setDraft((d) => ({ ...d, city: v }))}
+              />
+            </Field>
             {isDetailingCreate && detailingVinPhase === 'owner_garage' ? (
               <div style={{ marginTop: 10 }}>
                 {detailingLinkError ? (
                   <p className="field__error" style={{ marginBottom: 8 }}>{detailingLinkError}</p>
                 ) : null}
-                <div className="row gap wrap" style={{ alignItems: 'center' }}>
+                <div className="formActions">
                   <Button
                     className="btn"
                     variant="primary"
@@ -963,24 +921,17 @@ export default function CarEditPage({ mode }) {
           {who !== 'owner' ? (
             <>
               <div className="field serviceHint__fieldWrap" id="car-edit-client-name-hint">
-                <div className="field__top serviceHint__fieldTop">
-                  <span className="field__label">Клиент (имя)</span>
-                  <ServiceHint scopeId="car-edit-client-name-hint" variant="compact" label="Справка: клиент">
-                    <p className="serviceHint__panelText">
-                      Имя, телефон и почта клиента необязательны, но помогают найти карточку в списке и не создать вторую по
-                      ошибке. Перед сохранением новой карточки система предупредит, если уже есть авто с тем же VIN или с той же
-                      парой телефон и почта — можно открыть существующую карточку вместо дубля.
-                    </p>
-                  </ServiceHint>
-                </div>
-                <Input
-                  className="input"
-                  value={draft.clientName}
-                  onChange={(e) => setDraft((d) => ({ ...d, clientName: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, clientName: next })))}
-                  placeholder="Например: Иван"
-                  autoComplete="name"
-                />
+                <Field
+                  label="Клиент (имя)"
+                >
+                  <Input
+                    className="input"
+                    value={draft.clientName}
+                    onChange={(e) => setDraft((d) => ({ ...d, clientName: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, clientName: next })))}
+                    autoComplete="name"
+                  />
+                </Field>
               </div>
               <Field label="Клиент (телефон)">
                 <PhoneRuInput
@@ -1000,7 +951,6 @@ export default function CarEditPage({ mode }) {
                   type="email"
                   value={draft.clientEmail}
                   onChange={(e) => setDraft((d) => ({ ...d, clientEmail: e.target.value }))}
-                  placeholder="pochta@example.ru"
                   autoComplete="email"
                 />
               </Field>
@@ -1022,9 +972,6 @@ export default function CarEditPage({ mode }) {
           >
             <div className="field__top serviceHint__fieldTop carEditCoverBlock__labelRow">
               <span className="field__label">Настройка обложки</span>
-              <ServiceHint scopeId="car-edit-hero-hint" variant="compact" label="Справка: обложка карточки">
-                <p className="serviceHint__panelText">{PHOTO_UPLOAD_HINTS_PARAGRAPH}</p>
-              </ServiceHint>
             </div>
           </div>
           <input
@@ -1079,132 +1026,129 @@ export default function CarEditPage({ mode }) {
           </div>
         ) : null}
 
-        <div className="row spread gap topBorder carEditFormActions">
-          <div className="row gap wrap carEditFormActions__buttons">
-            <Button
-              className="btn"
-              variant="primary"
-              disabled={saveBusy || ownerVinFieldsLocked || (isDetailingCreate && detailingVinPhase !== 'form')}
-              aria-busy={saveBusy || undefined}
-              onClick={async () => {
-                if (saveInFlightRef.current) return
-                if (mode === 'create' && !carLegalConsent) {
-                  toast('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.', 'warn')
+        <div className="formActions topBorder">
+          <Button
+            className="btn"
+            variant="primary"
+            disabled={saveBusy || ownerVinFieldsLocked || (isDetailingCreate && detailingVinPhase !== 'form')}
+            aria-busy={saveBusy || undefined}
+            onClick={async () => {
+              if (saveInFlightRef.current) return
+              if (mode === 'create' && !carLegalConsent) {
+                toast('Подтвердите согласие с политикой конфиденциальности и правилами использования сервиса.', 'warn')
+                return
+              }
+              const vinErr = describeVinValidationError(normVin(draft.vin))
+              const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
+              if (vinErr) {
+                toast(vinErr, 'warn')
+                return
+              }
+              if (mode === 'create' && who === 'owner' && normVin(draft.vin).length !== 17) {
+                toast('Укажите полный VIN из 17 символов.', 'warn')
+                return
+              }
+              if (mode === 'create' && who === 'detailing' && normVin(draft.vin).length !== 17) {
+                toast('Для новой карточки в кабинете партнёра нужен полный VIN из 17 символов.', 'warn')
+                return
+              }
+              if (plateErr) {
+                toast(plateErr, 'warn')
+                return
+              }
+              if (mode === 'edit') {
+                const nextMileage = Number(String(draft.mileageKm || '0')) || 0
+                if (nextMileage < minMileageKm) {
+                  toast(`Пробег не может быть меньше ${fmtInt(minMileageKm)} км — по карточке и истории визитов.`, 'warn')
                   return
                 }
-                const vinErr = describeVinValidationError(normVin(draft.vin))
-                const plateErr = describeRuPlateValidationError(draft.plate, draft.plateRegion)
-                if (vinErr) {
-                  toast(vinErr, 'warn')
-                  return
-                }
-                if (mode === 'create' && who === 'owner' && normVin(draft.vin).length !== 17) {
-                  toast('Укажите полный VIN из 17 символов.', 'warn')
-                  return
-                }
-                if (mode === 'create' && who === 'detailing' && normVin(draft.vin).length !== 17) {
-                  toast('Для новой карточки в кабинете партнёра нужен полный VIN из 17 символов.', 'warn')
-                  return
-                }
-                if (plateErr) {
-                  toast(plateErr, 'warn')
-                  return
-                }
+              }
+
+              saveInFlightRef.current = true
+              setSaveBusy(true)
+              try {
                 if (mode === 'edit') {
-                  const nextMileage = Number(String(draft.mileageKm || '0')) || 0
-                  if (nextMileage < minMileageKm) {
-                    toast(`Пробег не может быть меньше ${fmtInt(minMileageKm)} км — по карточке и истории визитов.`, 'warn')
+                  try {
+                    await r.updateCar(id, draft)
+                  } catch (e) {
+                    toast(formatHttpErrorMessage(e), 'error')
                     return
                   }
-                }
-
-                saveInFlightRef.current = true
-                setSaveBusy(true)
-                try {
-                  if (mode === 'edit') {
+                  invalidateRepo()
+                  if (who === 'owner') nav(listReturn)
+                  else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
+                } else {
+                  const plateKey =
+                    draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
+                  if (who === 'owner' && plateKey && r.findCarsByPlate) {
                     try {
-                      await r.updateCar(id, draft)
-                    } catch (e) {
-                      toast(formatHttpErrorMessage(e), 'error')
-                      return
-                    }
-                    invalidateRepo()
-                    if (who === 'owner') nav(listReturn)
-                    else nav(`/car/${id}${buildCarFromQuery(fromParam)}`)
-                  } else {
-                    const plateKey =
-                      draft.plate || draft.plateRegion ? `${normPlateBase(draft.plate)}${normPlateRegion(draft.plateRegion)}` : ''
-                    if (who === 'owner' && plateKey && r.findCarsByPlate) {
-                      try {
-                        const matches2 = await r.findCarsByPlate({
-                          plate: normPlateBase(draft.plate),
-                          plateRegion: normPlateRegion(draft.plateRegion),
-                        })
-                        if (Array.isArray(matches2) && matches2.length) {
-                          const msg =
-                            'Авто с таким госномером уже может быть в сервисе (возможен дубль). Создать карточку всё равно?'
-                          if (!confirm(msg)) return
-                        }
-                      } catch {
-                        /* ignore duplicate check */
+                      const matches2 = await r.findCarsByPlate({
+                        plate: normPlateBase(draft.plate),
+                        plateRegion: normPlateRegion(draft.plateRegion),
+                      })
+                      if (Array.isArray(matches2) && matches2.length) {
+                        const msg =
+                          'Авто с таким госномером уже может быть в сервисе (возможен дубль). Создать карточку всё равно?'
+                        if (!confirm(msg)) return
                       }
-                    }
-                    const created = await r.createCar(null, {
-                      ...draft,
-                      legalConsentAccepted: true,
-                    })
-                    if (!created?.id) {
-                      toast('Ошибка при создании карточки', 'error')
-                      return
-                    }
-                    if (who === 'owner') refreshAllClientData()
-                    else invalidateRepo()
-                    nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
-                  }
-                } catch (e) {
-                  if (import.meta.env.DEV) console.error(e)
-                  toast(formatHttpErrorMessage(e), 'error')
-                } finally {
-                  saveInFlightRef.current = false
-                  setSaveBusy(false)
-                }
-              }}
-            >
-              {saveBusy ? 'Сохранение…' : 'Сохранить'}
-            </Button>
-            <Link className="btn" data-variant="outline" to={backNavTo}>
-              Отменить
-            </Link>
-            {mode === 'edit' && id ? (
-              <Button
-                className="btn"
-                variant="danger"
-                type="button"
-                disabled={saveBusy || deleteCarLock.pending}
-                aria-busy={deleteCarLock.pending || undefined}
-                onClick={() =>
-                  void deleteCarLock.run(async () => {
-                    const msg =
-                      'Удалить авто навсегда?\n\n' +
-                      'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
-                      'Альтернатива: в настройках карточки можно отвязать авто от гаража — карточка останется в сети без владельца.'
-                    if (!confirm(msg)) return
-                    try {
-                      await r.deleteCar(id)
-                      invalidateRepo()
-                      const list = await r.listCars()
-                      nav(getPathAfterCarRemovedFromScope(list, { mode: who, owner, detailingId }), { replace: true })
                     } catch {
-                      toast('Не удалось удалить авто (нет доступа).', 'error')
+                      /* ignore duplicate check */
                     }
+                  }
+                  const created = await r.createCar(null, {
+                    ...draft,
+                    legalConsentAccepted: true,
                   })
+                  if (!created?.id) {
+                    toast('Ошибка при создании карточки', 'error')
+                    return
+                  }
+                  if (who === 'owner') refreshAllClientData()
+                  else invalidateRepo()
+                  nav(`/car/${created.id}${buildCarFromQuery(fromParam)}`)
                 }
-              >
-                Удалить авто
-              </Button>
-            ) : null}
-          </div>
-          <div className="muted small carEditFormActions__hint">Изменения сохраняются в вашем кабинете.</div>
+              } catch (e) {
+                if (import.meta.env.DEV) console.error(e)
+                toast(formatHttpErrorMessage(e), 'error')
+              } finally {
+                saveInFlightRef.current = false
+                setSaveBusy(false)
+              }
+            }}
+          >
+            {saveBusy ? 'Сохранение…' : 'Сохранить'}
+          </Button>
+          <Link className="btn" data-variant="outline" to={backNavTo}>
+            Отменить
+          </Link>
+          {mode === 'edit' && id ? (
+            <Button
+              className="btn"
+              variant="danger"
+              type="button"
+              disabled={saveBusy || deleteCarLock.pending}
+              aria-busy={deleteCarLock.pending || undefined}
+              onClick={() =>
+                void deleteCarLock.run(async () => {
+                  const msg =
+                    'Удалить авто навсегда?\n\n' +
+                    'Если вы удалите ваше авто, оно больше не появится в сервисе (вместе с историей и фото).\n\n' +
+                    'Альтернатива: в настройках карточки можно отвязать авто от гаража — карточка останется в сети без владельца.'
+                  if (!confirm(msg)) return
+                  try {
+                    await r.deleteCar(id)
+                    invalidateRepo()
+                    const list = await r.listCars()
+                    nav(getPathAfterCarRemovedFromScope(list, { mode: who, owner, detailingId }), { replace: true })
+                  } catch {
+                    toast('Не удалось удалить авто (нет доступа).', 'error')
+                  }
+                })
+              }
+            >
+              Удалить авто
+            </Button>
+          ) : null}
         </div>
       </Card>
     </div>

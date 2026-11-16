@@ -130,7 +130,7 @@ export default function PolicyPage() {
 
           return (
             <div key={si} style={{ marginBottom: 28 }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 12, lineHeight: 1.4 }}>
+              <h2 style={{ fontSize: '1rem', marginBottom: 12, lineHeight: 1.4 }}>
                 {section.header}
               </h2>
               <div style={{ lineHeight: 1.7, fontSize: '0.9375rem' }}>

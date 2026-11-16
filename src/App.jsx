@@ -1,8 +1,9 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { CabinetRouteSeo } from './seo/CabinetRouteSeo.jsx'
 import { lazy, Suspense, useEffect, useRef } from 'react'
 import { getApiBaseUrl } from './api/client.js'
 import './App.css'
+import './design/home-and-car.css'
 import { PageLoadSpinner, TopNav } from './ui/components.jsx'
 import AdminPanelGuard from './ui/AdminPanelGuard.jsx'
 import DetailingOnboardingGate from './ui/DetailingOnboardingGate.jsx'
@@ -28,8 +29,7 @@ const HistoryPage = lazyRetry(() => import('./ui/pages/HistoryPage.jsx'))
 const DocsPage = lazyRetry(() => import('./ui/pages/DocsPage.jsx'))
 const AuthPage = lazyRetry(() => import('./ui/pages/AuthPage.jsx'))
 const OwnerAuthPage = lazyRetry(() => import('./ui/pages/OwnerAuthPage.jsx'))
-const PartnerLoginPage = lazyRetry(() => import('./ui/pages/PartnerLoginPage.jsx'))
-const PartnerApplyPage = lazyRetry(() => import('./ui/pages/PartnerApplyPage.jsx'))
+const PartnerAuthDialog = lazyRetry(() => import('./about-landing/PartnerAuthDialog.jsx'))
 const PublicCarPage = lazyRetry(() => import('./ui/pages/PublicCarPage.jsx'))
 const RequestsPage = lazyRetry(() => import('./ui/pages/RequestsPage.jsx'))
 const DetailingSettingsPage = lazyRetry(() => import('./ui/pages/DetailingSettingsPage.jsx'))
@@ -101,15 +101,14 @@ function RequireAuth({ children }) {
   return <DetailingOnboardingGate>{children}</DetailingOnboardingGate>
 }
 
-function ScrollToTopOnRouteChange() {
-  const loc = useLocation()
+function ScrollToTopOnRouteChange({ pathname }) {
   useEffect(() => {
     try {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
     } catch {
       window.scrollTo(0, 0)
     }
-  }, [loc.pathname])
+  }, [pathname])
   return null
 }
 
@@ -208,10 +207,17 @@ function SyncClientDataOnTabReturn() {
 
 export default function App() {
   const loc = useLocation()
+  const navigate = useNavigate()
+  const partnerAuthOpen = /^\/auth\/partner(?:\/apply)?\/?$/i.test(loc.pathname)
+  const partnerAuthBackground = partnerAuthOpen ? loc.state?.partnerAuthBackground : null
+  const partnerAuthFallback = isNativeApp() ? '/auth/owner' : '/auth'
+  const page = partnerAuthBackground || (partnerAuthOpen
+    ? { pathname: partnerAuthFallback, search: '', hash: '', state: loc.state, key: 'partner-auth-background' }
+    : loc)
   const adminSolo =
-    loc.pathname === '/admin/379team' || loc.pathname === '/admin/panel'
-  const guestMarketingChrome = guestMarketingSoloPath(loc.pathname)
-  const nativeAuthChrome = isNativeApp() && loc.pathname.startsWith('/auth')
+    page.pathname === '/admin/379team' || page.pathname === '/admin/panel'
+  const guestMarketingChrome = guestMarketingSoloPath(page.pathname)
+  const nativeAuthChrome = isNativeApp() && page.pathname.startsWith('/auth')
   const soloChrome = guestMarketingChrome || adminSolo || nativeAuthChrome
 
   return (
@@ -224,11 +230,11 @@ export default function App() {
       <main
         className={`main${guestMarketingChrome ? ' main--aboutLanding' : ''}${adminSolo ? ' main--adminSolo' : ''}${nativeAuthChrome ? ' main--nativeAuth' : ''}`}
       >
-        <ScrollToTopOnRouteChange />
+        <ScrollToTopOnRouteChange pathname={page.pathname} />
         <MetrikaRouteTracker />
         <CabinetRouteSeo />
         <Suspense fallback={<RouteFallback />}>
-          <Routes>
+          <Routes location={page}>
             <Route path="/" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <HomePage />} />
             <Route path="/owners" element={<OwnersPage />} />
             <Route path="/about" element={<Navigate to="/" replace />} />
@@ -359,11 +365,17 @@ export default function App() {
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/auth" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <AuthPage />} />
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
-            <Route path="/auth/partner/apply" element={<PartnerApplyPage />} />
-            <Route path="/auth/partner" element={<PartnerLoginPage />} />
             <Route path="*" element={isNativeApp() ? <Navigate to="/" replace /> : <NotFoundPage />} />
           </Routes>
+        </Suspense>
+        {partnerAuthOpen && (
+          <Suspense fallback={null}>
+            <PartnerAuthDialog onClose={() => {
+              if (partnerAuthBackground) navigate(-1)
+              else navigate(partnerAuthFallback, { replace: true, state: loc.state })
+            }} />
           </Suspense>
+        )}
       </main>
       {soloChrome ? null : (
         <footer className="footer">

@@ -1,3 +1,5 @@
+import brandMark from '../assets/brand-mark.svg?raw'
+
 const DEFAULT_TITLE = 'КарПас'
 let defaultFaviconHref = ''
 
@@ -14,30 +16,9 @@ function findFavicon() {
 }
 
 function badgeFavicon(count) {
-  if (typeof document === 'undefined') return ''
-  const canvas = document.createElement('canvas')
-  canvas.width = 64
-  canvas.height = 64
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return ''
-
-  ctx.fillStyle = '#0b0b0b'
-  ctx.fillRect(0, 0, 64, 64)
-  ctx.fillStyle = '#d6b36a'
-  ctx.font = '700 25px Arial, sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText('К', 27, 35)
-
-  ctx.fillStyle = '#58e089'
-  ctx.beginPath()
-  ctx.arc(47, 17, 15, 0, Math.PI * 2)
-  ctx.fill()
-  ctx.fillStyle = '#0b0b0b'
-  ctx.font = '800 18px Arial, sans-serif'
-  ctx.fillText(count > 9 ? '9+' : String(count), 47, 18)
-
-  return canvas.toDataURL('image/png')
+  const label = count > 9 ? '9+' : String(count)
+  const badge = `<circle cx="47" cy="17" r="15" fill="#58e089"/><text x="47" y="18" text-anchor="middle" dominant-baseline="central" font-family="Arial,sans-serif" font-size="18" font-weight="800" fill="#0b0b0b">${label}</text>`
+  return `data:image/svg+xml,${encodeURIComponent(brandMark.replace('</svg>', `${badge}</svg>`))}`
 }
 
 export function syncNotificationBadge(count) {

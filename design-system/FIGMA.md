@@ -1,6 +1,6 @@
 # Дизайн-система КарПас → Figma
 
-В коде нет отдельного `.fig` файла: стили заданы в **CSS** (`src/index.css`, `src/App.css`) и **Tailwind** (`tailwind.config.js`). Здесь — **токены** для переноса в Figma.
+В коде нет отдельного `.fig` файла: стили заданы в **CSS** (`src/design/theme.css`, `src/index.css`, `src/App.css`) и **Tailwind** (`tailwind.config.js`). Здесь — **токены** для переноса в Figma.
 
 ## Что лежит в папке
 
@@ -20,11 +20,11 @@
 
 ## Компоненты в коде (соберите в Figma вручную)
 
-- **Кнопка** — `Button` / `.btn`, `data-variant`: `primary`, `ghost`, `outline`, `danger` (`src/ui/components.jsx`, `App.css` ~847–942).
-- **Поле** — `.input`, `.textarea`, `.phoneRuField`, `.field` (~970–1208).
-- **Карточка** — `.card` + `.pad` (~1155–1166).
-- **Pill** — `.pill`, `data-tone`: `neutral`, `accent` (~1273–1304).
-- **Навигация** — `.nav`, `.nav__action` (~10–236).
+- **Кнопка** — `Button` / `.btn`, `data-variant`: `primary`, `ghost`, `outline`, `danger` (`src/ui/components.jsx`, `App.css`).
+- **Поле** — `.input`, `.textarea`, `.phoneRuField`, `.field` ().
+- **Карточка** — `.card` + `.pad` ().
+- **Pill** — `.pill`, `data-tone`: `neutral`, `accent` ().
+- **Навигация** — `.nav`, `.nav__action` ().
 
 ## Адаптив: веб и приложение (единая вёрстка)
 
@@ -32,7 +32,6 @@
 
 | Условие | Где в `App.css` / `index.css` | Назначение |
 |--------|-------------------------------|------------|
-| `max-width: 1024px` | `index.css` `:root` | Базовый кегль 16px вместо 18px |
 | `max-width: 980px` | `App.css` | Сетки лендинга/форм в одну колонку и др. |
 | `max-width: 768px` | `App.css` | `.main` с отступом снизу под **safe-area**; `.container` 12px + `env(safe-area-inset-*)` |
 | `max-width: 720px` | `App.css` | Герои карточек, гаражный баннер, компактные отступы |
@@ -62,8 +61,8 @@
 ## Ограничения
 
 - Часть цветов задана через **`color-mix(in oklab, …)`** — в Figma нет прямого аналога; в JSON даны **ближайшие HEX/RGB** или подпись «задайте вручную».
-- Тёмная тема **одна** (`color-scheme: dark`), `prefers-color-scheme` не переключает тему.
+- Во всех разделах используется **светлая тема**. Системный режим не переключает её. Для фото и модальных окон есть отдельные токены затемнения.
 
 ## Шрифт
 
-В проде ориентир: **Roboto** + системный стек. В Figma подключите **Roboto** (Google Fonts) и переменные семейства из токенов.
+На устройствах Apple интерфейс использует системный **SF Pro**, на других платформах — системный шрифт без засечек. В Figma используйте **SF Pro Medium (500)** для заголовков.

@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import productOverviewSrc from '../assets/product-overview.png?url'
-import crmPanelSrc from '../assets/crm-panel.png?url'
+import { PartnerAuthLink } from '../about-landing/PartnerAuthLink.tsx'
+import productOverviewSrc from '../assets/product-overview-light.webp?url'
+import crmPanelSrc from '../assets/crm-panel-light.webp?url'
 import partnerNndSrc from '../assets/partner-nnd.png?url'
-import partnerLandingSrc from '../assets/partner-landing.png?url'
-import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
-import screenNewVisitSrc from '../assets/app-screen-new-visit.jpg?url'
+import partnerLandingSrc from '../assets/partner-landing-light.webp?url'
+import screenHistoryListSrc from '../assets/app-screen-history-list-light.webp?url'
+import screenNewVisitSrc from '../assets/app-screen-new-visit-light.webp?url'
 
 /** Иллюстрация в статье. phone — вертикальный скрин телефона (ограничиваем высоту). */
 function Fig({ src, alt, caption, phone = false }) {
@@ -32,13 +33,13 @@ function VideoEmbed({ id, href, title, youtube }) {
       </div>
       <figcaption>
         <a href={href} target="_blank" rel="noopener noreferrer">
-          Смотреть на RuTube →
+          Смотреть на RuTube
         </a>
         {youtube ? (
           <>
             {' · '}
             <a href={`https://youtu.be/${youtube}`} target="_blank" rel="noopener noreferrer">
-              Смотреть на YouTube →
+              Смотреть на YouTube
             </a>
           </>
         ) : null}
@@ -217,7 +218,7 @@ export const blogPosts = [
         <p>
           Если под «программой для автосервиса» вы имеете в виду учёт и склад — смотрите учётные системы. Если задача
           вернуть клиентов и вести историю их авто — нужна CRM.{' '}
-          <Link to="/auth/partner/apply">Подключите КарПас</Link> — на этапе запуска бесплатно, с настройкой и лендингом
+          <PartnerAuthLink to="/auth/partner/apply">Подключите КарПас</PartnerAuthLink> — на этапе запуска бесплатно, с настройкой и лендингом
           в подарок.
         </p>
       </>
@@ -656,7 +657,7 @@ blogPosts.push(
         <h2>Подключиться</h2>
         <p>
           КарПас на этапе запуска — <Link to="/business">подключение бесплатное</Link>, с настройкой и публичным
-          лендингом в подарок. <Link to="/auth/partner/apply">Оставьте заявку на партнёрство</Link>.
+          лендингом в подарок. <PartnerAuthLink to="/auth/partner/apply">Оставьте заявку на партнёрство</PartnerAuthLink>.
         </p>
       </>
     ),
@@ -740,7 +741,7 @@ blogPosts.push({
       <p>
         Если у вас детейлинг, тюнинг-ателье, автомойка или СТО — подключайтесь к КарПас, как NND: ведите
         историю клиентов, показывайте фотоотчёты и получите публичную страницу-витрину в подарок.{' '}
-        <Link to="/auth/partner/apply">Оставьте заявку</Link> — на этапе запуска бесплатно.
+        <PartnerAuthLink to="/auth/partner/apply">Оставьте заявку</PartnerAuthLink> — на этапе запуска бесплатно.
       </p>
     </>
   ),
@@ -1141,7 +1142,7 @@ blogPosts.push({
 
       <p className="muted small">
         А если вы сами занимаетесь пригоном, детейлингом, мойкой или СТО — можете{' '}
-        <Link to="/auth/partner/apply">подключиться к КарПас как партнёр</Link> и выдавать клиентам авто с цифровым
+        <PartnerAuthLink to="/auth/partner/apply">подключиться к КарПас как партнёр</PartnerAuthLink> и выдавать клиентам авто с цифровым
         паспортом.
       </p>
     </>
@@ -1702,7 +1703,7 @@ blogPosts.push({
       <h2>Как подключиться</h2>
       <ol>
         <li>
-          <Link to="/auth/partner/apply">Оставьте заявку партнёра</Link> и выберите тип бизнеса.
+          <PartnerAuthLink to="/auth/partner/apply">Оставьте заявку партнёра</PartnerAuthLink> и выберите тип бизнеса.
         </li>
         <li>После проверки заявки откроется кабинет и страница сервиса.</li>
         <li>

@@ -52,7 +52,7 @@ export default function BlogIndexPage() {
                   <h2 className="blogCard__title">{post.title}</h2>
                   <p className="blogCard__desc">{post.description}</p>
                   <span className="blogCard__meta">
-                    {formatDate(post.datePublished)} · Читать →
+                    {formatDate(post.datePublished)} · Читать
                   </span>
                 </Link>
               </article>

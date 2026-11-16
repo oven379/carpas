@@ -60,9 +60,7 @@ function SectionGrid({ items, selected, disabled, onToggle }) {
  * @param {boolean} [useFullCatalogFallback] — для владельца: весь справочник вместо профиля лендинга.
  */
 export function VisitFormServicesBlock({
-  scopeId,
   fieldLabel = 'Услуги визита',
-  hintSlot,
   detailing,
   useFullCatalogFallback = false,
   services,
@@ -231,12 +229,10 @@ export function VisitFormServicesBlock({
   return (
     <div
       className={`field field--full serviceHint__fieldWrap visitFormSvc${disabled ? ' visitFormSvc--disabled' : ''}`}
-      id={scopeId}
       ref={rootRef}
     >
       <div className="field__top serviceHint__fieldTop">
         <span className="field__label">{fieldLabel}</span>
-        {hintSlot}
       </div>
 
       <div className="visitFormSvc__searchRow">

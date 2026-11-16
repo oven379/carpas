@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
-import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { PartnerAuthLink } from '../../about-landing/PartnerAuthLink.tsx'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { AuthForgotPasswordBlock } from '../AuthForgotPasswordBlock.jsx'
 import {
   AuthLegalConsent,
@@ -10,27 +11,19 @@ import {
   Input,
   PasswordInput,
   PhoneRuInput,
-  ServiceHint,
 } from '../components.jsx'
-import { useRepo, refreshAllClientData } from '../useRepo.js'
-import {
-  hasDetailingSession,
-  hasOwnerSession,
-  ownerToSessionSnapshot,
-  safeAuthReturnPath,
-  setSessionOwner,
-} from '../auth.js'
+import { useOwnerAuth } from '../useOwnerAuth.js'
+import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { formatPhoneRuInput, OWNER_PASSWORD_MIN_LEN } from '../../lib/format.js'
 import { isNativeApp } from '../../lib/nativePlatform.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
-import { formatHttpErrorMessage } from '../../api/http.js'
 import Logo from '../Logo.jsx'
 import { IOS_APP_URL, androidApkUrl } from '../../lib/appLinks.js'
-import { GOALS, reachGoal } from '../../lib/metrika.js'
 
 export default function OwnerAuthPage() {
-  const r = useRepo()
+  const { login, register, forgotPassword, returnPath, nextAfterAuth } = useOwnerAuth()
   const { detailing } = useDetailing()
+  const [hadOwnerSession] = useState(hasOwnerSession)
   const [spQuery, setSpQuery] = useSearchParams()
   const [ownEmail, setOwnEmail] = useState('')
   const [ownPassword, setOwnPassword] = useState('')
@@ -43,26 +36,10 @@ export default function OwnerAuthPage() {
   const [agreedToTerms, setAgreedToTerms] = useState(false)
   const ownEmailRef = useRef(null)
   const ownPasswordRef = useRef(null)
-  const nav = useNavigate()
-  const loc = useLocation()
-  const returnPath = safeAuthReturnPath(loc.state?.from)
-  const nextAfterAuth =
-    returnPath && !returnPath.startsWith('/auth')
-      ? returnPath === '/'
-        ? '/garage'
-        : returnPath
-      : '/garage'
   const authHubLinkState = returnPath ? { from: returnPath } : undefined
   const nativeApp = isNativeApp()
 
-  /** После первой регистрации ведём в настройки гаража, если не было явного deep-link. */
-  function resolveAfterRegister() {
-    const d = String(nextAfterAuth || '/garage')
-    if (d === '/garage' || d === '/') return '/garage/settings'
-    return nextAfterAuth
-  }
-
-  if (hasOwnerSession()) {
+  if (hadOwnerSession) {
     return <Navigate to={nextAfterAuth} replace />
   }
   if (hasDetailingSession()) {
@@ -130,36 +107,8 @@ export default function OwnerAuthPage() {
   async function onEnterGarage() {
     const creds = requireEmailPassword()
     if (!creds) return
-    const { em, pwd } = creds
-    try {
-      const loginRes = await r.loginOwner({ email: em, password: pwd })
-      if (loginRes?.ok) {
-        const snap = ownerToSessionSnapshot(loginRes.owner)
-        if (!snap) {
-          alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
-          return
-        }
-        setSessionOwner(snap, loginRes.token)
-        refreshAllClientData()
-        nav(nextAfterAuth, { replace: true })
-        return
-      }
-      const reason = loginRes?.reason
-      if (reason === 'bad_password') {
-        alert('Неверный пароль для этой почты.')
-        return
-      }
-      if (reason === 'not_found') {
-        alert(
-          'Аккаунта с такой почтой нет. Переключитесь на «Регистрация», заполните имя и нажмите «Зарегистрироваться».',
-        )
-        return
-      }
-      if (reason === 'bad_credentials') alert('Укажите почту и пароль')
-      else alert('Не удалось войти')
-    } catch (e) {
-      alert(formatHttpErrorMessage(e))
-    }
+    const error = await login({ email: creds.em, password: creds.pwd })
+    if (error) alert(error)
   }
 
   async function onRegisterSubmit() {
@@ -168,28 +117,8 @@ export default function OwnerAuthPage() {
     if (!creds) return
     const extra = readRegisterProfile()
     if (!extra) return
-    const { em, pwd } = creds
-    const { name, phone } = extra
-    try {
-      const reg = await r.registerOwner({
-        email: em,
-        password: pwd,
-        name,
-        phone,
-      })
-      const snap = ownerToSessionSnapshot(reg.owner)
-      if (!snap) {
-        alert('Не удалось сохранить сессию: нет почты в ответе сервера.')
-        return
-      }
-      setSessionOwner(snap, reg.token)
-      reachGoal(GOALS.ownerRegister)
-      refreshAllClientData()
-      const dest = resolveAfterRegister()
-      nav(dest, { replace: true })
-    } catch (e) {
-      alert(formatHttpErrorMessage(e))
-    }
+    const error = await register({ email: creds.em, password: creds.pwd, ...extra })
+    if (error) alert(error)
   }
 
   return (
@@ -233,7 +162,6 @@ export default function OwnerAuthPage() {
                   onInput={(e) => setOwnEmail(e.currentTarget.value)}
                   onBlur={(e) => setOwnEmail(e.currentTarget.value)}
                   onAnimationStart={(e) => onAutofillAnimation(e, setOwnEmail)}
-                  placeholder="you@example.com"
                 />
               </Field>
               <Field
@@ -254,43 +182,35 @@ export default function OwnerAuthPage() {
                   onInput={(e) => setOwnPassword(e.currentTarget.value)}
                   onBlur={(e) => setOwnPassword(e.currentTarget.value)}
                   onAnimationStart={(e) => onAutofillAnimation(e, setOwnPassword)}
-                  placeholder={authMode === 'register' ? `от ${OWNER_PASSWORD_MIN_LEN} символов` : 'пароль'}
                 />
               </Field>
               {authMode === 'register' ? (
                 <>
                   <div className="field field--full serviceHint__fieldWrap" id="owner-auth-name">
-                    <div className="field__top serviceHint__fieldTop">
-                      <span className="field__label">Имя</span>
-                      <ServiceHint scopeId="owner-auth-name" variant="compact" label="Справка: имя при регистрации">
-                        <p className="serviceHint__panelText">Как к вам обращаться в сервисе. Обязательно при создании аккаунта.</p>
-                      </ServiceHint>
-                    </div>
-                    <Input
-                      className="input"
-                      value={ownName}
-                      onChange={(e) => setOwnName(e.target.value)}
-                      placeholder="Например: Иван"
-                      autoComplete="name"
-                    />
+                    <Field
+                      label="Имя"
+                    >
+                      <Input
+                        className="input"
+                        value={ownName}
+                        onChange={(e) => setOwnName(e.target.value)}
+                        autoComplete="name"
+                      />
+                    </Field>
                   </div>
                   <div className="field field--full serviceHint__fieldWrap" id="owner-auth-phone">
-                    <div className="field__top serviceHint__fieldTop">
-                      <span className="field__label">Телефон <span className="muted small">(необязательно)</span></span>
-                      <ServiceHint scopeId="owner-auth-phone" variant="compact" label="Справка: телефон при регистрации">
-                        <p className="serviceHint__panelText">
-                          Номер можно добавить сейчас или позже в настройках гаража. Для создания аккаунта он не обязателен.
-                        </p>
-                      </ServiceHint>
-                    </div>
-                    <PhoneRuInput
-                      value={ownPhone}
-                      onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
-                      onInput={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
-                      onBlur={() => setOwnPhone((p) => formatPhoneRuInput(p))}
-                      onAnimationStart={(e) => onAutofillAnimation(e, (v) => setOwnPhone(formatPhoneRuInput(v)))}
-                      autoComplete="tel"
-                    />
+                    <Field
+                      label="Телефон" hint="Необязательно"
+                    >
+                      <PhoneRuInput
+                        value={ownPhone}
+                        onChange={(e) => setOwnPhone(formatPhoneRuInput(e.target.value))}
+                        onInput={(e) => setOwnPhone(formatPhoneRuInput(e.currentTarget.value))}
+                        onBlur={() => setOwnPhone((p) => formatPhoneRuInput(p))}
+                        onAnimationStart={(e) => onAutofillAnimation(e, (v) => setOwnPhone(formatPhoneRuInput(v)))}
+                        autoComplete="tel"
+                      />
+                    </Field>
                   </div>
                   <AuthLegalConsent inputId="owner-auth-consent" checked={agreedToTerms} onChange={setAgreedToTerms} />
                 </>
@@ -302,13 +222,9 @@ export default function OwnerAuthPage() {
               ) : null}
             </div>
             {authMode === 'login' ? (
-              <AuthForgotPasswordBlock
-                sendForgot={async (email) => {
-                  return await r.forgotOwnerPassword({ email })
-                }}
-              />
+              <AuthForgotPasswordBlock sendForgot={(email) => forgotPassword({ email })} />
             ) : null}
-            <div className="row gap wrap authFormActions" style={{ marginTop: 14 }}>
+            <div className="formActions authFormActions" style={{ marginTop: 14 }}>
               {authMode === 'login' ? (
                 <>
                   <Button className="btn authOwner__submitGarage" variant="primary" type="button" onClick={() => onEnterGarage()}>
@@ -353,7 +269,6 @@ export default function OwnerAuthPage() {
                   rel="noreferrer"
                   aria-label="Скачать приложение CarPasss для iOS в App Store"
                 >
-                  <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--ios" aria-hidden="true" />
                   <span className="authAppDownloadBtn__copy">
                     <span className="authAppDownloadBtn__label">Скачать приложение</span>
                     <span className="authAppDownloadBtn__store">iOS · App Store</span>
@@ -364,7 +279,6 @@ export default function OwnerAuthPage() {
                   href={androidApkUrl()}
                   aria-label="Скачать приложение CarPasss для Android"
                 >
-                  <span className="authAppDownloadBtn__icon authAppDownloadBtn__icon--android" aria-hidden="true" />
                   <span className="authAppDownloadBtn__copy">
                     <span className="authAppDownloadBtn__label">Скачать приложение</span>
                     <span className="authAppDownloadBtn__store">Android · APK</span>
@@ -375,9 +289,9 @@ export default function OwnerAuthPage() {
           )}
           {nativeApp && (
             <div style={{ textAlign: 'center', marginTop: 'auto', paddingTop: 24 }}>
-              <a className="btn" data-variant="ghost" href="#/auth/partner">
+              <PartnerAuthLink className="btn" data-variant="ghost" to="/auth/partner">
                 Вход для партнёров
-              </a>
+              </PartnerAuthLink>
             </div>
           )}
         </div>

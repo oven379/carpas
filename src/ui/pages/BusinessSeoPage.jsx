@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { PartnerAuthLink } from '../../about-landing/PartnerAuthLink.tsx'
 import { Seo } from '../../seo/Seo.jsx'
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, buildSoftwareJsonLd } from '../../seo/marketingJsonLd.js'
 import { LandingNav } from '../../about-landing/LandingNav.tsx'
@@ -6,8 +7,8 @@ import { LandingFooter } from '../../about-landing/LandingFooter.tsx'
 import { FadeSection } from '../../about-landing/FadeSection.tsx'
 import { HowStep, FaqAccordion } from '../../about-landing/LandingPrimitives.tsx'
 import { AppDownload } from '../../about-landing/AppDownload.tsx'
-import crmPanelSrc from '../../assets/crm-panel.png?url'
-import partnerLandingSrc from '../../assets/partner-landing.png?url'
+import crmPanelSrc from '../../assets/crm-panel-light.webp?url'
+import partnerLandingSrc from '../../assets/partner-landing-light.webp?url'
 import { businessCities } from './businessCities.js'
 import '../../about-landing/AboutLanding.css'
 
@@ -89,11 +90,11 @@ export default function BusinessSeoPage() {
               возвращайте клиентов через напоминания.
             </p>
             <div className="al-hero__ctaRow">
-              <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+              <PartnerAuthLink to="/auth/partner/apply" className="al-btnPrimarySolid">
                 Подключить сервис
-              </Link>
+              </PartnerAuthLink>
               <Link to="/owners" className="al-hero__scrollLink">
-                Для владельцев авто →
+                Для владельцев авто
               </Link>
             </div>
             <p className="al-heroNote">
@@ -281,11 +282,11 @@ export default function BusinessSeoPage() {
               Начните вести <b>клиентов прозрачно.</b>
             </h2>
             <p className="al-final__sub">Бесплатный лендинг сервиса — в подарок при подключении.</p>
-            <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+            <PartnerAuthLink to="/auth/partner/apply" className="al-btnPrimarySolid">
               Подключить сервис
-            </Link>
+            </PartnerAuthLink>
             <p className="al-final__note">
-              Уже есть аккаунт? <Link to="/auth/partner">Войти</Link>
+              Уже есть аккаунт? <PartnerAuthLink to="/auth/partner">Войти</PartnerAuthLink>
             </p>
           </FadeSection>
 

@@ -10,7 +10,10 @@ import sharp from 'sharp'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.join(__dirname, '..')
 const svgPath = path.join(root, 'src', 'assets', 'brand-wordmark.svg')
+const lightSvgPath = path.join(root, 'src', 'assets', 'brand-wordmark-light.svg')
+const expoTheme = JSON.parse(fs.readFileSync(path.join(root, 'expo', 'theme.json'), 'utf8'))
 const faviconSvgPath = svgPath
+const webFaviconSvgPath = path.join(root, 'src', 'assets', 'brand-mark.svg')
 const rasterSourcePng = path.join(root, 'store-assets', 'source', 'logo-master.png')
 const BG = { r: 11, g: 11, b: 11, alpha: 1 }
 /** Прозрачный фон для веб-фавиконов и apple-touch (из SVG в public/) */
@@ -88,6 +91,14 @@ async function writePng(buf, outPath) {
   console.log('wrote', path.relative(root, outPath))
 }
 
+async function writeExpoSplash() {
+  const logo = await sharp(lightSvgPath, { density: 300 }).resize({ width: 330 }).png().toBuffer()
+  const png = await sharp({
+    create: { width: 480, height: 320, channels: 4, background: expoTheme.background },
+  }).composite([{ input: logo, gravity: 'center' }]).png().toBuffer()
+  await writePng(png, path.join(root, 'expo', 'assets', 'splash.png'))
+}
+
 /** Иконка лаунчера Android: до API 26 — полный квадрат с фоном; adaptive foreground — с альфой по краям при необходимости */
 async function rasterAndroidLauncherIcon(px, { opaque = true } = {}) {
   const src = fs.existsSync(faviconSvgPath) ? faviconSvgPath : svgPath
@@ -99,6 +110,9 @@ async function rasterAndroidLauncherIcon(px, { opaque = true } = {}) {
 }
 
 async function main() {
+  await writeExpoSplash()
+  if (process.argv.includes('--expo-splash-only')) return
+
   if (!fs.existsSync(rasterSourcePng) && !fs.existsSync(svgPath)) {
     console.error('Need either', rasterSourcePng, 'or', svgPath)
     process.exit(1)
@@ -173,12 +187,12 @@ async function main() {
 
   const webDir = path.join(root, 'store-assets', 'web')
   let webFaviconMaster = master1024
-  if (fs.existsSync(faviconSvgPath)) {
-    webFaviconMaster = await sharp(faviconSvgPath, { density: 360 })
+  if (fs.existsSync(webFaviconSvgPath)) {
+    webFaviconMaster = await sharp(webFaviconSvgPath, { density: 360 })
       .resize(512, 512, { fit: 'contain', position: 'centre', background: BG_TRANSPARENT })
       .png()
       .toBuffer()
-    console.log('Favicons/apple-touch from', path.relative(root, faviconSvgPath), '(прозрачный фон)')
+    console.log('Favicons/apple-touch from', path.relative(root, webFaviconSvgPath))
   }
   const resizeWeb = (px) =>
     sharp(webFaviconMaster).resize(px, px, { kernel: sharp.kernel.lanczos3 }).png().toBuffer()

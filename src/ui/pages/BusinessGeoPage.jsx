@@ -1,4 +1,5 @@
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { PartnerAuthLink } from '../../about-landing/PartnerAuthLink.tsx'
 import { Seo } from '../../seo/Seo.jsx'
 import { buildBreadcrumbJsonLd, buildFaqJsonLd, buildSoftwareJsonLd } from '../../seo/marketingJsonLd.js'
 import { LandingNav } from '../../about-landing/LandingNav.tsx'
@@ -75,9 +76,9 @@ export default function BusinessGeoPage() {
               картах.
             </p>
             <div className="al-hero__ctaRow">
-              <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+              <PartnerAuthLink to="/auth/partner/apply" className="al-btnPrimarySolid">
                 Подключить сервис
-              </Link>
+              </PartnerAuthLink>
               <Link to="/business" className="al-btnOutline">
                 Подробнее о CRM
               </Link>
@@ -163,9 +164,9 @@ export default function BusinessGeoPage() {
             <h2 className="al-final__h2">Подключите сервис {inCity}</h2>
             <p className="al-final__sub">Бесплатно на этапе запуска. Лендинг сервиса — в подарок.</p>
             <div className="al-hero__ctaRow" style={{ justifyContent: 'center' }}>
-              <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+              <PartnerAuthLink to="/auth/partner/apply" className="al-btnPrimarySolid">
                 Подключить сервис
-              </Link>
+              </PartnerAuthLink>
             </div>
           </FadeSection>
 

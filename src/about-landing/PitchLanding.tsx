@@ -1,13 +1,14 @@
 import { Link } from 'react-router-dom'
-import screenGarageSrc from '../assets/app-screen-garage.jpg?url'
-import screenCarCardSrc from '../assets/app-screen-car-card.jpg?url'
-import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
-import screenNewVisitSrc from '../assets/app-screen-new-visit.jpg?url'
-import screenHistoryOwnerSrc from '../assets/app-screen-history-owner.jpg?url'
-import screenHistoryServiceSrc from '../assets/app-screen-history-service.jpg?url'
-import crmPanelSrc from '../assets/crm-panel.png?url'
-import partnerLandingSrc from '../assets/partner-landing.png?url'
-import productOverviewSrc from '../assets/product-overview.png?url'
+import { PartnerAuthLink } from './PartnerAuthLink.tsx'
+import screenGarageSrc from '../assets/app-screen-garage-light.webp?url'
+import screenCarCardSrc from '../assets/light-pilot-car-screen.webp?url'
+import screenHistoryListSrc from '../assets/app-screen-history-list-light.webp?url'
+import screenNewVisitSrc from '../assets/app-screen-new-visit-light.webp?url'
+import screenHistoryOwnerSrc from '../assets/app-screen-history-owner-light.webp?url'
+import screenHistoryServiceSrc from '../assets/app-screen-history-service-light.webp?url'
+import crmPanelSrc from '../assets/crm-panel-light.webp?url'
+import partnerLandingSrc from '../assets/partner-landing-light.webp?url'
+import productOverviewSrc from '../assets/product-overview-light.webp?url'
 import { FadeSection } from './FadeSection.tsx'
 import { LandingNav } from './LandingNav.tsx'
 import { LandingFooter } from './LandingFooter.tsx'
@@ -413,11 +414,11 @@ export default function PitchLanding() {
               </div>
               <div className="pl-finalCta">
                 <span className="pl-finalCta__label">Детейлингу и СТО</span>
-                <Link to="/auth/partner/apply" className="al-btnPrimarySolid">
+                <PartnerAuthLink to="/auth/partner/apply" className="al-btnPrimarySolid">
                   Подключить сервис
-                </Link>
+                </PartnerAuthLink>
                 <span className="pl-finalCta__note">
-                  Уже партнёр? <Link to="/auth/partner">Войти</Link> · <Link to="/business">Подробнее о CRM</Link>
+                  Уже партнёр? <PartnerAuthLink to="/auth/partner">Войти</PartnerAuthLink> · <Link to="/business">Подробнее о CRM</Link>
                 </span>
               </div>
             </div>

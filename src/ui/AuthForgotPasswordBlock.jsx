@@ -39,10 +39,9 @@ export function AuthForgotPasswordBlock({ sendForgot }) {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
             />
           </Field>
-          <div className="row gap wrap" style={{ marginTop: 10 }}>
+          <div className="formActions" style={{ marginTop: 10 }}>
             <Button
               type="button"
               className="btn"

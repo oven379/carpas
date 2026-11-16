@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import screenGarageSrc from '../assets/app-screen-garage.jpg?url'
-import screenCarCardSrc from '../assets/app-screen-car-card.jpg?url'
-import screenHistoryListSrc from '../assets/app-screen-history-list.jpg?url'
-import screenNewVisitSrc from '../assets/app-screen-new-visit.jpg?url'
-import screenHistoryOwnerSrc from '../assets/app-screen-history-owner.jpg?url'
-import screenHistoryServiceSrc from '../assets/app-screen-history-service.jpg?url'
+import { PartnerAuthLink } from './PartnerAuthLink.tsx'
+import screenGarageSrc from '../assets/app-screen-garage-light.webp?url'
+import screenCarCardSrc from '../assets/light-pilot-car-screen.webp?url'
+import screenHistoryListSrc from '../assets/app-screen-history-list-light.webp?url'
+import screenNewVisitSrc from '../assets/app-screen-new-visit-light.webp?url'
+import screenHistoryOwnerSrc from '../assets/app-screen-history-owner-light.webp?url'
+import screenHistoryServiceSrc from '../assets/app-screen-history-service-light.webp?url'
 import { FadeSection } from './FadeSection.tsx'
 import { LandingNav } from './LandingNav.tsx'
 import { LandingFooter } from './LandingFooter.tsx'
@@ -274,11 +275,11 @@ export default function AboutLanding() {
               сервиса помогает новым клиентам найти вас — по ссылке, в соцсетях и на картах.
             </p>
             <div className="row gap wrap" style={{ alignItems: 'center' }}>
-              <Link to="/auth/partner/apply" className="al-det__link">
-                Стать партнёром →
-              </Link>
+              <PartnerAuthLink to="/auth/partner/apply" className="al-det__link">
+                Стать партнёром
+              </PartnerAuthLink>
               <Link to="/business" className="al-det__link al-det__link--secondary">
-                Подробнее о CRM →
+                Подробнее о CRM
               </Link>
             </div>
           </div>

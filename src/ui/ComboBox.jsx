@@ -12,6 +12,8 @@ export function ComboBox({
   /** Если задано и совпадает с полем (после trim/lower), `options` уже отфильтрованы сервером — не отсекать синонимы вроде «питер» → «Санкт-Петербург». */
   optionsMatchQuery,
   placeholder,
+  'aria-label': label,
+  'aria-describedby': describedBy,
   disabled,
   onBlur,
   emptyText = 'Ничего не найдено',
@@ -69,6 +71,8 @@ export function ComboBox({
           className="input cb__input cb__input--withCaret"
           value={query}
           placeholder={placeholder}
+          aria-label={label}
+          aria-describedby={describedBy}
           disabled={disabled}
           onFocus={() => setOpen(true)}
           onBlur={() => onBlur?.()}

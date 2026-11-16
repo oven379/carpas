@@ -1,5 +1,6 @@
 const APP_VERSION = '1.0.3'
 const ANDROID_VERSION_CODE = 2
+const theme = require('./theme.json')
 
 module.exports = {
   expo: {
@@ -12,9 +13,10 @@ module.exports = {
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#0B0B0B',
+      backgroundColor: theme.background,
     },
-    userInterfaceStyle: 'automatic',
+    userInterfaceStyle: 'light',
+    backgroundColor: theme.background,
     assetBundlePatterns: ['**/*'],
     runtimeVersion: APP_VERSION,
     ios: {
@@ -46,7 +48,7 @@ module.exports = {
       [
         'expo-notifications',
         {
-          color: '#C7A45D',
+          color: theme.accent,
           defaultChannel: 'default',
         },
       ],

@@ -1,229 +1,169 @@
-import { Link, Navigate } from 'react-router-dom'
-import { useMemo } from 'react'
+import { Navigate } from 'react-router-dom'
+import { useMemo, useRef, useState } from 'react'
+import { useInView } from 'framer-motion'
+import { CarFront, ChevronDown, Heart, Layers, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { Seo } from '../../seo/Seo.jsx'
 import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
 import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
+import { SUPPORT_LINK_HREF } from '../supportConfig.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { LandingNav } from '../../about-landing/LandingNav.tsx'
 import { LandingFooter } from '../../about-landing/LandingFooter.tsx'
-import { FadeSection } from '../../about-landing/FadeSection.tsx'
 import { AppDownload } from '../../about-landing/AppDownload.tsx'
-import productOverviewSrc from '../../assets/product-overview.png?url'
-import screenGarageSrc from '../../assets/app-screen-garage.jpg?url'
-import screenCarCardSrc from '../../assets/app-screen-car-card.jpg?url'
-import screenHistoryListSrc from '../../assets/app-screen-history-list.jpg?url'
-import screenNewVisitSrc from '../../assets/app-screen-new-visit.jpg?url'
+import { HomeHero } from '../../about-landing/HomeHero.jsx'
+import { HomeFeatureShowcase } from '../../about-landing/HomeFeatureShowcase.jsx'
+import { HomeProcess } from '../../about-landing/HomeProcess.jsx'
+import roadPhoto from '../../assets/home-road-honda.webp'
 import '../../about-landing/AboutLanding.css'
+import '../../design/home-reference.css'
+import '../../design/home-sections.css'
 
-// Реальные экраны приложения — витрина для главной (гараж, карточка авто, история, визит сервиса).
-const HOME_SCREENS = [
+const HOME_SECTIONS = [
+  { id: 'features', label: 'Возможности' },
+  { id: 'how-it-works', label: 'Как это работает' },
+  { id: 'faq', label: 'FAQ' },
+]
+
+const HOME_FAQ = [
   {
-    src: screenGarageSrc,
-    title: 'Гараж владельца',
-    text: 'Все автомобили в одном месте — с фото и данными.',
-    alt: 'Гараж владельца в приложении КарПас',
+    question: 'Какие данные я получу по автомобилю?',
+    answer: 'В карточке автомобиля можно хранить VIN, госномер, пробег, историю обслуживания, фотографии и документы. Записи владельца и подключённых сервисов отображаются отдельно.',
   },
   {
-    src: screenCarCardSrc,
-    title: 'Карточка авто',
-    text: 'VIN, госномер, пробег, документы и заметки.',
-    alt: 'Карточка автомобиля в приложении КарПас',
+    question: 'Откуда берутся данные?',
+    answer: 'Владелец сам добавляет сведения об автомобиле и визитах. Подключённые к КарПас сервисы могут добавлять свои записи о работах и фотоотчёты.',
   },
   {
-    src: screenHistoryListSrc,
-    title: 'История обслуживания',
-    text: 'Визиты, работы и фотоотчёты по датам и пробегу.',
-    alt: 'История обслуживания авто в приложении КарПас',
+    question: 'Как часто обновляется информация?',
+    answer: 'История пополняется по мере сохранения новых записей. Вы можете добавлять их после каждого визита, а записи подключённого сервиса появляются в истории автоматически.',
   },
   {
-    src: screenNewVisitSrc,
-    title: 'Визит в сервисе',
-    text: 'Сервис вносит работы и фото — история пополняется сама.',
-    alt: 'Новый визит в CRM сервиса КарПас',
+    question: 'Нужно ли добавлять автомобиль в гараж?',
+    answer: 'Да. Добавьте автомобиль в гараж, чтобы вести его историю и хранить пробег, фотографии и документы в одной карточке.',
+  },
+  {
+    question: 'Кто может видеть мои данные?',
+    answer: 'История автомобиля доступна в вашем аккаунте. Если вы поделитесь публичной ссылкой, по ней будут видны ваши записи и прикреплённые к ним документы. Визиты сервиса отображаются в личной истории.',
   },
 ]
 
-// Главная (/) — обзор сервиса и точка входа: отсюда уходят к владельцам (/owners) и бизнесу (/business).
+const AUDIENCE_CARDS = [
+  {
+    icon: CarFront,
+    title: 'Владельцам авто',
+    text: 'Храните визиты, пробег, фото и документы по каждой машине. При продаже история поможет показать, как вы её обслуживали.',
+  },
+  {
+    icon: Wrench,
+    title: 'Сервисам и бизнесу',
+    text: 'Ведите клиентов и визиты, добавляйте фотоотчёты и напоминания. Покажите услуги и контакты на своей публичной странице.',
+  },
+  { icon: ShieldCheck, title: 'Понятная история', text: 'Записи сервиса видны отдельно от записей владельца.' },
+  { icon: Heart, title: 'Забота об авто', text: 'Пробег и напоминания помогают планировать следующее ТО.' },
+]
+
+function HomeSection({ id, variant, children }) {
+  const sectionRef = useRef(null)
+  const inView = useInView(sectionRef, { once: true, amount: 0.15 })
+
+  return (
+    <section ref={sectionRef} id={id} className={`homeSection homeSection--${variant}`}>
+      <div className={inView ? 'homeContainer' : 'homeContainer homeContainer--pending'}>
+        {children}
+      </div>
+    </section>
+  )
+}
+
 export default function HomePage() {
   const { detailing } = useDetailing()
+  const [hadOwnerSession] = useState(hasOwnerSession)
   const homeJsonLd = useMemo(() => buildHomePageJsonLd(), [])
   const seoDesc = truncateMetaDescription(HOME_META_DESCRIPTION)
 
-  if (hasOwnerSession()) return <Navigate to="/garage" replace />
+  // Новый вход из окна сам выбирает маршрут, включая настройки после регистрации.
+  if (hadOwnerSession) return <Navigate to="/garage" replace />
   if (hasDetailingSession()) {
     if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }
 
   return (
-    <div className="aboutLanding">
+    <div className="aboutLanding homeLight">
       <Seo title={HOME_TITLE} description={seoDesc} canonicalPath="/" jsonLd={homeJsonLd} />
-      <LandingNav />
+      <LandingNav sections={HOME_SECTIONS} />
+      <div className="homeOpening"><HomeHero /></div>
 
-      <div className="al-main">
-        <div className="al-shell">
-          {/* Герой */}
-          <FadeSection className="al-hero">
-            <div className="al-eyebrow">
-              <span className="al-eyebrow__text">О сервисе</span>
-            </div>
-            <h1 className="al-hero__h1">
-              КарПас — <b>цифровая история автомобиля</b> и CRM для сервиса
-            </h1>
-            <p className="al-hero__sub">
-              Владельцам — личный гараж в телефоне с историей обслуживания, пробегом, фото и документами по каждому авто.
-              Детейлингам, мойкам, СТО, тюнинг-ателье и пригонщикам — CRM, бесплатная на этапе запуска, с визитами, фотоотчётами,
-              напоминаниями и публичной страницей-витриной. Одна история — обе стороны.
-            </p>
-            <div className="al-hero__ctaRow">
-              <Link to="/owners" className="al-btnPrimarySolid">
-                Владельцам авто
-              </Link>
-              <Link to="/business" className="al-btnOutline">
-                Сервисам и бизнесу
-              </Link>
-            </div>
-            <p className="al-heroNote">
-              Бесплатно для владельцев. Бесплатно на этапе запуска для сервисов. iOS, Android и веб.
-            </p>
-            <div className="al-frame al-shot">
-              <div className="al-frame__bar" aria-hidden="true">
-                <span className="al-frame__dot" />
-                <span className="al-frame__dot" />
-                <span className="al-frame__dot" />
-              </div>
-              <img
-                className="al-frame__img"
-                src={productOverviewSrc}
-                alt="Приложение КарПас: гараж клиента, карточка авто и история визитов"
-                loading="lazy"
-              />
-            </div>
-          </FadeSection>
+      <HomeSection id="how-it-works" variant="process">
+        <HomeProcess />
+      </HomeSection>
 
-          {/* Для кого — две аудитории, у каждой своя кнопка */}
-          <FadeSection className="al-how">
-            <h2 className="al-sectionTitle">
-              Для кого <b>КарПас</b>
-            </h2>
-            <p className="al-sectionSub">Один сервис одинаково полезен и владельцу авто, и бизнесу.</p>
-            <div className="al-benefits al-benefits--audience">
-              <article className="al-benefitCard al-benefitCard--audience">
-                <h3 className="al-benefitCard__title">Владельцам авто</h3>
-                <p className="al-benefitCard__text">
-                  Вся история обслуживания — в телефоне: визиты, пробег, фото работ, документы и напоминания о ТО.
-                  История с фото и документами помогает показать покупателю, как обслуживалась машина.
-                </p>
-                <Link to="/owners" className="al-btnPrimarySolid al-benefitCard__cta">
-                  Подробнее для владельцев
-                </Link>
-              </article>
-              <article className="al-benefitCard al-benefitCard--audience">
-                <h3 className="al-benefitCard__title">Сервисам и бизнесу</h3>
-                <p className="al-benefitCard__text">
-                  Детейлинг, мойка, СТО, тюнинг-ателье, пригон авто: CRM — клиенты, визиты с фото, заметки и
-                  напоминания «давно не были». Публичная страница-витрина — в подарок.
-                </p>
-                <Link to="/business" className="al-btnOutline al-benefitCard__cta">
-                  Подробнее для бизнеса
-                </Link>
-              </article>
-            </div>
-          </FadeSection>
+      <HomeSection id="features" variant="features">
+        <HomeFeatureShowcase />
+      </HomeSection>
 
-          {/* УТП */}
-          <FadeSection className="al-how">
-            <h2 className="al-sectionTitle">
-              Почему <b>КарПас</b>
-            </h2>
-            <p className="al-sectionSub">Главные преимущества сервиса.</p>
-            <div className="al-benefits">
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Единая история авто</h3>
-                <p className="al-benefitCard__text">
-                  Все работы по машине в одном месте — с датой, пробегом и фото. Работает с подключённым сервисом и без
-                  него.
-                </p>
-              </article>
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Подтверждённые записи</h3>
-                <p className="al-benefitCard__text">
-                  В истории видно, какие визиты добавлены владельцем, а какие — подключённым сервисом.
-                </p>
-              </article>
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">CRM для сервиса</h3>
-                <p className="al-benefitCard__text">
-                  Клиенты, автомобили, визиты, фотоотчёты и напоминания — без абонентской платы на этапе запуска.
-                </p>
-              </article>
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Публичная страница-витрина</h3>
-                <p className="al-benefitCard__text">
-                  Готовая страница сервиса с услугами и контактами — ссылка для клиентов, соцсетей и рекламы.
-                </p>
-              </article>
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Напоминания о ТО</h3>
-                <p className="al-benefitCard__text">
-                  Приложение подскажет, когда пора на обслуживание, — ничего не забудется.
-                </p>
-              </article>
-              <article className="al-benefitCard">
-                <h3 className="al-benefitCard__title">Везде одна история</h3>
-                <p className="al-benefitCard__text">
-                  Мобильное приложение для iOS и Android плюс веб — данные синхронны на всех устройствах.
-                </p>
-              </article>
-            </div>
-          </FadeSection>
-
-          {/* Как это выглядит — реальные экраны */}
-          <FadeSection className="al-screens">
-            <h2 className="al-sectionTitle">
-              Как это <b>выглядит</b>
-            </h2>
-            <p className="al-sectionSub">Реальные экраны КарПас — гараж, карточка авто, история и визит сервиса.</p>
-            <div className="al-screensGrid">
-              {HOME_SCREENS.map((s) => (
-                <figure className="al-screen" key={s.title}>
-                  <div className="al-screen__photo">
-                    <img src={s.src} alt={s.alt} loading="lazy" />
-                  </div>
-                  <figcaption className="al-screen__caption">
-                    <span className="al-screen__title">{s.title}</span>
-                    <span className="al-screen__text">{s.text}</span>
-                  </figcaption>
-                </figure>
-              ))}
-            </div>
-          </FadeSection>
-
-          {/* Финал + скачать приложение */}
-          <FadeSection className="al-final">
-            <div className="al-final__line" aria-hidden />
-            <h2 className="al-final__h2">
-              Начните вести <b>историю своего авто</b>
-            </h2>
-            <p className="al-final__sub">Бесплатно для владельцев. Бесплатно на этапе запуска для сервисов.</p>
-            <div className="al-hero__ctaRow" style={{ justifyContent: 'center' }}>
-              <Link to="/owners" className="al-btnPrimarySolid">
-                Владельцам авто
-              </Link>
-              <Link to="/business" className="al-btnOutline">
-                Сервисам и бизнесу
-              </Link>
-            </div>
-            <div style={{ marginTop: 24 }}>
-              <AppDownload title="Скачать приложение" />
-            </div>
-          </FadeSection>
-
-          <LandingFooter />
+      <HomeSection variant="audiences">
+        <div className="homeSection__split">
+          <header className="homeSection__header">
+            <h2 className="homeSection__title">Две стороны <br /><em>одна история</em></h2>
+            <p className="homeSection__intro">Один сервис для тех, кто владеет автомобилем, и тех, кто его обслуживает.</p>
+            <ul className="homeAudienceHighlights" aria-label="Преимущества КарПас">
+              <li><CarFront strokeWidth={1.7} aria-hidden="true" />Один сервис</li>
+              <li><Layers strokeWidth={1.7} aria-hidden="true" />Единая история</li>
+              <li><Users strokeWidth={1.7} aria-hidden="true" />Для владельцев и сервисов</li>
+            </ul>
+          </header>
+          <div className="homeAudience">
+            {AUDIENCE_CARDS.map(({ icon, title, text }) => {
+              const Icon = icon
+              return (
+                <article className="homeAudience__item" key={title}>
+                  <Icon size={27} strokeWidth={1.6} aria-hidden="true" />
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </article>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      </HomeSection>
+
+      <HomeSection id="faq" variant="faq">
+        <div className="homeSection__split">
+          <header className="homeSection__header">
+            <h2 className="homeSection__title">Ответы на популярные <em>вопросы</em></h2>
+            <p className="homeSection__intro">Собрали ответы на самые частые вопросы о работе КарПас. Если остались вопросы, напишите нам.</p>
+            <a className="al-btnPrimarySolid" href={SUPPORT_LINK_HREF} target="_blank" rel="noopener noreferrer">
+              Задать вопрос
+            </a>
+          </header>
+          <div className="homeFaq">
+            {HOME_FAQ.map(({ question, answer }, index) => (
+              <details key={question} className="homeLight__faqItem" name="home-faq" open={index === 0}>
+                <summary>
+                  <span>{question}</span>
+                  <ChevronDown className="homeFaq__chevron" size={22} aria-hidden="true" />
+                </summary>
+                <p>{answer}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </HomeSection>
+
+      <HomeSection id="download" variant="download">
+        <div className="homeDownload">
+          <img className="homeDownload__photo" src={roadPhoto} alt="" width="1440" height="960" loading="lazy" decoding="async" />
+          <div className="homeDownload__copy">
+            <h2 className="homeSection__title">История авто <em>всегда под рукой</em></h2>
+            <p className="homeSection__intro">Начните вести историю своего автомобиля уже сегодня.</p>
+            <AppDownload title="Скачать приложение" storeBadges />
+          </div>
+        </div>
+        <LandingFooter />
+      </HomeSection>
     </div>
   )
 }

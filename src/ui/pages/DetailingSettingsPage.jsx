@@ -11,7 +11,6 @@ import {
   PhoneRuInput,
   PageLoadSpinner,
   Pill,
-  ServiceHint,
   Textarea,
 } from '../components.jsx'
 import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
@@ -32,7 +31,6 @@ import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { BUSINESS_TYPES } from '../../lib/businessTypes.js'
 import {
   BANNER_UPLOAD_SPEC_LINE,
-  CITY_FIELD_DD_HINT,
   DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN,
   DETAILING_WORKING_HOURS_MAX_LEN,
   formatPhoneRuInput,
@@ -269,20 +267,12 @@ export default function DetailingSettingsPage() {
             <h1 className="h1" style={{ margin: 0 }}>
               Настройки лендинга
             </h1>
-            <ServiceHint scopeId="detailing-settings-intro" variant="compact" label="Справка: настройки лендинга">
-              <p className="serviceHint__panelText">
-                Здесь настраивается страница вашего сервиса для клиентов в интернете: что человек увидит до визита. То же название,
-                обложку и логотип использует кабинет — так клиенту проще вас узнать.
-              </p>
-              {detailing.profileCompleted === false ? (
-                <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
-                  <strong>Первый вход:</strong> заполните все обязательные поля ниже: название, телефон, город, адрес, режим
-                  работы и хотя бы одну услугу (детейлинг и/или ТО). Описание, сайт, соцсети, логотип и обложка — по желанию, на
-                  завершение шага не влияют. Затем нажмите «Сохранить и перейти в кабинет» — откроется кабинет для работы с авто.
-                </p>
-              ) : null}
-            </ServiceHint>
           </div>
+          {detailing.profileCompleted === false ? (
+            <p className="muted small">
+              Для первого входа укажите название, телефон, город, адрес, режим работы и хотя бы одну услугу.
+            </p>
+          ) : null}
         </div>
         <div className="row gap wrap" style={{ alignItems: 'center' }}>
           <Link className="btn" data-variant="outline" to={publicPath}>
@@ -319,14 +309,6 @@ export default function DetailingSettingsPage() {
             showPhotoUploadHints={false}
             avatarRemoveLabel="Убрать логотип"
             bannerRemoveLabel="Убрать обложку"
-            bannerHintSlot={
-              <ServiceHint scopeId="detailing-settings-banner-hint" variant="compact" label="Справка: баннер">
-                <p className="serviceHint__panelText">
-                  Баннер — широкое изображение 1600×400 px (4:1). Название и логотип на нём держите ближе к центру: на телефоне
-                  края могут обрезаться. Подойдут JPG, PNG и WebP до 10 МБ, мы сами уменьшим файл.
-                </p>
-              </ServiceHint>
-            }
           />
         </div>
 
@@ -340,12 +322,11 @@ export default function DetailingSettingsPage() {
         </div>
 
         <div className="formGrid">
-          <Field label="Название">
+          <Field label="Название" insetLabel>
             <Input
               className="input"
               value={draft.name}
               onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
-              placeholder="Название студии / СТО"
               autoComplete="organization"
             />
           </Field>
@@ -362,27 +343,24 @@ export default function DetailingSettingsPage() {
               ))}
             </select>
           </Field>
-          <Field label="Телефон">
+          <Field label="Телефон" insetLabel>
             <PhoneRuInput
               value={draft.phone}
               onChange={(e) => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(e.target.value) }))}
               onBlur={() => setDraft((d) => ({ ...d, phone: formatPhoneRuInput(d.phone) }))}
+              placeholder="999 999 00 00"
               autoComplete="tel"
             />
           </Field>
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-city">
-            <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Город</span>
-              <ServiceHint scopeId="detailing-settings-city" variant="compact" label="Справка: город">
-                <p className="serviceHint__panelText">
-                  {CITY_FIELD_DD_HINT} Отображается на вашей публичной странице вместе с адресом, если поля заполнены.
-                </p>
-              </ServiceHint>
-            </div>
-            <CityComboBox value={draft.city} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, city: v }))} />
+            <Field
+              label="Город" insetLabel
+            >
+              <CityComboBox value={draft.city} maxItems={20} onChange={(v) => setDraft((d) => ({ ...d, city: v }))} />
+            </Field>
           </div>
           <Field
-            label="Адрес"
+            label="Адрес" insetLabel
             hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : 'необязательно'}
           >
             <Input
@@ -390,7 +368,6 @@ export default function DetailingSettingsPage() {
               value={draft.address}
               onChange={(e) => setDraft((d) => ({ ...d, address: e.target.value }))}
               onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, address: next })))}
-              placeholder="Улица, дом"
               autoComplete="street-address"
             />
           </Field>
@@ -419,7 +396,6 @@ export default function DetailingSettingsPage() {
                   value={draft.inn}
                   maxLength={30}
                   onChange={(e) => setDraft((d) => ({ ...d, inn: e.target.value }))}
-                  placeholder="773179709430"
                 />
               </Field>
               <Field label="Юридическое название" hint="ИП / ООО — выводится в шапке ЗН · необязательно">
@@ -429,7 +405,6 @@ export default function DetailingSettingsPage() {
                   maxLength={255}
                   onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))}
                   onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, legalName: next })))}
-                  placeholder="ИП Иванов Иван Иванович"
                 />
               </Field>
               <Field label="Мастер-приёмщик (по умолчанию)" hint="для заказ-нарядов · необязательно">
@@ -439,7 +414,6 @@ export default function DetailingSettingsPage() {
                   maxLength={255}
                   onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
                   onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
-                  placeholder="Иван Иванов"
                 />
               </Field>
               <Field className="field--full" label="Гарантийные обязательства" hint="текст для нижней части ЗН · необязательно">
@@ -450,7 +424,6 @@ export default function DetailingSettingsPage() {
                   maxLength={5000}
                   onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
                   onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-                  placeholder="Исполнитель несёт гарантийные обязательства при условии соблюдения правил эксплуатации…"
                 />
               </Field>
             </>
@@ -481,14 +454,9 @@ export default function DetailingSettingsPage() {
                   workingHours: String(next).slice(0, DETAILING_WORKING_HOURS_MAX_LEN),
                 })),
               )}
-              placeholder="Например: Пн–Пт 10:00–20:00, Сб 11:00–17:00"
             />
           </Field>
-          <Field
-            className="field--full"
-            label="Своя услуга"
-            hint={`до ${DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов · клиенты увидят на вашей публичной странице; сотрудники — в списке при создании визита`}
-          >
+          <div className="field field--full">
             <div className="detailingCustomOfferRow">
               <Input
                 className="input"
@@ -508,7 +476,9 @@ export default function DetailingSettingsPage() {
                     addCustomOfferedLine()
                   }
                 }}
-                placeholder="Введите название вашей услуги."
+                placeholder="Название своей услуги"
+                aria-label="Название своей услуги"
+                aria-describedby="detailing-custom-offer-hint"
                 autoComplete="off"
               />
               <button
@@ -521,6 +491,9 @@ export default function DetailingSettingsPage() {
                 +
               </button>
             </div>
+            <p className="field__hint" id="detailing-custom-offer-hint">
+              До {DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов. Клиенты увидят услугу на вашей публичной странице, сотрудники — при создании визита.
+            </p>
             {customOffersOnly.length ? (
               <div className="row gap wrap" style={{ marginTop: 10 }}>
                 {customOffersOnly.map((s) => (
@@ -538,7 +511,7 @@ export default function DetailingSettingsPage() {
                 ))}
               </div>
             ) : null}
-          </Field>
+          </div>
           <div className="field field--full">
             <div className="field__top">
               <span className="field__label">Свои категории услуг</span>
@@ -551,6 +524,7 @@ export default function DetailingSettingsPage() {
                     className="input detCustomCat__titleInput"
                     value={cat.title}
                     placeholder="Название категории"
+                    aria-label="Название категории"
                     maxLength={60}
                     onChange={(e) => updateCategoryTitle(cat._id, e.target.value)}
                   />
@@ -569,6 +543,7 @@ export default function DetailingSettingsPage() {
                     value={customCatInputs[cat._id] || ''}
                     maxLength={DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN}
                     placeholder="Добавить услугу в категорию"
+                    aria-label="Название услуги для категории"
                     autoComplete="off"
                     onChange={(e) => setCustomCatInputs((prev) => ({ ...prev, [cat._id]: e.target.value }))}
                     onKeyDown={(e) => {
@@ -617,18 +592,6 @@ export default function DetailingSettingsPage() {
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
             <div className="field__top serviceHint__fieldTop">
               <span className="field__label">Услуги</span>
-              <ServiceHint scopeId="detailing-settings-services" variant="compact" label="Справка: услуги на лендинге">
-                <p className="serviceHint__panelText">
-                  Отметьте детейлинг и ТО, что предлагаете клиентам на публичной странице. Свои названия добавляйте полем выше
-                  («Своя услуга»).
-                  {detailing.profileCompleted === false ? (
-                    <>
-                      {' '}
-                      <strong>При первой настройке</strong> отметьте хотя бы одну услугу — без этого переход в кабинет недоступен.
-                    </>
-                  ) : null}
-                </p>
-              </ServiceHint>
             </div>
             <p className="muted small" style={{ margin: '0 0 8px' }}>
               Детейлинг
@@ -702,7 +665,6 @@ export default function DetailingSettingsPage() {
               value={draft.description}
               onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
               onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, description: next })))}
-              placeholder="Коротко: специализация, гарантия, чем отличаетесь…"
             />
           </Field>
           <Field label="Сайт" hint="необязательно">
@@ -710,7 +672,6 @@ export default function DetailingSettingsPage() {
               className="input"
               value={draft.website}
               onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))}
-              placeholder="https://…"
               inputMode="url"
             />
           </Field>
@@ -719,7 +680,6 @@ export default function DetailingSettingsPage() {
               className="input"
               value={draft.telegram}
               onChange={(e) => setDraft((d) => ({ ...d, telegram: e.target.value }))}
-              placeholder="@username или ссылка"
             />
           </Field>
           <Field label="Instagram" hint="необязательно">
@@ -727,12 +687,11 @@ export default function DetailingSettingsPage() {
               className="input"
               value={draft.instagram}
               onChange={(e) => setDraft((d) => ({ ...d, instagram: e.target.value }))}
-              placeholder="@username или ссылка"
             />
           </Field>
         </div>
 
-        <div className="row gap wrap topBorder historyFormActions">
+        <div className="formActions topBorder historyFormActions">
           <Button
             className="btn"
             variant="primary"

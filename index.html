@@ -5,7 +5,7 @@
     <!-- Документ приложения: подсказка кэшу (часть браузеров, в т.ч. на Chromium, чаще смотрят заголовки nginx) -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
-    <!-- SVG вордмарк (как src/assets/brand-wordmark.svg); PNG — запас для WebView без SVG -->
+    <!-- Знак КарПас; PNG для WebView без поддержки SVG -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -13,12 +13,13 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#0b0b0b" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f8f6f1" />
+    <style>html { background-color: #f8f6f1; }</style>
     <meta name="application-name" content="КарПас" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="КарПас" />
     <meta name="format-detection" content="telephone=no" />
     <title>КарПас — история обслуживания авто</title>

@@ -84,6 +84,7 @@ export function SupportProvider({ children }) {
   const overlayRef = useRef(null)
   const attachmentInputRef = useRef(null)
   const attachmentInputId = useId()
+  const attachmentHintId = useId()
   const pollRef = useRef(0)
 
   const canPoll = hasOwnerSession() || hasDetailingSession()
@@ -342,7 +343,6 @@ export function SupportProvider({ children }) {
                     autoComplete="email"
                     value={guestEmail}
                     onChange={(e) => setGuestEmail(e.target.value)}
-                    placeholder="you@example.com"
                   />
                 </Field>
               ) : null}
@@ -352,21 +352,18 @@ export function SupportProvider({ children }) {
                   rows={6}
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Что случилось или что хотите предложить?"
                   style={{ resize: 'vertical', minHeight: 120 }}
                 />
               </Field>
-              <Field
-                className="field--full"
-                label="Вложение"
-                hint="JPEG, PNG, WebP, GIF — один файл, как при загрузке документов в кабинете"
-              >
+              <div className="field field--full">
                 <div className="filePick" style={{ margin: 0 }}>
                   <input
                     id={attachmentInputId}
                     ref={attachmentInputRef}
                     className="srOnly"
                     type="file"
+                    aria-label="Вложение"
+                    aria-describedby={attachmentHintId}
                     accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif"
                     onChange={(e) => {
                       setFile(e.target.files?.[0] || null)
@@ -379,6 +376,7 @@ export function SupportProvider({ children }) {
                     className="btn filePick__btn"
                     data-variant="outline"
                     onClick={() => attachmentInputRef.current?.click?.()}
+                    aria-describedby={attachmentHintId}
                     disabled={submitting}
                   >
                     Выбрать файл
@@ -387,7 +385,8 @@ export function SupportProvider({ children }) {
                     {!file ? 'Файл не выбран' : file.name || 'Выбран файл'}
                   </span>
                 </div>
-              </Field>
+                <p className="field__hint" id={attachmentHintId}>Один файл в формате JPEG, PNG, WebP или GIF.</p>
+              </div>
               {formError ? (
                 <p className="supportModal__err small" role="alert">
                   {formError}

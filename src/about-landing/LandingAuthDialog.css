@@ -1,0 +1,211 @@
+html:has(.landingAuthDialog[open]) {
+  overflow: hidden;
+}
+
+.landingAuthDialog {
+  --auth-dialog-padding: clamp(20px, 5vw, 32px);
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(460px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scroll-padding-block-start: 52px;
+  border: 0;
+  border-radius: 26px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  box-shadow: 0 24px 80px #30201538;
+}
+
+.landingAuthDialog::backdrop {
+  background: #30201565;
+  backdrop-filter: blur(5px);
+}
+
+.landingAuthDialog__body {
+  padding: 0 var(--auth-dialog-padding) var(--auth-dialog-padding);
+}
+
+.landingAuthDialog__bar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 10px var(--auth-dialog-padding);
+  background: var(--bg-surface);
+}
+
+.landingAuthDialog__close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.landingAuthDialog__close:hover {
+  color: var(--accent);
+}
+
+.landingAuthDialog h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: clamp(28px, 5.5vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -.04em;
+}
+
+.landingAuthDialog__description {
+  margin: 8px 0 20px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.landingAuthDialog__modes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+}
+
+.landingAuthDialog__modes button {
+  min-height: 44px;
+  padding: 6px;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.landingAuthDialog__modes button[aria-pressed='true'] {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 2px 6px #3020150c;
+}
+
+.landingAuthDialog__form,
+.landingAuthDialog__form fieldset {
+  display: grid;
+  gap: 13px;
+  min-width: 0;
+}
+
+.landingAuthDialog__form fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.landingAuthDialog .input {
+  min-height: 46px;
+  background-color: var(--bg-base);
+  font-size: 16px;
+}
+
+.landingAuthDialog .input[aria-invalid='true'] {
+  background-color: var(--danger-soft);
+}
+
+.landingAuthDialog .phoneRuField {
+  min-height: 46px;
+  padding-block: 0;
+  background: var(--bg-base);
+}
+
+.landingAuthDialog .phoneRuField__input.input {
+  min-height: 44px;
+  background: transparent;
+}
+
+.landingAuthDialog .authConsent__text {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.landingAuthDialog__textAction {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.landingAuthDialog__form .landingAuthDialog__textAction {
+  justify-self: end;
+  margin-block: -8px;
+}
+
+.landingAuthDialog__submit.btn {
+  justify-self: end;
+  max-width: 100%;
+  min-height: 48px;
+  justify-content: center;
+  gap: 9px;
+  border-radius: 14px;
+}
+
+.landingAuthDialog__feedback {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--accent-dim);
+  color: var(--text-primary);
+  font-size: 14px;
+  line-height: 1.4;
+  white-space: pre-line;
+}
+
+.landingAuthDialog__feedback--error {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.landingAuthDialog__footer {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.landingAuthDialog button:disabled {
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .landingAuthDialog[open] {
+    animation: landing-auth-enter 160ms ease-out both;
+  }
+
+  @keyframes landing-auth-enter {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}

@@ -127,7 +127,7 @@ export default function PublicCarPage() {
         </Link>
       </div>
 
-      <div className="carHero" style={heroStyle}>
+      <div className={`carHero${heroStyle ? '' : ' carHero--noPhoto'}`} style={heroStyle}>
         <div className="carHero__overlay">
           <div className="row gap wrap carHero__pills carHero__pills--public">
             <Pill>Цвет: {car.color || '—'}</Pill>

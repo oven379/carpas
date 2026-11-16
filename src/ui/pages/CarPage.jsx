@@ -1,9 +1,9 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { CarFront, Copy, FileText, Gauge, History } from 'lucide-react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
-import { getCareRecommendations } from '../../lib/recommendations.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
 import { normalizeCarEventServices, splitWashDetailingServices } from '../../lib/serviceCatalogs.js'
@@ -29,6 +29,8 @@ import { resolveEffectiveMileageKm } from '../../lib/carMileage.js'
 import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
 import { photoBgStyle } from '../../lib/photoBg.js'
 import { OwnerShareHistory } from '../OwnerShareHistory.jsx'
+import { showToast } from '../toast.jsx'
+
 function CarPageOwnerLastVisitPreview({ lastEvt, histPath }) {
   if (!lastEvt) return null
   const titleTrim = String(lastEvt.title || '').trim()
@@ -98,7 +100,6 @@ export default function CarPage() {
   const [sp] = useSearchParams()
   const r = useRepo()
   const [washIdx, setWashIdx] = useState(0)
-  const [recsOpen, setRecsOpen] = useState(false)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
   const [carDataExpanded, setCarDataExpanded] = useState(true)
   const [photoLb, setPhotoLb] = useState(null)
@@ -297,23 +298,26 @@ export default function CarPage() {
     return 'В гараже'
   }, [lastHistoryEvent, car?.detailingName])
 
-  if ((mode === 'owner' || mode === 'detailing') && loading) {
+  if (((mode === 'owner' || mode === 'detailing') && loading) || !dataReady) {
     return (
-      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
-        <PageLoadSpinner />
-      </div>
-    )
-  }
-
-  if (!dataReady) {
-    return (
-      <div className="container muted pageLoadSpinner--centerBlock" style={{ padding: '24px 0' }}>
+      <div className="container carLight__loading muted pageLoadSpinner--centerBlock">
         <PageLoadSpinner />
       </div>
     )
   }
   if (!car) {
     return <Navigate to={mode === 'detailing' ? '/detailing' : '/cars'} replace />
+  }
+
+  const vin = String(car.vin ?? '').trim()
+
+  async function copyVin() {
+    try {
+      await navigator.clipboard.writeText(vin)
+      showToast('VIN скопирован', 'success')
+    } catch {
+      window.prompt('Скопируйте VIN', vin)
+    }
   }
 
   const fromParam = sp.get('from') || ''
@@ -325,21 +329,7 @@ export default function CarPage() {
         ? 'В гараж'
         : 'К автомобилям'
 
-  const recs = getCareRecommendations({ car, events: allEvents })
   const newVisitPath = buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })
-  const lastServiceVisitAt = (() => {
-    let best = ''
-    let bestTs = 0
-    for (const e of allEvents) {
-      if (e?.source !== 'service') continue
-      const t = Date.parse(e.at || '') || 0
-      if (t >= bestTs) {
-        bestTs = t
-        best = e.at || ''
-      }
-    }
-    return best || null
-  })()
   const ownerLastVisitPath = lastHistoryEvent
     ? buildCarSubRoutePath(id, 'history', fromParam, { visit: String(lastHistoryEvent.id) })
     : ''
@@ -448,7 +438,7 @@ export default function CarPage() {
   )
 
   return (
-    <div className="container">
+    <div className="container carLight">
       <div className="row spread gap carPage__head">
         <div>
           <div className="breadcrumbs">
@@ -472,56 +462,69 @@ export default function CarPage() {
                   aria-label="Новый визит"
                   title="Новый визит"
                 >
-                  Визит
+                  Новый визит
                 </Link>
               ) : null}
             </div>
           </div>
-          <p className="muted carPage__meta">
-            <span>{car.city || '—'}</span>
-            <span aria-hidden="true"> · </span>
-            <span className="mono" title="Госномер">
-              {fmtPlateFull(car.plate, car.plateRegion) || '—'}
-            </span>
-            <span aria-hidden="true"> · </span>
-            <span className="mono" title="VIN">
-              {car.vin || '—'}
-            </span>
-            {mode !== 'detailing' && lastServiceVisitAt ? (
-              <>
-                <span aria-hidden="true"> · </span>
-                <span>{fmtDate(lastServiceVisitAt)}</span>
-              </>
-            ) : null}
-          </p>
         </div>
       </div>
 
-      <div
-        className="carHero"
-        style={car.hero ? { backgroundImage: resolvedBackgroundImageUrl(car.hero) } : undefined}
-      >
-        <div className="carHero__overlay">
+      <div className="carLight__overview">
+        <div
+          className={`carHero carLight__cover${car.hero ? '' : ' carLight__cover--empty'}`}
+          style={car.hero ? { backgroundImage: resolvedBackgroundImageUrl(car.hero) } : undefined}
+        >
+          {!car.hero ? <CarFront className="carLight__placeholderIcon" size={56} strokeWidth={1.25} aria-hidden="true" /> : null}
           {mode === 'owner' || mode === 'detailing' ? (
             <div className="heroActions" aria-label="Действия">
               <Link
-                className="btn carPage__iconBtn"
+                className="btn carPage__editBtn"
                 data-variant="ghost"
                 to={buildCarSubRoutePath(id, 'edit', fromParam)}
                 aria-label="Редактировать"
                 title="Редактировать"
               >
-                <span className="carPage__icon carPage__icon--edit" aria-hidden="true" />
-                <span className="carPage__btnText">Редактировать</span>
+                Редактировать
               </Link>
             </div>
           ) : null}
-          <div className="row gap wrap carHero__pills">
-            <Pill>Цвет: {car.color || '—'}</Pill>
-            <Pill>Год: {car.year != null && car.year !== '' ? car.year : '—'}</Pill>
-            <Pill>Пробег: {fmtKm(displayMileageKm)}</Pill>
-          </div>
         </div>
+        <dl className="carLight__specs">
+          <div className="carLight__spec carLight__spec--mileage">
+            <dt><Gauge size={17} aria-hidden="true" /> Пробег</dt>
+            <dd>{fmtKm(displayMileageKm)}</dd>
+          </div>
+          <div className="carLight__spec">
+            <dt>Год</dt>
+            <dd>{car.year != null && car.year !== '' ? car.year : '—'}</dd>
+          </div>
+          <div className="carLight__spec">
+            <dt>Цвет</dt>
+            <dd>{car.color || '—'}</dd>
+          </div>
+          <div className="carLight__spec carLight__spec--vin">
+            <dt>VIN</dt>
+            <dd>
+              <span>{vin || '—'}</span>
+              {vin ? (
+                <button
+                  type="button"
+                  className="carLight__copyVin"
+                  onClick={copyVin}
+                  aria-label="Скопировать VIN"
+                  title="Скопировать VIN"
+                >
+                  <Copy size={14} aria-hidden="true" />
+                </button>
+              ) : null}
+            </dd>
+          </div>
+          <div className="carLight__spec carLight__spec--plate">
+            <dt>Госномер</dt>
+            <dd>{fmtPlateFull(car.plate, car.plateRegion) || '—'}</dd>
+          </div>
+        </dl>
       </div>
 
       {mode === 'detailing' && car ? (
@@ -877,38 +880,8 @@ export default function CarPage() {
 
         <div className="col gap">
           <Card className="card pad">
-            <div className="carPage__recsBar">
-              <button
-                type="button"
-                className="carPage__recsSelect"
-                aria-expanded={recsOpen ? 'true' : 'false'}
-                aria-haspopup="true"
-                onClick={() => setRecsOpen((v) => !v)}
-                title={recsOpen ? 'Свернуть совет' : 'Открыть совет'}
-              >
-                <span className="carPage__recsSelectLabel">Совет</span>
-                <span className="carPage__recsSelectChev" aria-hidden="true" />
-              </button>
-              <Link
-                className="btn carPage__recsAddVisitBtn"
-                data-variant="outline"
-                to={newVisitPath}
-                aria-label="Добавить визит"
-                title="Добавить визит"
-              >
-                Добавить визит
-              </Link>
-            </div>
-            {recsOpen ? (
-              <div className="recList recList--singleAdvice">
-                {recs[0]?.title ? <p className="carPage__recsAdviceText">{recs[0].title}</p> : null}
-              </div>
-            ) : null}
-          </Card>
-
-          <Card className="card pad">
             <div className="row spread gap carPage__sectionRow carPage__sectionRow--center carPage__historyRow">
-              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">История авто</h2>
+              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><History size={20} aria-hidden="true" /></span> История авто</h2>
               <OpenAction
                 to={buildCarSubRoutePath(id, 'history', fromParam)}
                 title="Открыть историю обслуживания"
@@ -920,7 +893,7 @@ export default function CarPage() {
           {mode === 'owner' ? (
             <Card className="card pad">
               <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
-                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo">Документы:</h2>
+                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><FileText size={20} aria-hidden="true" /></span> Документы:</h2>
                 <OpenAction
                   to={buildCarSubRoutePath(id, 'docs', fromParam)}
                   title="Документы"
@@ -971,7 +944,7 @@ export default function CarPage() {
                   })}
                 </div>
               ) : (
-                <div className="muted">Пока нет документов.</div>
+                <div className="muted carLight__empty">Пока нет документов.</div>
               )}
             </Card>
           ) : null}

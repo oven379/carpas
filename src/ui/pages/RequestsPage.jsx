@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { BackNav, Button, Card, PageLoadSpinner, Pill } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
 import { resolvePublicMediaUrl, resolvedBackgroundImageUrl } from '../../lib/mediaUrl.js'
@@ -156,20 +156,11 @@ export default function RequestsPage() {
             <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
               <BackNav fallbackTo={mode === 'owner' ? '/garage' : '/detailing'} />
               <h1 className="h1">{mode === 'owner' ? 'Заявки от сервисов' : 'Заявки на привязку авто'}</h1>
-              <ServiceHint scopeId="requests-page-hint" variant="compact" label="Справка: заявки">
-                {mode === 'owner' ? (
-                  <p className="serviceHint__panelText">
-                    Сервисы могут попросить разрешение добавить вашу машину в свой кабинет по VIN. Подтверждайте только знакомый сервис.
-                  </p>
-                ) : (
-                  <p className="serviceHint__panelText">
-                    Владельцы запрашивают привязку своего авто к вашему кабинету. Гараж владельца остаётся приватным; публично
-                    доступен только лендинг детейлинга и отдельные истории авто по ссылке.
-                  </p>
-                )}
-              </ServiceHint>
             </div>
           </div>
+          {mode === 'owner' && pending.length > 0 ? (
+            <p className="muted small">Подтверждайте привязку автомобиля только для знакомых сервисов.</p>
+          ) : null}
           <p className="muted" style={{ marginTop: 8 }}>
             {mode === 'owner' ? (
               <>Владелец: <span className="mono">{owner?.email || owner?.name || 'аккаунт'}</span> · в ожидании: {pending.length}</>

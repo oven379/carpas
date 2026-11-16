@@ -170,12 +170,12 @@ function PanelDash({ hasApiToken, overview, overviewLoading, overviewErr, onRetr
   const chartSeries = [
     {
       name: 'Обращения в поддержку',
-      color: '#9333ea',
+      color: 'var(--accent)',
       values: months.map((m) => Number(m.supportTickets) || 0),
     },
     {
       name: 'Новые аккаунты партнёров',
-      color: '#0ea5e9',
+      color: 'var(--info)',
       values: months.map((m) => Number(m.newPartnerAccounts) || 0),
     },
   ]
@@ -442,32 +442,34 @@ function PanelSupport({ onTicketPipelineChanged }) {
                         style={{ resize: 'vertical', minHeight: 88 }}
                       />
                     </Field>
-                    <button
-                      type="button"
-                      className="btn"
-                      data-variant="primary"
-                      disabled={replyBusy === id || !String(replyDraft[id] || '').trim()}
-                      onClick={() =>
-                        void (async () => {
-                          const msg = String(replyDraft[id] || '').trim()
-                          if (!msg) return
-                          setReplyBusy(id)
-                          setErr('')
-                          try {
-                            await getApi().adminSupportReply(getAdminApiToken(), id, msg)
-                            setReplyDraft((d) => ({ ...d, [id]: '' }))
-                            await reload()
-                            onTicketPipelineChanged?.()
-                          } catch (e) {
-                            setErr(formatHttpErrorMessage(e))
-                          } finally {
-                            setReplyBusy(null)
-                          }
-                        })()
-                      }
-                    >
-                      {replyBusy === id ? 'Отправка…' : 'Отправить ответ'}
-                    </button>
+                    <div className="formActions">
+                      <button
+                        type="button"
+                        className="btn"
+                        data-variant="primary"
+                        disabled={replyBusy === id || !String(replyDraft[id] || '').trim()}
+                        onClick={() =>
+                          void (async () => {
+                            const msg = String(replyDraft[id] || '').trim()
+                            if (!msg) return
+                            setReplyBusy(id)
+                            setErr('')
+                            try {
+                              await getApi().adminSupportReply(getAdminApiToken(), id, msg)
+                              setReplyDraft((d) => ({ ...d, [id]: '' }))
+                              await reload()
+                              onTicketPipelineChanged?.()
+                            } catch (e) {
+                              setErr(formatHttpErrorMessage(e))
+                            } finally {
+                              setReplyBusy(null)
+                            }
+                          })()
+                        }
+                      >
+                        {replyBusy === id ? 'Отправка…' : 'Отправить ответ'}
+                      </button>
+                    </div>
                   </div>
                 ) : null}
               </li>
@@ -639,7 +641,7 @@ function PanelPush() {
         ) : null}
 
         <div className="adminPushSettings">
-          <h3 className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '0 0 10px', fontWeight: 700 }}>
+          <h3 className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '0 0 10px' }}>
             Настройки сервиса
           </h3>
           <label className="adminPushSettings__row">
@@ -708,7 +710,6 @@ function PanelPush() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={120}
-            placeholder="Например: Обновление сервиса"
           />
         </Field>
         <Field label="Текст" className="field--full" hint="до 2000 символов">
@@ -719,7 +720,6 @@ function PanelPush() {
             onChange={(e) => setBody(e.target.value)}
             maxLength={2000}
             style={{ resize: 'vertical', minHeight: 100 }}
-            placeholder="Краткое сообщение для пользователей"
           />
         </Field>
         <Field label="Аудитория" className="field--full">
@@ -744,7 +744,7 @@ function PanelPush() {
             {sendOk}
           </p>
         ) : null}
-        <div style={{ marginTop: 14 }}>
+        <div className="formActions" style={{ marginTop: 14 }}>
           <Button
             variant="primary"
             disabled={sendBusy || !canSendBroadcast || !String(title).trim() || !String(body).trim()}
@@ -807,7 +807,6 @@ function PanelPush() {
               className="input"
               value={testEmail}
               onChange={(e) => setTestEmail(e.target.value)}
-              placeholder="user@example.com"
             />
           </Field>
         </div>
@@ -821,7 +820,7 @@ function PanelPush() {
             {testOk}
           </p>
         ) : null}
-        <div style={{ marginTop: 14 }}>
+        <div className="formActions" style={{ marginTop: 14 }}>
           <Button
             variant="outline"
             disabled={testBusy || !canSendBroadcast || !String(testEmail).trim() || !String(title).trim() || !String(body).trim()}
@@ -1740,10 +1739,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
           <h2 className="h2 adminPreview__panelTitle" style={{ margin: 0 }}>
             Список
           </h2>
-          <div className="row gap wrap" style={{ alignItems: 'center' }}>
-            <label className="muted small" htmlFor="admin-partner-type-filter">
-              Категория:
-            </label>
+          <Field label="Категория">
             <select
               id="admin-partner-type-filter"
               className="input"
@@ -1758,7 +1754,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
                 </option>
               ))}
             </select>
-          </div>
+          </Field>
           <button
             type="button"
             className="btn"
@@ -1796,7 +1792,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
 
         {!loading ? (
           <>
-            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '16px 0 8px', fontWeight: 700 }}>
+            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '16px 0 8px' }}>
               Заявки на проверке
               {pending.length ? (
                 <Pill tone="accent" className="adminPreview__inlinePill">
@@ -1812,7 +1808,7 @@ function PanelPartners({ onPartnersPipelineChanged }) {
               pendingTable
             )}
 
-            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '24px 0 8px', fontWeight: 700 }}>
+            <p className="adminPreview__panelTitle" style={{ fontSize: 15, margin: '24px 0 8px' }}>
               Подтверждённые партнёры
             </p>
             {approved.length === 0 ? (

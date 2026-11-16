@@ -62,7 +62,6 @@ export default function MediaBannerAvatarBlock({
   avatarEmptyHint = 'Нажмите для загрузки',
   bannerRemoveLabel = 'Убрать баннер',
   avatarRemoveLabel = 'Убрать аватар',
-  bannerHintSlot = null,
   avatarHintSlot = null,
   headerExtra = null,
   /** Если false — колонка загрузки баннера скрыта (аватар остаётся). */
@@ -127,7 +126,7 @@ export default function MediaBannerAvatarBlock({
             {avatarHintSlot}
           </div>
           <div className="garageSettings__thumbWrap">
-            <input ref={avatarRef} type="file" accept="image/*" className="srOnly" onChange={onAvatarFile} />
+            <input ref={avatarRef} type="file" accept="image/*" hidden onChange={onAvatarFile} />
             <button
               type="button"
               className="garageSettings__thumb garageSettings__thumb--avatar"
@@ -164,7 +163,6 @@ export default function MediaBannerAvatarBlock({
           <div className="garageSettings__mediaCol garageSettings__mediaCol--banner">
             <div className="garageSettings__mediaLabelRow">
               <span className="garageSettings__mediaSublabel">{bannerLabel}</span>
-              {bannerHintSlot}
             </div>
             <div className="garageSettings__thumbWrap">
               <input ref={bannerRef} type="file" accept="image/*" className="srOnly" onChange={onBannerFile} />

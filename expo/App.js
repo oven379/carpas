@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ActivityIndicator, Platform, SafeAreaView, StatusBar as NativeStatusBar, StyleSheet, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import { registerPushForSession } from './src/push'
+import theme from './theme.json'
 
 const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://carpasss.ru/auth/owner'
 const STORAGE_PREFIX = 'cp.mvp.v1.'
@@ -256,9 +257,9 @@ export default function App() {
   if (!ready) {
     return (
       <SafeAreaView style={styles.root}>
-        <ExpoStatusBar style="light" backgroundColor="#0B0B0B" translucent={false} />
+        <ExpoStatusBar style="dark" backgroundColor={theme.background} translucent={false} />
         <View style={styles.loader}>
-          <ActivityIndicator color="#C7A45D" />
+          <ActivityIndicator color={theme.accent} />
         </View>
       </SafeAreaView>
     )
@@ -266,7 +267,7 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.root}>
-      <ExpoStatusBar style="light" backgroundColor="#0B0B0B" translucent={false} />
+      <ExpoStatusBar style="dark" backgroundColor={theme.background} translucent={false} />
       <WebView
         ref={webViewRef}
         source={{
@@ -299,17 +300,17 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: {
-    backgroundColor: '#0B0B0B',
+    backgroundColor: theme.background,
     flex: 1,
     paddingTop: Platform.OS === 'android' ? NativeStatusBar.currentHeight || 0 : 0,
   },
   webview: {
-    backgroundColor: '#0B0B0B',
+    backgroundColor: theme.background,
     flex: 1,
   },
   loader: {
     alignItems: 'center',
-    backgroundColor: '#0B0B0B',
+    backgroundColor: theme.background,
     flex: 1,
     justifyContent: 'center',
   },

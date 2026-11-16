@@ -10,6 +10,8 @@ export function CityComboBox({
   value,
   onChange,
   placeholder = 'Выберите город',
+  'aria-label': label,
+  'aria-describedby': describedBy,
   disabled,
   onBlur,
   emptyText,
@@ -68,6 +70,8 @@ export function CityComboBox({
       options={remote}
       optionsMatchQuery={remoteMatchQuery}
       placeholder={placeholder}
+      aria-label={label}
+      aria-describedby={describedBy}
       disabled={disabled}
       onBlur={onBlur}
       emptyText={emptyText}

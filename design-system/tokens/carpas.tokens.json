@@ -1,103 +1,413 @@
 {
   "$schema": "https://tr.designtokens.org/format/",
-  "$description": "КарПас MVP — токены из src/index.css, src/App.css, tailwind.config.js. Импорт в Figma: плагин Tokens Studio → Import → JSON.",
+  "$description": "КарПас — светлая тема. Общий источник цветов: src/design/theme.css. Токены для импорта в Figma.",
   "color": {
-    "bg": { "$value": "#16171d", "$type": "color", "$description": ":root --bg" },
-    "text": { "$value": "#9ca3af", "$type": "color", "$description": "основной текст" },
-    "textHeading": { "$value": "#f3f4f6", "$type": "color", "$description": "заголовки, контрастный текст" },
-    "border": { "$value": "#2e303a", "$type": "color" },
-    "codeBg": { "$value": "#1f2028", "$type": "color" },
-    "accent": { "$value": "#c084fc", "$type": "color", "$description": "primary, ссылки, фокус" },
-    "accentBg": { "$value": "rgba(192, 132, 252, 0.15)", "$type": "color" },
-    "accentBorder": { "$value": "rgba(192, 132, 252, 0.5)", "$type": "color" },
-    "openAction": { "$value": "#5eead4", "$type": "color", "$description": "бирюза «открыть»" },
-    "muted": { "$value": "#8b92a3", "$type": "color" },
-    "socialBg": { "$value": "rgba(47, 48, 58, 0.5)", "$type": "color" },
-    "white": { "$value": "#ffffff", "$type": "color" },
-    "danger": { "$value": "#ff3b3b", "$type": "color", "$description": "кнопка danger (база смешивания)" },
-    "cardFill": { "$value": "#181920", "$type": "color", "$description": "приближение к .card (mix bg + code-bg)" },
-    "overlayDark": { "$value": "rgba(12, 12, 16, 0.58)", "$type": "color", "$description": "heroCoverStat overlay" }
+    "bg": {
+      "$value": "#F8F6F1",
+      "$type": "color",
+      "$description": "CSS --bg-base"
+    },
+    "text": {
+      "$value": "#514941",
+      "$type": "color",
+      "$description": "CSS --text-secondary"
+    },
+    "textHeading": {
+      "$value": "#231F1B",
+      "$type": "color",
+      "$description": "CSS --text-primary"
+    },
+    "border": {
+      "$value": "#DDD5C8",
+      "$type": "color",
+      "$description": "CSS --border-default"
+    },
+    "codeBg": {
+      "$value": "#FFFEFA",
+      "$type": "color",
+      "$description": "CSS --bg-surface"
+    },
+    "accent": {
+      "$value": "#81551F",
+      "$type": "color",
+      "$description": "CSS --accent"
+    },
+    "accentBg": {
+      "$value": "#F0E5D1",
+      "$type": "color",
+      "$description": "CSS --accent-dim"
+    },
+    "accentBorder": {
+      "$value": "#B5905C",
+      "$type": "color",
+      "$description": "CSS --accent-border"
+    },
+    "openAction": {
+      "$value": "#6B491F",
+      "$type": "color",
+      "$description": "CSS --open-action"
+    },
+    "muted": {
+      "$value": "#665D51",
+      "$type": "color",
+      "$description": "CSS --text-muted"
+    },
+    "socialBg": {
+      "$value": "#F0ECE3",
+      "$type": "color",
+      "$description": "CSS --bg-elevated"
+    },
+    "white": {
+      "$value": "#ffffff",
+      "$type": "color"
+    },
+    "danger": {
+      "$value": "#9C302D",
+      "$type": "color",
+      "$description": "CSS --danger"
+    },
+    "cardFill": {
+      "$value": "#FFFEFA",
+      "$type": "color",
+      "$description": "CSS --bg-surface"
+    },
+    "overlayDark": {
+      "$value": "rgba(37, 29, 22, 0.8)",
+      "$type": "color",
+      "$description": "Подложка текста поверх фото"
+    },
+    "bgElevated": {
+      "$value": "#F0ECE3",
+      "$type": "color",
+      "$description": "CSS --bg-elevated"
+    },
+    "borderStrong": {
+      "$value": "#A89A86",
+      "$type": "color",
+      "$description": "CSS --border-strong"
+    },
+    "accentSolid": {
+      "$value": "#774A1B",
+      "$type": "color",
+      "$description": "CSS --accent-solid"
+    },
+    "accentHover": {
+      "$value": "#593610",
+      "$type": "color",
+      "$description": "CSS --accent-hover"
+    },
+    "onAccent": {
+      "$value": "#FFFEFA",
+      "$type": "color",
+      "$description": "CSS --on-accent"
+    },
+    "focus": {
+      "$value": "#926124",
+      "$type": "color",
+      "$description": "CSS --focus"
+    },
+    "dangerSoft": {
+      "$value": "#F8E7E3",
+      "$type": "color",
+      "$description": "CSS --danger-soft"
+    },
+    "dangerBorder": {
+      "$value": "#CD8F83",
+      "$type": "color",
+      "$description": "CSS --danger-border"
+    },
+    "success": {
+      "$value": "#266344",
+      "$type": "color",
+      "$description": "CSS --success"
+    },
+    "successSoft": {
+      "$value": "#E6EFE6",
+      "$type": "color",
+      "$description": "CSS --success-soft"
+    },
+    "onSuccess": {
+      "$value": "#FFFEFA",
+      "$type": "color",
+      "$description": "CSS --on-success"
+    },
+    "warning": {
+      "$value": "#805116",
+      "$type": "color",
+      "$description": "CSS --warning"
+    },
+    "warningSoft": {
+      "$value": "#F7ECD6",
+      "$type": "color",
+      "$description": "CSS --warning-soft"
+    },
+    "warningBorder": {
+      "$value": "#D7B574",
+      "$type": "color",
+      "$description": "CSS --warning-border"
+    },
+    "info": {
+      "$value": "#315C74",
+      "$type": "color",
+      "$description": "CSS --info"
+    },
+    "onMedia": {
+      "$value": "#FFFEFA",
+      "$type": "color",
+      "$description": "CSS --on-media"
+    },
+    "mediaScrim": {
+      "$value": "#251D16",
+      "$type": "color",
+      "$description": "CSS --media-scrim"
+    },
+    "dialogScrim": {
+      "$value": "#231F1B99",
+      "$type": "color",
+      "$description": "CSS --dialog-scrim"
+    }
   },
   "dimension": {
     "radius": {
-      "sm": { "$value": "4px", "$type": "dimension", "$description": "code" },
-      "md": { "$value": "12px", "$type": "dimension", "$description": "кнопки, input, nav" },
-      "lg": { "$value": "14px", "$type": "dimension", "$description": "combo menu, hero stat" },
-      "xl": { "$value": "16px", "$type": "dimension", "$description": ".card" },
-      "pill": { "$value": "999px", "$type": "dimension" }
+      "sm": {
+        "$value": "8px",
+        "$type": "dimension",
+        "$description": "небольшие метки"
+      },
+      "md": {
+        "$value": "12px",
+        "$type": "dimension",
+        "$description": "кнопки, поля, меню"
+      },
+      "lg": {
+        "$value": "20px",
+        "$type": "dimension",
+        "$description": "карточки"
+      },
+      "xl": {
+        "$value": "28px",
+        "$type": "dimension",
+        "$description": "крупные блоки"
+      },
+      "pill": {
+        "$value": "999px",
+        "$type": "dimension"
+      }
     },
     "space": {
-      "2": { "$value": "8px", "$type": "dimension" },
-      "2.5": { "$value": "10px", "$type": "dimension" },
-      "3": { "$value": "12px", "$type": "dimension" },
-      "3.5": { "$value": "14px", "$type": "dimension" },
-      "4": { "$value": "16px", "$type": "dimension" },
-      "5": { "$value": "20px", "$type": "dimension" },
-      "5.5": { "$value": "22px", "$type": "dimension" },
-      "6": { "$value": "24px", "$type": "dimension" },
-      "7": { "$value": "28px", "$type": "dimension" }
+      "2": {
+        "$value": "8px",
+        "$type": "dimension"
+      },
+      "2.5": {
+        "$value": "10px",
+        "$type": "dimension"
+      },
+      "3": {
+        "$value": "12px",
+        "$type": "dimension"
+      },
+      "3.5": {
+        "$value": "14px",
+        "$type": "dimension"
+      },
+      "4": {
+        "$value": "16px",
+        "$type": "dimension"
+      },
+      "5": {
+        "$value": "20px",
+        "$type": "dimension"
+      },
+      "5.5": {
+        "$value": "22px",
+        "$type": "dimension"
+      },
+      "6": {
+        "$value": "24px",
+        "$type": "dimension"
+      },
+      "7": {
+        "$value": "28px",
+        "$type": "dimension"
+      }
     },
     "layout": {
-      "maxContent": { "$value": "1126px", "$type": "dimension", "$description": ".nav__inner" },
-      "touchMin": { "$value": "44px", "$type": "dimension", "$description": "min-height кликабельных зон" }
+      "maxContent": {
+        "$value": "1126px",
+        "$type": "dimension",
+        "$description": ".nav__inner"
+      },
+      "touchMin": {
+        "$value": "44px",
+        "$type": "dimension",
+        "$description": "min-height кликабельных зон"
+      }
     }
   },
   "fontFamily": {
-    "sans": { "$value": "Roboto, system-ui, sans-serif", "$type": "fontFamily", "$description": "tailwind + index" },
-    "heading": { "$value": "system-ui, Segoe UI, Roboto, sans-serif", "$type": "fontFamily" },
-    "mono": { "$value": "ui-monospace, Consolas, monospace", "$type": "fontFamily" }
+    "sans": {
+      "$value": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "$type": "fontFamily",
+      "$description": "tailwind + index"
+    },
+    "heading": {
+      "$value": "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "$type": "fontFamily"
+    },
+    "mono": {
+      "$value": "ui-monospace, Consolas, monospace",
+      "$type": "fontFamily"
+    }
   },
   "fontSize": {
-    "xs": { "$value": "12px", "$type": "dimension", "$description": "field hint" },
-    "sm": { "$value": "13px", "$type": "dimension", "$description": "pill" },
-    "base": { "$value": "14px", "$type": "dimension" },
-    "body": { "$value": "15px", "$type": "dimension", "$description": "кнопки, поля" },
-    "bodyRoot": { "$value": "18px", "$type": "dimension", "$description": ":root, ≤1024px → 16px" },
-    "bodyRootMobile": { "$value": "16px", "$type": "dimension" },
-    "h2": { "$value": "20px", "$type": "dimension" },
-    "h1": { "$value": "32px", "$type": "dimension" }
+    "xs": {
+      "$value": "12px",
+      "$type": "dimension",
+      "$description": "field hint"
+    },
+    "sm": {
+      "$value": "13px",
+      "$type": "dimension",
+      "$description": "pill"
+    },
+    "base": {
+      "$value": "14px",
+      "$type": "dimension"
+    },
+    "body": {
+      "$value": "15px",
+      "$type": "dimension",
+      "$description": "кнопки, поля"
+    },
+    "bodyRoot": {
+      "$value": "15px",
+      "$type": "dimension"
+    },
+    "bodyRootMobile": {
+      "$value": "15px",
+      "$type": "dimension"
+    },
+    "h2": {
+      "$value": "20px",
+      "$type": "dimension"
+    },
+    "h1": {
+      "$value": "32px",
+      "$type": "dimension"
+    }
   },
   "fontWeight": {
-    "semibold": { "$value": "600", "$type": "fontWeight", "$description": "h1, h2" },
-    "label": { "$value": "650", "$type": "fontWeight", "$description": "field label, nav brand" }
+    "heading": {
+      "$value": "500",
+      "$type": "fontWeight",
+      "$description": "heading text"
+    },
+    "label": {
+      "$value": "650",
+      "$type": "fontWeight",
+      "$description": "field label, nav brand"
+    }
   },
   "lineHeight": {
-    "tight": { "$value": "1.1", "$type": "number", "$description": "h1" },
-    "snug": { "$value": "1.2", "$type": "number", "$description": "h2, кнопки" },
-    "body": { "$value": "1.45", "$type": "number", "$description": ":root" },
-    "field": { "$value": "1.3", "$type": "number", "$description": "input" }
+    "tight": {
+      "$value": "1.1",
+      "$type": "number",
+      "$description": "h1"
+    },
+    "snug": {
+      "$value": "1.2",
+      "$type": "number",
+      "$description": "h2, кнопки"
+    },
+    "body": {
+      "$value": "1.45",
+      "$type": "number",
+      "$description": ":root"
+    },
+    "field": {
+      "$value": "1.3",
+      "$type": "number",
+      "$description": "input"
+    }
   },
   "letterSpacing": {
-    "body": { "$value": "0.18px", "$type": "dimension" },
-    "h1": { "$value": "-0.8px", "$type": "dimension" },
-    "h2": { "$value": "-0.2px", "$type": "dimension" }
+    "body": {
+      "$value": "0.18px",
+      "$type": "dimension"
+    },
+    "h1": {
+      "$value": "-0.8px",
+      "$type": "dimension"
+    },
+    "h2": {
+      "$value": "-0.2px",
+      "$type": "dimension"
+    }
   },
   "opacity": {
-    "disabled": { "$value": "0.55", "$type": "number", "$description": "кнопки disabled" }
+    "disabled": {
+      "$value": "0.55",
+      "$type": "number",
+      "$description": "кнопки disabled"
+    }
   },
   "shadow": {
     "card": {
-      "$value": "0 10px 15px -3px rgba(0,0,0,0.4), 0 4px 6px -2px rgba(0,0,0,0.25)",
+      "$value": {
+        "color": "#31261B0B",
+        "offsetX": "0px",
+        "offsetY": "10px",
+        "blur": "28px",
+        "spread": "0px"
+      },
       "$type": "other",
       "$description": "CSS box-shadow из :root --shadow; в Figma — два Drop shadow или один слой по вкусу"
     }
   },
   "number": {
-    "motionFast": { "$value": "120", "$type": "number", "$description": "transition ms" },
-    "zNav": { "$value": "5", "$type": "number" },
-    "zModal": { "$value": "20", "$type": "number", "$description": "cb__menu" }
+    "motionFast": {
+      "$value": "120",
+      "$type": "number",
+      "$description": "transition ms"
+    },
+    "zNav": {
+      "$value": "5",
+      "$type": "number"
+    },
+    "zModal": {
+      "$value": "20",
+      "$type": "number",
+      "$description": "cb__menu"
+    }
   },
   "component": {
     "button": {
-      "paddingX": { "$value": "12px", "$type": "dimension" },
-      "paddingY": { "$value": "10px", "$type": "dimension" },
-      "gap": { "$value": "8px", "$type": "dimension" }
+      "paddingX": {
+        "$value": "12px",
+        "$type": "dimension"
+      },
+      "paddingY": {
+        "$value": "10px",
+        "$type": "dimension"
+      },
+      "gap": {
+        "$value": "8px",
+        "$type": "dimension"
+      }
     },
     "card": {
-      "padding": { "$value": "22px 24px", "$type": "dimension", "$description": ".pad — в Figma два токена или auto-layout" }
+      "padding": {
+        "$value": "22px 24px",
+        "$type": "dimension",
+        "$description": ".pad — в Figma два токена или auto-layout"
+      }
     },
     "field": {
-      "gap": { "$value": "8px", "$type": "dimension" }
+      "gap": {
+        "$value": "8px",
+        "$type": "dimension"
+      }
     }
   }
 }

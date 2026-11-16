@@ -1,7 +1,7 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, Input, PageLoadSpinner, Pill, ServiceHint } from '../components.jsx'
+import { BackNav, Card, Input, PageLoadSpinner, Pill } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import {
   comparablePhoneDigitsRu,
@@ -310,12 +310,6 @@ export default function DetailingClientsPage() {
             <h1 className="h1" style={{ margin: 0 }}>
               Клиенты и автомобили
             </h1>
-            <ServiceHint scopeId="det-crm-head" variant="compact" label="Справка: CRM">
-              <p className="serviceHint__panelText">
-                CRM собирает клиентов из карточек авто и визитов вашего сервиса. Фильтр «Давно не были»
-                показывает клиентов, у которых последний визит был больше {staleDays} дней назад.
-              </p>
-            </ServiceHint>
           </div>
         </div>
         <button type="button" className="btn" data-variant="primary" onClick={() => nav('/create?from=/detailing/clients')}>
@@ -335,6 +329,7 @@ export default function DetailingClientsPage() {
           className="input detCrm__search"
           value={query}
           placeholder="Поиск по имени, телефону, VIN или госномеру"
+          aria-label="Поиск клиентов и автомобилей"
           autoCapitalize="off"
           autoComplete="off"
           onChange={(e) => setQuery(e.target.value)}
@@ -500,7 +495,6 @@ export default function DetailingClientsPage() {
                 {clientNoteEditing ? (
                   <div className="detCrmProfile__clientNoteEditor">
                     <div className="detCrmProfile__discountRow">
-                      <label className="detCrmProfile__discountLabel muted small">Скидка %</label>
                       <input
                         type="number"
                         className="input detCrmProfile__discountInput"
@@ -508,7 +502,8 @@ export default function DetailingClientsPage() {
                         min={0}
                         max={100}
                         step={1}
-                        placeholder="0–100"
+                        placeholder="Скидка, %"
+                        aria-label="Скидка в процентах"
                         onChange={(e) => {
                           const v = e.target.value.replace(/[^\d]/g, '').slice(0, 3)
                           setClientDiscountDraft(v === '' ? '' : String(Math.min(100, parseInt(v, 10) || 0)))
@@ -520,7 +515,8 @@ export default function DetailingClientsPage() {
                       value={clientNoteDraft}
                       rows={4}
                       maxLength={1000}
-                      placeholder="Например: звонить после 18:00, просит фото до/после, предпочитает звонок вместо сообщения"
+                      placeholder="Заметка о клиенте"
+                      aria-label="Заметка о клиенте"
                       onChange={(e) => setClientNoteDraft(e.target.value)}
                     />
                     <div className="detCrmProfile__clientNoteActions">

@@ -1,5 +1,5 @@
 /**
- * Генерация превью для соцсетей (Open Graph, 1200×630) для каждой статьи блога: public/og/<slug>.jpg.
+ * Генерация превью для соцсетей (Open Graph, 1200×630) для сайта и статей блога.
  *
  * Данные (slug, заголовок, темы) читаются из src/blog/posts.jsx. Тема статьи (теги) определяет подпись и скриншот.
  * Рендер — headless Chrome по HTML-шаблону, сжатие в JPEG — sharp (уже есть в devDependencies).
@@ -34,15 +34,15 @@ const asset = (name) => 'file://' + path.join(ROOT, 'src', 'assets', name)
 
 /** Тема → подпись и скриншот. Порядок важен: берётся первая тема, чей тег есть у статьи. */
 const THEMES = [
-  { tag: 'prigon', label: 'Пригон авто', shot: 'app-screen-history-owner.jpg', phone: true },
+  { tag: 'prigon', label: 'Пригон авто', shot: 'app-screen-history-owner-light.webp', phone: true },
   { tag: 'voronezh', label: 'Партнёр КарПас · Воронеж', shot: 'partner-nnd.png', phone: false },
-  { tag: 'brands', label: 'Сервисная книжка', shot: 'app-screen-car-card.jpg', phone: true },
-  { tag: 'crm', label: 'Для автосервиса', shot: 'crm-panel.png', phone: false },
-  { tag: 'about', label: 'О КарПас', shot: 'product-overview.png', phone: false },
-  { tag: 'servisnaya-knizhka', label: 'Сервисная книжка', shot: 'app-screen-history-list.jpg', phone: true },
-  { tag: 'owners', label: 'Владельцам авто', shot: 'app-screen-garage.jpg', phone: true },
+  { tag: 'brands', label: 'Сервисная книжка', shot: 'light-pilot-car-screen.webp', phone: true },
+  { tag: 'crm', label: 'Для автосервиса', shot: 'crm-panel-light.webp', phone: false },
+  { tag: 'about', label: 'О КарПас', shot: 'product-overview-light.webp', phone: false },
+  { tag: 'servisnaya-knizhka', label: 'Сервисная книжка', shot: 'app-screen-history-list-light.webp', phone: true },
+  { tag: 'owners', label: 'Владельцам авто', shot: 'app-screen-garage-light.webp', phone: true },
 ]
-const DEFAULT_THEME = { label: 'Блог КарПас', shot: 'product-overview.png', phone: false }
+const DEFAULT_THEME = { label: 'Блог КарПас', shot: 'product-overview-light.webp', phone: false }
 
 function readPosts() {
   const src = fs.readFileSync(path.join(ROOT, 'src/blog/posts.jsx'), 'utf8')
@@ -107,6 +107,36 @@ function html({ title, theme }) {
   </body></html>`
 }
 
+function defaultHtml() {
+  return `<!doctype html><html lang="ru"><head><meta charset="utf-8"><style>
+    *{box-sizing:border-box;margin:0}
+    body{width:1200px;height:630px;display:grid;place-content:center;text-align:center;color:#f0f0f0;
+      background:radial-gradient(ellipse at 50% 18%,#272019 0,transparent 55%),#0b0b0b;
+      font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+    img{display:block;width:640px;margin:0 auto 36px}
+    h1{font-size:34px;font-weight:750}
+    span{color:#d78b4e}
+    p{margin-top:15px;font-size:22px;color:#c2b8af}
+  </style></head><body><main>
+    <img src="${asset('brand-wordmark.svg')}" alt="КарПас">
+    <h1>История обслуживания авто — <span>в вашем телефоне</span></h1>
+    <p>Визиты, пробег, документы и фото. Для владельцев, детейлинга и СТО.</p>
+  </main></body></html>`
+}
+
+function capturePreview(directory, name, markup) {
+  const htmlFile = path.join(directory, `${name}.html`)
+  const pngFile = path.join(directory, `${name}.png`)
+  fs.writeFileSync(htmlFile, markup, 'utf8')
+  execFileSync(CHROME, [
+    '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
+    '--force-device-scale-factor=1', '--window-size=1200,630', '--virtual-time-budget=4000',
+    `--user-data-dir=${path.join(directory, 'profile')}`,
+    `--screenshot=${pngFile}`, 'file://' + htmlFile,
+  ], { stdio: 'ignore' })
+  return pngFile
+}
+
 async function main() {
   if (!CHROME) {
     console.error('[og] Chrome/Chromium не найден. Задайте CHROME_PATH.')
@@ -115,29 +145,17 @@ async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true })
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'og-'))
   const posts = readPosts()
+  const defaultOut = path.join(ROOT, 'public', 'og.png')
+  if (FORCE || !fs.existsSync(defaultOut)) {
+    const capture = capturePreview(tmp, 'default', defaultHtml())
+    await sharp(capture).resize(1200, 630).png().toFile(defaultOut)
+  }
   let made = 0
   for (const post of posts) {
     const out = path.join(OUT_DIR, `${post.slug}.jpg`)
     if (!FORCE && fs.existsSync(out)) continue
     const theme = THEMES.find((t) => post.tags.includes(t.tag)) || DEFAULT_THEME
-    const htmlFile = path.join(tmp, `${post.slug}.html`)
-    const pngFile = path.join(tmp, `${post.slug}.png`)
-    fs.writeFileSync(htmlFile, html({ title: post.title, theme }), 'utf8')
-    execFileSync(
-      CHROME,
-      [
-        '--headless=new',
-        '--disable-gpu',
-        '--no-sandbox',
-        '--hide-scrollbars',
-        '--force-device-scale-factor=1',
-        '--window-size=1200,630',
-        '--virtual-time-budget=4000',
-        `--screenshot=${pngFile}`,
-        'file://' + htmlFile,
-      ],
-      { stdio: 'ignore' },
-    )
+    const pngFile = capturePreview(tmp, post.slug, html({ title: post.title, theme }))
     await sharp(pngFile).resize(1200, 630).jpeg({ quality: 86, mozjpeg: true }).toFile(out)
     made += 1
     console.log(`[og] ✓ ${post.slug}.jpg  (${theme.label})`)

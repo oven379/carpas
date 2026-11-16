@@ -14,7 +14,7 @@ import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { businessTypeCall, businessTypeLabel, businessTypeSeo } from '../../lib/businessTypes.js'
 import { GOALS, reachGoal } from '../../lib/metrika.js'
 import { photoBgStyle } from '../../lib/photoBg.js'
-import brandWordmarkSrc from '../../assets/brand-wordmark.svg?url'
+import brandWordmarkSrc from '../../assets/brand-wordmark-light.svg?url'
 function ensureUrl(raw) {
   const s = String(raw || '').trim()
   if (!s) return ''

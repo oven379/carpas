@@ -1,0 +1,391 @@
+/* Рабочий экран: данные отделены от фотографии и от действий по визиту. */
+.carLight__sectionIcon {
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.carLight {
+  width: min(1168px, 100%);
+  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
+  padding-bottom: 30px;
+}
+
+.carLight__loading {
+  display: grid;
+  place-items: center;
+  min-height: min(55svh, 420px);
+}
+
+.carLight .carPage__head {
+  margin: 10px 0 23px;
+}
+
+.carLight .breadcrumbs {
+  margin: 0 0 9px;
+  color: var(--text-secondary);
+  font-size: .8rem;
+}
+
+.carLight .breadcrumbs a {
+  color: var(--accent);
+}
+
+.carLight .carPage__titleRow {
+  column-gap: 12px;
+}
+
+.carLight .carPage__titleNameRow .h1 {
+  color: var(--text-primary);
+  font-size: clamp(1.75rem, 4.6vw, 3.7rem);
+  letter-spacing: -.058em;
+  line-height: 1.12;
+  white-space: normal;
+  text-overflow: unset;
+  overflow: visible;
+  overflow-wrap: anywhere;
+}
+
+.carLight .backNav,
+.carLight .openAction,
+.carLight .dropdownCaretBtn--suffix {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  border-radius: var(--radius-md);
+}
+
+.carLight .backNav {
+  background: var(--bg-surface);
+}
+
+.carLight .backNav:hover,
+.carLight .openAction:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.carLight .carPage__titleVisitBtn {
+  display: inline-flex;
+  align-self: center;
+}
+
+.carLight__overview {
+  display: grid;
+  grid-template-columns: minmax(0, 2.6fr) minmax(216px, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+  background: var(--bg-surface);
+  border-radius: var(--radius-display);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.carLight .carLight__cover {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: auto;
+  min-height: clamp(250px, 31vw, 386px);
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background-color: var(--bg-elevated);
+  background-position: center 61%;
+}
+
+.carLight .carLight__cover--empty {
+  background-image: linear-gradient(var(--border-default) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-default) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-position: center;
+}
+
+.carLight__placeholderIcon {
+  color: var(--accent);
+  width: 92px;
+  height: 92px;
+  padding: 17px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+}
+
+.carLight .heroActions {
+  top: 14px;
+  right: 14px;
+}
+
+.carLight .heroActions .carPage__editBtn {
+  width: auto;
+  height: auto;
+  gap: 8px;
+  padding: 0 12px;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  box-shadow: 0 3px 10px #31261b14;
+}
+
+.carLight .heroActions .carPage__editBtn:hover {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.carLight__specs {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(14px, 2.2vw, 30px);
+  margin: 0;
+  min-width: 0;
+}
+
+.carLight__spec {
+  padding: 13px 0;
+  min-width: 0;
+}
+
+.carLight__spec + .carLight__spec {
+  border-top: 1px solid var(--border-default);
+}
+
+.carLight__spec dt {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.carLight__spec dt svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.carLight__spec dd {
+  margin: 4px 0 0;
+  color: var(--text-primary);
+  font-size: 1.18rem;
+  font-weight: 600;
+  line-height: 1.24;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.carLight__spec--mileage dd {
+  font-size: clamp(1.5rem, 3.5vw, 2.7rem);
+  font-weight: 650;
+  letter-spacing: -.04em;
+}
+
+.carLight__spec--vin dd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.carLight__spec--vin dd > span {
+  min-width: 0;
+  font-size: clamp(.82rem, 1.3vw, 1.06rem);
+}
+
+.carLight__copyVin {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.carLight__copyVin::after {
+  content: '';
+  position: absolute;
+  inset: -12px -4px -12px -20px;
+}
+
+.carLight__copyVin:hover {
+  color: var(--accent);
+}
+
+.carLight__copyVin:focus-visible {
+  color: var(--accent);
+  outline: 0;
+  box-shadow: 0 2px 0 var(--focus);
+}
+
+.carLight .split {
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+}
+
+.carLight .split > .col {
+  min-width: 0;
+  gap: 16px;
+}
+
+.carLight .card.pad {
+  background: var(--bg-surface);
+  border-radius: var(--radius-lg);
+  padding: clamp(14px, 2.1vw, 24px);
+  box-shadow: var(--shadow);
+  color: var(--text-primary);
+}
+
+.carLight :is(.cardTitle, .h2) {
+  color: var(--text-primary);
+  letter-spacing: -.03em;
+}
+
+.carLight .cardTitle::after {
+  display: none;
+}
+
+.carLight .carPage__ownerDataBar {
+  align-items: center;
+  min-height: 44px;
+}
+
+.carLight .carPage__ownerDataBar .dropdownCaretBtn--suffix {
+  top: 0;
+}
+
+.carLight .carPage__ownerLastVisitHit {
+  margin-inline: 0;
+  padding: 13px;
+  background: var(--bg-base);
+}
+
+.carLight .carPage__ownerLastVisitHit:hover {
+  background: var(--accent-dim);
+}
+
+.carLight :is(.carPage__ownerLastVisitHit, .carPage__ownerServiceStack, .carPage__detailingOwnerProfileBody, .kv__v) {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.carLight .carPage__sectionTitle--solo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.carLight .openAction {
+  background: var(--bg-base);
+  color: var(--accent);
+}
+
+.carLight__empty {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg-base);
+  border-radius: var(--radius-md);
+  font-size: .875rem;
+}
+
+.carLight .pill[data-tone='accent'] {
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.carLight .thumb__docBadge {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+@media (max-width: 767px) {
+  .carLight .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .carLight__overview {
+    grid-template-columns: minmax(0, 1fr);
+    border-radius: var(--radius-lg);
+  }
+
+  .carLight .carLight__cover {
+    min-height: 0;
+    aspect-ratio: 1.68;
+  }
+
+  .carLight__specs {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, .68fr) minmax(0, 1fr);
+    align-items: start;
+    padding: 13px 8px;
+  }
+
+  .carLight__spec {
+    padding: 2px 9px;
+  }
+
+  .carLight__spec + .carLight__spec {
+    border-top: 0;
+    border-inline-start: 1px solid var(--border-default);
+  }
+
+  .carLight__spec + :is(.carLight__spec--vin, .carLight__spec--plate) {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-default);
+  }
+
+  .carLight__spec + .carLight__spec--vin {
+    grid-column: span 2;
+    border-inline-start: 0;
+  }
+
+  .carLight__spec dd {
+    font-size: clamp(.85rem, 3.1vw, 1.15rem);
+  }
+
+  .carLight__spec--mileage dd {
+    font-size: clamp(.98rem, 3.8vw, 1.42rem);
+    letter-spacing: -.04em;
+  }
+
+  .carLight .heroActions .carPage__editBtn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 390px) {
+  .carLight .carPage__titleRow {
+    column-gap: 7px;
+  }
+
+  .carLight .carPage__titleNameRow {
+    gap: 7px;
+  }
+
+  .carLight .carPage__titleVisitBtn {
+    padding-inline: 8px;
+  }
+}
+
+@media (max-width: 360px) {
+  .carLight__spec + .carLight__spec--vin,
+  .carLight__spec + .carLight__spec--plate {
+    grid-column: 1 / -1;
+    border-inline-start: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(a, button) {
+    transition-duration: .01ms;
+  }
+}

@@ -2,13 +2,13 @@ import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useSta
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import {
+  Field,
   BackNav,
   Button,
   Card,
   DropdownCaretIcon,
   Input,
   PageLoadSpinner,
-  ServiceHint,
   Textarea,
 } from '../components.jsx'
 import {
@@ -38,24 +38,6 @@ import { createBlurFixRuFreeText } from '../../lib/fixQwertyLayoutToRussian.js'
 import { VISIT_MAX_PHOTOS } from '../../lib/uploadLimits.js'
 import { buildCarFromQuery } from '../carNav.js'
 import { useVisibleAutoRefresh } from '../useVisibleAutoRefresh.js'
-import {
-  FORM_ADD_PHOTOS_HINT,
-  FORM_CARE_ADVICE_HINT,
-  FORM_COMMENT_HINT,
-  FORM_MILEAGE_HINT,
-  FORM_OWNER_VISIT_ADVICE_HINT,
-  FORM_PHOTOS_EDIT_HINT,
-  FORM_SERVICES_VISIT_BLOCK_HINT,
-  FORM_TITLE_HINT,
-  HISTORY_DRAFT_DET_HINT,
-  HISTORY_PAGE_HINT,
-  formCareAdviceHintText,
-  formMileageHintText,
-  formOwnerVisitAdviceHintText,
-  formPhotosEditHintText,
-  formTitleHintText,
-  historyPageHintText,
-} from '../../lib/historyVisitHints.js'
 import { detailingBrandHref } from '../serviceLinkUi.js'
 import { PhotoLightbox } from '../PhotoLightbox.jsx'
 import WorkItemsEditor from '../WorkItemsEditor.jsx'
@@ -1124,26 +1106,10 @@ export default function HistoryPage() {
         <span>История автомобиля</span>
       </div>
       <div className="row spread gap historyPage__titleBar">
-        <div id={HISTORY_PAGE_HINT.scopeId} className="serviceHint__pageBlock historyPage__titleBlock">
+        <div className="serviceHint__pageBlock historyPage__titleBlock">
           <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav to={carCardHref} title="К карточке авто" />
             <h1 className="h1">{title}</h1>
-            {!visitComposeOnlyUi ? (
-              <>
-                <ServiceHint scopeId={HISTORY_PAGE_HINT.scopeId} variant="compact" label={HISTORY_PAGE_HINT.label}>
-                  <p className="serviceHint__panelText">{historyPageHintText(mode)}</p>
-                </ServiceHint>
-                {mode === 'detailing' ? (
-                  <ServiceHint
-                    scopeId={HISTORY_DRAFT_DET_HINT.scopeId}
-                    variant="compact"
-                    label={HISTORY_DRAFT_DET_HINT.label}
-                  >
-                    <p className="serviceHint__panelText">{HISTORY_DRAFT_DET_HINT.textDetailing}</p>
-                  </ServiceHint>
-                ) : null}
-              </>
-            ) : null}
           </div>
         </div>
         {mode !== 'detailing' ? (
@@ -1326,7 +1292,6 @@ export default function HistoryPage() {
                         openVisitEdit(e)
                       }}
                     >
-                      <span className="carPage__icon carPage__icon--edit historyDraftEditBtn__icon" aria-hidden="true" />
                       Править
                     </button>
                   </div>
@@ -1633,82 +1598,72 @@ export default function HistoryPage() {
               ) : null}
               <div className="formGrid historyFormGrid">
             {workOrderEnabled ? (
-              <div className="field">
-                <span className="field__label">Мастер-приёмщик</span>
+              <Field label="Мастер-приёмщик" insetLabel>
                 <Input
                   className="input"
                   maxLength={255}
                   value={draft.masterName}
                   disabled={formLocked}
-                  placeholder="Имя мастера для этого визита"
                   onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
                   onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
                 />
-              </div>
+              </Field>
             ) : null}
-            <div className="field serviceHint__fieldWrap" id={FORM_TITLE_HINT.scopeId}>
-              <div className="field__top serviceHint__fieldTop">
-                <span className="field__label">Заголовок</span>
-                <ServiceHint scopeId={FORM_TITLE_HINT.scopeId} variant="compact" label={FORM_TITLE_HINT.label}>
-                  <p className="serviceHint__panelText">{formTitleHintText(VISIT_TITLE_MAX_LEN)}</p>
-                </ServiceHint>
-              </div>
-              <Input
-                className="input"
-                value={draft.title}
-                maxLength={VISIT_TITLE_MAX_LEN}
-                onChange={(e) =>
-                  setDraft((d) => ({ ...d, title: clampVisitTitleInput(e.target.value) }))
-                }
-                onBlur={createBlurFixRuFreeText((next) =>
-                  setDraft((d) => ({ ...d, title: clampVisitTitleInput(next) })),
-                )}
-                placeholder="ТО-2 / Визит…"
-                disabled={formLocked}
-              />
+            <div className="field serviceHint__fieldWrap">
+              <Field
+                label="Заголовок" insetLabel
+              >
+                <Input
+                  className="input"
+                  value={draft.title}
+                  maxLength={VISIT_TITLE_MAX_LEN}
+                  onChange={(e) =>
+                    setDraft((d) => ({ ...d, title: clampVisitTitleInput(e.target.value) }))
+                  }
+                  onBlur={createBlurFixRuFreeText((next) =>
+                    setDraft((d) => ({ ...d, title: clampVisitTitleInput(next) })),
+                  )}
+                  disabled={formLocked}
+                />
+              </Field>
             </div>
-            <div className="field serviceHint__fieldWrap" id={FORM_MILEAGE_HINT.scopeId}>
-              <div className="field__top serviceHint__fieldTop">
-                <span className="field__label">Пробег (км)</span>
-                <ServiceHint scopeId={FORM_MILEAGE_HINT.scopeId} variant="compact" label={FORM_MILEAGE_HINT.label}>
-                  <p className="serviceHint__panelText">{formMileageHintText(minMileageKmForVisitForm)}</p>
-                </ServiceHint>
-              </div>
-              <Input
-                className="input"
-                inputMode="numeric"
-                value={draft.mileageKm}
-                maxLength={7}
-                onChange={(e) =>
-                  setDraft((d) => {
-                    const nextRaw = normDigits(e.target.value, { maxLen: 7 })
-                    const n = nextRaw ? Number(nextRaw) : 0
-                    if (Number.isFinite(n) && n > 1000000) return d
-                    return { ...d, mileageKm: nextRaw }
-                  })
-                }
-                placeholder={minMileageKmForVisitForm ? fmtInt(minMileageKmForVisitForm) : '20 000'}
-                disabled={formLocked}
-              />
+            <div className="field serviceHint__fieldWrap">
+              <Field
+                label="Пробег (км)" insetLabel
+                hint={minMileageKmForVisitForm ? `Минимум ${fmtInt(minMileageKmForVisitForm)} км` : undefined}
+              >
+                <Input
+                  className="input"
+                  inputMode="numeric"
+                  value={draft.mileageKm}
+                  maxLength={7}
+                  onChange={(e) =>
+                    setDraft((d) => {
+                      const nextRaw = normDigits(e.target.value, { maxLen: 7 })
+                      const n = nextRaw ? Number(nextRaw) : 0
+                      if (Number.isFinite(n) && n > 1000000) return d
+                      return { ...d, mileageKm: nextRaw }
+                    })
+                  }
+                  disabled={formLocked}
+                />
+              </Field>
             </div>
             {workOrderEnabled ? (
-              <div className="field field--full">
-                <span className="field__label">Причина обращения</span>
+              <Field className="field--full" label="Причина обращения">
                 <Textarea
                   className="textarea"
                   rows={2}
                   maxLength={1000}
                   value={draft.reason}
                   disabled={formLocked}
-                  placeholder="Что беспокоит клиента: царапины, запах, не работает кондиционер…"
                   onChange={(e) => setDraft((d) => ({ ...d, reason: e.target.value }))}
                   onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, reason: next })))}
                 />
-              </div>
+              </Field>
             ) : null}
             {mode === 'detailing' || mode === 'owner' ? (
               <VisitFormServicesBlock
-                scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
                 detailing={detailing}
                 useFullCatalogFallback={mode === 'owner'}
                 services={draft.services}
@@ -1716,19 +1671,6 @@ export default function HistoryPage() {
                 onServicesChange={(next) => setDraft((d) => ({ ...d, services: next }))}
                 onMaintenanceChange={(next) => setDraft((d) => ({ ...d, maintenanceServices: next }))}
                 disabled={formLocked}
-                hintSlot={
-                  <ServiceHint
-                    scopeId={FORM_SERVICES_VISIT_BLOCK_HINT.scopeId}
-                    variant="compact"
-                    label={FORM_SERVICES_VISIT_BLOCK_HINT.label}
-                  >
-                    <p className="serviceHint__panelText">
-                      {mode === 'owner'
-                        ? FORM_SERVICES_VISIT_BLOCK_HINT.textOwner
-                        : FORM_SERVICES_VISIT_BLOCK_HINT.textDetailing}
-                    </p>
-                  </ServiceHint>
-                }
               />
             ) : null}
             {workOrderEnabled ? (
@@ -1751,43 +1693,37 @@ export default function HistoryPage() {
                 />
               </div>
             ) : null}
-            <div className="field field--full serviceHint__fieldWrap" id={FORM_COMMENT_HINT.scopeId}>
-              <div className="field__top serviceHint__fieldTop">
-                <span className="field__label">{mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}</span>
-                <ServiceHint scopeId={FORM_COMMENT_HINT.scopeId} variant="compact" label={FORM_COMMENT_HINT.label}>
-                  <p className="serviceHint__panelText">{FORM_COMMENT_HINT.text}</p>
-                </ServiceHint>
-              </div>
-              <Textarea
-                className="textarea"
-                rows={4}
-                maxLength={VISIT_NOTE_MAX_LEN}
-                value={draft.note}
-                onChange={(e) => setDraft((d) => ({ ...d, note: clampVisitNoteInput(e.target.value) }))}
-                onBlur={createBlurFixRuFreeText((next) =>
-                  setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
-                )}
-                placeholder={
-                  mode === 'detailing'
-                    ? 'Напишите рекомендации для владельца: когда приехать повторно, что проверить, на что обратить внимание.'
-                    : 'Напишите здесь, что делали в этом визите, или выберите услуги из предложенных ниже. Так формируется история Вашего авто.'
-                }
-                disabled={formLocked}
-              />
+            <div className="field field--full serviceHint__fieldWrap">
+              <Field
+                label={mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}
+                hint={mode === 'detailing' ? 'Владелец увидит рекомендации в истории авто.' : undefined}
+              >
+                <Textarea
+                  className="textarea"
+                  rows={4}
+                  maxLength={VISIT_NOTE_MAX_LEN}
+                  value={draft.note}
+                  onChange={(e) => setDraft((d) => ({ ...d, note: clampVisitNoteInput(e.target.value) }))}
+                  onBlur={createBlurFixRuFreeText((next) =>
+                    setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
+                  )}
+                  disabled={formLocked}
+                />
+              </Field>
             </div>
             {workOrderEnabled ? (
               <div className="field field--full">
-                <span className="field__label">Гарантийные обязательства</span>
-                <Textarea
-                  className="textarea"
-                  rows={3}
-                  maxLength={5000}
-                  value={draft.warrantyText}
-                  disabled={formLocked}
-                  placeholder={String(detailing?.warrantyText || '').trim() || 'Оставьте пустым — будет использован текст из настроек сервиса'}
-                  onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-                />
+                <Field label="Гарантийные обязательства">
+                  <Textarea
+                    className="textarea"
+                    rows={3}
+                    maxLength={5000}
+                    value={draft.warrantyText}
+                    disabled={formLocked}
+                    onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                  />
+                </Field>
                 {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
                   <p className="muted small" style={{ marginTop: 4 }}>
                     Будет использован текст гарантии из настроек сервиса.
@@ -1798,15 +1734,17 @@ export default function HistoryPage() {
             {mode === 'detailing' ? (
               <>
                 <div className="field field--full">
-                  <span className="field__label">Дата следующего контакта</span>
                   <div className="visitReminderField">
-                    <Input
-                      className="input"
-                      type="date"
-                      value={draft.nextContactAt}
-                      disabled={formLocked}
-                      onChange={(e) => setDraft((d) => ({ ...d, nextContactAt: e.target.value }))}
-                    />
+                    <Field label="Дата следующего контакта">
+                      <Input
+                        className="input"
+                        type="date"
+                        value={draft.nextContactAt}
+                        disabled={formLocked}
+                        aria-describedby="visit-reminder-date-hint"
+                        onChange={(e) => setDraft((d) => ({ ...d, nextContactAt: e.target.value }))}
+                      />
+                    </Field>
                     <div className="visitReminderField__quick" aria-label="Быстрый выбор даты напоминания">
                       {[7, 15, 30, 90].map((days) => (
                         <button
@@ -1822,26 +1760,26 @@ export default function HistoryPage() {
                       ))}
                     </div>
                   </div>
-                  <p className="muted small visitReminderField__hint">
+                  <p className="muted small visitReminderField__hint" id="visit-reminder-date-hint">
                     Дата видна только в CRM и помогает понять, когда пора напомнить клиенту о повторном визите.
                   </p>
                 </div>
                 <div className="field field--full">
-                  <span className="field__label">Внутренняя заметка</span>
-                  <Textarea
-                    className="textarea"
-                    rows={3}
-                    maxLength={VISIT_INTERNAL_NOTE_MAX_LEN}
-                    value={draft.internalNote}
-                    onChange={(e) =>
-                      setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(e.target.value) }))
-                    }
-                    onBlur={createBlurFixRuFreeText((next) =>
-                      setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(next) })),
-                    )}
-                    placeholder="Только для сотрудников: как лучше связаться, особенности клиента, что предложить в следующий раз."
-                    disabled={formLocked}
-                  />
+                  <Field label="Внутренняя заметка">
+                    <Textarea
+                      className="textarea"
+                      rows={3}
+                      maxLength={VISIT_INTERNAL_NOTE_MAX_LEN}
+                      value={draft.internalNote}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(e.target.value) }))
+                      }
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(next) })),
+                      )}
+                      disabled={formLocked}
+                    />
+                  </Field>
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
                     {String(draft.internalNote || '').length} / {VISIT_INTERNAL_NOTE_MAX_LEN}
                   </div>
@@ -1856,33 +1794,30 @@ export default function HistoryPage() {
                 <p className="muted small historyCareTipsForCarCard__intro">
                   Запишите совет или вывод из этого визита.
                 </p>
-                <div className="field field--full serviceHint__fieldWrap" id={FORM_OWNER_VISIT_ADVICE_HINT.scopeId}>
-                  <div className="field__top serviceHint__fieldTop">
-                    <span className="field__label">Совет к этому визиту</span>
-                    <ServiceHint scopeId={FORM_OWNER_VISIT_ADVICE_HINT.scopeId} variant="compact" label={FORM_OWNER_VISIT_ADVICE_HINT.label}>
-                      <p className="serviceHint__panelText">{formOwnerVisitAdviceHintText()}</p>
-                    </ServiceHint>
-                  </div>
-                  <Textarea
-                    className="textarea"
-                    rows={4}
-                    value={draft.careAdviceText}
-                    placeholder="Короткое напоминание к этой записи…"
-                    disabled={formLocked}
-                    onChange={(e) =>
-                      setDraft((d) => ({
-                        ...d,
-                        careAdviceText: clampVisitOwnerCareAdviceInput(e.target.value),
-                      }))
-                    }
-                    onBlur={createBlurFixRuFreeText((next) =>
-                      setDraft((d) => ({
-                        ...d,
-                        careAdviceText: clampVisitOwnerCareAdviceInput(next),
-                      })),
-                    )}
-                    aria-label="Совет к этому визиту"
-                  />
+                <div className="field field--full serviceHint__fieldWrap">
+                  <Field
+                    label="Совет к этому визиту"
+                  >
+                    <Textarea
+                      className="textarea"
+                      rows={4}
+                      value={draft.careAdviceText}
+                      disabled={formLocked}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: clampVisitOwnerCareAdviceInput(e.target.value),
+                        }))
+                      }
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: clampVisitOwnerCareAdviceInput(next),
+                        })),
+                      )}
+                      aria-label="Совет к этому визиту"
+                    />
+                  </Field>
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
                     {countVisitOwnerCareAdviceNonSpaceChars(draft.careAdviceText)} / {VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE}{' '}
                     <span className="muted">(без пробелов)</span>
@@ -1893,14 +1828,10 @@ export default function HistoryPage() {
             {editingId ? (
               <div
                 className="field field--full serviceHint__fieldWrap"
-                id={FORM_PHOTOS_EDIT_HINT.scopeId}
                 ref={visitPhotosSectionRef}
               >
                 <div className="field__top serviceHint__fieldTop">
                   <span className="field__label">Фото визита</span>
-                  <ServiceHint scopeId={FORM_PHOTOS_EDIT_HINT.scopeId} variant="compact" label={FORM_PHOTOS_EDIT_HINT.label}>
-                    <p className="serviceHint__panelText">{formPhotosEditHintText(editingPhotos.length)}</p>
-                  </ServiceHint>
                 </div>
                 {editingPhotos.length ? (
                   <div className="thumbs thumbs--big" style={{ marginTop: 6 }}>
@@ -1978,14 +1909,8 @@ export default function HistoryPage() {
             {!editingId ? (
               <div
                 className="field field--full serviceHint__fieldWrap"
-                id={FORM_ADD_PHOTOS_HINT.scopeId}
                 ref={visitPhotosSectionRef}
               >
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                  <ServiceHint scopeId={FORM_ADD_PHOTOS_HINT.scopeId} variant="compact" label={FORM_ADD_PHOTOS_HINT.label}>
-                    <p className="serviceHint__panelText">{FORM_ADD_PHOTOS_HINT.text}</p>
-                  </ServiceHint>
-                </div>
                 <div className="filePick">
                   <input
                     id={visitPhotosInputId}
@@ -2060,34 +1985,31 @@ export default function HistoryPage() {
                   Один совет для владельца — в выпадающем блоке «Совет» на карточке авто после сохранения визита. Только для кабинета
                   детейлинга.
                 </p>
-                <div className="field field--full serviceHint__fieldWrap" id={FORM_CARE_ADVICE_HINT.scopeId}>
-                  <div className="field__top serviceHint__fieldTop">
-                    <span className="field__label">Совет от сервиса</span>
-                    <ServiceHint scopeId={FORM_CARE_ADVICE_HINT.scopeId} variant="compact" label={FORM_CARE_ADVICE_HINT.label}>
-                      <p className="serviceHint__panelText">{formCareAdviceHintText()}</p>
-                    </ServiceHint>
-                  </div>
-                  <Textarea
-                    className="textarea"
-                    rows={4}
-                    maxLength={VISIT_CARE_ADVICE_MAX_LEN}
-                    value={draft.careAdviceText}
-                    placeholder="Короткое напоминание клиенту после визита…"
-                    disabled={formLocked}
-                    onChange={(e) =>
-                      setDraft((d) => ({
-                        ...d,
-                        careAdviceText: String(e.target.value || '').slice(0, VISIT_CARE_ADVICE_MAX_LEN),
-                      }))
-                    }
-                    onBlur={createBlurFixRuFreeText((next) =>
-                      setDraft((d) => ({
-                        ...d,
-                        careAdviceText: String(next).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
-                      })),
-                    )}
-                    aria-label="Совет от сервиса для владельца"
-                  />
+                <div className="field field--full serviceHint__fieldWrap">
+                  <Field
+                    label="Совет от сервиса"
+                  >
+                    <Textarea
+                      className="textarea"
+                      rows={4}
+                      maxLength={VISIT_CARE_ADVICE_MAX_LEN}
+                      value={draft.careAdviceText}
+                      disabled={formLocked}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: String(e.target.value || '').slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                        }))
+                      }
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: String(next).slice(0, VISIT_CARE_ADVICE_MAX_LEN),
+                        })),
+                      )}
+                      aria-label="Совет от сервиса для владельца"
+                    />
+                  </Field>
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
                     {String(draft.careAdviceText || '').length} / {VISIT_CARE_ADVICE_MAX_LEN}
                   </div>
@@ -2095,7 +2017,7 @@ export default function HistoryPage() {
               </div>
             ) : null}
           </div>
-          <div className="row gap wrap historyFormActions">
+          <div className="formActions historyFormActions">
             {!(formLocked && editingId) ? (
             <Button
               className="btn"

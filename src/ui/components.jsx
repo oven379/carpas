@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useRef, useState } from 'react'
+import { cloneElement, forwardRef, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
@@ -20,7 +20,6 @@ import {
   getPhoneRuNationalDigits,
 } from '../lib/format.js'
 
-export { default as ServiceHint } from './ServiceHint.jsx'
 export { PageLoadSpinner }
 
 export function Button({ variant = 'primary', onClick, disabled, type = 'button', className, ...props }) {
@@ -187,7 +186,7 @@ export { CityComboBox } from './CityComboBox.jsx'
 export { DropdownCaretIcon } from './DropdownCaretIcon.jsx'
 
 /** Согласие с политикой и правилами — только на шагах создания аккаунта (регистрация владельца, заявка партнёра). */
-export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onChange, className = '', style }) {
+export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onChange, className = '', style, required, linkTarget }) {
   return (
     <label className={`authConsent field--full ${className}`.trim()} htmlFor={inputId} style={style}>
       <input
@@ -195,15 +194,16 @@ export function AuthLegalConsent({ inputId = 'auth-legal-consent', checked, onCh
         type="checkbox"
         className="authConsent__input"
         checked={checked}
+        required={required}
         onChange={(e) => onChange(e.target.checked)}
       />
       <span className="authConsent__text">
         Я принимаю условия{' '}
-        <Link className="authConsent__legalLink" to="/terms">
+        <Link className="authConsent__legalLink" to="/terms" target={linkTarget} rel={linkTarget === '_blank' ? 'noopener' : undefined}>
           Пользовательского соглашения
         </Link>{' '}
         и{' '}
-        <Link className="authConsent__legalLink" to="/policy">
+        <Link className="authConsent__legalLink" to="/policy" target={linkTarget} rel={linkTarget === '_blank' ? 'noopener' : undefined}>
           Политики конфиденциальности
         </Link>
         , даю согласие на обработку моих персональных данных (имя, телефон, email) для регистрации и работы в сервисе «Карпас»
@@ -229,15 +229,33 @@ export function CarDataConsent({ inputId = 'car-data-consent', checked, onChange
   )
 }
 
-export function Field({ label, hint, children, className = '' }) {
-  return (
-    <label className={`field ${className}`.trim()}>
-      <div className={`field__top${hint ? '' : ' field__top--solo'}`}>
-        <span className="field__label">{label}</span>
-        {hint ? <span className="field__hint">{hint}</span> : null}
-      </div>
-      {children}
+export function Field({ label, hint, children, className = '', insetLabel = false }) {
+  const hintId = useId()
+  const describedBy = [children.props['aria-describedby'], hint && hintId].filter(Boolean).join(' ') || undefined
+  const hasNativeLabel = children.type === 'select' || children.props.type === 'date'
+  const control = cloneElement(children, {
+    'aria-label': children.props['aria-label'] ?? label,
+    'aria-describedby': describedBy,
+    ...(hasNativeLabel ? {} : { placeholder: children.props.placeholder ?? (insetLabel ? '' : label) }),
+  })
+
+  const fieldControl = hasNativeLabel ? (
+    <label className="field__native">
+      <span aria-hidden="true">{label}</span>
+      {control}
     </label>
+  ) : insetLabel ? (
+    <div className="field__native field__inset">
+      <span aria-hidden="true">{label}</span>
+      {control}
+    </div>
+  ) : control
+
+  return (
+    <div className={`field ${className}`.trim()}>
+      {fieldControl}
+      {hint ? <span className="field__hint" id={hintId}>{hint}</span> : null}
+    </div>
   )
 }
 
@@ -894,7 +912,7 @@ export function TopNav() {
         <NavLink end className="nav__brand" to="/" aria-label="КарПас — главная страница сервиса">
           <span className="navBrandLockup">
             <span className="navLogoFrame">
-              <Logo size={36} tagline={false} markWrapperClassName="brandLogoMarkAlign" />
+              <Logo size={30} tagline={false} markWrapperClassName="brandLogoMarkAlign" />
             </span>
           </span>
         </NavLink>
@@ -952,27 +970,39 @@ export function TopNav() {
                 {hasOwnerSession() ? (
                   <>
                     {mode === 'owner' ? (
-                      <button
-                        type="button"
-                        className="nav__ownerGarageLink"
-                        onClick={() => setProfileCenterOpen(true)}
-                        aria-label="Центр уведомлений и профиля"
-                        title="Центр уведомлений"
-                      >
-                        {owner?.garageAvatar ? (
-                          <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
-                        ) : (
-                          <DefaultAvatar
-                            email={String((owner || getSessionOwner())?.email || '').trim()}
-                            fallback={String((owner || getSessionOwner())?.name || '').trim()}
-                            alt=""
-                            className="nav__ownerGarageDefaultImg"
-                          />
-                        )}
-                        {notificationsUnread ? (
-                          <span className="nav__notifyBadge nav__notifyBadge--avatar">{notificationsUnread}</span>
-                        ) : null}
-                      </button>
+                      <>
+                        <NavLink
+                          to="/notifications"
+                          className={({ isActive }) =>
+                            `nav__notifyLink nav__notifyLink--owner nav__activityButton${isActive ? ' is-active' : ''}`
+                          }
+                          aria-label={notificationsUnread ? `Уведомления: ${notificationsUnread} непрочитанных` : 'Уведомления'}
+                          title="Уведомления"
+                        >
+                          <BellIcon />
+                          {notificationsUnread ? (
+                            <span className="nav__notifyBadge" aria-hidden="true">{notificationsUnread}</span>
+                          ) : null}
+                        </NavLink>
+                        <button
+                          type="button"
+                          className="nav__ownerGarageLink"
+                          onClick={() => setProfileCenterOpen(true)}
+                          aria-label="Центр уведомлений и профиля"
+                          title="Профиль"
+                        >
+                          {owner?.garageAvatar ? (
+                            <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
+                          ) : (
+                            <DefaultAvatar
+                              email={String((owner || getSessionOwner())?.email || '').trim()}
+                              fallback={String((owner || getSessionOwner())?.name || '').trim()}
+                              alt=""
+                              className="nav__ownerGarageDefaultImg"
+                            />
+                          )}
+                        </button>
+                      </>
                     ) : null}
                   </>
                 ) : null}

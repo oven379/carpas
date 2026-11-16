@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { formatHttpErrorMessage } from '../../api/http.js'
 import { useRepo, invalidateRepo } from '../useRepo.js'
-import { BackNav, Button, Card, Field, Input, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { BackNav, Button, Card, Field, Input, PageLoadSpinner } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
 import { compressImageFile, fileToDataUrl } from '../../lib/imageCompression.js'
 import { fmtDateTime, PHOTO_UPLOAD_HINTS_PARAGRAPH } from '../../lib/format.js'
@@ -100,41 +100,28 @@ export default function DocsPage() {
             <h1 className="h1" style={{ margin: 0 }}>
               Документы
             </h1>
-            <ServiceHint
-              scopeId="car-docs-page-hint"
-              variant="compact"
-              label="Справка: документы в гараже"
-            >
-              <p className="serviceHint__panelText">
-                Сюда загружайте личные документы по авто (ПТС, договоры, сканы). Они хранятся только у вас в гараже и не
-                показываются по публичной ссылке. Фото моек и работ смотрите в разделе «История». За одну загрузку — не
-                более {DOCS_UPLOAD_BATCH_MAX} файлов (можно добавить ещё партией).
-              </p>
-              <p className="serviceHint__panelText" style={{ marginTop: 10 }}>
-                Если прикрепляете снимки (JPEG, PNG и т.д.): {PHOTO_UPLOAD_HINTS_PARAGRAPH}
-              </p>
-            </ServiceHint>
           </div>
+          <p className="muted small">Личные документы хранятся в гараже и скрыты по публичной ссылке.</p>
         </div>
       </div>
 
       <Card className="card pad">
         <div className="formGrid">
-          <Field label="Название">
+          <Field label="Название документа">
             <Input
               className="input"
               value={draft.title}
               onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
-              placeholder="ПТС, договор, выписка…"
             />
           </Field>
-          <Field className="field--full" label="Загрузить файлы">
+          <div className="field field--full">
             <div className="docsAddRow">
               <div className="filePick" style={{ margin: 0 }}>
                 <input
                   id={docsFileInputId}
                   className="srOnly"
                   type="file"
+                  aria-label="Загрузить документы"
                   accept={DOCS_ACCEPT}
                   multiple
                   ref={docsFileInputRef}
@@ -232,7 +219,7 @@ export default function DocsPage() {
             <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
               Для фото-файлов: {PHOTO_UPLOAD_HINTS_PARAGRAPH}
             </p>
-          </Field>
+          </div>
         </div>
       </Card>
 

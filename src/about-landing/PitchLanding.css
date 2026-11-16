@@ -3,7 +3,7 @@
 
 /* ——— Eyebrow «danger» для секции проблемы ——— */
 .al-eyebrow--danger .al-eyebrow__text {
-  color: #d98b6a;
+  color: var(--danger);
 }
 
 /* ——— ПРОБЛЕМА ——— */
@@ -27,15 +27,14 @@
 
 .pl-painCard {
   padding: 20px;
-  background: #161616;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-default);
   border-radius: 14px;
 }
 
 .pl-painCard__title {
   margin: 0 0 8px;
   font-size: 16px;
-  font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
 }
@@ -44,7 +43,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.55;
-  color: #b3b3b3;
+  color: var(--text-secondary);
 }
 
 .pl-solve {
@@ -84,8 +83,8 @@
 
 .pl-sideCard {
   padding: 22px;
-  background: #161616;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-default);
   border-radius: 16px;
   height: 100%;
   box-sizing: border-box;
@@ -93,7 +92,7 @@
 
 .pl-sideCard--client {
   border-color: var(--accent-border);
-  background: linear-gradient(180deg, rgba(200, 169, 110, 0.06), #161616);
+  background: linear-gradient(180deg, var(--accent-dim), var(--bg-surface));
 }
 
 .pl-sideCard__tag {
@@ -104,8 +103,8 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9a9a9a;
-  border: 0.5px solid #2a2a2a;
+  color: var(--text-muted);
+  border: 0.5px solid var(--border-default);
   border-radius: 999px;
 }
 
@@ -135,9 +134,9 @@
   padding: 16px 20px;
   font-size: 14px;
   line-height: 1.55;
-  color: #b3b3b3;
+  color: var(--text-secondary);
   border-left: 2px solid var(--accent-border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-surface);
   border-radius: 0 10px 10px 0;
 }
 
@@ -165,8 +164,8 @@
   display: flex;
   gap: 16px;
   padding: 20px;
-  background: #161616;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-default);
   border-radius: 14px;
 }
 
@@ -188,7 +187,6 @@
 .pl-valueCard__title {
   margin: 4px 0 6px;
   font-size: 15px;
-  font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
 }
@@ -197,7 +195,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.55;
-  color: #b3b3b3;
+  color: var(--text-secondary);
 }
 
 .pl-gift {
@@ -207,7 +205,7 @@
   margin-top: 24px;
   padding: 22px;
   text-align: center;
-  background: linear-gradient(180deg, rgba(200, 169, 110, 0.08), #161616);
+  background: linear-gradient(180deg, var(--accent-dim), var(--bg-surface));
   border: 1px solid var(--accent-border);
   border-radius: 16px;
 }
@@ -227,7 +225,7 @@
   margin: 0;
   font-size: 15px;
   line-height: 1.55;
-  color: #b3b3b3;
+  color: var(--text-secondary);
 }
 
 .pl-gift__text b {
@@ -260,8 +258,8 @@
   align-items: center;
   gap: 12px;
   padding: 24px 20px;
-  background: #161616;
-  border: 0.5px solid #2a2a2a;
+  background: var(--bg-surface);
+  border: 0.5px solid var(--border-default);
   border-radius: 16px;
 }
 
@@ -270,12 +268,12 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9a9a9a;
+  color: var(--text-muted);
 }
 
 .pl-finalCta__note {
   font-size: 13px;
-  color: #9a9a9a;
+  color: var(--text-muted);
 }
 
 .pl-finalCta__note a {

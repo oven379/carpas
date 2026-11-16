@@ -1,5 +1,6 @@
 import { Link, Navigate, useLocation } from 'react-router-dom'
-import { BackNav, Card, ServiceHint } from '../components.jsx'
+import { PartnerAuthLink } from '../../about-landing/PartnerAuthLink.tsx'
+import { BackNav, Card } from '../components.jsx'
 import { hasDetailingSession, hasOwnerSession, safeAuthReturnPath } from '../auth.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 
@@ -23,12 +24,6 @@ export default function AuthPage() {
             <p className="authSplit__tagline" style={{ margin: 0 }}>
               Вход в сервис
             </p>
-            <ServiceHint scopeId="auth-hub-hint" variant="compact" label="Справка: вход и данные">
-              <p className="serviceHint__panelText">
-                Здесь выбирается роль перед входом. На этом устройстве вы остаётесь в аккаунте, пока не выйдете; смена
-                аккаунта — через меню в шапке после входа.
-              </p>
-            </ServiceHint>
           </div>
           <p className="muted authHub__intro">
             Выберите роль ниже: владелец или сервис (детейлинг / СТО). У каждой роли — свой кабинет.
@@ -52,9 +47,9 @@ export default function AuthPage() {
                 </Link>
               </div>
               <div className="authHub__roleRow">
-                <Link className="btn authHub__btn authHub__btn--accent authHub__btn--role" to="/auth/partner" state={{ from }}>
+                <PartnerAuthLink className="btn authHub__btn authHub__btn--accent authHub__btn--role" to="/auth/partner" state={{ from }}>
                   Сервис (детейлинг / СТО)
-                </Link>
+                </PartnerAuthLink>
               </div>
             </div>
             <p className="muted small" style={{ margin: '14px 0 0', lineHeight: 1.45 }}>

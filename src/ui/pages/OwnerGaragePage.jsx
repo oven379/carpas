@@ -1,7 +1,7 @@
 import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useEffect, useMemo, useState } from 'react'
 import { useRepo } from '../useRepo.js'
-import { Card, PageLoadSpinner, ServiceHint } from '../components.jsx'
+import { Card, PageLoadSpinner } from '../components.jsx'
 import { SupportButton } from '../support/SupportHub.jsx'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
@@ -256,13 +256,14 @@ export default function OwnerGaragePage() {
               </div>
               <div className="garageDashMobile__actions">
                 {limits.canAddManual ? (
-                  <Link className="garageDashMobile__addBtn" to={createFromGarageHref}>
+                  <Link className="btn garageDashMobile__addBtn" data-variant="primary" to={createFromGarageHref}>
                     + Добавить авто
                   </Link>
                 ) : (
                   <SupportButton
                     type="button"
-                    className="garageDashMobile__addBtn"
+                    className="btn garageDashMobile__addBtn"
+                    data-variant="primary"
                     title={addCarPremiumBtnLabel}
                     aria-label={addCarPremiumBtnLabel}
                     openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
@@ -291,14 +292,11 @@ export default function OwnerGaragePage() {
                 </div>
               </Link>
               <div className="garageDash__ownerText">
-                <h1 className="garageDash__garageTitle h2" style={{ margin: '0 0 6px' }}>
-                    Гараж
-                  </h1>
                 <div
                   className="row gap wrap align-center">
-                  <h2 className="garageDash__name">
+                  <p className="garageDash__name">
                     {displayName}
-                  </h2>
+                  </p>
                 </div>
                 <div className="garageDash__line garageDash__line--muted">
                   <GarageDashPinIcon />
@@ -311,17 +309,35 @@ export default function OwnerGaragePage() {
                   </div>
                 ) : (
                   <p className="muted small garageDash__line" style={{ marginTop: 4 }}>
-                    <Link className="link" to="/garage/settings">
-                      Указать телефон в настройках
+                    <Link className="link garageDash__phoneSettingsLink" to="/garage/settings">
+                      Укажите номер телефона
                     </Link>
                   </p>
                 )}
               </div>
             </div>
-
+            <div className="garageDash__heroActions row gap wrap align-center">
+              {limits.canAddManual ? (
+                <Link className="btn" data-variant="primary" to={createFromGarageHref}>
+                  + Добавить авто
+                </Link>
+              ) : (
+                <SupportButton
+                  type="button"
+                  className="btn"
+                  data-variant="primary"
+                  title={addCarPremiumBtnLabel}
+                  aria-label={addCarPremiumBtnLabel}
+                  openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
+                >
+                  + Добавить авто
+                </SupportButton>
+              )}
+            </div>
           </div>
 
           <div className="garageDash__tabsBar row spread gap wrap align-center">
+            <h1 className="garageDash__garageTitle h2">Гараж</h1>
             <div className="garageDash__tabs row gap wrap" role="tablist" aria-label="Раздел гаража">
               <button
                 type="button"
@@ -341,32 +357,6 @@ export default function OwnerGaragePage() {
               >
                 Мои визиты ({garageVisitsList.length})
               </button>
-            </div>
-            <div className="garageDash__tabsActions row gap wrap align-center">
-              {limits.canAddManual ? (
-                <Link className="btn" data-variant="primary" to={createFromGarageHref}>
-                  + Добавить авто
-                </Link>
-              ) : (
-                <>
-                  <SupportButton
-                    type="button"
-                    className="btn"
-                    data-variant="primary"
-                    title={addCarPremiumBtnLabel}
-                    aria-label={addCarPremiumBtnLabel}
-                    openOptions={PREMIUM_GARAGE_MODAL_OPTIONS}
-                  >
-                    + Добавить авто
-                  </SupportButton>
-                  <ServiceHint scopeId="owner-garage-free-limit" variant="compact" label="Справка: лимит гаража">
-                    <p className="serviceHint__panelText">
-                      Бесплатно можно вести один автомобиль. Чтобы добавить ещё, нажмите «Добавить авто» и увеличьте лимит
-                      на аккаунте — откроется заявка в поддержку.
-                    </p>
-                  </ServiceHint>
-                </>
-              )}
             </div>
           </div>
 

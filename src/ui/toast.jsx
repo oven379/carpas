@@ -46,16 +46,16 @@ export function useToast() {
 
 const TYPE_STYLES = {
   error: {
-    accent: 'rgba(210,70,60,0.85)',
+    accent: 'var(--danger)',
   },
   warn: {
-    accent: 'rgba(190,145,60,0.90)',
+    accent: 'var(--warning)',
   },
   info: {
     accent: 'var(--accent)',
   },
   success: {
-    accent: 'rgba(70,170,90,0.85)',
+    accent: 'var(--success)',
   },
 }
 
@@ -91,13 +91,13 @@ function Toaster({ toasts, onDismiss }) {
               border: '0.5px solid var(--border-strong)',
               borderLeft: `3px solid ${s.accent}`,
               borderRadius: 'var(--radius-md)',
-              boxShadow: '0 4px 24px rgba(0,0,0,0.6)',
+              boxShadow: 'var(--shadow-float)',
               fontSize: '0.9em',
               lineHeight: 1.4,
               color: 'var(--text-primary)',
             }}
           >
-            <span style={{ flex: 1 }}>{t.message}</span>
+            <span role={t.type === 'error' ? 'alert' : 'status'} style={{ flex: 1 }}>{t.message}</span>
             <button
               type="button"
               onClick={() => onDismiss(t.id)}

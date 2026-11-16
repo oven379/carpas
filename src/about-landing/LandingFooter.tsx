@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Send } from 'lucide-react'
+import { PartnerAuthLink } from './PartnerAuthLink.tsx'
 import Logo from '../ui/Logo.jsx'
 import { SUPPORT_LINK_HREF } from '../ui/supportConfig.js'
 
@@ -17,7 +17,7 @@ export function LandingFooter() {
         <span className="al-footer__sep" aria-hidden="true">·</span>
         <Link to="/terms">Условия</Link>
         <Link to="/policy">Конфиденциальность</Link>
-        <Link to="/auth/partner">Партнёрам</Link>
+        <PartnerAuthLink to="/auth/partner">Партнёрам</PartnerAuthLink>
         <span className="al-footer__sep" aria-hidden="true">·</span>
         <a href="https://rutube.ru/channel/32016425/" target="_blank" rel="noopener noreferrer">
           RuTube
@@ -32,7 +32,6 @@ export function LandingFooter() {
         rel="noopener noreferrer"
         className="al-footer__telegram"
       >
-        <Send size={13} aria-hidden="true" />
         Написать в Telegram
       </a>
     </footer>

@@ -139,11 +139,16 @@ async function prerenderRoute(cdp, baseUrl, route) {
       /* target ещё грузится */
     }
   }
-  // форсируем видимость анимируемых секций (framer-motion initial opacity:0)
+  // Статический HTML должен показывать контент без ожидания анимации.
   await cdp.send(
     'Runtime.evaluate',
     {
-      expression: `(() => { const s=document.createElement('style'); s.textContent='.aboutLanding section{opacity:1!important;transform:none!important}'; document.head.appendChild(s); })()`,
+      expression: `(() => {
+        document.querySelectorAll('.homeContainer--pending').forEach(el => el.classList.remove('homeContainer--pending'));
+        const style = document.createElement('style');
+        style.textContent = '.aboutLanding section{opacity:1!important;transform:none!important}';
+        document.head.appendChild(style);
+      })()`,
     },
     sessionId,
   )

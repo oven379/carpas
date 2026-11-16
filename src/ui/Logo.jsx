@@ -1,9 +1,9 @@
-import brandWordmarkSrc from '../assets/brand-wordmark.svg?url'
+import brandWordmarkSrc from '../assets/brand-wordmark-light.svg?url'
 import { BRAND_TAGLINE } from '../lib/brandConstants.js'
 
 /**
  * Фирменный вордмарк (SVG) + слоган под ним. `tagline={false}` — только картинка (компактные блоки).
- * `size` — высота графики в px (ширина подбирается по пропорции 351:84).
+ * `size` — высота графики в px, ширина сохраняет пропорции SVG.
  * `markWrapperClassName` — обёртка только вокруг картинки (например выравнивание по высоте кнопок 44px).
  */
 export default function Logo({ size = 18, className = '', tagline = true, markWrapperClassName = '' }) {

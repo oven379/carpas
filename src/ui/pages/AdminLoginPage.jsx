@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import Logo from '../Logo.jsx'
-import { Button, Input, PasswordInput } from '../components.jsx'
+import { Field, Button, Input, PasswordInput } from '../components.jsx'
 import { hasAdminMockSession, setAdminMockSession } from '../../lib/adminMockSession.js'
 import { getApi } from '../../api/index.js'
 import { HttpError } from '../../api/http.js'
@@ -66,8 +66,7 @@ export default function AdminLoginPage() {
           Ну что ты братик? Поможем людям быть счастливее?
         </p>
         <form className="adminLoginPage__form card pad" onSubmit={submit} autoComplete="off">
-          <label className="field">
-            <span className="field__label">Логин</span>
+          <Field label="Логин">
             <Input
               className="input"
               name="admin-login"
@@ -78,9 +77,8 @@ export default function AdminLoginPage() {
               }}
               autoComplete="username"
             />
-          </label>
-          <label className="field">
-            <span className="field__label">Пароль</span>
+          </Field>
+          <Field label="Пароль">
             <PasswordInput
               className="input"
               name="admin-password"
@@ -91,7 +89,7 @@ export default function AdminLoginPage() {
               }}
               autoComplete="current-password"
             />
-          </label>
+          </Field>
           {error ? (
             <p className="adminLoginPage__error small" role="alert">
               {error}
