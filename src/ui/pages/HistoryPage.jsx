@@ -1593,7 +1593,7 @@ export default function HistoryPage() {
                   role="status"
                   aria-live="polite"
                 >
-                  {draftSaveNotice || 'Черновик сохраняется автоматически'}
+                  {draftSaveNotice}
                 </div>
               ) : null}
               <div className="formGrid historyFormGrid">

@@ -2724,6 +2724,14 @@ summary.carPage__recsSelect::-webkit-details-marker {
     background-color 140ms ease;
 }
 
+/* Без сообщения область статуса не видна, но остаётся в DOM для озвучивания «Черновик сохранён». */
+.visitDraftSaveNotice:empty {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+}
+
 .visitDraftSaveNotice--visible {
   background: color-mix(in oklab, var(--accent) 12%, var(--bg));
   color: var(--text-h);
@@ -9308,43 +9316,74 @@ a.btn.carPage__recsAddVisitFull,
   margin-bottom: 14px;
 }
 
+/* Разделы страницы клиентов. Видимый заголовок только у «Клиентов»; статистика и карточка клиента без заголовков. */
+.detCrm__section {
+  margin-bottom: 28px;
+}
+
+.detCrm__sectionTitle {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+}
+
+/* На широком экране карточка клиента начинается на уровне поиска, под заголовком «Клиенты». */
+@media (min-width: 961px) {
+  .detCrm__side {
+    padding-top: calc(22px * 1.2 + 12px);
+  }
+}
+
+.detCrm__main {
+  min-width: 0;
+}
+
+/* Показатели CRM: одна карточка, число над подписью, разделители между показателями. */
 .detCrm__stats {
+  margin: 0;
+  padding: 18px 0;
+}
+
+.detCrmStats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 6px;
-  margin: 8px 0 10px;
+  margin: 0;
 }
 
 .detCrmStat {
-  min-height: 44px;
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 6px;
-  padding: 7px 9px;
-  border-radius: 8px;
+  min-width: 0;
+  padding: 2px 24px;
 }
 
-.detCrmStat span {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.25;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.detCrmStat + .detCrmStat {
+  border-left: 1px solid var(--border-subtle);
 }
 
-.detCrmStat strong {
-  color: var(--text-h);
-  font-size: 18px;
+.detCrmStat dd {
+  order: -1;
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 32px;
+  font-weight: var(--font-weight-heading);
   line-height: 1;
+  letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
+}
+
+.detCrmStat dt {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.3;
 }
 
 .detCrm__toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 14px;
@@ -9644,23 +9683,55 @@ a.btn.carPage__recsAddVisitFull,
   line-height: 1.1;
 }
 
-.detCrmProfile__quickVisit {
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 7px 10px;
-  border-radius: 10px;
+/* Телефон сразу под именем клиента: мелкая подпись «тел:» и номер без подчёркивания. */
+.detCrmProfile__phoneLine {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.detCrmProfile__phoneLabel {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.detCrmProfile__phone {
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+a.detCrmProfile__phone:hover {
   color: var(--accent);
-  background: color-mix(in oklab, var(--code-bg) 72%, transparent);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
+}
+
+.detCrmProfile__phone.is-empty {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Основное действие карточки — внизу, на всю ширину. */
+.detCrmProfile__visitBtn.btn {
+  width: 100%;
+  min-height: 48px;
+  justify-content: center;
+  border-radius: var(--radius-primary-button);
 }
 
 .detCrmProfile__car,
 .detCrmProfile__block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   padding-top: 14px;
   border-top: 1px solid var(--border);
+}
+
+.detCrmProfile__car .detCrmProfile__actions {
+  margin-top: 8px;
 }
 
 .detCrmProfile__carTitle {
@@ -9668,24 +9739,22 @@ a.btn.carPage__recsAddVisitFull,
   font-weight: var(--font-weight-heading);
 }
 
+/* Подзаголовок блока в карточке клиента: тот же стиль, что у заголовков колонок списка. */
 .detCrmProfile__blockTitle {
-  color: color-mix(in oklab, var(--text-h) 84%, var(--text) 16%);
-  font-size: 14px;
-  font-weight: var(--font-weight-heading);
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
-.detCrmProfile__contacts,
 .detCrmProfile__actions,
 .detCrmProfile__chips {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.detCrmProfile__contacts a {
-  color: color-mix(in oklab, var(--text) 82%, var(--text-h));
-  font-weight: 500;
 }
 
 .detCrmProfile__clientNote {
@@ -9908,8 +9977,12 @@ a.btn.carPage__recsAddVisitFull,
     padding-bottom: 18px;
   }
 
-  .detCrm__stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .detCrmStat {
+    padding-inline: 16px;
+  }
+
+  .detCrmStat dd {
+    font-size: 26px;
   }
 
   .detCrm__toolbar,
@@ -10008,11 +10081,6 @@ a.btn.carPage__recsAddVisitFull,
     font-size: 21px;
   }
 
-  .detCrmProfile__quickVisit {
-    margin-left: auto;
-  }
-
-  .detCrmProfile__contacts,
   .detCrmProfile__actions {
     flex-direction: column;
   }
@@ -10034,8 +10102,24 @@ a.btn.carPage__recsAddVisitFull,
     font-size: 13px;
   }
 
+  /* На телефоне показатели остаются видимыми, но занимают одну компактную строку. */
   .detCrm__stats {
-    display: none;
+    margin-bottom: 10px;
+    padding: 14px 0;
+  }
+
+  .detCrmStat {
+    gap: 4px;
+    padding-inline: 10px;
+  }
+
+  .detCrmStat dd {
+    font-size: 22px;
+  }
+
+  .detCrmStat dt {
+    font-size: 12px;
+    line-height: 1.25;
   }
 
   .detCrmFilter {

@@ -13,9 +13,9 @@ import {
   Pill,
   Textarea,
 } from '../components.jsx'
-import { useRepo, invalidateRepo, refreshAllClientData } from '../useRepo.js'
+import { useRepo, refreshAllClientData } from '../useRepo.js'
 import { useDetailing } from '../useDetailing.js'
-import { clearSession } from '../auth.js'
+import { useLogout } from '../useLogout.js'
 import { publicDetailingPath } from '../serviceLinkUi.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import {
@@ -77,6 +77,7 @@ function ServiceGroupSelectAllCheckbox({ items, selectedList, onToggleGroup, gro
 
 export default function DetailingSettingsPage() {
   const nav = useNavigate()
+  const logout = useLogout()
   const r = useRepo()
   const { detailingId, mode, detailing, loading, applyDetailingSnapshot } = useDetailing()
   const [customOfferInput, setCustomOfferInput] = useState('')
@@ -244,11 +245,6 @@ export default function DetailingSettingsPage() {
     }))
   }
 
-  function logoutAndGoAuth() {
-    clearSession()
-    invalidateRepo()
-    nav('/auth/partner', { replace: true })
-  }
 
   return (
     <div className="container">
@@ -278,7 +274,7 @@ export default function DetailingSettingsPage() {
           <Link className="btn" data-variant="outline" to={publicPath}>
             Посмотреть лендинг
           </Link>
-          <button type="button" className="btn" data-variant="ghost" onClick={logoutAndGoAuth}>
+          <button type="button" className="btn" data-variant="ghost" onClick={logout}>
             Выйти
           </button>
         </div>

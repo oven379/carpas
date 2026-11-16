@@ -1,5 +1,5 @@
-import { Navigate } from 'react-router-dom'
-import { useMemo, useRef, useState } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useInView } from 'framer-motion'
 import { CarFront, ChevronDown, Heart, Layers, ShieldCheck, Users, Wrench } from 'lucide-react'
 import { Seo } from '../../seo/Seo.jsx'
@@ -8,6 +8,7 @@ import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
 import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { SUPPORT_LINK_HREF } from '../supportConfig.js'
+import { finishLogout, LOGOUT_STATE_KEY } from '../useLogout.js'
 import { detailingOnboardingPending, useDetailing } from '../useDetailing.js'
 import { LandingNav } from '../../about-landing/LandingNav.tsx'
 import { LandingFooter } from '../../about-landing/LandingFooter.tsx'
@@ -79,13 +80,23 @@ function HomeSection({ id, variant, children }) {
 
 export default function HomePage() {
   const { detailing } = useDetailing()
-  const [hadOwnerSession] = useState(hasOwnerSession)
+  const loc = useLocation()
+  const nav = useNavigate()
+  const loggingOut = Boolean(loc.state?.[LOGOUT_STATE_KEY])
+  const [hadOwnerSession] = useState(() => !loggingOut && hasOwnerSession())
   const homeJsonLd = useMemo(() => buildHomePageJsonLd(), [])
   const seoDesc = truncateMetaDescription(HOME_META_DESCRIPTION)
 
+  // Выход из кабинета: сессию очищаем уже на главной, иначе защита кабинета уводит на /auth/owner.
+  useLayoutEffect(() => {
+    if (!loggingOut) return
+    finishLogout()
+    nav('/', { replace: true, state: null })
+  }, [loggingOut, nav])
+
   // Новый вход из окна сам выбирает маршрут, включая настройки после регистрации.
   if (hadOwnerSession) return <Navigate to="/garage" replace />
-  if (hasDetailingSession()) {
+  if (!loggingOut && hasDetailingSession()) {
     if (detailingOnboardingPending('detailing', detailing)) return <Navigate to="/detailing/landing" replace />
     return <Navigate to="/detailing" replace />
   }

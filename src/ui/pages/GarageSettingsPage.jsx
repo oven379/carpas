@@ -9,6 +9,7 @@ import { formatPhoneRuInput } from '../../lib/format.js'
 import MediaBannerAvatarBlock from '../MediaBannerAvatarBlock.jsx'
 import { formatHttpErrorMessage, HttpError } from '../../api/http.js'
 import { useAsyncActionLock } from '../useAsyncActionLock.js'
+import { useLogout } from '../useLogout.js'
 
 export default function GarageSettingsPage() {
   const navigate = useNavigate()
@@ -52,6 +53,8 @@ export default function GarageSettingsPage() {
     }
     navigate('/garage', { replace: true })
   }, [navigate])
+
+  const logout = useLogout()
 
   const logoutAndGoAuth = useCallback(() => {
     clearOwnerSession()
@@ -219,7 +222,7 @@ export default function GarageSettingsPage() {
       <Card className="pad garageSettings__card">
         <div className="garageSettings__accountRow">
           <h2 className="h2 garageSettings__sectionTitle">Аккаунт</h2>
-          <button type="button" className="btn" data-variant="outline" onClick={logoutAndGoAuth}>
+          <button type="button" className="btn" data-variant="outline" onClick={logout}>
             Выйти
           </button>
         </div>

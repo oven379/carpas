@@ -437,7 +437,7 @@ export default function CarEditPage({ mode }) {
               <div className="breadcrumbs">
                 <Link to={listReturnEarly}>{ownerGarageListCrumbLabel(listReturnEarly)}</Link>
                 <span> / </span>
-                <span>Новая карточка</span>
+                <span>Новый автомобиль</span>
               </div>
               <div className="row gap wrap" style={{ alignItems: 'center', marginTop: 8 }}>
                 <BackNav to={listReturnEarly} title={listReturnEarly.startsWith('/garage') ? 'В гараж' : 'К автомобилям'} />
@@ -522,7 +522,7 @@ export default function CarEditPage({ mode }) {
     }
   }
 
-  const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новая карточка'
+  const title = who === 'owner' ? 'Моя машина' : mode === 'edit' ? 'Редактирование' : 'Новый автомобиль'
   /** Редактирование: «Отмена» и назад — на страницу автомобиля (с ?from=). Создание — в гараж/список или кабинет. */
   const backNavTo = mode === 'edit' && id ? carCardHref : listReturn
   const backNavTitle =

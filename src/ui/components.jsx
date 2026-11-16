@@ -3,10 +3,11 @@ import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import Logo from './Logo.jsx'
 import { useDetailing } from './useDetailing.js'
-import { useRepo, invalidateRepo } from './useRepo.js'
-import { clearSession, getSessionOwner, hasOwnerSession } from './auth.js'
+import { useRepo } from './useRepo.js'
+import { getSessionOwner, hasOwnerSession } from './auth.js'
 import DefaultAvatar from './DefaultAvatar.jsx'
 import { PageLoadSpinner } from './PageLoadSpinner.jsx'
+import { useLogout } from './useLogout.js'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 import { getApi } from '../api/index.js'
 import { formatHttpErrorMessage } from '../api/http.js'
@@ -899,11 +900,7 @@ export function TopNav() {
       window.clearInterval(pollId)
     }
   }, [loc.pathname, mode, isPublicShowcasePage])
-  const logout = () => {
-    clearSession()
-    invalidateRepo()
-    nav('/auth', { replace: true })
-  }
+  const logout = useLogout()
   const partnerActivityCount = Math.max(0, Number(pendingClaims || 0) + Number(notificationsUnread || 0))
   const partnerActivityActive = loc.pathname.startsWith('/requests') || loc.pathname.startsWith('/notifications')
   return (

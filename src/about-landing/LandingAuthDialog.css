@@ -166,8 +166,8 @@ html:has(.landingAuthDialog[open]) {
 }
 
 .landingAuthDialog__submit.btn {
-  justify-self: end;
-  max-width: 100%;
+  justify-self: stretch;
+  width: 100%;
   min-height: 48px;
   justify-content: center;
   gap: 9px;

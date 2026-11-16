@@ -1,5 +1,5 @@
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, Input, PageLoadSpinner, Pill } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
@@ -21,6 +21,8 @@ import { photoBgStyle } from '../../lib/photoBg.js'
 
 const CLIENT_FILTERS = new Set(['all', 'today', 'stale'])
 const PAGE_SIZE = 5
+/** «Визиты в ноябре»: бэкенд считает визиты с начала текущего месяца. */
+const MONTH_IN_PREPOSITIONAL = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле', 'августе', 'сентябре', 'октябре', 'ноябре', 'декабре']
 
 function carTitle(row) {
   const c = row?.car || {}
@@ -242,10 +244,14 @@ export default function DetailingClientsPage() {
     setSp(n, { replace: true })
   }
 
+  const profileRef = useRef(null)
+  const scrollToProfileRef = useRef(false)
+
   function selectRow(id) {
     const n = new URLSearchParams(sp)
     n.set('id', String(id))
     setSp(n, { replace: true })
+    scrollToProfileRef.current = true
   }
 
   async function saveClientNote() {
@@ -280,6 +286,16 @@ export default function DetailingClientsPage() {
     if (!items.length) return
     setPhotoLb({ items, startIndex })
   }
+
+  // На узком экране карточка клиента стоит после списка: после выбора строки показываем её.
+  const selectedRowId = selected?.id
+  useEffect(() => {
+    if (!scrollToProfileRef.current || selectedRowId == null) return
+    scrollToProfileRef.current = false
+    if (!window.matchMedia('(max-width: 960px)').matches) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    profileRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  }, [selectedRowId])
 
   if (mode !== 'detailing' || !detailingId) return <Navigate to="/garage" replace />
   if (loading || busy) {
@@ -317,161 +333,188 @@ export default function DetailingClientsPage() {
         </button>
       </div>
 
-      <div className="detCrm__stats" aria-label="Показатели CRM">
-        <Card className="card pad detCrmStat"><span>Клиентов</span><strong>{stats.clients ?? 0}</strong></Card>
-        <Card className="card pad detCrmStat"><span>Авто</span><strong>{stats.cars ?? 0}</strong></Card>
-        <Card className="card pad detCrmStat"><span>Визитов за месяц</span><strong>{stats.visitsThisMonth ?? 0}</strong></Card>
-        <Card className="card pad detCrmStat"><span>С историей</span><strong>{stats.withVisits ?? 0}</strong></Card>
-      </div>
-
-      <Card className="card pad detCrm__toolbar">
-        <Input
-          className="input detCrm__search"
-          value={query}
-          placeholder="Поиск по имени, телефону, VIN или госномеру"
-          aria-label="Поиск клиентов и автомобилей"
-          autoCapitalize="off"
-          autoComplete="off"
-          onChange={(e) => setQuery(e.target.value)}
-        />
-        <div className="detCrm__filters">
-          {filters.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className={`detCrmFilter${filter === f.id ? ' is-active' : ''}`}
-              onClick={() => setFilter(f.id)}
-            >
-              <span>{f.label}</span>
-              {f.count > 0 ? <span className="detCrmFilter__badge">{f.count > 9 ? '9+' : f.count}</span> : null}
-            </button>
-          ))}
-        </div>
-      </Card>
+      <section className="detCrm__section" aria-label="Статистика">
+        <Card className="detCrm__stats">
+          <dl className="detCrmStats">
+            {[
+              ['Клиенты', stats.clients],
+              ['Авто', stats.cars],
+              [`Визиты в ${MONTH_IN_PREPOSITIONAL[new Date().getMonth()]}`, stats.visitsThisMonth],
+              ['Авто с визитами', stats.withVisits],
+            ].map(([label, value]) => (
+              <div className="detCrmStat" key={label}>
+                <dt>{label}</dt>
+                <dd>{Number(value) || 0}</dd>
+              </div>
+            ))}
+          </dl>
+        </Card>
+      </section>
 
       {error ? <Card className="card pad detCrm__error">{error}</Card> : null}
 
       <div className="detCrm__layout">
-        <Card className="card detCrm__listCard">
-          <div className="detCrm__listHead">
-            <span>Клиент</span>
-            <span>Автомобиль</span>
-            <span>Последний визит</span>
-          </div>
-          <div className="detCrm__rows">
-            {pageRows.map((row) => {
-              const c = row.car || {}
-              const cl = row.client || {}
-              const isSelected = selected && String(selected.id) === String(row.id)
-              const phoneUi = displayRuPhone(cl.phone)
-              return (
+        <section className="detCrm__main" aria-labelledby="detCrmClientsTitle">
+          <h2 className="h2 detCrm__sectionTitle" id="detCrmClientsTitle">Клиенты</h2>
+          <Card className="card pad detCrm__toolbar">
+            <Input
+              className="input detCrm__search"
+              value={query}
+              placeholder="Поиск по имени, телефону, VIN или госномеру"
+              aria-label="Поиск клиентов и автомобилей"
+              autoCapitalize="off"
+              autoComplete="off"
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            <div className="detCrm__filters">
+              {filters.map((f) => (
                 <button
-                  key={row.id}
+                  key={f.id}
                   type="button"
-                  className={`detCrmRow${isSelected ? ' is-selected' : ''}`}
-                  onClick={() => selectRow(row.id)}
+                  className={`detCrmFilter${filter === f.id ? ' is-active' : ''}`}
+                  onClick={() => setFilter(f.id)}
                 >
-                  <span className="detCrmRow__client">
-                    <span className="detCrmRow__avatar"><ClientAvatar row={row} /></span>
-                    <span className="detCrmRow__clientText">
-                      <strong>{clientName(row)}</strong>
-                      <small>{phoneUi.display || cl.email || 'Контакт не указан'}</small>
-                    </span>
-                  </span>
-                  <span className="detCrmRow__car">
-                    <strong>{carTitle(row)}</strong>
-                    <small>{[c.year ? `${c.year} г` : '', fmtPlateFull(c.plate, c.plateRegion)].filter(Boolean).join(' · ') || c.vin || '—'}</small>
-                  </span>
-                  <span className="detCrmRow__visit">
-                    {row.lastVisit ? (
-                      <>
-                        <span className="detCrmRow__visitTitle">{row.lastVisit.title || 'Визит'}</span>
-                        <span className="detCrmRow__visitDate">{fmtDate(row.lastVisit.at) || 'Дата не указана'}</span>
-                        <small>{row.lastVisit.mileageKm ? fmtKm(row.lastVisit.mileageKm) : 'Пробег не указан'}</small>
-                      </>
-                    ) : (
-                      <>
-                        <strong>Нет визитов</strong>
-                        <small>{`${row.stats?.visitsCount || 0} визитов`}</small>
-                      </>
-                    )}
-                  </span>
-                </button>
-              )
-            })}
-            {!rows.length ? (
-              <div className="detCrm__empty muted">Клиентов по этому поиску нет.</div>
-            ) : null}
-          </div>
-          {totalPages > 1 ? (
-            <div className="detCrm__pagination">
-              <button
-                type="button"
-                className="detCrm__pageBtn"
-                disabled={currentPage <= 1}
-                onClick={() => setPage(currentPage - 1)}
-              >
-                ←
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  className={`detCrm__pageBtn${p === currentPage ? ' is-active' : ''}`}
-                  onClick={() => setPage(p)}
-                >
-                  {p}
+                  <span>{f.label}</span>
+                  {f.count > 0 ? <span className="detCrmFilter__badge">{f.count > 9 ? '9+' : f.count}</span> : null}
                 </button>
               ))}
-              <button
-                type="button"
-                className="detCrm__pageBtn"
-                disabled={currentPage >= totalPages}
-                onClick={() => setPage(currentPage + 1)}
-              >
-                →
-              </button>
-              <span className="detCrm__pageInfo muted small">
-                {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, rows.length)} из {rows.length}
-              </span>
             </div>
-          ) : null}
-        </Card>
+          </Card>
 
-        <aside className={`detCrm__side${selected ? '' : ' detCrm__side--empty'}`}>
+            <Card className="card detCrm__listCard">
+              <div className="detCrm__listHead">
+                <span>Клиент</span>
+                <span>Автомобиль</span>
+                <span>Последний визит</span>
+              </div>
+              <div className="detCrm__rows">
+                {pageRows.map((row) => {
+                  const c = row.car || {}
+                  const cl = row.client || {}
+                  const isSelected = selected && String(selected.id) === String(row.id)
+                  const phoneUi = displayRuPhone(cl.phone)
+                  return (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className={`detCrmRow${isSelected ? ' is-selected' : ''}`}
+                      onClick={() => selectRow(row.id)}
+                    >
+                      <span className="detCrmRow__client">
+                        <span className="detCrmRow__avatar"><ClientAvatar row={row} /></span>
+                        <span className="detCrmRow__clientText">
+                          <strong>{clientName(row)}</strong>
+                          <small>{phoneUi.display || cl.email || 'Контакт не указан'}</small>
+                        </span>
+                      </span>
+                      <span className="detCrmRow__car">
+                        <strong>{carTitle(row)}</strong>
+                        <small>{[c.year ? `${c.year} г` : '', fmtPlateFull(c.plate, c.plateRegion)].filter(Boolean).join(' · ') || c.vin || '—'}</small>
+                      </span>
+                      <span className="detCrmRow__visit">
+                        {row.lastVisit ? (
+                          <>
+                            <span className="detCrmRow__visitTitle">{row.lastVisit.title || 'Визит'}</span>
+                            <span className="detCrmRow__visitDate">{fmtDate(row.lastVisit.at) || 'Дата не указана'}</span>
+                            <small>{row.lastVisit.mileageKm ? fmtKm(row.lastVisit.mileageKm) : 'Пробег не указан'}</small>
+                          </>
+                        ) : (
+                          <>
+                            <strong>Нет визитов</strong>
+                            <small>{`${row.stats?.visitsCount || 0} визитов`}</small>
+                          </>
+                        )}
+                      </span>
+                    </button>
+                  )
+                })}
+                {!rows.length ? (
+                  <div className="detCrm__empty muted">Клиентов по этому поиску нет.</div>
+                ) : null}
+              </div>
+              {totalPages > 1 ? (
+                <div className="detCrm__pagination">
+                  <button
+                    type="button"
+                    className="detCrm__pageBtn"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage(currentPage - 1)}
+                  >
+                    ←
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      className={`detCrm__pageBtn${p === currentPage ? ' is-active' : ''}`}
+                      onClick={() => setPage(p)}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="detCrm__pageBtn"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage(currentPage + 1)}
+                  >
+                    →
+                  </button>
+                  <span className="detCrm__pageInfo muted small">
+                    {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, rows.length)} из {rows.length}
+                  </span>
+                </div>
+              ) : null}
+            </Card>
+        </section>
+
+        <aside ref={profileRef} className={`detCrm__side${selected ? '' : ' detCrm__side--empty'}`} aria-label="Карточка клиента">
           {selected ? (
             <Card className="card pad detCrmProfile">
               <div className="detCrmProfile__top">
                 <div className="detCrmProfile__avatar"><ClientAvatar row={selected} /></div>
                 <div className="detCrmProfile__identity">
                   <h2 className="h2 detCrmProfile__title">{clientName(selected)}</h2>
-                  <p className="muted small" style={{ margin: '4px 0 0' }}>
-                    {selectedClient.isRegisteredOwner ? 'Владелец с аккаунтом КарПас' : 'Клиент из карточки авто'}
-                  </p>
+                  <div className="detCrmProfile__phoneLine">
+                    <span className="detCrmProfile__phoneLabel">тел:</span>
+                    {phone.telHref ? (
+                      <a className="detCrmProfile__phone" href={phone.telHref}>{phone.display}</a>
+                    ) : (
+                      <span className="detCrmProfile__phone is-empty">не указан</span>
+                    )}
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  className="detCrmProfile__quickVisit"
-                  onClick={() => nav(`/car/${selected.id}/history?new=1&from=${encodeURIComponent(from)}`)}
-                >
-                  Визит
-                </button>
               </div>
 
               <div className="detCrmProfile__car">
+                <h4 className="detCrmProfile__blockTitle">Автомобиль</h4>
                 <div className="detCrmProfile__carTitle">{carTitle(selected)}</div>
                 <div className="muted small">
                   {[selectedCar.year ? `${selectedCar.year} г` : '', selectedCar.mileageKm ? fmtKm(selectedCar.mileageKm) : '', fmtPlateFull(selectedCar.plate, selectedCar.plateRegion)].filter(Boolean).join(' · ') || 'Данные авто не заполнены'}
                 </div>
-              </div>
-
-              <div className="detCrmProfile__contacts">
-                {phone.telHref ? <a href={phone.telHref}>{phone.display}</a> : <span className="muted">Телефон не указан</span>}
+                <div className="detCrmProfile__actions">
+                  <button
+                    type="button"
+                    className="btn detCrmProfile__historyBtn"
+                    data-variant="primary"
+                    onClick={() => nav(`/car/${selected.id}?from=${encodeURIComponent(from)}`)}
+                  >
+                    Открыть авто
+                  </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    data-variant="ghost"
+                    onClick={() => nav(`/car/${selected.id}/history?from=${encodeURIComponent(from)}`)}
+                  >
+                    История авто
+                  </button>
+                </div>
               </div>
 
               <div className="detCrmProfile__clientNote">
                 <div className="detCrmProfile__clientNoteHead">
-                  <div className="detCrmProfile__blockTitle">Заметка по клиенту</div>
+                  <h4 className="detCrmProfile__blockTitle">Заметка по клиенту</h4>
                   {!clientNoteEditing ? (
                     <button
                       type="button"
@@ -552,27 +595,8 @@ export default function DetailingClientsPage() {
                 )}
               </div>
 
-              <div className="detCrmProfile__actions">
-                <button
-                  type="button"
-                  className="btn detCrmProfile__historyBtn"
-                  data-variant="primary"
-                  onClick={() => nav(`/car/${selected.id}?from=${encodeURIComponent(from)}`)}
-                >
-                  Открыть авто
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  data-variant="ghost"
-                  onClick={() => nav(`/car/${selected.id}/history?from=${encodeURIComponent(from)}`)}
-                >
-                  История авто
-                </button>
-              </div>
-
               <div className="detCrmProfile__block">
-                <div className="detCrmProfile__blockTitle">Последний визит</div>
+                <h4 className="detCrmProfile__blockTitle">Последний визит</h4>
                 {selected.lastVisit ? (
                   <>
                     <div className="detCrmProfile__lastVisitDate">{fmtDate(selected.lastVisit.at) || 'Дата не указана'}</div>
@@ -605,6 +629,14 @@ export default function DetailingClientsPage() {
                 )}
               </div>
 
+              <button
+                type="button"
+                className="btn detCrmProfile__visitBtn"
+                data-variant="primary"
+                onClick={() => nav(`/car/${selected.id}/history?new=1&from=${encodeURIComponent(from)}`)}
+              >
+                Добавить визит
+              </button>
             </Card>
           ) : (
             <Card className="card pad muted">Выберите клиента из списка.</Card>
