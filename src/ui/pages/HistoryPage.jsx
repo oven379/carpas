@@ -303,6 +303,25 @@ function careDraftFromEvent(evt, ownerNonSpaceClamp = false) {
   }
 }
 
+/** Подзаголовок раздела формы визита (во всю ширину сетки). */
+function VisitFormSection({ title }) {
+  return (
+    <div className="field field--full visitFormSection">
+      <h3 className="visitFormSection__title">{title}</h3>
+    </div>
+  )
+}
+
+/** Счётчик символов показываем, только когда до лимита осталось мало. */
+function CharCount({ length, max }) {
+  if (length < max * 0.8) return null
+  return (
+    <div className="muted small historyCareTips__charCount" aria-live="polite">
+      {length} / {max}
+    </div>
+  )
+}
+
 export default function HistoryPage() {
   const { id } = useParams()
   const r = useRepo()
@@ -544,7 +563,6 @@ export default function HistoryPage() {
     enabled: Boolean(id) && (mode === 'owner' || mode === 'detailing') && !showNew && !editingId,
     intervalMs: 30_000,
   })
-  const [draftSaveNotice, setDraftSaveNotice] = useState('')
   const minMileageKmForVisitForm = useMemo(
     () => (car ? resolveMinMileageKmForVisitForm(car, events, editingId) : 0),
     [car, events, editingId],
@@ -557,7 +575,6 @@ export default function HistoryPage() {
   const historyListTopRef = useRef(null)
   const initFormKeyRef = useRef('')
   const autosaveVisitDraftKeyRef = useRef('')
-  const draftSaveNoticeTimerRef = useRef(null)
   const historyTabsId = useId()
   const visitPhotosInputId = useId()
   const visitPublicConsentId = useId()
@@ -574,19 +591,6 @@ export default function HistoryPage() {
     }
     document.addEventListener('visibilitychange', onVis)
     return () => document.removeEventListener('visibilitychange', onVis)
-  }, [])
-  const showDraftSavedNotice = useCallback((message = 'Черновик сохранён') => {
-    if (draftSaveNoticeTimerRef.current) window.clearTimeout(draftSaveNoticeTimerRef.current)
-    setDraftSaveNotice(message)
-    draftSaveNoticeTimerRef.current = window.setTimeout(() => {
-      setDraftSaveNotice('')
-      draftSaveNoticeTimerRef.current = null
-    }, 3200)
-  }, [])
-  useEffect(() => {
-    return () => {
-      if (draftSaveNoticeTimerRef.current) window.clearTimeout(draftSaveNoticeTimerRef.current)
-    }
   }, [])
   const canOpen = useCallback((e) => {
     if (!e) return false
@@ -812,15 +816,15 @@ export default function HistoryPage() {
 
   const formHeading = !editingId
     ? mode === 'detailing' && wantNew
-      ? 'Новый визит:'
-      : 'Добавить визит / событие:'
+      ? 'Новый визит'
+      : 'Добавить визит'
     : editAllowed
       ? editingEvent?.isDraft
-        ? 'Новый визит (черновик):'
-        : 'Редактировать визит:'
+        ? 'Новый визит'
+        : 'Редактировать визит'
       : editingEvent?.source === 'service' && mode === 'owner'
-        ? 'Визит сервиса (просмотр):'
-        : 'Просмотр визита:'
+        ? 'Визит сервиса'
+        : 'Просмотр визита'
   const editingPhotos = useMemo(() => {
     if (!editingId || !editAllowed) return []
     return docsForEvent(editingId)
@@ -906,7 +910,6 @@ export default function HistoryPage() {
         setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
       }
       invalidateRepo()
-      showDraftSavedNotice('Черновик сохранён. Можно продолжить позже.')
       closeVisitFormInUrl()
       if (from) nav(from)
     } catch (e) {
@@ -928,7 +931,6 @@ export default function HistoryPage() {
         .then((evt) => {
           if (!evt?.id) return
           setEvents((prev) => (Array.isArray(prev) ? prev.map((x) => (String(x.id) === String(evt.id) ? evt : x)) : prev))
-          showDraftSavedNotice()
         })
         .catch(() => {
           autosaveVisitDraftKeyRef.current = ''
@@ -961,7 +963,6 @@ export default function HistoryPage() {
     buildVisitPayload,
     r,
     setEvents,
-    showDraftSavedNotice,
   ])
 
   if ((mode === 'owner' || mode === 'detailing') && loading) {
@@ -1114,7 +1115,8 @@ export default function HistoryPage() {
       <div className="row spread gap historyPage__titleBar">
         <div className="serviceHint__pageBlock historyPage__titleBlock">
           <div className="serviceHint__pageBlockRow row gap wrap" style={{ alignItems: 'center' }}>
-            <BackNav to={carCardHref} title="К карточке авто" />
+            {/* Шаг назад по истории (например, в «Клиенты»); при прямом заходе — на карточку авто. */}
+            <BackNav fallbackTo={carCardHref} title="Назад" />
             <h1 className="h1">{title}</h1>
           </div>
         </div>
@@ -1574,16 +1576,8 @@ export default function HistoryPage() {
                   {readonlyFormNotice}
                 </div>
               ) : null}
-              {(mode === 'owner' || mode === 'detailing') && editingEvent?.isDraft && !formLocked ? (
-                <div
-                  className={`visitDraftSaveNotice${draftSaveNotice ? ' visitDraftSaveNotice--visible' : ''}`}
-                  role="status"
-                  aria-live="polite"
-                >
-                  {draftSaveNotice}
-                </div>
-              ) : null}
               <div className="formGrid historyFormGrid">
+            <VisitFormSection title={'Основное'} />
             {workOrderEnabled ? (
               <Field label="Мастер-приёмщик" insetLabel>
                 <Input
@@ -1649,8 +1643,10 @@ export default function HistoryPage() {
                 />
               </Field>
             ) : null}
+            <VisitFormSection title={'Услуги'} />
             {mode === 'detailing' || mode === 'owner' ? (
               <VisitFormServicesBlock
+                fieldLabel=""
                 detailing={detailing}
                 useFullCatalogFallback={mode === 'owner'}
                 services={draft.services}
@@ -1680,146 +1676,12 @@ export default function HistoryPage() {
                 />
               </div>
             ) : null}
-            <div className="field field--full serviceHint__fieldWrap">
-              <Field
-                label={mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}
-                hint={mode === 'detailing' ? 'Владелец увидит рекомендации в истории авто.' : undefined}
-              >
-                <Textarea
-                  className="textarea"
-                  rows={4}
-                  maxLength={VISIT_NOTE_MAX_LEN}
-                  value={draft.note}
-                  onChange={(e) => setDraft((d) => ({ ...d, note: clampVisitNoteInput(e.target.value) }))}
-                  onBlur={createBlurFixRuFreeText((next) =>
-                    setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
-                  )}
-                  disabled={formLocked}
-                />
-              </Field>
-            </div>
-            {workOrderEnabled ? (
-              <div className="field field--full">
-                <Field label="Гарантийные обязательства">
-                  <Textarea
-                    className="textarea"
-                    rows={3}
-                    maxLength={5000}
-                    value={draft.warrantyText}
-                    disabled={formLocked}
-                    onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
-                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-                  />
-                </Field>
-                {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
-                  <p className="muted small" style={{ marginTop: 4 }}>
-                    Будет использован текст гарантии из настроек сервиса.
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            {mode === 'detailing' ? (
-              <>
-                <div className="field field--full">
-                  <div className="visitReminderField">
-                    <Field label="Дата следующего контакта">
-                      <Input
-                        className="input"
-                        type="date"
-                        value={draft.nextContactAt}
-                        disabled={formLocked}
-                        aria-describedby="visit-reminder-date-hint"
-                        onChange={(e) => setDraft((d) => ({ ...d, nextContactAt: e.target.value }))}
-                      />
-                    </Field>
-                    <div className="visitReminderField__quick" aria-label="Быстрый выбор даты напоминания">
-                      {[7, 15, 30, 90].map((days) => (
-                        <button
-                          key={days}
-                          type="button"
-                          className="btn"
-                          data-variant="ghost"
-                          disabled={formLocked}
-                          onClick={() => setDraft((d) => ({ ...d, nextContactAt: dateInputAfterDays(days) }))}
-                        >
-                          {days} дн.
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="muted small visitReminderField__hint" id="visit-reminder-date-hint">
-                    Дата видна только в CRM и помогает понять, когда пора напомнить клиенту о повторном визите.
-                  </p>
-                </div>
-                <div className="field field--full">
-                  <Field label="Внутренняя заметка">
-                    <Textarea
-                      className="textarea"
-                      rows={3}
-                      maxLength={VISIT_INTERNAL_NOTE_MAX_LEN}
-                      value={draft.internalNote}
-                      onChange={(e) =>
-                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(e.target.value) }))
-                      }
-                      onBlur={createBlurFixRuFreeText((next) =>
-                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(next) })),
-                      )}
-                      disabled={formLocked}
-                    />
-                  </Field>
-                  <div className="muted small historyCareTips__charCount" aria-live="polite">
-                    {String(draft.internalNote || '').length} / {VISIT_INTERNAL_NOTE_MAX_LEN}
-                  </div>
-                </div>
-              </>
-            ) : null}
-            {mode === 'owner' &&
-            showNew &&
-            !awaitingVisitDraft &&
-            (!editingId || editingEvent?.source === 'owner') ? (
-              <div className="historyCareTips historyCareTipsForCarCard topBorder">
-                <p className="muted small historyCareTipsForCarCard__intro">
-                  Запишите совет или вывод из этого визита.
-                </p>
-                <div className="field field--full serviceHint__fieldWrap">
-                  <Field
-                    label="Совет к этому визиту"
-                  >
-                    <Textarea
-                      className="textarea"
-                      rows={4}
-                      value={draft.careAdviceText}
-                      disabled={formLocked}
-                      onChange={(e) =>
-                        setDraft((d) => ({
-                          ...d,
-                          careAdviceText: clampVisitOwnerCareAdviceInput(e.target.value),
-                        }))
-                      }
-                      onBlur={createBlurFixRuFreeText((next) =>
-                        setDraft((d) => ({
-                          ...d,
-                          careAdviceText: clampVisitOwnerCareAdviceInput(next),
-                        })),
-                      )}
-                      aria-label="Совет к этому визиту"
-                    />
-                  </Field>
-                  <div className="muted small historyCareTips__charCount" aria-live="polite">
-                    {countVisitOwnerCareAdviceNonSpaceChars(draft.careAdviceText)} / {VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE}{' '}
-                    <span className="muted">(без пробелов)</span>
-                  </div>
-                </div>
-              </div>
-            ) : null}
+            <VisitFormSection title={'Фото'} />
             {editingId ? (
               <div
                 className="field field--full serviceHint__fieldWrap"
                 ref={visitPhotosSectionRef}
               >
-                <div className="field__top serviceHint__fieldTop">
-                  <span className="field__label">Фото визита</span>
-                </div>
                 {editingPhotos.length ? (
                   <div className="thumbs thumbs--big" style={{ marginTop: 6 }}>
                     {editingPhotos.map((d) => (
@@ -1836,22 +1698,11 @@ export default function HistoryPage() {
                       />
                     ))}
                   </div>
-                ) : (
-                  <div className="muted small" style={{ marginTop: 6, lineHeight: 1.45 }}>
-                    {editAllowed ? (
-                      <>
-                        Пока нет фото — добавьте через кнопку ниже.
-                        <span style={{ display: 'block', marginTop: 6, fontWeight: 650 }}>
-                          {PHOTO_UPLOAD_EMPTY_THUMB_HINT}
-                        </span>
-                      </>
-                    ) : (
-                      'Фото визита будут здесь.'
-                    )}
-                  </div>
-                )}
+                ) : !editAllowed ? (
+                  <div className="muted small">Фото нет.</div>
+                ) : null}
                 {editAllowed && !formLocked ? (
-                  <div className="filePick" style={{ marginTop: 10 }}>
+                  <div className="filePick" style={editingPhotos.length ? { marginTop: 10 } : undefined}>
                     <input
                       id={visitPhotosInputId}
                       className="srOnly"
@@ -1882,14 +1733,9 @@ export default function HistoryPage() {
                           ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
                           : visitPhotosRoom < VISIT_MAX_PHOTOS
                             ? `Можно ещё ${visitPhotosRoom} фото`
-                            : 'Файлы прикрепятся сразу после выбора'}
+                            : PHOTO_UPLOAD_EMPTY_THUMB_HINT}
                     </span>
                   </div>
-                ) : null}
-                {editAllowed && !formLocked ? (
-                  <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
-                    {PHOTO_UPLOAD_HINTS_PARAGRAPH}
-                  </p>
                 ) : null}
               </div>
             ) : null}
@@ -1927,21 +1773,16 @@ export default function HistoryPage() {
                       ? 'Сохраняем фото…'
                       : visitPhotosAddBlocked
                         ? `Лимит ${VISIT_MAX_PHOTOS} фото на визит`
-                        : 'Файлы прикрепятся сразу после выбора'}
+                        : PHOTO_UPLOAD_EMPTY_THUMB_HINT}
                   </span>
                 </div>
-                {!formLocked ? (
-                  <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
-                    {PHOTO_UPLOAD_HINTS_PARAGRAPH}
-                  </p>
-                ) : null}
               </div>
             ) : null}
             {mode === 'detailing' && editingId ? (
-              <div className="field field--full visitPublicPhotosField topBorder">
+              <div className="field field--full visitPublicPhotosField">
                 {formLocked ? (
                   <p className="muted small" style={{ margin: 0, lineHeight: 1.45 }}>
-                    Публикация фото на публичной странице сервиса:{' '}
+                    Фото на странице сервиса:{' '}
                     <strong>{editingEvent?.allowPublicPhotos !== false ? 'разрешена' : 'запрещена'}</strong>
                   </p>
                 ) : (
@@ -1955,23 +1796,53 @@ export default function HistoryPage() {
                         onChange={(e) => setDraft((d) => ({ ...d, allowPublicPhotos: e.target.checked }))}
                       />
                       <span className="authConsent__text">
-                        Разрешаю публиковать фото этого визита на публичной странице сервиса — блок «Фото работ» для клиентов.
+                        Показывать фото в разделе «Фото работ» на странице сервиса
                       </span>
                     </label>
-                    <p className="muted small" style={{ margin: '10px 0 0', lineHeight: 1.45 }}>
-                      Без этой отметки фото визита и снимки после мойки с карточки авто не показываются на публичной странице:
-                      их видите вы, владелец и детейлинг только в личных кабинетах.
-                    </p>
                   </>
                 )}
               </div>
             ) : null}
+            <VisitFormSection title={mode === 'detailing' ? 'Для владельца' : 'Комментарий'} />
+            <div className="field field--full serviceHint__fieldWrap">
+              <Field
+                label={mode === 'detailing' ? 'Рекомендации мастера' : 'Комментарий'}
+              >
+                <Textarea
+                  className="textarea"
+                  rows={4}
+                  maxLength={VISIT_NOTE_MAX_LEN}
+                  value={draft.note}
+                  onChange={(e) => setDraft((d) => ({ ...d, note: clampVisitNoteInput(e.target.value) }))}
+                  onBlur={createBlurFixRuFreeText((next) =>
+                    setDraft((d) => ({ ...d, note: clampVisitNoteInput(next) })),
+                  )}
+                  disabled={formLocked}
+                />
+              </Field>
+            </div>
+            {workOrderEnabled ? (
+              <div className="field field--full">
+                <Field label="Гарантийные обязательства">
+                  <Textarea
+                    className="textarea"
+                    rows={3}
+                    maxLength={5000}
+                    value={draft.warrantyText}
+                    disabled={formLocked}
+                    onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                    onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                  />
+                </Field>
+                {String(detailing?.warrantyText || '').trim() && !String(draft.warrantyText || '').trim() ? (
+                  <p className="muted small" style={{ marginTop: 4 }}>
+                    Будет использован текст гарантии из настроек сервиса.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {mode === 'detailing' ? (
-              <div className="historyCareTips historyCareTipsForCarCard topBorder">
-                <p className="muted small historyCareTipsForCarCard__intro">
-                  Один совет для владельца — в выпадающем блоке «Совет» на карточке авто после сохранения визита. Только для кабинета
-                  детейлинга.
-                </p>
+              <div className="historyCareTips historyCareTipsForCarCard">
                 <div className="field field--full serviceHint__fieldWrap">
                   <Field
                     label="Совет от сервиса"
@@ -1997,11 +1868,95 @@ export default function HistoryPage() {
                       aria-label="Совет от сервиса для владельца"
                     />
                   </Field>
+                  <CharCount length={String(draft.careAdviceText || '').length} max={VISIT_CARE_ADVICE_MAX_LEN} />
+                </div>
+              </div>
+            ) : null}
+            {mode === 'owner' &&
+            showNew &&
+            !awaitingVisitDraft &&
+            (!editingId || editingEvent?.source === 'owner') ? (
+              <div className="historyCareTips historyCareTipsForCarCard">
+                <div className="field field--full serviceHint__fieldWrap">
+                  <Field
+                    label="Совет к этому визиту"
+                  >
+                    <Textarea
+                      className="textarea"
+                      rows={4}
+                      value={draft.careAdviceText}
+                      disabled={formLocked}
+                      onChange={(e) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: clampVisitOwnerCareAdviceInput(e.target.value),
+                        }))
+                      }
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({
+                          ...d,
+                          careAdviceText: clampVisitOwnerCareAdviceInput(next),
+                        })),
+                      )}
+                      aria-label="Совет к этому визиту"
+                    />
+                  </Field>
                   <div className="muted small historyCareTips__charCount" aria-live="polite">
-                    {String(draft.careAdviceText || '').length} / {VISIT_CARE_ADVICE_MAX_LEN}
+                    {countVisitOwnerCareAdviceNonSpaceChars(draft.careAdviceText)} / {VISIT_OWNER_CARE_ADVICE_MAX_NONSPACE}{' '}
+                    <span className="muted">(без пробелов)</span>
                   </div>
                 </div>
               </div>
+            ) : null}
+            {mode === 'detailing' ? <VisitFormSection title="Только для сервиса" /> : null}
+            {mode === 'detailing' ? (
+              <>
+                <div className="field field--full">
+                  <div className="visitReminderField">
+                    <Field label="Дата следующего контакта">
+                      <Input
+                        className="input"
+                        type="date"
+                        value={draft.nextContactAt}
+                        disabled={formLocked}
+                        onChange={(e) => setDraft((d) => ({ ...d, nextContactAt: e.target.value }))}
+                      />
+                    </Field>
+                    <div className="visitReminderField__quick" aria-label="Быстрый выбор даты напоминания">
+                      {[7, 15, 30, 90].map((days) => (
+                        <button
+                          key={days}
+                          type="button"
+                          className="btn"
+                          data-variant="ghost"
+                          disabled={formLocked}
+                          onClick={() => setDraft((d) => ({ ...d, nextContactAt: dateInputAfterDays(days) }))}
+                        >
+                          {days} дн.
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="field field--full">
+                  <Field label="Внутренняя заметка">
+                    <Textarea
+                      className="textarea"
+                      rows={3}
+                      maxLength={VISIT_INTERNAL_NOTE_MAX_LEN}
+                      value={draft.internalNote}
+                      onChange={(e) =>
+                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(e.target.value) }))
+                      }
+                      onBlur={createBlurFixRuFreeText((next) =>
+                        setDraft((d) => ({ ...d, internalNote: clampVisitInternalNoteInput(next) })),
+                      )}
+                      disabled={formLocked}
+                    />
+                  </Field>
+                  <CharCount length={String(draft.internalNote || '').length} max={VISIT_INTERNAL_NOTE_MAX_LEN} />
+                </div>
+              </>
             ) : null}
           </div>
           <div className="formActions historyFormActions">
@@ -2092,45 +2047,9 @@ export default function HistoryPage() {
               Сохранить
             </Button>
             ) : null}
-            {editingId && editingEvent && canEditAny(editingEvent) ? (
-              <Button
-                className="btn"
-                variant="danger"
-                type="button"
-                disabled={!editAllowed}
-                onClick={async () => {
-                  if (!editAllowed) {
-                    alert(visitReadonlyFormNotice(mode, editingEvent) || 'Удаление недоступно.')
-                    return
-                  }
-                  const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
-                  if (!ok) return
-                  try {
-                    await r.deleteEvent(id, editingId)
-                  } catch {
-                    alert('Нельзя удалить это событие.')
-                    return
-                  }
-                  setEvents((prev) => prev.filter((x) => String(x.id) !== String(editingId)))
-                  invalidateRepo()
-                  setShowNew(false)
-                  setEditingId(null)
-                  const next = new URLSearchParams(sp)
-                  next.delete('new')
-                  next.delete('edit')
-                  if (mode === 'owner') {
-                    next.set('t', 'all')
-                    setTab('all')
-                  }
-                  setSp(next, { replace: true })
-                }}
-              >
-                Удалить
-              </Button>
-            ) : null}
             {(mode === 'detailing' || mode === 'owner') && editingEvent?.isDraft && !formLocked ? (
-              <Button type="button" className="btn" variant="outline" onClick={saveVisitDraftAndGoBack}>
-                Назад
+              <Button type="button" className="btn" variant="ghost" onClick={saveVisitDraftAndGoBack}>
+                Продолжить позже
               </Button>
             ) : null}
             {mode === 'detailing' && from && !(formLocked && editingId) && !editingEvent?.isDraft ? (
@@ -2189,6 +2108,42 @@ export default function HistoryPage() {
               >
                 Отмена
               </button>
+            ) : null}
+            {editingId && editingEvent && canEditAny(editingEvent) ? (
+              <Button
+                className="btn"
+                variant="danger"
+                type="button"
+                disabled={!editAllowed}
+                onClick={async () => {
+                  if (!editAllowed) {
+                    alert(visitReadonlyFormNotice(mode, editingEvent) || 'Удаление недоступно.')
+                    return
+                  }
+                  const ok = confirm('Удалить запись истории?\n\nВосстановить её будет невозможно.')
+                  if (!ok) return
+                  try {
+                    await r.deleteEvent(id, editingId)
+                  } catch {
+                    alert('Нельзя удалить это событие.')
+                    return
+                  }
+                  setEvents((prev) => prev.filter((x) => String(x.id) !== String(editingId)))
+                  invalidateRepo()
+                  setShowNew(false)
+                  setEditingId(null)
+                  const next = new URLSearchParams(sp)
+                  next.delete('new')
+                  next.delete('edit')
+                  if (mode === 'owner') {
+                    next.set('t', 'all')
+                    setTab('all')
+                  }
+                  setSp(next, { replace: true })
+                }}
+              >
+                Удалить
+              </Button>
             ) : null}
           </div>
             </>

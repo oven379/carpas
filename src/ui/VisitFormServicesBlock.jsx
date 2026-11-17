@@ -222,7 +222,6 @@ export function VisitFormServicesBlock({
   }
 
   const selectedAll = useMemo(() => [...svc, ...maint], [svc, maint])
-  const meta = selectedAll.length ? `${selectedAll.length} выбрано` : 'не выбрано'
 
   const paintGenericOn = svc.includes(VISIT_FORM_BODY_PAINT_GENERIC)
 
@@ -231,9 +230,11 @@ export function VisitFormServicesBlock({
       className={`field field--full serviceHint__fieldWrap visitFormSvc${disabled ? ' visitFormSvc--disabled' : ''}`}
       ref={rootRef}
     >
-      <div className="field__top serviceHint__fieldTop">
-        <span className="field__label">{fieldLabel}</span>
-      </div>
+      {fieldLabel ? (
+        <div className="field__top serviceHint__fieldTop">
+          <span className="field__label">{fieldLabel}</span>
+        </div>
+      ) : null}
 
       <div className="visitFormSvc__searchRow">
         <div className="visitFormSvc__searchWrap">
@@ -316,9 +317,7 @@ export function VisitFormServicesBlock({
             </button>
           ))}
         </div>
-      ) : (
-        <p className="muted small visitFormSvc__meta">{meta}</p>
-      )}
+      ) : null}
 
       {(useFullCatalogFallback || detGroups.length > 0 || showPaintSubBlock) ? (() => {
         const bodySelectedCount = bodyAllItems.filter((it) => svc.includes(it)).length

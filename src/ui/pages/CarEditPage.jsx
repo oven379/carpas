@@ -1032,9 +1032,6 @@ export default function CarEditPage({ mode }) {
                   onChange={setCarLegalConsent}
                   className="carEditLegalConsent__checkbox"
                 />
-                <p className="muted small carEditLegalConsent__hint">
-                  Согласие обязательно для сохранения новой карточки автомобиля и обработки данных авто.
-                </p>
               </div>
             ) : null}
 

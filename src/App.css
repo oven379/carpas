@@ -2703,36 +2703,6 @@ summary.carPage__recsSelect::-webkit-details-marker {
   background: color-mix(in oklab, var(--bg) 94%, var(--code-bg) 6%);
 }
 
-.visitDraftSaveNotice {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  margin-top: 8px;
-  padding: 7px 11px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--accent) 8%, var(--bg));
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.35;
-  transition:
-    color 140ms ease,
-    border-color 140ms ease,
-    background-color 140ms ease;
-}
-
-/* Без сообщения область статуса не видна, но остаётся в DOM для озвучивания «Черновик сохранён». */
-.visitDraftSaveNotice:empty {
-  min-height: 0;
-  margin: 0;
-  padding: 0;
-  background: none;
-}
-
-.visitDraftSaveNotice--visible {
-  background: color-mix(in oklab, var(--accent) 12%, var(--bg));
-  color: var(--text-h);
-}
-
 .historyLastVisitPreviewHead {
   margin-bottom: 8px;
 }
@@ -5059,10 +5029,6 @@ a.btn.btn--asDisabled {
   font-size: 12px;
 }
 
-.garageSettings__fields .field__inset:has(.cb__input:placeholder-shown) > span {
-  visibility: hidden;
-}
-
 .field__inset > .input,
 .field__inset .cb__input,
 .field__inset .passwordInputWrap__input,
@@ -6760,7 +6726,53 @@ a.thumbCard__fileDoc {
 }
 
 .historyFormActions {
-  margin-top: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Разделы формы визита: «Основное», «Услуги», «Фото», «Для владельца», «Только для сервиса». */
+.visitFormSection {
+  margin-top: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.historyPage__formScrollTarget + .historyFormGrid,
+.historyFormGrid {
+  margin-top: 14px;
+}
+
+.historyFormGrid > .historyCareTips {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 520px) {
+  .historyFormActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .historyFormActions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.historyFormGrid > .visitFormSection:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.visitFormSection__title {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: uppercase;
+  letter-spacing: .04em;
 }
 
 .formActions,

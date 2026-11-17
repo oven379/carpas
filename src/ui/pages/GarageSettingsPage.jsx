@@ -178,7 +178,6 @@ export default function GarageSettingsPage() {
               <Field label="Город" insetLabel>
                 <CityComboBox
                   value={draft.garageCity}
-                  placeholder="Город"
                   maxItems={20}
                   onChange={(v) => setDraft((d) => ({ ...d, garageCity: v }))}
                 />
