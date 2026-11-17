@@ -51,6 +51,7 @@
 }
 
 .carLight .backNav,
+.historyPage__titleBlock .backNav,
 .carLight .openAction,
 .carLight .dropdownCaretBtn--suffix {
   width: 44px;
@@ -59,12 +60,13 @@
   border-radius: var(--radius-md);
 }
 
-.carLight .backNav {
+.carLight .backNav,
+.historyPage__titleBlock .backNav {
   background: var(--bg-surface);
 }
 
 .carLight .backNav:hover,
-.carLight .openAction:hover {
+.historyPage__titleBlock .backNav:hover {
   background: var(--accent-dim);
   color: var(--accent);
 }

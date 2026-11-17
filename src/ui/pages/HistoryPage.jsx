@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { SectionTabs } from '../SectionTabs.jsx'
 import { useRepo, invalidateRepo } from '../useRepo.js'
 import {
   Field,
@@ -557,6 +558,7 @@ export default function HistoryPage() {
   const initFormKeyRef = useRef('')
   const autosaveVisitDraftKeyRef = useRef('')
   const draftSaveNoticeTimerRef = useRef(null)
+  const historyTabsId = useId()
   const visitPhotosInputId = useId()
   const visitPublicConsentId = useId()
   const visitPhotosInputRef = useRef(null)
@@ -791,6 +793,10 @@ export default function HistoryPage() {
     if (!editParam) setOwnerVisitComposeUi(true)
   }, [mode, wantNew, editParam])
   const visitComposeOnlyUi = detailingVisitComposeLayout || ownerVisitComposeUi || ownerVisitDraftComposeLayout
+  const showHistoryTabs =
+    !visitComposeOnlyUi && mode === 'owner' && serviceEvents.length > 0 && ownerEvents.length > 0
+  const historyPanelId = `${historyTabsId}-panel`
+
 
   /* Не зависеть от edit=: после выбора фото URL получает edit=<id> — повторная прокрутка к заголовку срывает блок загрузки. */
   useLayoutEffect(() => {
@@ -1139,65 +1145,46 @@ export default function HistoryPage() {
                 setSp(next, { replace: true })
               }}
             >
-              Новый визит
+              Запись в бортжурнал
             </button>
           </div>
         ) : null}
       </div>
 
-      <div className="row spread gap" style={{ marginTop: 10 }}>
-        <div className="row gap wrap">
-          {!visitComposeOnlyUi &&
-          mode === 'owner' &&
-          serviceEvents.length > 0 &&
-          ownerEvents.length > 0 ? (
-            <div className="row gap wrap" aria-label="Фильтр истории">
-              <button
-                className="btn"
-                data-variant={tab === 'all' ? 'primary' : 'ghost'}
-                onClick={() => {
-                  setTab('all')
-                  const next = new URLSearchParams(sp)
-                  next.set('t', 'all')
-                  setSp(next, { replace: true })
-                }}
-              >
-                Все ({events.length})
-              </button>
-              <button
-                className="btn"
-                data-variant={tab === 'service' ? 'primary' : 'ghost'}
-                onClick={() => {
-                  setTab('service')
-                  const next = new URLSearchParams(sp)
-                  next.set('t', 'service')
-                  setSp(next, { replace: true })
-                }}
-              >
-                От сервиса ({serviceEvents.length})
-              </button>
-              <button
-                className="btn"
-                data-variant={tab === 'owner' ? 'primary' : 'ghost'}
-                onClick={() => {
-                  setTab('owner')
-                  const next = new URLSearchParams(sp)
-                  next.set('t', 'owner')
-                  setSp(next, { replace: true })
-                }}
-              >
-                Моя история ({ownerEvents.length})
-              </button>
-            </div>
-          ) : null}
+      {showHistoryTabs ? (
+        <div style={{ marginTop: 10 }}>
+          <SectionTabs
+            tabsId={historyTabsId}
+            panelId={historyPanelId}
+            label="Фильтр истории"
+            tabs={[
+              { key: 'all', label: `Все (${events.length})` },
+              { key: 'service', label: `От сервиса (${serviceEvents.length})` },
+              { key: 'owner', label: `Моя история (${ownerEvents.length})` },
+            ]}
+            selectedTab={tab}
+            onSelect={(key) => {
+              setTab(key)
+              const next = new URLSearchParams(sp)
+              next.set('t', key)
+              setSp(next, { replace: true })
+            }}
+          />
         </div>
-      </div>
+      ) : null}
 
       <div
         className={`historyPage__mainStack${showNew ? ' historyPage__mainStack--formOpen' : ''}`}
       >
       {!visitComposeOnlyUi ? (
-      <div className="historyPage__listCol" ref={historyListTopRef}>
+      <div
+        className="historyPage__listCol"
+        ref={historyListTopRef}
+        id={showHistoryTabs ? historyPanelId : undefined}
+        role={showHistoryTabs ? 'tabpanel' : undefined}
+        aria-labelledby={showHistoryTabs ? `${historyTabsId}-tab-${tab}` : undefined}
+        tabIndex={showHistoryTabs ? 0 : undefined}
+      >
       <div className="list">
         {visibleEvents.map((e, cardIdx) => {
           const { wash: washList, other: detList } = splitWashDetailingServices(e.services)
@@ -1216,7 +1203,7 @@ export default function HistoryPage() {
             key={e.id}
             id={e.id ? `history-visit-${e.id}` : undefined}
             style={{ zIndex: visibleEvents.length - cardIdx }}
-            className={`card pad eventCard--collapsible${canOpen(e) ? ' eventCard--clickable' : ''}${visitReadonlyCard ? ' eventCard--visitReadonly' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
+            className={`card pad eventCard--collapsible${canOpen(e) ? ' eventCard--clickable' : ''}${e.isDraft ? ' eventCard--draftVisit' : ''}${showDetFooter ? ' eventCard--detFooter' : ''}`}
             role={canOpen(e) && !cardInnerLink ? 'region' : undefined}
             tabIndex={canOpen(e) ? 0 : undefined}
             onClick={(ev) => {
@@ -1371,7 +1358,7 @@ export default function HistoryPage() {
                   const displayPhotos = visitExpanded ? photos.slice(0, 6) : photos.slice(0, 2)
                   const galleryItems = docsToPhotoItems(photos)
                   return (
-                    <div className="thumbs" style={{ marginTop: 10 }}>
+                    <div className="visitPhotoCards" style={{ marginTop: 10 }}>
                       {displayPhotos.map((d) => {
                         const gi = galleryItems.findIndex((g) => g.id === d.id)
                         return (

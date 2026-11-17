@@ -43,7 +43,7 @@ export default function AuthPage() {
           Я владелец авто
         </Link>
         <PartnerAuthLink className="btn" data-variant="outline" to="/auth/partner" state={{ from }}>
-          Сервис (детейлинг / СТО)
+          Сервис / детейлинг / СТО
         </PartnerAuthLink>
       </div>
     </LandingAuthModal>

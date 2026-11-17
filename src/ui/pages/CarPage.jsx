@@ -1,8 +1,9 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { CarFront, Copy, FileText, Gauge, History } from 'lucide-react'
+import { SectionTabs } from '../SectionTabs.jsx'
 import { useRepo } from '../useRepo.js'
-import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
+import { BackNav, Card, DropdownCaretIcon, PageLoadSpinner, Pill } from '../components.jsx'
 import { displayRuPhone, fmtDate, fmtDateTime, fmtKm, fmtPlateFull } from '../../lib/format.js'
 import { hasOwnerSession } from '../auth.js'
 import { useDetailing } from '../useDetailing.js'
@@ -98,7 +99,6 @@ export default function CarPage() {
   const { id } = useParams()
   const [sp] = useSearchParams()
   const r = useRepo()
-  const [washIdx, setWashIdx] = useState(0)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
   const [activeTab, setActiveTab] = useState('visits')
   const tabsId = useId()
@@ -267,12 +267,6 @@ export default function CarPage() {
     [lastVisitGalleryRawUrls],
   )
 
-  const visitGalleryKey = useMemo(() => lastVisitGalleryRawUrls.join('|'), [lastVisitGalleryRawUrls])
-
-  useEffect(() => {
-    setWashIdx(0)
-  }, [visitGalleryKey])
-
   useLayoutEffect(() => {
     if (!id) return
     const p = readCarPageExpandPrefs(mode, id)
@@ -373,57 +367,24 @@ export default function CarPage() {
     <>Пока нет записей в истории — после первого визита здесь появятся дата и место обслуживания.</>
   )
 
-  const lastVisitPhotosGalleryBlock = lastVisitGalleryRawUrls.length ? (
-    <div className="washGallery carPage__lastVisitPhotosGallery">
-      <div className="washViewer">
-        <a
-          className="washGallery__viewer photoFrame"
-          style={photoBgStyle(visitGalleryDisplay[washIdx])}
-          href={visitGalleryDisplay[washIdx]}
-          target="_blank"
-          rel="noreferrer"
-          title="Открыть фото"
+  const lastVisitPhotoItems = visitGalleryDisplay.map((url, index) => ({
+    url,
+    title: `Фото последнего визита ${index + 1}`,
+  }))
+  const lastVisitPhotosGalleryBlock = lastVisitPhotoItems.length ? (
+    <div className="visitPhotoCards">
+      {lastVisitPhotoItems.map(({ url, title }, index) => (
+        <button
+          key={title}
+          type="button"
+          className="thumb thumb--lb photoFrame"
+          style={photoBgStyle(url)}
+          aria-label={`Открыть фото ${index + 1}`}
+          onClick={() => setPhotoLb({ items: lastVisitPhotoItems, startIndex: index })}
         >
-          <img alt="Фото последнего визита" src={visitGalleryDisplay[washIdx]} />
-        </a>
-      </div>
-      <div className="washGallery__controls">
-        <div className="row gap">
-          <button
-            type="button"
-            className="btn"
-            data-variant="ghost"
-            onClick={() =>
-              setWashIdx((i) =>
-                lastVisitGalleryRawUrls.length
-                  ? (i - 1 + lastVisitGalleryRawUrls.length) % lastVisitGalleryRawUrls.length
-                  : 0,
-              )
-            }
-            disabled={lastVisitGalleryRawUrls.length <= 1}
-          >
-            ←
-          </button>
-          <button
-            type="button"
-            className="btn"
-            data-variant="ghost"
-            onClick={() =>
-              setWashIdx((i) =>
-                lastVisitGalleryRawUrls.length ? (i + 1) % lastVisitGalleryRawUrls.length : 0,
-              )
-            }
-            disabled={lastVisitGalleryRawUrls.length <= 1}
-          >
-            →
-          </button>
-        </div>
-        <div className="washGallery__dots" aria-label="Фото">
-          {lastVisitGalleryRawUrls.slice(0, 12).map((_, idx) => (
-            <span key={idx} className={`washGallery__dot ${idx === washIdx ? 'is-active' : ''}`} />
-          ))}
-        </div>
-      </div>
+          <img src={url} alt={title} loading="lazy" />
+        </button>
+      ))}
     </div>
   ) : (
     <div className="muted small carPage__lastVisitPhotosEmpty">
@@ -469,10 +430,8 @@ export default function CarPage() {
                   className="btn carPage__titleVisitBtn"
                   data-variant="primary"
                   to={newVisitPath}
-                  aria-label="Новый визит"
-                  title="Новый визит"
                 >
-                  Новый визит
+                  {mode === 'owner' ? 'Запись в бортжурнал' : 'Новый визит'}
                 </Link>
               ) : null}
             </div>
@@ -631,39 +590,13 @@ export default function CarPage() {
       ) : null}
 
       <div className="carLight__sections">
-        <div
-          className="garageDash__tabs row gap wrap"
-          role="tablist"
-          aria-label="Разделы карточки автомобиля"
-          onKeyDown={(event) => {
-            const index = tabs.findIndex(({ key }) => key === selectedTab)
-            let nextIndex
-            if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length
-            else if (event.key === 'ArrowLeft') nextIndex = (index + tabs.length - 1) % tabs.length
-            else if (event.key === 'Home') nextIndex = 0
-            else if (event.key === 'End') nextIndex = tabs.length - 1
-            else return
-            event.preventDefault()
-            setActiveTab(tabs[nextIndex].key)
-            event.currentTarget.children[nextIndex]?.focus()
-          }}
-        >
-          {tabs.map(({ key, label }) => (
-            <button
-              key={key}
-              id={`${tabsId}-tab-${key}`}
-              type="button"
-              role="tab"
-              aria-selected={selectedTab === key}
-              aria-controls={`${tabsId}-panel-${key}`}
-              tabIndex={selectedTab === key ? 0 : -1}
-              className={`garageDash__tab${selectedTab === key ? ' garageDash__tab--active' : ''}`}
-              onClick={() => setActiveTab(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <SectionTabs
+          tabsId={tabsId}
+          label="Разделы карточки автомобиля"
+          tabs={tabs}
+          selectedTab={selectedTab}
+          onSelect={setActiveTab}
+        />
         {tabs.map(({ key }) => (
           <section
             key={key}
@@ -842,11 +775,13 @@ export default function CarPage() {
                     <Card className="card pad">
                       <div className="row spread gap carPage__sectionRow carPage__sectionRow--center carPage__historyRow">
                         <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><History size={20} aria-hidden="true" /></span> История авто</h2>
-                        <OpenAction
+                        <Link
+                          className="btn carPage__sectionAction"
+                          data-variant="ghost"
                           to={buildCarSubRoutePath(id, 'history', fromParam)}
-                          title="Открыть историю обслуживания"
-                          aria-label="Открыть историю обслуживания авто"
-                        />
+                        >
+                          Смотреть все
+                        </Link>
                       </div>
                       {recentHistory.length ? (
                         <ul className="carLight__historyList">
@@ -869,11 +804,13 @@ export default function CarPage() {
                       <Card className="card pad">
                         <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
                           <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><FileText size={20} aria-hidden="true" /></span> Документы:</h2>
-                          <OpenAction
+                          <Link
+                            className="btn carPage__sectionAction"
+                            data-variant="ghost"
                             to={buildCarSubRoutePath(id, 'docs', fromParam)}
-                            title="Документы"
-                            aria-label="Открыть документы"
-                          />
+                          >
+                            Добавить документ
+                          </Link>
                         </div>
                         {docs.length ? (
                           <div className="thumbs">

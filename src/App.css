@@ -586,10 +586,14 @@ button.nav__action {
   margin-bottom: 0;
 }
 
-/* История на карточке авто: заголовок слева, стрелка справа, по вертикали по центру (веб и моб.) */
+.carPage__sectionAction {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+/* История на карточке авто: заголовок и действие на одной строке. */
 .carPage__historyRow {
   align-items: center;
-  flex-wrap: nowrap;
   min-height: 44px;
 }
 
@@ -654,10 +658,15 @@ button.nav__action {
   max-width: 100%;
 }
 
-/* Галерея последнего визита на карточке авто: ограничиваем высоту превью. */
-.carPage__lastVisitPhotosGallery .washGallery__viewer {
-  max-height: min(70vw, 340px);
-  aspect-ratio: 4 / 3;
+.visitPhotoCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 400px));
+  gap: 8px;
+}
+
+.visitPhotoCards .thumb img {
+  height: auto;
+  aspect-ratio: 3 / 2;
 }
 
 .carPage__ownerServiceExpand {
@@ -1598,11 +1607,6 @@ button.nav__notifyLink {
   display: none;
 }
 
-.notificationsTab.is-active {
-  color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 10%, var(--code-bg));
-}
-
 .notificationsTab__count {
   min-width: 22px;
   height: 22px;
@@ -1613,11 +1617,6 @@ button.nav__notifyLink {
   font-size: 12px;
   line-height: 22px;
   text-align: center;
-}
-
-.notificationsTab.is-active .notificationsTab__count {
-  background: var(--accent);
-  color: var(--on-accent);
 }
 
 .notificationsList {
@@ -2683,11 +2682,6 @@ summary.carPage__recsSelect::-webkit-details-marker {
   cursor: pointer;
 }
 
-.eventCard--visitReadonly {
-  background: color-mix(in oklab, var(--bg) 97%, var(--code-bg) 3%);
-  border-left: 3px solid color-mix(in oklab, var(--border) 72%, var(--text) 14%);
-}
-
 .visitCardEditedAt {
   margin-top: 4px;
 }
@@ -3503,6 +3497,10 @@ a.requestsCard__ownerAvatar--link:focus-visible {
 }
 
 .breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
   color: var(--text);
   font-size: 13px;
   margin-bottom: 8px;
@@ -4638,9 +4636,11 @@ a.backNav {
   background: color-mix(in oklab, var(--surface-2) 55%, transparent);
 }
 
-.garageDash__tab--active {
+.garageDash__tab--active,
+.garageDash__tab--active:hover,
+.notificationsTab.is-active {
   color: var(--text-h);
-  background: color-mix(in oklab, var(--surface-2) 92%, transparent);
+  background: color-mix(in oklab, var(--surface-2) 90%, var(--accent-solid));
 }
 
 .garageDash .garageCarGrid {
@@ -4848,7 +4848,17 @@ a.btn.garageCarTile__addVisit[data-variant='outline']:hover {
   }
 
   .garageDash__tabsBar {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .garageDash__tabsBar .garageDash__garageTitle {
     display: none;
+  }
+
+  .garageDash__tabs .garageDash__tab {
+    min-height: 44px;
   }
 
   .garageDash__owner {
