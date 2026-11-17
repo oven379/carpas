@@ -23,9 +23,6 @@ const detailing = {
 
 const partnerRoutes = new Map([
   ['/api/me', { detailing }],
-  ['/api/cars', []],
-  ['/api/claims/inbox', []],
-  ['/api/detailings/crm/clients', { items: [], stats: {} }],
 ])
 
 const car = {
@@ -135,11 +132,24 @@ async function updateProfile(request, response, owner) {
 
 export function createDemoApi() {
   const owner = { ...demoOwner }
+  const cabinetCars = new Map()
+  const pendingClaims = new Map()
+  const networkCar = {
+    id: 'demo-network',
+    vin: '1HGCM82633A004352',
+    make: 'Honda',
+    model: 'Accord',
+    year: 2003,
+    color: 'Серебристый',
+    mileageKm: 160000,
+  }
+  const ownerCar = { ...car, city: owner.garageCity }
+  const findCarByVin = (vin) => [ownerCar, networkCar, ...cabinetCars.values()].find((item) => item.vin === vin)
   const tokens = new Map()
   const photo = readFileSync(new URL('../src/assets/home-mountain-honda.webp', import.meta.url))
 
   return createServer(async (request, response) => {
-    const { pathname } = new URL(request.url, `http://${host}`)
+    const { pathname, searchParams } = new URL(request.url, `http://${host}`)
     if (pathname === '/api/owners/login' || pathname === '/api/detailings/login') {
       if (request.method !== 'POST') {
         return sendJson(response, 405, { message: 'Method Not Allowed' }, { Allow: 'POST' })
@@ -147,6 +157,68 @@ export function createDemoApi() {
       return pathname === '/api/owners/login'
         ? login(request, response, tokens, owner, 'owner')
         : login(request, response, tokens, detailing, 'detailing')
+    }
+
+    const partnerCarRoute = /^\/api\/cars\/([^/]+)(?:\/(events|docs))?$/.exec(pathname)
+    const partnerCar = partnerCarRoute ? cabinetCars.get(partnerCarRoute[1]) : null
+    const vinAction = [
+      '/api/cars', '/api/cars/search-duplicate', '/api/cars/add-existing', '/api/claims/outbox',
+      '/api/detailings/crm/clients',
+    ].includes(pathname)
+    const role = tokens.get(request.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1])
+    if (vinAction || partnerCar) {
+      if (!role) return sendJson(response, 401, { message: 'Unauthenticated.' })
+      if (role !== 'detailing') return sendJson(response, 403, { message: 'Forbidden' })
+
+      if (request.method === 'GET') {
+        if (pathname === '/api/cars') return sendJson(response, 200, [...cabinetCars.values()])
+        if (pathname === '/api/detailings/crm/clients') {
+          const items = [...cabinetCars.values()].map((item) => ({
+            id: item.id,
+            car: item,
+            client: { name: item.clientName, phone: item.clientPhone, email: item.clientEmail },
+            stats: { visitsCount: 0 },
+          }))
+          return sendJson(response, 200, { items, stats: { clients: items.length, cars: items.length } })
+        }
+        if (pathname === '/api/cars/search-duplicate') {
+          const match = findCarByVin(searchParams.get('vin'))
+          if (!match) return sendJson(response, 200, [])
+          const { id, make, model, year, mileageKm, color, city, hero } = match
+          return sendJson(response, 200, [{
+            id, make, model, year, mileageKm, color, city, hero,
+            alreadyInDetailingCabinet: cabinetCars.has(id),
+            ownerApprovalRequired: id === ownerCar.id,
+            canAddToDetailing: true,
+          }])
+        }
+        if (partnerCar) return sendJson(response, 200, partnerCarRoute[2] ? [] : partnerCar)
+      }
+
+      if (request.method === 'POST') {
+        const data = await json(request).catch(() => null)
+        if (!data) return sendJson(response, 422, { message: 'Укажите данные автомобиля.' })
+        if (pathname === '/api/claims/outbox' && data.carId === ownerCar.id) {
+          if (!pendingClaims.has(data.carId)) pendingClaims.set(data.carId, { id: randomUUID(), status: 'pending' })
+          return sendJson(response, 200, pendingClaims.get(data.carId))
+        }
+        if (pathname === '/api/cars/add-existing') {
+          const match = findCarByVin(data.vin)
+          if (!match || match.id !== data.carId) return sendJson(response, 404, { message: 'Автомобиль не найден.' })
+          if (match.id === ownerCar.id) return sendJson(response, 409, { code: 'owner_approval_required', message: 'Требуется подтверждение владельца.' })
+          cabinetCars.set(match.id, match)
+          return sendJson(response, 200, { carId: match.id })
+        }
+        if (pathname === '/api/cars') {
+          if (!/^[A-Z0-9]{17}$/.test(data.vin) || !data.legalConsentAccepted || findCarByVin(data.vin)) {
+            return sendJson(response, 422, { message: 'Проверьте VIN и согласие на обработку данных.' })
+          }
+          const created = { ...data, id: randomUUID(), detailingId: detailing.id }
+          cabinetCars.set(created.id, created)
+          return sendJson(response, 201, created)
+        }
+      }
+      return sendJson(response, 405, { message: 'Method Not Allowed' })
     }
 
     const profileRoute = pathname === '/api/owners/me'
@@ -164,8 +236,6 @@ export function createDemoApi() {
     if (pathname === '/api/push/settings') return sendJson(response, 200, { enabled: false })
 
     // Выход в интерфейсе удаляет локальный токен, серверного вызова у клиента нет.
-    const token = request.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1]
-    const role = tokens.get(token)
     if (!role) return sendJson(response, 401, { message: 'Unauthenticated.' })
     const data = pathname.startsWith('/api/owners/')
       ? (role === 'owner' ? ownerData : undefined)

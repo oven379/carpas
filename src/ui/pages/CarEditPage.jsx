@@ -532,6 +532,9 @@ export default function CarEditPage({ mode }) {
         nav(carPath)
       }
     } catch (error) {
+      if (error?.body?.code === 'owner_approval_required') {
+        setDetailingFoundCar((match) => ({ ...match, ownerApprovalRequired: true }))
+      }
       setDetailingLinkError(formatHttpErrorMessage(error, 'Не удалось добавить автомобиль. Проверьте VIN ещё раз.'))
     }
   }
