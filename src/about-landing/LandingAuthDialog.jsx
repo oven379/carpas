@@ -27,8 +27,8 @@ const modes = {
   },
 }
 
-export function LandingAuthDialog({ initialMode, onClose }) {
-  const { login, register, forgotPassword } = useOwnerAuth()
+export function LandingAuthDialog({ initialMode, onClose, routeManaged = false }) {
+  const { login, register, forgotPassword, returnPath } = useOwnerAuth()
   const [mode, setMode] = useState(initialMode)
   const [phone, setPhone] = useState('')
   const [consent, setConsent] = useState(false)
@@ -160,9 +160,10 @@ export function LandingAuthDialog({ initialMode, onClose }) {
         ) : (
           <PartnerAuthLink
             to="/auth/partner"
+            state={{ from: returnPath }}
             className="landingAuthDialog__textAction"
             onClick={(event) => {
-              if (event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) closeDialog()
+              if (!routeManaged && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) closeDialog()
             }}
           >
             Вход для сервисов

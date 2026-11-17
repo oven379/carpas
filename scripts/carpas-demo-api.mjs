@@ -12,6 +12,22 @@ const demoOwner = {
   garageCity: 'Москва',
   garagePrivate: true,
 }
+const detailing = {
+  id: 'demo-partner',
+  email: 'partner@demo.car',
+  name: 'Демо-автосервис',
+  businessType: 'detailing',
+  profileCompleted: true,
+  city: 'Москва',
+}
+
+const partnerRoutes = new Map([
+  ['/api/me', { detailing }],
+  ['/api/cars', []],
+  ['/api/claims/inbox', []],
+  ['/api/detailings/crm/clients', { items: [], stats: {} }],
+])
+
 const car = {
   id: 'demo',
   make: 'Honda',
@@ -90,17 +106,17 @@ function sendJson(response, status, data, headers = {}) {
   }).end(JSON.stringify(data))
 }
 
-async function login(request, response, tokens, owner) {
+async function login(request, response, tokens, account, role) {
   const credentials = await json(request).catch(() => null)
   const email = typeof credentials?.email === 'string' ? credentials.email.trim().toLowerCase() : ''
   const password = typeof credentials?.password === 'string' ? credentials.password : ''
   if (!email || !password) return sendJson(response, 422, { ok: false, reason: 'bad_credentials' })
-  if (email !== owner.email) return sendJson(response, 401, { ok: false, reason: 'not_found' })
+  if (email !== account.email) return sendJson(response, 401, { ok: false, reason: 'not_found' })
   if (password !== '1111') return sendJson(response, 401, { ok: false, reason: 'bad_password' })
 
   const token = randomUUID()
-  tokens.add(token)
-  return sendJson(response, 200, { ok: true, owner, token })
+  tokens.set(token, role)
+  return sendJson(response, 200, { ok: true, [role]: account, token })
 }
 
 async function updateProfile(request, response, owner) {
@@ -119,22 +135,25 @@ async function updateProfile(request, response, owner) {
 
 export function createDemoApi() {
   const owner = { ...demoOwner }
-  const tokens = new Set()
+  const tokens = new Map()
   const photo = readFileSync(new URL('../src/assets/home-mountain-honda.webp', import.meta.url))
 
   return createServer(async (request, response) => {
     const { pathname } = new URL(request.url, `http://${host}`)
-    if (pathname === '/api/owners/login') {
+    if (pathname === '/api/owners/login' || pathname === '/api/detailings/login') {
       if (request.method !== 'POST') {
         return sendJson(response, 405, { message: 'Method Not Allowed' }, { Allow: 'POST' })
       }
-      return login(request, response, tokens, owner)
+      return pathname === '/api/owners/login'
+        ? login(request, response, tokens, owner, 'owner')
+        : login(request, response, tokens, detailing, 'detailing')
     }
 
     const profileRoute = pathname === '/api/owners/me'
     const ownerData = profileRoute ? { owner } : ownerRoutes.get(pathname)
     const publicRoute = pathname === photoPath || pathname === '/api/health' || pathname === '/api/push/settings'
-    if (!ownerData && !publicRoute) return sendJson(response, 404, { message: 'Not Found' })
+    const partnerData = partnerRoutes.get(pathname)
+    if (!ownerData && !partnerData && !publicRoute) return sendJson(response, 404, { message: 'Not Found' })
     const patchProfile = profileRoute && request.method === 'PATCH'
     if (request.method !== 'GET' && !patchProfile) {
       return sendJson(response, 405, { message: 'Method Not Allowed' }, { Allow: profileRoute ? 'GET, PATCH' : 'GET' })
@@ -146,9 +165,14 @@ export function createDemoApi() {
 
     // Выход в интерфейсе удаляет локальный токен, серверного вызова у клиента нет.
     const token = request.headers.authorization?.match(/^Bearer (\S+)$/i)?.[1]
-    if (!tokens.has(token)) return sendJson(response, 401, { message: 'Unauthenticated.' })
+    const role = tokens.get(token)
+    if (!role) return sendJson(response, 401, { message: 'Unauthenticated.' })
+    const data = pathname.startsWith('/api/owners/')
+      ? (role === 'owner' ? ownerData : undefined)
+      : partnerData ? (role === 'detailing' ? partnerData : undefined) : ownerData
+    if (!data) return sendJson(response, 403, { message: 'Forbidden' })
     if (patchProfile) return updateProfile(request, response, owner)
-    return sendJson(response, 200, ownerData)
+    return sendJson(response, 200, data)
   })
 }
 

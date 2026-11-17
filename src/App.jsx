@@ -211,9 +211,13 @@ export default function App() {
   const partnerAuthOpen = /^\/auth\/partner(?:\/apply)?\/?$/i.test(loc.pathname)
   const partnerAuthBackground = partnerAuthOpen ? loc.state?.partnerAuthBackground : null
   const partnerAuthFallback = isNativeApp() ? '/auth/owner' : '/auth'
-  const page = partnerAuthBackground || (partnerAuthOpen
-    ? { pathname: partnerAuthFallback, search: '', hash: '', state: loc.state, key: 'partner-auth-background' }
+  const webAuthOpen = !isNativeApp() && /^\/auth(?:\/owner)?\/?$/i.test(loc.pathname)
+  const background = partnerAuthBackground || (partnerAuthOpen
+    ? { ...loc, pathname: partnerAuthFallback, search: '', hash: '' }
     : loc)
+  const page = !isNativeApp() && /^\/auth(?:\/owner)?\/?$/i.test(background.pathname)
+    ? { ...background, pathname: '/', search: '', hash: '', state: null }
+    : background
   const adminSolo =
     page.pathname === '/admin/379team' || page.pathname === '/admin/panel'
   const guestMarketingChrome = guestMarketingSoloPath(page.pathname)
@@ -363,11 +367,16 @@ export default function App() {
             <Route path="/for-detailing" element={<Navigate to="/business" replace />} />
             <Route path="/policy" element={<PolicyPage />} />
             <Route path="/terms" element={<TermsPage />} />
-            <Route path="/auth" element={isNativeApp() ? <Navigate to="/auth/owner" replace /> : <AuthPage />} />
+            <Route path="/auth" element={<Navigate to="/auth/owner" replace />} />
             <Route path="/auth/owner" element={<OwnerAuthPage />} />
             <Route path="*" element={isNativeApp() ? <Navigate to="/" replace /> : <NotFoundPage />} />
           </Routes>
         </Suspense>
+        {webAuthOpen && (
+          <Suspense fallback={null}>
+            <AuthPage />
+          </Suspense>
+        )}
         {partnerAuthOpen && (
           <Suspense fallback={null}>
             <PartnerAuthDialog onClose={() => {

@@ -944,7 +944,7 @@ a.btn[data-variant='outline']:visited {
   font-size: 14px;
   line-height: 1.35;
   font-family: var(--font-sans);
-  background: var(--bg-elevated);
+  background: var(--bg-field);
   color: var(--text-primary);
 }
 
@@ -1083,7 +1083,7 @@ html[data-native-app='1'] .textarea {
   font-size: 14px;
   line-height: 1.35;
   font-family: var(--font-sans);
-  background: var(--bg-elevated);
+  background: var(--bg-field);
   color: var(--text-primary);
 }
 

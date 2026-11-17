@@ -1,5 +1,5 @@
 import { Link, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { CarFront, Copy, FileText, Gauge, History } from 'lucide-react'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, DropdownCaretIcon, OpenAction, PageLoadSpinner, Pill } from '../components.jsx'
@@ -20,7 +20,6 @@ import DefaultAvatar from '../DefaultAvatar.jsx'
 import { carDocFileBadgeLabel, carDocHasImageThumbnail } from '../../lib/carDocDisplay.js'
 import { VISIT_COMMENT_EMPTY_HINT } from '../../lib/visitCommentCopy.js'
 import {
-  initialCarDataExpanded,
   initialLastVisitExpanded,
   patchCarPageExpandPrefs,
   readCarPageExpandPrefs,
@@ -101,7 +100,8 @@ export default function CarPage() {
   const r = useRepo()
   const [washIdx, setWashIdx] = useState(0)
   const [ownerDataExpanded, setOwnerDataExpanded] = useState(true)
-  const [carDataExpanded, setCarDataExpanded] = useState(true)
+  const [activeTab, setActiveTab] = useState('visits')
+  const tabsId = useId()
   const [photoLb, setPhotoLb] = useState(null)
   const { detailingId, detailing, owner, mode, loading } = useDetailing()
   const ownerEmailResolved = String(owner?.email || '').trim()
@@ -277,7 +277,6 @@ export default function CarPage() {
     if (!id) return
     const p = readCarPageExpandPrefs(mode, id)
     setOwnerDataExpanded(initialLastVisitExpanded(p))
-    setCarDataExpanded(initialCarDataExpanded(p))
   }, [id, mode])
 
   const displayMileageKm = useMemo(() => {
@@ -330,6 +329,17 @@ export default function CarPage() {
         : 'К автомобилям'
 
   const newVisitPath = buildCarSubRoutePath(id, 'history', fromParam, { new: '1' })
+  const tabs = [
+    { key: 'visits', label: 'Визиты' },
+    { key: 'history', label: 'История' },
+  ]
+  if (mode === 'owner') tabs.push({ key: 'docs', label: 'Документы' })
+  const selectedTab = activeTab === 'docs' && mode !== 'owner' ? 'visits' : activeTab
+  const recentHistory = [...finalizedEvents]
+    .filter((event) => event.id != null)
+    .sort((a, b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0))
+    .slice(0, 6)
+
   const ownerLastVisitPath = lastHistoryEvent
     ? buildCarSubRoutePath(id, 'history', fromParam, { visit: String(lastHistoryEvent.id) })
     : ''
@@ -620,337 +630,305 @@ export default function CarPage() {
         </Card>
       ) : null}
 
-      <div className="split">
-        <div className="col gap carPage__splitMainCol">
-        <Card className="card pad">
-          {mode === 'owner' && ownerServiceSummary ? (
-            <>
-              <div className="row spread gap carPage__ownerDataBar">
-                <div className="cardTitle" style={{ margin: 0 }}>
-                  Последний визит
-                </div>
-                <button
-                  type="button"
-                  className="dropdownCaretBtn dropdownCaretBtn--suffix"
-                  aria-expanded={ownerDataExpanded ? 'true' : 'false'}
-                  onClick={() =>
-                    setOwnerDataExpanded((v) => {
-                      const next = !v
-                      patchCarPageExpandPrefs(mode, id, { lastVisit: next })
-                      return next
-                    })
-                  }
-                  title={ownerDataExpanded ? 'Свернуть' : 'Развернуть'}
-                  aria-label={
-                    ownerDataExpanded ? 'Свернуть блок «Последний визит»' : 'Развернуть блок «Последний визит»'
-                  }
-                >
-                  <DropdownCaretIcon open={ownerDataExpanded} />
-                </button>
-              </div>
+      <div className="carLight__sections">
+        <div
+          className="garageDash__tabs row gap wrap"
+          role="tablist"
+          aria-label="Разделы карточки автомобиля"
+          onKeyDown={(event) => {
+            const index = tabs.findIndex(({ key }) => key === selectedTab)
+            let nextIndex
+            if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length
+            else if (event.key === 'ArrowLeft') nextIndex = (index + tabs.length - 1) % tabs.length
+            else if (event.key === 'Home') nextIndex = 0
+            else if (event.key === 'End') nextIndex = tabs.length - 1
+            else return
+            event.preventDefault()
+            setActiveTab(tabs[nextIndex].key)
+            event.currentTarget.children[nextIndex]?.focus()
+          }}
+        >
+          {tabs.map(({ key, label }) => (
+            <button
+              key={key}
+              id={`${tabsId}-tab-${key}`}
+              type="button"
+              role="tab"
+              aria-selected={selectedTab === key}
+              aria-controls={`${tabsId}-panel-${key}`}
+              tabIndex={selectedTab === key ? 0 : -1}
+              className={`garageDash__tab${selectedTab === key ? ' garageDash__tab--active' : ''}`}
+              onClick={() => setActiveTab(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {tabs.map(({ key }) => (
+          <section
+            key={key}
+            id={`${tabsId}-panel-${key}`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-tab-${key}`}
+            tabIndex={0}
+            hidden={selectedTab !== key}
+          >
+            {selectedTab !== key ? null : (
+              <div className="col gap">
+                {key === 'visits' ? (
+                  <>
+                    <Card className="card pad">
+                      {mode === 'owner' && ownerServiceSummary ? (
+                        <>
+                          <div className="row spread gap carPage__ownerDataBar">
+                            <div className="cardTitle" style={{ margin: 0 }}>
+                              Последний визит
+                            </div>
+                            <button
+                              type="button"
+                              className="dropdownCaretBtn dropdownCaretBtn--suffix"
+                              aria-expanded={ownerDataExpanded ? 'true' : 'false'}
+                              onClick={() =>
+                                setOwnerDataExpanded((v) => {
+                                  const next = !v
+                                  patchCarPageExpandPrefs(mode, id, { lastVisit: next })
+                                  return next
+                                })
+                              }
+                              title={ownerDataExpanded ? 'Свернуть' : 'Развернуть'}
+                              aria-label={
+                                ownerDataExpanded ? 'Свернуть блок «Последний визит»' : 'Развернуть блок «Последний визит»'
+                              }
+                            >
+                              <DropdownCaretIcon open={ownerDataExpanded} />
+                            </button>
+                          </div>
 
-              {ownerDataExpanded ? (
-                <div className="carPage__ownerLastVisitExpandBleed">
-                  <div className="carPage__ownerServiceExpand">
-                  {ownerServiceSummary.kind === 'no_service' ? (
-                    <div className="carPage__ownerServiceSection carPage__ownerServiceSection--stack">
-                      {lastHistoryEvent && ownerLastVisitPath ? (
-                        <CarPageOwnerLastVisitPreview
-                          lastEvt={lastHistoryEvent}
-                          histPath={ownerLastVisitPath}
-                        />
+                          {ownerDataExpanded ? (
+                            <div className="carPage__ownerLastVisitExpandBleed">
+                              <div className="carPage__ownerServiceExpand">
+                              {ownerServiceSummary.kind === 'no_service' ? (
+                                <div className="carPage__ownerServiceSection carPage__ownerServiceSection--stack">
+                                  {lastHistoryEvent && ownerLastVisitPath ? (
+                                    <CarPageOwnerLastVisitPreview
+                                      lastEvt={lastHistoryEvent}
+                                      histPath={ownerLastVisitPath}
+                                    />
+                                  ) : (
+                                    <p className="muted small" style={{ margin: 0 }}>
+                                      Пока нет сохранённых визитов. Добавьте запись в разделе «История авто».
+                                    </p>
+                                  )}
+                                  <p className="muted small" style={{ margin: 0 }}>
+                                    После привязки к партнёру записи «от сервиса» появятся в этой истории.
+                                  </p>
+                                </div>
+                              ) : ownerServiceSummary.ownerLink === 'approved' || ownerServiceSummary.ownerLink === 'implicit' ? (
+                                <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
+                                  <div
+                                    className="carPage__historyServiceAvatar"
+                                    title={ownerApprovedServicingHeadline}
+                                    aria-label={ownerApprovedServicingHeadline}
+                                  >
+                                    {lastVisitFromDetailing ? (
+                                      servicingAtDetailingLogo ? (
+                                        <img alt="" src={servicingAtDetailingLogo} />
+                                      ) : (
+                                        <DefaultAvatar
+                                          fallback={servicingAtDetailingName || 'Сервис'}
+                                          alt=""
+                                        />
+                                      )
+                                    ) : ownerGarageAvatarResolved ? (
+                                      <img alt="" src={ownerGarageAvatarResolved} />
+                                    ) : (
+                                      <DefaultAvatar email={ownerEmailResolved} fallback={String(owner?.name || '').trim()} alt="" />
+                                    )}
+                                  </div>
+                                  <div className="carPage__ownerServiceStack">
+                                    <div className="carPage__ownerServiceHeadline">
+                                      <span className="metaStrong">Обслуживался:</span>{' '}
+                                      <span className="carPage__ownerServiceHeadlineSub">
+                                        {lastVisitFromDetailing ? (
+                                          <>
+                                            {servicingAtDetailingName || 'Сервис'}
+                                            {lastHistoryEvent?.at ? (
+                                              <>
+                                                {', '}
+                                                {fmtDateTime(lastHistoryEvent.at)}
+                                              </>
+                                            ) : null}
+                                          </>
+                                        ) : (
+                                          'в гараже'
+                                        )}
+                                      </span>
+                                    </div>
+                                    {lastHistoryEvent && ownerLastVisitPath ? (
+                                      <CarPageOwnerLastVisitPreview
+                                        lastEvt={lastHistoryEvent}
+                                        histPath={ownerLastVisitPath}
+                                      />
+                                    ) : (
+                                      <p className="muted small" style={{ margin: 0 }}>
+                                        Пока нет сохранённых визитов.
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              ) : ownerServiceSummary.ownerLink === 'pending' ? (
+                                <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
+                                  <div className="carPage__historyServiceAvatar" aria-hidden="true">
+                                    <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
+                                  </div>
+                                  <div className="carPage__ownerServiceStack">
+                                    <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
+                                    <div className="row gap wrap" style={{ margin: 0, alignItems: 'center' }}>
+                                      <Pill tone="neutral">Заявка на рассмотрении</Pill>
+                                    </div>
+                                    <p className="muted small" style={{ margin: 0 }}>
+                                      Детейлинг проверит заявку. После одобрения авто появится в вашем гараже со всей историей сервиса.
+                                    </p>
+                                    {lastHistoryEvent && ownerLastVisitPath ? (
+                                      <CarPageOwnerLastVisitPreview
+                                        lastEvt={lastHistoryEvent}
+                                        histPath={ownerLastVisitPath}
+                                      />
+                                    ) : null}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
+                                  <div className="carPage__historyServiceAvatar" aria-hidden="true">
+                                    <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
+                                  </div>
+                                  <div className="carPage__ownerServiceStack">
+                                    <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
+                                    <div className="row gap wrap" style={{ margin: 0, alignItems: 'center' }}>
+                                      <Pill tone="neutral">Заявка отклонена</Pill>
+                                    </div>
+                                    <p className="muted small" style={{ margin: 0 }}>
+                                      Уточните данные и свяжитесь с сервисом напрямую при необходимости.
+                                    </p>
+                                    {lastHistoryEvent && ownerLastVisitPath ? (
+                                      <CarPageOwnerLastVisitPreview
+                                        lastEvt={lastHistoryEvent}
+                                        histPath={ownerLastVisitPath}
+                                      />
+                                    ) : null}
+                                  </div>
+                                </div>
+                              )}
+                              </div>
+                              {lastVisitPhotosEmbedOwner}
+                            </div>
+                          ) : null}
+                        </>
                       ) : (
-                        <p className="muted small" style={{ margin: 0 }}>
-                          Пока нет сохранённых визитов. Добавьте запись в разделе «История авто».
-                        </p>
-                      )}
-                      <p className="muted small" style={{ margin: 0 }}>
-                        После привязки к партнёру записи «от сервиса» появятся в этой истории.
-                      </p>
-                    </div>
-                  ) : ownerServiceSummary.ownerLink === 'approved' || ownerServiceSummary.ownerLink === 'implicit' ? (
-                    <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
-                      <div
-                        className="carPage__historyServiceAvatar"
-                        title={ownerApprovedServicingHeadline}
-                        aria-label={ownerApprovedServicingHeadline}
-                      >
-                        {lastVisitFromDetailing ? (
-                          servicingAtDetailingLogo ? (
-                            <img alt="" src={servicingAtDetailingLogo} />
+                        <>
+                          <h2 className="h2">Последний визит</h2>
+                          {lastHistoryEvent && ownerLastVisitPath ? (
+                            <CarPageOwnerLastVisitPreview lastEvt={lastHistoryEvent} histPath={ownerLastVisitPath} />
                           ) : (
-                            <DefaultAvatar
-                              fallback={servicingAtDetailingName || 'Сервис'}
-                              alt=""
-                            />
-                          )
-                        ) : ownerGarageAvatarResolved ? (
-                          <img alt="" src={ownerGarageAvatarResolved} />
+                            <p className="muted small">Пока нет сохранённых визитов.</p>
+                          )}
+                        </>
+                      )}
+                    </Card>
+                    {mode === 'owner' && ownerServiceSummary ? null : lastVisitPhotosCard}
+                  </>
+                ) : key === 'history' ? (
+                  <>
+                    <Card className="card pad">
+                      <div className="row spread gap carPage__sectionRow carPage__sectionRow--center carPage__historyRow">
+                        <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><History size={20} aria-hidden="true" /></span> История авто</h2>
+                        <OpenAction
+                          to={buildCarSubRoutePath(id, 'history', fromParam)}
+                          title="Открыть историю обслуживания"
+                          aria-label="Открыть историю обслуживания авто"
+                        />
+                      </div>
+                      {recentHistory.length ? (
+                        <ul className="carLight__historyList">
+                          {recentHistory.map((event) => (
+                            <li key={event.id}>
+                              <Link className="garageDash__visitLink" to={buildCarSubRoutePath(id, 'history', fromParam, { visit: String(event.id) })}>
+                                <span className="garageDash__visitTitle">{event.title || 'Визит'}</span>
+                                {event.at ? <span className="garageDash__visitSub muted small">{fmtDate(event.at)}</span> : null}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : <div className="muted carLight__empty">Пока нет записей в истории.</div>}
+                    </Card>
+                    {mode === 'owner' ? <OwnerShareHistory carId={id} /> : null}
+                  </>
+                ) : (
+                  <>
+                    {mode === 'owner' ? (
+                      <Card className="card pad">
+                        <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
+                          <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><FileText size={20} aria-hidden="true" /></span> Документы:</h2>
+                          <OpenAction
+                            to={buildCarSubRoutePath(id, 'docs', fromParam)}
+                            title="Документы"
+                            aria-label="Открыть документы"
+                          />
+                        </div>
+                        {docs.length ? (
+                          <div className="thumbs">
+                            {docs.map((d) => {
+                              const src = resolvePublicMediaUrl(d.url)
+                              if (carDocHasImageThumbnail(d)) {
+                                const gi = docGalleryItems.findIndex((g) => g.id === d.id)
+                                return gi >= 0 ? (
+                                  <button
+                                    key={d.id}
+                                    type="button"
+                                    className="thumb thumb--lb photoFrame"
+                                    style={photoBgStyle(src)}
+                                    aria-label={d.title ? `Открыть: ${d.title}` : 'Открыть'}
+                                    onClick={() =>
+                                      setPhotoLb({
+                                        items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
+                                        startIndex: gi,
+                                      })
+                                    }
+                                  >
+                                    <img alt={d.title} src={src} />
+                                  </button>
+                                ) : (
+                                  <a key={d.id} className="thumb photoFrame" style={photoBgStyle(src)} href={src} target="_blank" rel="noreferrer">
+                                    <img alt={d.title} src={src} />
+                                  </a>
+                                )
+                              }
+                              return (
+                                <a
+                                  key={d.id}
+                                  className="thumb thumb--docFile"
+                                  href={src}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  title={d.title || 'Документ'}
+                                  aria-label={d.title ? `Открыть документ: ${d.title}` : 'Открыть документ'}
+                                >
+                                  <span className="thumb__docBadge">{carDocFileBadgeLabel(d)}</span>
+                                </a>
+                              )
+                            })}
+                          </div>
                         ) : (
-                          <DefaultAvatar email={ownerEmailResolved} fallback={String(owner?.name || '').trim()} alt="" />
+                          <div className="muted carLight__empty">Пока нет документов.</div>
                         )}
-                      </div>
-                      <div className="carPage__ownerServiceStack">
-                        <div className="carPage__ownerServiceHeadline">
-                          <span className="metaStrong">Обслуживался:</span>{' '}
-                          <span className="carPage__ownerServiceHeadlineSub">
-                            {lastVisitFromDetailing ? (
-                              <>
-                                {servicingAtDetailingName || 'Сервис'}
-                                {lastHistoryEvent?.at ? (
-                                  <>
-                                    {', '}
-                                    {fmtDateTime(lastHistoryEvent.at)}
-                                  </>
-                                ) : null}
-                              </>
-                            ) : (
-                              'в гараже'
-                            )}
-                          </span>
-                        </div>
-                        {lastHistoryEvent && ownerLastVisitPath ? (
-                          <CarPageOwnerLastVisitPreview
-                            lastEvt={lastHistoryEvent}
-                            histPath={ownerLastVisitPath}
-                          />
-                        ) : (
-                          <p className="muted small" style={{ margin: 0 }}>
-                            Пока нет сохранённых визитов.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : ownerServiceSummary.ownerLink === 'pending' ? (
-                    <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
-                      <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
-                      </div>
-                      <div className="carPage__ownerServiceStack">
-                        <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
-                        <div className="row gap wrap" style={{ margin: 0, alignItems: 'center' }}>
-                          <Pill tone="neutral">Заявка на рассмотрении</Pill>
-                        </div>
-                        <p className="muted small" style={{ margin: 0 }}>
-                          Детейлинг проверит заявку. После одобрения авто появится в вашем гараже со всей историей сервиса.
-                        </p>
-                        {lastHistoryEvent && ownerLastVisitPath ? (
-                          <CarPageOwnerLastVisitPreview
-                            lastEvt={lastHistoryEvent}
-                            histPath={ownerLastVisitPath}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="row gap wrap carPage__ownerServiceSection" style={{ alignItems: 'flex-start' }}>
-                      <div className="carPage__historyServiceAvatar" aria-hidden="true">
-                        <DefaultAvatar fallback={ownerServiceSummary.serviceName} alt="" />
-                      </div>
-                      <div className="carPage__ownerServiceStack">
-                        <div className="metaStrong">Сервис: {ownerServiceSummary.serviceName}</div>
-                        <div className="row gap wrap" style={{ margin: 0, alignItems: 'center' }}>
-                          <Pill tone="neutral">Заявка отклонена</Pill>
-                        </div>
-                        <p className="muted small" style={{ margin: 0 }}>
-                          Уточните данные и свяжитесь с сервисом напрямую при необходимости.
-                        </p>
-                        {lastHistoryEvent && ownerLastVisitPath ? (
-                          <CarPageOwnerLastVisitPreview
-                            lastEvt={lastHistoryEvent}
-                            histPath={ownerLastVisitPath}
-                          />
-                        ) : null}
-                      </div>
-                    </div>
-                  )}
-                  </div>
-                  {lastVisitPhotosEmbedOwner}
-                </div>
-              ) : null}
-
-              <div className="topBorder carPage__carDataSection">
-                <div className="row spread gap carPage__ownerDataBar carPage__carDataBar">
-                  <h2 className="h2 carPage__dataTitle">Данные автомобиля</h2>
-                  <button
-                    type="button"
-                    className="dropdownCaretBtn dropdownCaretBtn--suffix"
-                    aria-expanded={carDataExpanded ? 'true' : 'false'}
-                    onClick={() =>
-                      setCarDataExpanded((v) => {
-                        const next = !v
-                        patchCarPageExpandPrefs(mode, id, { carData: next })
-                        return next
-                      })
-                    }
-                    title={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
-                    aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
-                  >
-                    <DropdownCaretIcon open={carDataExpanded} />
-                  </button>
-                </div>
-                {carDataExpanded ? (
-                  <div className="kv">
-                    <div className="kv__row">
-                      <span className="kv__k">VIN</span>
-                      <span className="kv__v mono">{car.vin || '—'}</span>
-                    </div>
-                    <div className="kv__row">
-                      <span className="kv__k">Госномер</span>
-                      <span className="kv__v mono">{fmtPlateFull(car.plate, car.plateRegion) || '—'}</span>
-                    </div>
-                    <div className="kv__row">
-                      <span className="kv__k">Год</span>
-                      <span className="kv__v">{car.year || '—'}</span>
-                    </div>
-                    <div className="kv__row">
-                      <span className="kv__k">Пробег</span>
-                      <span className="kv__v">{fmtKm(displayMileageKm)}</span>
-                    </div>
-                    <div className="kv__row">
-                      <span className="kv__k">Обновлено</span>
-                      <span className="kv__v">{fmtDateTime(car.updatedAt)}</span>
-                    </div>
-                  </div>
-                ) : null}
+                      </Card>
+                    ) : null}
+                  </>
+                )}
               </div>
-            </>
-          ) : (
-            <>
-              <div className="row spread gap carPage__ownerDataBar carPage__carDataBar">
-                <h2 className="h2 carPage__dataTitle">Данные автомобиля</h2>
-                <button
-                  type="button"
-                  className="dropdownCaretBtn dropdownCaretBtn--suffix"
-                  aria-expanded={carDataExpanded ? 'true' : 'false'}
-                  onClick={() =>
-                    setCarDataExpanded((v) => {
-                      const next = !v
-                      patchCarPageExpandPrefs(mode, id, { carData: next })
-                      return next
-                    })
-                  }
-                  title={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
-                  aria-label={carDataExpanded ? 'Свернуть данные автомобиля' : 'Развернуть данные автомобиля'}
-                >
-                  <DropdownCaretIcon open={carDataExpanded} />
-                </button>
-              </div>
-              {carDataExpanded ? (
-                <div className="kv">
-                  <div className="kv__row">
-                    <span className="kv__k">VIN</span>
-                    <span className="kv__v mono">{car.vin || '—'}</span>
-                  </div>
-                  <div className="kv__row">
-                    <span className="kv__k">Госномер</span>
-                    <span className="kv__v mono">{fmtPlateFull(car.plate, car.plateRegion) || '—'}</span>
-                  </div>
-                  {mode === 'detailing' && (car.clientName || car.clientPhone) ? (
-                    <>
-                      <div className="kv__row">
-                        <span className="kv__k">Клиент</span>
-                        <span className="kv__v">{car.clientName || '—'}</span>
-                      </div>
-                      <div className="kv__row">
-                        <span className="kv__k">Телефон</span>
-                        <span className="kv__v mono">{car.clientPhone || '—'}</span>
-                      </div>
-                    </>
-                  ) : null}
-                  <div className="kv__row">
-                    <span className="kv__k">Год</span>
-                    <span className="kv__v">{car.year || '—'}</span>
-                  </div>
-                  <div className="kv__row">
-                    <span className="kv__k">Пробег</span>
-                    <span className="kv__v">{fmtKm(displayMileageKm)}</span>
-                  </div>
-                  <div className="kv__row">
-                    <span className="kv__k">Обновлено</span>
-                    <span className="kv__v">{fmtDateTime(car.updatedAt)}</span>
-                  </div>
-                </div>
-              ) : null}
-            </>
-          )}
-        </Card>
-        {mode === 'owner' && ownerServiceSummary ? null : lastVisitPhotosCard}
-        </div>
-
-        <div className="col gap">
-          <Card className="card pad">
-            <div className="row spread gap carPage__sectionRow carPage__sectionRow--center carPage__historyRow">
-              <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><History size={20} aria-hidden="true" /></span> История авто</h2>
-              <OpenAction
-                to={buildCarSubRoutePath(id, 'history', fromParam)}
-                title="Открыть историю обслуживания"
-                aria-label="Открыть историю обслуживания авто"
-              />
-            </div>
-          </Card>
-
-          {mode === 'owner' ? (
-            <Card className="card pad">
-              <div className="row spread gap carPage__sectionRow carPage__sectionRow--center">
-                <h2 className="h2 carPage__sectionTitle carPage__sectionTitle--solo"><span className="carLight__sectionIcon"><FileText size={20} aria-hidden="true" /></span> Документы:</h2>
-                <OpenAction
-                  to={buildCarSubRoutePath(id, 'docs', fromParam)}
-                  title="Документы"
-                  aria-label="Открыть документы"
-                />
-              </div>
-              {docs.length ? (
-                <div className="thumbs">
-                  {docs.map((d) => {
-                    const src = resolvePublicMediaUrl(d.url)
-                    if (carDocHasImageThumbnail(d)) {
-                      const gi = docGalleryItems.findIndex((g) => g.id === d.id)
-                      return gi >= 0 ? (
-                        <button
-                          key={d.id}
-                          type="button"
-                          className="thumb thumb--lb photoFrame"
-                          style={photoBgStyle(src)}
-                          aria-label={d.title ? `Открыть: ${d.title}` : 'Открыть'}
-                          onClick={() =>
-                            setPhotoLb({
-                              items: docGalleryItems.map((x) => ({ url: x.url, title: x.title })),
-                              startIndex: gi,
-                            })
-                          }
-                        >
-                          <img alt={d.title} src={src} />
-                        </button>
-                      ) : (
-                        <a key={d.id} className="thumb photoFrame" style={photoBgStyle(src)} href={src} target="_blank" rel="noreferrer">
-                          <img alt={d.title} src={src} />
-                        </a>
-                      )
-                    }
-                    return (
-                      <a
-                        key={d.id}
-                        className="thumb thumb--docFile"
-                        href={src}
-                        target="_blank"
-                        rel="noreferrer"
-                        title={d.title || 'Документ'}
-                        aria-label={d.title ? `Открыть документ: ${d.title}` : 'Открыть документ'}
-                      >
-                        <span className="thumb__docBadge">{carDocFileBadgeLabel(d)}</span>
-                      </a>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="muted carLight__empty">Пока нет документов.</div>
-              )}
-            </Card>
-          ) : null}
-
-          {mode === 'owner' ? <OwnerShareHistory carId={id} /> : null}
-        </div>
+            )}
+          </section>
+        ))}
       </div>
       <PhotoLightbox
         open={Boolean(photoLb)}

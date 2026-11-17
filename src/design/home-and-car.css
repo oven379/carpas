@@ -389,3 +389,17 @@
     transition-duration: .01ms;
   }
 }
+
+.carLight__sections > [role='tablist'] {
+  margin-bottom: 16px;
+}
+
+.carLight__historyList {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.carLight__historyList > li + li {
+  border-top: 1px solid var(--border-default);
+}
