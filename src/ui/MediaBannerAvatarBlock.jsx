@@ -7,6 +7,9 @@ import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 import { photoBgStyle } from '../lib/photoBg.js'
 
 const PRESETS = {
+  car: {
+    avatar: { maxW: 1200, maxH: 800, quality: 0.82, maxBytes: 2 * 1024 * 1024 },
+  },
   garage: {
     avatar: { maxW: 512, maxH: 512, quality: 0.86, maxBytes: 1024 * 1024 },
   },
@@ -104,7 +107,7 @@ export default function MediaBannerAvatarBlock({
       const url = await compressImageFile(f, preset.avatar)
       if (url) onAvatarUrl?.(url)
     } catch {
-      /* ignore */
+      showToast('Не удалось загрузить фото. Подойдут JPG, PNG или WebP.')
     }
   }
 

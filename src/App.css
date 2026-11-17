@@ -184,7 +184,7 @@
   flex: 0 0 auto;
 }
 
-/* Владелец: аватар в шапке → центр уведомлений и профиля */
+/* Владелец: аватар в шапке открывает меню профиля. */
 .nav__ownerGarageLink {
   appearance: none;
   margin: 0;
@@ -1245,7 +1245,8 @@ input.input:-webkit-autofill {
   overflow: visible;
 }
 
-.nav__notifyLink--owner {
+.nav__notifyLink--owner,
+.nav__linksScroll--partnerTools .nav__activityButton {
   background: var(--bg-elevated);
 }
 
@@ -1344,6 +1345,68 @@ button.nav__notifyLink {
   line-height: 18px;
   text-align: center;
   box-shadow: 0 0 0 2px var(--bg);
+}
+
+.navProfileDialog {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  width: min(280px, calc(100% - 32px));
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-surface);
+  color: var(--text-h);
+  box-shadow: 0 2px 6px #31261b0d, 0 12px 30px #31261b16;
+}
+
+.navProfileDialog::backdrop {
+  background: transparent;
+}
+
+.navProfileDialog__actions {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.navProfileDialog__item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.navProfileDialog__item:hover {
+  background: var(--surface-2);
+}
+
+.navProfileDialog__item--logout {
+  color: var(--danger);
+}
+
+.navProfileDialog__identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 45%, transparent);
+  overflow-wrap: anywhere;
+}
+
+.navProfileDialog__avatar {
+  display: block;
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 50%;
 }
 
 .profileCenter {
@@ -1579,44 +1642,15 @@ button.nav__notifyLink {
   margin-top: 16px;
 }
 
-.notificationsTabs {
-  display: flex;
-  gap: 8px;
-  margin: 0 0 16px;
-  overflow-x: auto;
-  scrollbar-width: thin;
+.notificationsPage__filters {
+  margin-bottom: 16px;
 }
 
-.notificationsTab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--card) 86%, var(--bg));
-  color: var(--text);
-  font: inherit;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.notificationsTab--markAll {
-  display: none;
-}
-
-.notificationsTab__count {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 7px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--text) 10%, transparent);
-  color: var(--text-h);
-  font-size: 12px;
-  line-height: 22px;
-  text-align: center;
+.notificationsPage__markAll {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  margin-inline-start: auto;
 }
 
 .notificationsList {
@@ -1754,38 +1788,6 @@ button.nav__notifyLink {
 
   .notificationsPage__head .h1 {
     font-size: 26px;
-  }
-
-  .notificationsPage__markAllTop {
-    display: none;
-  }
-
-  .notificationsTabs {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 7px;
-    overflow: visible;
-  }
-
-  .notificationsTab {
-    min-width: 0;
-    min-height: 34px;
-    gap: 5px;
-    padding: 0 8px;
-    font-size: 12px;
-    white-space: normal;
-  }
-
-  .notificationsTab--markAll {
-    display: inline-flex;
-  }
-
-  .notificationsTab__count {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    font-size: 10px;
-    line-height: 18px;
   }
 
   .notificationsList {
@@ -3594,7 +3596,7 @@ a.requestsCard__ownerAvatar--link:focus-visible {
   transform: rotate(135deg);
 }
 
-/* Единая «Назад»: шеврон акцентного цвета, без рамки и заливки */
+/* Единая «Назад»: шеврон акцентного цвета, позиционирование и светлая заливка */
 a.backNav {
   text-decoration: none;
   color: var(--accent);
@@ -3605,13 +3607,13 @@ a.backNav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  margin: 0 2px 0 -8px;
+  width: 44px;
+  height: 44px;
+  margin: 0;
   padding: 0;
   border: none;
-  border-radius: 10px;
-  background: transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
   color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
@@ -3625,8 +3627,8 @@ a.backNav {
 }
 
 .backNav:hover {
-  color: var(--accent-hover);
-  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .backNav:active {
@@ -4637,8 +4639,7 @@ a.backNav {
 }
 
 .garageDash__tab--active,
-.garageDash__tab--active:hover,
-.notificationsTab.is-active {
+.garageDash__tab--active:hover {
   color: var(--text-h);
   background: color-mix(in oklab, var(--surface-2) 90%, var(--accent-solid));
 }
@@ -5513,19 +5514,40 @@ button.garageSettings__thumb--avatar {
 }
 
 /* Лендинг: текст над блоком логотип/обложка */
-.detailingSettings__mediaLead {
-  margin: 0 0 12px;
+.detailingSettings__card {
+  margin-top: 20px;
 }
 
-@media (max-width: 768px) {
-  .detailingSettings__mediaLead {
-    margin-bottom: 8px;
-  }
-
-  .carEditCoverBlock__labelRow {
-    margin-bottom: 8px;
-  }
+.detailingSettings__section > .h2 {
+  margin: 0 0 16px;
 }
+
+.detailingSettings__fields {
+  margin-top: 24px;
+}
+
+.detailingSettings__fields > .h2 {
+  margin: 0;
+}
+
+.detailingSettings__sectionHeading {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 20px;
+}
+
+.detailingSettings__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 180px));
+  align-items: stretch;
+  margin-top: 24px;
+}
+
+.detailingSettings__actions > .btn {
+  min-height: 48px;
+  white-space: normal;
+  text-align: center;
+}
+
 
 .carEditCoverBlock__thumb {
   width: 100%;
@@ -6678,6 +6700,59 @@ a.thumbCard__fileDoc {
 
 .formGrid > * {
   min-width: 0;
+}
+
+.carEditFieldsContents {
+  display: contents;
+}
+
+.carVinMatch {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+}
+
+.carVinMatch__summary,
+.carVinMatch__specs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: 12px 20px;
+}
+
+.carVinMatch__photo {
+  width: min(100%, 180px);
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.carVinMatch__specs {
+  margin: 8px 0 0;
+}
+
+.carVinMatch__specs dt {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.carVinMatch__specs dd {
+  margin: 2px 0 0;
+}
+
+.carVinMatch p {
+  margin: 0;
+}
+
+.carEditSectionTitle {
+  margin: 0;
+}
+
+#car-edit-vin-hint .carEditSectionTitle {
+  margin-bottom: 12px;
 }
 
 .historyFormGrid {
@@ -8665,11 +8740,10 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 .adminPreview__table th {
-  font-weight: 650;
+  font-weight: 500;
   color: var(--muted);
   font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
 }
 
 .adminPreview__table tbody tr:hover td {
@@ -9351,15 +9425,18 @@ a.btn.carPage__recsAddVisitFull,
 }
 
 /* Показатели CRM: одна карточка, число над подписью, разделители между показателями. */
-.detCrm__stats {
-  margin: 0;
-  padding: 18px 0;
-}
-
 .detCrmStats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
   margin: 0;
+}
+
+@media (max-width: 640px) {
+  .detCrmStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
 }
 
 .detCrmStat {
@@ -9367,11 +9444,7 @@ a.btn.carPage__recsAddVisitFull,
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 2px 24px;
-}
-
-.detCrmStat + .detCrmStat {
-  border-left: 1px solid var(--border-subtle);
+  padding: 20px 24px;
 }
 
 .detCrmStat dd {
@@ -9396,64 +9469,43 @@ a.btn.carPage__recsAddVisitFull,
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .detCrm__search {
-  flex: 1 1 320px;
-  min-width: 220px;
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 0;
+  max-width: 400px;
+  margin-inline-start: auto;
 }
 
-.detCrm__filters {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: thin;
+.detCrm__search .input {
+  width: 100%;
+  padding-inline-start: 40px;
 }
 
-.detCrmFilter {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 8px;
-  background: color-mix(in oklab, var(--card) 86%, var(--bg));
-  color: var(--muted);
-  font: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  cursor: pointer;
+.detCrm__searchIcon {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
 }
 
-.detCrmFilter:hover,
-.detCrmFilter.is-active {
-  color: var(--text-h);
-  background: color-mix(in oklab, var(--accent) 12%, var(--card));
-}
-
-.detCrmFilter__badge {
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--accent);
-  color: var(--on-accent);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 900;
-  line-height: 1;
+.detCrm__results {
+  margin-top: 20px;
 }
 
 .detCrm__layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+}
+
+.detCrm__layout--withProfile {
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.85fr);
 }
 
 .detCrm__listCard {
@@ -9473,9 +9525,8 @@ a.btn.carPage__recsAddVisitFull,
   border-bottom: 1px solid var(--border);
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .detCrm__rows {
@@ -9995,7 +10046,6 @@ a.detCrmProfile__phone:hover {
     font-size: 26px;
   }
 
-  .detCrm__toolbar,
   .detCrm__head {
     flex-direction: column;
     align-items: stretch;
@@ -10005,32 +10055,13 @@ a.detCrmProfile__phone:hover {
     width: 100%;
   }
 
-  .detCrm__toolbar {
-    gap: 10px;
-  }
-
-  .detCrm__search {
-    flex-basis: auto;
-    min-width: 0;
-    width: 100%;
-  }
-
-  .detCrm__filters {
-    margin: 0 -2px;
-    padding: 0 2px 2px;
-  }
-
-  .detCrm__layout {
+  .detCrm__layout--withProfile {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .detCrm__side {
     position: static;
     order: -1;
-  }
-
-  .detCrm__side--empty {
-    display: none;
   }
 
   .detCrm__listHead {
@@ -10113,11 +10144,6 @@ a.detCrmProfile__phone:hover {
   }
 
   /* На телефоне показатели остаются видимыми, но занимают одну компактную строку. */
-  .detCrm__stats {
-    margin-bottom: 10px;
-    padding: 14px 0;
-  }
-
   .detCrmStat {
     gap: 4px;
     padding-inline: 10px;
@@ -10130,12 +10156,6 @@ a.detCrmProfile__phone:hover {
   .detCrmStat dt {
     font-size: 12px;
     line-height: 1.25;
-  }
-
-  .detCrmFilter {
-    min-height: 36px;
-    padding: 0 11px;
-    font-size: 13px;
   }
 
   .detCrmRow small,

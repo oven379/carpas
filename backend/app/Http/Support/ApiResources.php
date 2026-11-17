@@ -205,6 +205,18 @@ class ApiResources
         ];
     }
 
+    public static function carForDetailing(Car $car, bool $canViewContacts): array
+    {
+        $data = self::car($car);
+        if (! $canViewContacts) {
+            return array_diff_key($data, array_flip([
+                'clientName', 'clientPhone', 'clientEmail', 'ownerPhone', 'ownerEmail', 'ownerName', 'ownerAccountPhone',
+            ]));
+        }
+
+        return $data;
+    }
+
     public static function event(CarEvent $e, bool $includePrivateCrmFields = false): array
     {
         $e->loadMissing(['detailing']);

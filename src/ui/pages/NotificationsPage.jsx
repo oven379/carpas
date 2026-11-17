@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
+import { CheckCheck } from 'lucide-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Seo } from '../../seo/Seo.jsx'
 import { getApi } from '../../api/index.js'
@@ -7,6 +8,7 @@ import { fmtDateTime } from '../../lib/format.js'
 import { isNativeApp } from '../../lib/nativePlatform.js'
 import { syncNotificationBadge } from '../../lib/notificationBadge.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
+import { SectionTabs } from '../SectionTabs.jsx'
 import { BackNav, Button, Card, PageLoadSpinner } from '../components.jsx'
 
 function kindLabel(kind) {
@@ -103,6 +105,8 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [tab, setTab] = useState('new')
+  const tabsId = useId()
+  const panelId = `${tabsId}-panel`
 
   useEffect(() => {
     if (!authed) {
@@ -133,7 +137,6 @@ export default function NotificationsPage() {
 
   const items = useMemo(() => (Array.isArray(payload.items) ? payload.items : []), [payload.items])
   const unread = Number(payload.unread_count || 0)
-  const isDetailing = hasDetailingSession()
   const sortedItems = useMemo(() => {
     return [...items].sort((a, b) => ts(b.createdAt) - ts(a.createdAt))
   }, [items])
@@ -159,7 +162,13 @@ export default function NotificationsPage() {
   if (!authed) return <Navigate to="/auth" replace />
 
   const markAll = async () => {
-    await getApi().notificationsMarkAllRead()
+    try {
+      await getApi().notificationsMarkAllRead()
+    } catch (error) {
+      setErr(formatHttpErrorMessage(error, 'Не удалось отметить уведомления прочитанными'))
+      return
+    }
+    setErr('')
     syncNotificationBadge(0)
     setPayload((p) => ({
       ...p,
@@ -180,12 +189,6 @@ export default function NotificationsPage() {
     }))
     syncNotificationBadge(nextUnread)
     await getApi().notificationMarkRead(id).catch(() => {})
-  }
-
-  const clearAll = async () => {
-    await getApi().notificationsClear()
-    setPayload({ items: [], unread_count: 0 })
-    syncNotificationBadge(0)
   }
 
   const openNotification = async (n) => {
@@ -232,127 +235,118 @@ export default function NotificationsPage() {
             <h1 className="h1" style={{ margin: 0 }}>Уведомления</h1>
           </div>
         </div>
-        <div className="row gap wrap">
-          {!isDetailing ? (
-            <Button variant="ghost" className="btn" disabled={items.length === 0 || loading} onClick={clearAll}>
-              Очистить уведомления
-            </Button>
-          ) : null}
-        </div>
       </div>
 
-      <div className="notificationsTabs" role="tablist" aria-label="Фильтр уведомлений">
-        {tabs.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            role="tab"
-            aria-selected={tab === x.id}
-            className={`notificationsTab${tab === x.id ? ' is-active' : ''}`}
-            onClick={() => setTab(x.id)}
-          >
-            <span>{x.label}</span>
-            <span className="notificationsTab__count">{x.count}</span>
-          </button>
-        ))}
-        <button
-          type="button"
-          className="notificationsTab notificationsTab--markAll"
+      <div className="notificationsPage__filters row gap wrap align-center">
+        <SectionTabs
+          tabsId={tabsId}
+          panelId={panelId}
+          label="Фильтр уведомлений"
+          tabs={tabs.map(({ id, label, count }) => ({ key: id, label: `${label} (${count})` }))}
+          selectedTab={tab}
+          onSelect={setTab}
+        />
+        <Button
+          className="btn notificationsPage__markAll"
+          variant="ghost"
+          aria-label="Отметить все уведомления прочитанными"
+          title="Отметить все уведомления прочитанными"
           disabled={!unread || loading}
           onClick={markAll}
         >
-          <span>Прочитать все</span>
-          <span className="notificationsTab__count">{unread}</span>
-        </button>
+          <CheckCheck size={22} aria-hidden="true" />
+        </Button>
       </div>
 
-      {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
-      {err ? <Card className="pad notificationsPage__state"><p className="adminSupportErr">{err}</p></Card> : null}
-      {!loading && !err && visibleItems.length === 0 ? (
-        <Card className="pad notificationsPage__state">
-          <h2 className="h2">{tab === 'new' ? 'Новых нет' : tab === 'read' ? 'Сегодня пока пусто' : 'Архив пуст'}</h2>
-          <p className="muted">
-            {tab === 'new'
-              ? 'Здесь появятся новые заявки владельцев, рекомендованное время контакта и сервисные уведомления.'
-              : tab === 'read'
-                ? 'Здесь будут заявки и уведомления, которые менеджер открыл или закрыл сегодня.'
-                : 'Здесь будет история заявок и уведомлений от последних к более ранним.'}
-          </p>
-        </Card>
-      ) : null}
+      <div id={panelId} role="tabpanel" aria-labelledby={`${tabsId}-tab-${tab}`} tabIndex={0}>
+        {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
+        {err ? <Card className="pad notificationsPage__state"><p className="adminSupportErr">{err}</p></Card> : null}
+        {!loading && !err && visibleItems.length === 0 ? (
+          <Card className="pad notificationsPage__state">
+            <h2 className="h2">{tab === 'new' ? 'Новых нет' : tab === 'read' ? 'Сегодня пока пусто' : 'Архив пуст'}</h2>
+            <p className="muted">
+              {tab === 'new'
+                ? 'Здесь появятся новые заявки владельцев, рекомендованное время контакта и сервисные уведомления.'
+                : tab === 'read'
+                  ? 'Здесь будут заявки и уведомления, которые менеджер открыл или закрыл сегодня.'
+                  : 'Здесь будет история заявок и уведомлений от последних к более ранним.'}
+            </p>
+          </Card>
+        ) : null}
 
-      <div className="notificationsList">
-        {visibleItems.map((n) => {
-          const unreadItem = !n.readAt
-          const metaItems = notificationMetaItems(n)
-          const callPhone = notificationCallPhone(n)
-          const actionDetails = notificationActionDetails(n)
-          return (
-            <Card
-              key={n.id}
-              className={`notificationsItem${unreadItem ? ' notificationsItem--unread' : ''}`}
-              role="button"
-              tabIndex={0}
-              onClick={() => void openNotification(n)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault()
-                  void openNotification(n)
-                }
-              }}
-            >
-              <div className="notificationsItem__top">
-                <span className="notificationsItem__kind">{kindLabel(n.kind)}</span>
-                <span className="muted small">{fmtDateTime(n.createdAt)}</span>
-              </div>
-              <h2 className="notificationsItem__title">
-                {actionDetails?.title || n.title || 'Уведомление'}
-              </h2>
-              {actionDetails ? (
-                <div className="notificationsItem__details" aria-label="Детали заявки">
-                  {actionDetails.rows.map((item) => (
-                    <p key={`${item.label}-${item.value}`} className="notificationsItem__detailRow">
-                      <span>{item.label}:</span> {item.value}
-                    </p>
-                  ))}
+        <div className="notificationsList">
+          {visibleItems.map((n) => {
+            const unreadItem = !n.readAt
+            const metaItems = notificationMetaItems(n)
+            const callPhone = notificationCallPhone(n)
+            const actionDetails = notificationActionDetails(n)
+            return (
+              <Card
+                key={n.id}
+                className={`notificationsItem${unreadItem ? ' notificationsItem--unread' : ''}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => void openNotification(n)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    void openNotification(n)
+                  }
+                }}
+              >
+                <div className="notificationsItem__top">
+                  <span className="notificationsItem__kind">{kindLabel(n.kind)}</span>
+                  <span className="muted small">{fmtDateTime(n.createdAt)}</span>
                 </div>
-              ) : (
-                <p className="notificationsItem__body">{n.body}</p>
-              )}
-              {!actionDetails && metaItems.length ? (
-                <div className="notificationsItem__meta" aria-label="Детали уведомления">
-                  {metaItems.map((item) => (
-                    <span key={`${item.label}-${item.value}`} className="notificationsItem__metaItem">
-                      <span>{item.label}:</span> {item.value}
-                    </span>
-                  ))}
-                </div>
-              ) : null}
-              {callPhone ? (
-                <a
-                  className="link notificationsItem__callBtn"
-                  href={`tel:${callPhone.replace(/[^\d+]/g, '')}`}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Позвонить
-                </a>
-              ) : null}
-              {unreadItem ? (
-                <button
-                  type="button"
-                  className="btn notificationsItem__readBtn"
-                  data-variant="outline"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    void markRead(n.id)
-                  }}
-                >
-                  Отметить прочитанным
-                </button>
-              ) : null}
-            </Card>
-          )
-        })}
+                <h2 className="notificationsItem__title">
+                  {actionDetails?.title || n.title || 'Уведомление'}
+                </h2>
+                {actionDetails ? (
+                  <div className="notificationsItem__details" aria-label="Детали заявки">
+                    {actionDetails.rows.map((item) => (
+                      <p key={`${item.label}-${item.value}`} className="notificationsItem__detailRow">
+                        <span>{item.label}:</span> {item.value}
+                      </p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="notificationsItem__body">{n.body}</p>
+                )}
+                {!actionDetails && metaItems.length ? (
+                  <div className="notificationsItem__meta" aria-label="Детали уведомления">
+                    {metaItems.map((item) => (
+                      <span key={`${item.label}-${item.value}`} className="notificationsItem__metaItem">
+                        <span>{item.label}:</span> {item.value}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                {callPhone ? (
+                  <a
+                    className="link notificationsItem__callBtn"
+                    href={`tel:${callPhone.replace(/[^\d+]/g, '')}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Позвонить
+                  </a>
+                ) : null}
+                {unreadItem ? (
+                  <button
+                    type="button"
+                    className="btn notificationsItem__readBtn"
+                    data-variant="outline"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      void markRead(n.id)
+                    }}
+                  >
+                    Отметить прочитанным
+                  </button>
+                ) : null}
+              </Card>
+            )
+          })}
+        </div>
       </div>
     </main>
   )

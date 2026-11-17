@@ -32,16 +32,7 @@ class DetailingCrmController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
 
-        $fromEvents = CarEvent::query()
-            ->where('detailing_id', $d->id)
-            ->where('source', 'service')
-            ->distinct()
-            ->pluck('car_id');
-        $fromHome = Car::query()->where('detailing_id', $d->id)->pluck('id');
-        $ids = $fromEvents->merge($fromHome)->unique()->filter()->values();
-
-        $cars = Car::query()
-            ->whereIn('id', $ids)
+        $cars = DetailingCarAccess::cabinetCarsQuery($d)
             ->with(['owner', 'detailing'])
             ->withCount([
                 'events as service_visits_count' => fn ($q) => $q
@@ -51,6 +42,7 @@ class DetailingCrmController extends Controller
             ])
             ->orderByDesc('updated_at')
             ->get();
+        $ids = $cars->modelKeys();
 
         $lastEvents = CarEvent::query()
             ->where('detailing_id', $d->id)
@@ -90,7 +82,7 @@ class DetailingCrmController extends Controller
             ->get()
             ->keyBy('client_key');
 
-        $rows = $cars->map(function (Car $car) use ($lastEvents, $docsByEvent, $bookingRequests, $clientNotes) {
+        $rows = $cars->map(function (Car $car) use ($d, $lastEvents, $docsByEvent, $bookingRequests, $clientNotes) {
             $last = $lastEvents->get($car->id);
             $clientNoteKey = self::clientNoteKey($car);
             $clientNote = $clientNoteKey ? $clientNotes->get($clientNoteKey) : null;
@@ -106,15 +98,15 @@ class DetailingCrmController extends Controller
             $daysUntilNext = $nextAt ? now()->startOfDay()->diffInDays($nextAt->copy()->startOfDay(), false) : null;
             $needsReminder = $daysUntilNext !== null && $daysUntilNext <= 5;
             $isNew = (int) ($car->service_visits_count ?? 0) === 0;
-            $carData = ApiResources::car($car);
+            $canViewContacts = DetailingCarAccess::detailingOwnsCarRow($d, $car) || ! $isNew;
 
             return [
                 'id' => (string) $car->id,
-                'car' => $carData,
+                'car' => ApiResources::carForDetailing($car, $canViewContacts),
                 'client' => [
-                    'name' => trim((string) ($car->client_name ?: $car->owner?->name ?: '')),
-                    'phone' => trim((string) ($car->client_phone ?: $car->owner?->phone ?: $car->owner_phone ?: '')),
-                    'email' => trim((string) ($car->client_email ?: $car->owner?->email ?: '')),
+                    'name' => $canViewContacts ? trim((string) ($car->client_name ?: $car->owner?->name ?: '')) : '',
+                    'phone' => $canViewContacts ? trim((string) ($car->client_phone ?: $car->owner?->phone ?: $car->owner_phone ?: '')) : '',
+                    'email' => $canViewContacts ? trim((string) ($car->client_email ?: $car->owner?->email ?: '')) : '',
                     'note' => trim((string) ($clientNote?->note ?? '')),
                     'discountPercent' => $clientNote?->discount_percent !== null ? (int) $clientNote->discount_percent : null,
                     'isRegisteredOwner' => $car->owner_id !== null,
@@ -148,7 +140,7 @@ class DetailingCrmController extends Controller
                 ] : null,
                 'stats' => [
                     'visitsCount' => (int) ($car->service_visits_count ?? 0),
-                    'docsCount' => (int) ($car->docs_count ?? 0),
+                    'docsCount' => $canViewContacts ? (int) ($car->docs_count ?? 0) : 0,
                 ],
                 'bookingRequests' => $requests,
                 'bookingRequestsCount' => count($requests),

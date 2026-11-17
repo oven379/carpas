@@ -14,11 +14,11 @@ use App\Http\Support\PendingOwnerPool;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
 use App\Models\CarClaim;
-use App\Models\CarEvent;
 use App\Models\Detailing;
 use App\Models\Owner;
 use App\Services\InternalNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CarController extends Controller
@@ -29,20 +29,18 @@ class CarController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $fromEvents = CarEvent::query()
-            ->where('detailing_id', $d->id)
-            ->where('source', 'service')
-            ->distinct()
-            ->pluck('car_id');
-        $fromHome = Car::query()->where('detailing_id', $d->id)->pluck('id');
-        $ids = $fromEvents->merge($fromHome)->unique()->filter()->values();
-        $cars = Car::query()
-            ->whereIn('id', $ids)
-            ->with('owner')
+        $cars = DetailingCarAccess::cabinetCarsQuery($d)
+            ->with(['owner', 'detailing'])
+            ->withExists(['events as has_service_history' => fn ($events) => $events
+                ->where('detailing_id', $d->id)
+                ->where('source', 'service')])
             ->orderByDesc('updated_at')
             ->get();
 
-        return response()->json($cars->map(fn ($c) => ApiResources::car($c))->values());
+        return response()->json($cars->map(fn (Car $car) => ApiResources::carForDetailing(
+            $car,
+            DetailingCarAccess::detailingOwnsCarRow($d, $car) || $car->has_service_history,
+        ))->values());
     }
 
     public function show(Request $request, $id)
@@ -50,17 +48,49 @@ class CarController extends Controller
         /** @var Detailing $d */
         $d = $request->user();
         $car = DetailingCarAccess::findCarForDetailingOrFail($d, (int) $id);
-        $data = ApiResources::car($car);
-
         // «Сетевая» карточка без владельца открыта любому партнёру для ведения визитов, но контакты клиента другой студии
         // (имя, телефон, email) видит только студия, которой карточка принадлежит или у которой есть визиты по этому авто.
-        if (! DetailingCarAccess::detailingMayEditCarScalars($d, $car)) {
-            $data = array_diff_key($data, array_flip([
-                'clientName', 'clientPhone', 'clientEmail', 'ownerPhone', 'ownerEmail', 'ownerName', 'ownerAccountPhone',
-            ]));
+        return response()->json(ApiResources::carForDetailing($car, DetailingCarAccess::detailingMayEditCarScalars($d, $car)));
+    }
+
+    public function addExisting(Request $request)
+    {
+        /** @var Detailing $detailer */
+        $detailer = $request->user();
+        $data = $request->validate([
+            'carId' => ['required', 'integer', 'min:1'],
+            'vin' => ['required', 'string', 'max:64'],
+        ]);
+        $vin = VinPlateValidator::normalizeVin($data['vin']);
+        if (strlen($vin) !== 17) {
+            throw ValidationException::withMessages(['vin' => ['Укажите полный VIN из 17 символов.']]);
         }
 
-        return response()->json($data);
+        return DB::transaction(function () use ($data, $detailer, $vin) {
+            $car = Car::query()
+                ->whereRaw('lower(trim(vin)) = ?', [strtolower($vin)])
+                ->lockForUpdate()
+                ->findOrFail((int) $data['carId']);
+
+            if (DetailingCarAccess::isPendingOwnerCar($car)) {
+                return response()->json([
+                    'code' => 'car_reserved',
+                    'message' => 'Карточка зарезервирована до регистрации получателя.',
+                ], 409);
+            }
+            if (! DetailingCarAccess::cabinetCarsQuery($detailer)->whereKey($car->id)->exists()) {
+                if ($car->owner_id !== null) {
+                    return response()->json([
+                        'code' => 'owner_approval_required',
+                        'message' => 'Для добавления автомобиля нужно согласие владельца.',
+                    ], 409);
+                }
+
+                $car->detailingsWithCabinetLink()->attach($detailer->id);
+            }
+
+            return response()->json(['carId' => (string) $car->id]);
+        }, 3);
     }
 
     /**
@@ -376,12 +406,7 @@ class CarController extends Controller
     {
         /** @var Detailing $d */
         $d = $request->user();
-        $car = Car::query()->where('detailing_id', $d->id)->findOrFail($id);
-        if (! DetailingCarAccess::detailingOwnsCarRow($d, $car)) {
-            abort(404);
-        }
-
-        $removeFromDetailingCabinet->handle($d, $car);
+        $removeFromDetailingCabinet->handle($d, (int) $id);
 
         return response()->json(['ok' => true]);
     }

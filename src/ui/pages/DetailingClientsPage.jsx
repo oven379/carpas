@@ -1,5 +1,7 @@
+import { Search } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { SectionTabs } from '../SectionTabs.jsx'
 import { useRepo } from '../useRepo.js'
 import { BackNav, Card, Input, PageLoadSpinner, Pill } from '../components.jsx'
 import { useDetailing } from '../useDetailing.js'
@@ -157,6 +159,8 @@ export default function DetailingClientsPage() {
   const query = sp.get('q') || ''
   const filterRaw = sp.get('filter') || 'all'
   const filter = CLIENT_FILTERS.has(filterRaw) ? filterRaw : 'all'
+  const tabsId = useId()
+  const panelId = `${tabsId}-panel`
   const selectedId = sp.get('id') || ''
   const pageRaw = parseInt(sp.get('page') || '1', 10)
   const page = Number.isFinite(pageRaw) && pageRaw >= 1 ? pageRaw : 1
@@ -334,53 +338,57 @@ export default function DetailingClientsPage() {
       </div>
 
       <section className="detCrm__section" aria-label="Статистика">
-        <Card className="detCrm__stats">
-          <dl className="detCrmStats">
-            {[
-              ['Клиенты', stats.clients],
-              ['Авто', stats.cars],
-              [`Визиты в ${MONTH_IN_PREPOSITIONAL[new Date().getMonth()]}`, stats.visitsThisMonth],
-              ['Авто с визитами', stats.withVisits],
-            ].map(([label, value]) => (
-              <div className="detCrmStat" key={label}>
-                <dt>{label}</dt>
-                <dd>{Number(value) || 0}</dd>
-              </div>
-            ))}
-          </dl>
-        </Card>
+        <dl className="detCrmStats">
+          {[
+            ['Клиенты', stats.clients],
+            ['Авто', stats.cars],
+            [`Визиты в ${MONTH_IN_PREPOSITIONAL[new Date().getMonth()]}`, stats.visitsThisMonth],
+            ['Авто с визитами', stats.withVisits],
+          ].map(([label, value]) => (
+            <div className="card detCrmStat" key={label}>
+              <dt>{label}</dt>
+              <dd>{Number(value) || 0}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       {error ? <Card className="card pad detCrm__error">{error}</Card> : null}
 
-      <div className="detCrm__layout">
+      <div className={`detCrm__layout${selected ? ' detCrm__layout--withProfile' : ''}`}>
         <section className="detCrm__main" aria-labelledby="detCrmClientsTitle">
           <h2 className="h2 detCrm__sectionTitle" id="detCrmClientsTitle">Клиенты</h2>
-          <Card className="card pad detCrm__toolbar">
-            <Input
-              className="input detCrm__search"
-              value={query}
-              placeholder="Поиск по имени, телефону, VIN или госномеру"
-              aria-label="Поиск клиентов и автомобилей"
-              autoCapitalize="off"
-              autoComplete="off"
-              onChange={(e) => setQuery(e.target.value)}
+          <div className="detCrm__toolbar">
+            <SectionTabs
+              tabsId={tabsId}
+              panelId={panelId}
+              label="Фильтр клиентов"
+              tabs={filters.map(({ id, label, count }) => ({
+                key: id,
+                label: count > 0 ? `${label} (${count > 9 ? '9+' : count})` : label,
+              }))}
+              selectedTab={filter}
+              onSelect={setFilter}
             />
-            <div className="detCrm__filters">
-              {filters.map((f) => (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`detCrmFilter${filter === f.id ? ' is-active' : ''}`}
-                  onClick={() => setFilter(f.id)}
-                >
-                  <span>{f.label}</span>
-                  {f.count > 0 ? <span className="detCrmFilter__badge">{f.count > 9 ? '9+' : f.count}</span> : null}
-                </button>
-              ))}
+            <div className="detCrm__search">
+              <Search className="detCrm__searchIcon" size={18} aria-hidden="true" />
+              <Input
+                className="input"
+                value={query}
+                placeholder="Поиск по имени, телефону, VIN или госномеру"
+                aria-label="Поиск клиентов и автомобилей"
+                autoCapitalize="off"
+                autoComplete="off"
+                onChange={(e) => setQuery(e.target.value)}
+              />
             </div>
-          </Card>
-
+          </div>
+          <div
+            className="detCrm__results"
+            id={panelId}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-tab-${filter}`}
+          >
             <Card className="card detCrm__listCard">
               <div className="detCrm__listHead">
                 <span>Клиент</span>
@@ -466,10 +474,11 @@ export default function DetailingClientsPage() {
                 </div>
               ) : null}
             </Card>
+          </div>
         </section>
 
-        <aside ref={profileRef} className={`detCrm__side${selected ? '' : ' detCrm__side--empty'}`} aria-label="Карточка клиента">
-          {selected ? (
+        {selected ? (
+          <aside ref={profileRef} className="detCrm__side" aria-label="Карточка клиента">
             <Card className="card pad detCrmProfile">
               <div className="detCrmProfile__top">
                 <div className="detCrmProfile__avatar"><ClientAvatar row={selected} /></div>
@@ -638,10 +647,8 @@ export default function DetailingClientsPage() {
                 Добавить визит
               </button>
             </Card>
-          ) : (
-            <Card className="card pad muted">Выберите клиента из списка.</Card>
-          )}
-        </aside>
+          </aside>
+        ) : null}
       </div>
       <PhotoLightbox
         open={Boolean(photoLb)}

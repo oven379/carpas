@@ -1152,7 +1152,7 @@ export default function HistoryPage() {
       </div>
 
       {showHistoryTabs ? (
-        <div style={{ marginTop: 10 }}>
+        <div style={{ marginBlock: '10px 12px' }}>
           <SectionTabs
             tabsId={historyTabsId}
             panelId={historyPanelId}

@@ -253,7 +253,7 @@ export default function DetailingSettingsPage() {
           <div className="breadcrumbs">
             <span>Кабинет</span>
             <span> / </span>
-            <span>Лендинг</span>
+            <span>Компания</span>
           </div>
           <div id="detailing-settings-intro" className="row gap wrap" style={{ alignItems: 'center' }}>
             <BackNav
@@ -261,7 +261,7 @@ export default function DetailingSettingsPage() {
               title={detailing.profileCompleted === false ? 'К выбору входа' : 'Назад'}
             />
             <h1 className="h1" style={{ margin: 0 }}>
-              Настройки лендинга
+              Настройки компании
             </h1>
           </div>
           {detailing.profileCompleted === false ? (
@@ -272,52 +272,35 @@ export default function DetailingSettingsPage() {
         </div>
         <div className="row gap wrap" style={{ alignItems: 'center' }}>
           <Link className="btn" data-variant="outline" to={publicPath}>
-            Посмотреть лендинг
+            Предпросмотр
           </Link>
-          <button type="button" className="btn" data-variant="ghost" onClick={logout}>
-            Выйти
-          </button>
         </div>
       </div>
 
-      <Card className="card pad" style={{ marginTop: 12 }}>
-        <div className="topBorder" style={{ borderTop: 0, paddingTop: 0 }}>
-          <p className="muted small detailingSettings__mediaLead">
-            Логотип и обложка видны на публичной странице и в шапке кабинета.
-            {detailing.profileCompleted === false ? (
-              <> Для первого входа можно добавить позже — на переход в кабинет не влияет.</>
-            ) : null}
-          </p>
+      <Card className="card pad detailingSettings__card">
+        <section className="detailingSettings__section" aria-labelledby="company-media-title">
+          <h2 className="h2" id="company-media-title">Логотип и баннер</h2>
           <MediaBannerAvatarBlock
             variant="detailing"
-            title="Внешний вид лендинга"
             avatarLabel="Логотип"
-            bannerLabel="Настройка баннера"
+            bannerLabel="Баннер"
             bannerUrl={draft.cover}
             avatarUrl={draft.logo}
             onBannerUrl={(url) => setDraft((d) => ({ ...d, cover: url }))}
             onAvatarUrl={(url) => setDraft((d) => ({ ...d, logo: url }))}
             placeholderEmail={String(detailing?.email || '').trim()}
             placeholderFallback={String(draft.name || detailing.name || '').trim()}
-            avatarEmptyHint="Нажмите для загрузки"
-            bannerEmptyHint="Нажмите, чтобы загрузить баннер"
+            avatarEmptyHint="Загрузить логотип"
+            bannerEmptyHint="Загрузить баннер"
             bannerSpecHint={BANNER_UPLOAD_SPEC_LINE}
             showPhotoUploadHints={false}
             avatarRemoveLabel="Убрать логотип"
             bannerRemoveLabel="Убрать обложку"
           />
-        </div>
+        </section>
 
-        <div className="topBorder">
-          <div className="cardTitle" style={{ marginBottom: 8 }}>
-            Текст и контакты на лендинге
-          </div>
-          <p className="muted small" style={{ margin: 0 }}>
-            Название, адрес, телефон, услуги и ссылки — как на публичной странице по ссылке для клиентов.
-          </p>
-        </div>
-
-        <div className="formGrid">
+        <div className="formGrid detailingSettings__fields">
+          <h2 className="h2 field--full">Данные компании</h2>
           <Field label="Название" insetLabel>
             <Input
               className="input"
@@ -348,7 +331,7 @@ export default function DetailingSettingsPage() {
               autoComplete="tel"
             />
           </Field>
-          <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-city">
+          <div className="field serviceHint__fieldWrap" id="detailing-settings-city">
             <Field
               label="Город" insetLabel
             >
@@ -357,7 +340,7 @@ export default function DetailingSettingsPage() {
           </div>
           <Field
             label="Адрес" insetLabel
-            hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : 'необязательно'}
+            hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : undefined}
           >
             <Input
               className="input"
@@ -367,71 +350,10 @@ export default function DetailingSettingsPage() {
               autoComplete="street-address"
             />
           </Field>
-          <div className="field field--full">
-            <label className="detailingSettings__checkRow" htmlFor="detailing-settings-work-order">
-              <input
-                id="detailing-settings-work-order"
-                type="checkbox"
-                className="detailingSettings__checkInput"
-                checked={draft.workOrderEnabled}
-                onChange={(e) => setDraft((d) => ({ ...d, workOrderEnabled: e.target.checked }))}
-              />
-              <span>
-                <span className="field__label">Заказ-наряд</span>
-                <span className="muted small" style={{ display: 'block' }}>
-                  Поля заказ-наряда в визите (мастер-приёмщик, причина обращения, работы и запчасти с ценами, гарантия) и печать ЗН в PDF
-                </span>
-              </span>
-            </label>
-          </div>
-          {draft.workOrderEnabled ? (
-            <>
-              <Field label="ИНН / ОГРНИП" hint="для заказ-нарядов · необязательно">
-                <Input
-                  className="input"
-                  value={draft.inn}
-                  maxLength={30}
-                  onChange={(e) => setDraft((d) => ({ ...d, inn: e.target.value }))}
-                />
-              </Field>
-              <Field label="Юридическое название" hint="ИП / ООО — выводится в шапке ЗН · необязательно">
-                <Input
-                  className="input"
-                  value={draft.legalName}
-                  maxLength={255}
-                  onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, legalName: next })))}
-                />
-              </Field>
-              <Field label="Мастер-приёмщик (по умолчанию)" hint="для заказ-нарядов · необязательно">
-                <Input
-                  className="input"
-                  value={draft.masterName}
-                  maxLength={255}
-                  onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
-                />
-              </Field>
-              <Field className="field--full" label="Гарантийные обязательства" hint="текст для нижней части ЗН · необязательно">
-                <Textarea
-                  className="textarea"
-                  rows={4}
-                  value={draft.warrantyText}
-                  maxLength={5000}
-                  onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
-                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
-                />
-              </Field>
-            </>
-          ) : null}
           <Field
             className="field--full"
             label="Режим работы"
-            hint={
-              detailing.profileCompleted === false
-                ? 'Обязательно при первой настройке · показывается на вашей публичной странице и в шапке кабинета'
-                : 'Показывается на вашей публичной странице и в шапке кабинета'
-            }
+            hint={detailing.profileCompleted === false ? 'Обязательно при первой настройке' : undefined}
           >
             <Textarea
               className="textarea"
@@ -452,6 +374,38 @@ export default function DetailingSettingsPage() {
               )}
             />
           </Field>
+          <Field className="field--full" label="Описание">
+            <Textarea
+              className="textarea"
+              rows={4}
+              value={draft.description}
+              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, description: next })))}
+            />
+          </Field>
+          <Field label="Сайт">
+            <Input
+              className="input"
+              value={draft.website}
+              onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))}
+              inputMode="url"
+            />
+          </Field>
+          <Field label="Telegram">
+            <Input
+              className="input"
+              value={draft.telegram}
+              onChange={(e) => setDraft((d) => ({ ...d, telegram: e.target.value }))}
+            />
+          </Field>
+          <Field label="Instagram">
+            <Input
+              className="input"
+              value={draft.instagram}
+              onChange={(e) => setDraft((d) => ({ ...d, instagram: e.target.value }))}
+            />
+          </Field>
+          <h2 className="h2 field--full detailingSettings__sectionHeading">Услуги</h2>
           <div className="field field--full">
             <div className="detailingCustomOfferRow">
               <Input
@@ -488,7 +442,7 @@ export default function DetailingSettingsPage() {
               </button>
             </div>
             <p className="field__hint" id="detailing-custom-offer-hint">
-              До {DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов. Клиенты увидят услугу на вашей публичной странице, сотрудники — при создании визита.
+              До {DETAILING_CUSTOM_OFFER_INPUT_MAX_LEN} символов.
             </p>
             {customOffersOnly.length ? (
               <div className="row gap wrap" style={{ marginTop: 10 }}>
@@ -511,7 +465,6 @@ export default function DetailingSettingsPage() {
           <div className="field field--full">
             <div className="field__top">
               <span className="field__label">Свои категории услуг</span>
-              <span className="field__hint">необязательно · отображаются в форме визита отдельной группой</span>
             </div>
             {(draft.customServiceCategories || []).map((cat) => (
               <div key={cat._id} className="detCustomCat">
@@ -587,7 +540,7 @@ export default function DetailingSettingsPage() {
 
           <div className="field field--full serviceHint__fieldWrap" id="detailing-settings-services">
             <div className="field__top serviceHint__fieldTop">
-              <span className="field__label">Услуги</span>
+              <span className="field__label">Каталог услуг</span>
             </div>
             <p className="muted small" style={{ margin: '0 0 8px' }}>
               Детейлинг
@@ -654,40 +607,70 @@ export default function DetailingSettingsPage() {
               })}
             </div>
           </div>
-          <Field className="field--full" label="Описание" hint="необязательно">
-            <Textarea
-              className="textarea"
-              rows={4}
-              value={draft.description}
-              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
-              onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, description: next })))}
-            />
-          </Field>
-          <Field label="Сайт" hint="необязательно">
-            <Input
-              className="input"
-              value={draft.website}
-              onChange={(e) => setDraft((d) => ({ ...d, website: e.target.value }))}
-              inputMode="url"
-            />
-          </Field>
-          <Field label="Telegram" hint="необязательно">
-            <Input
-              className="input"
-              value={draft.telegram}
-              onChange={(e) => setDraft((d) => ({ ...d, telegram: e.target.value }))}
-            />
-          </Field>
-          <Field label="Instagram" hint="необязательно">
-            <Input
-              className="input"
-              value={draft.instagram}
-              onChange={(e) => setDraft((d) => ({ ...d, instagram: e.target.value }))}
-            />
-          </Field>
+          <h2 className="h2 field--full detailingSettings__sectionHeading">Документы сервиса</h2>
+          <div className="field field--full">
+            <label className="detailingSettings__checkRow" htmlFor="detailing-settings-work-order">
+              <input
+                id="detailing-settings-work-order"
+                type="checkbox"
+                className="detailingSettings__checkInput"
+                checked={draft.workOrderEnabled}
+                onChange={(e) => setDraft((d) => ({ ...d, workOrderEnabled: e.target.checked }))}
+              />
+              <span>
+                <span className="field__label">Заказ-наряд</span>
+                <span className="muted small" style={{ display: 'block' }}>
+                  Поля заказ-наряда в визите (мастер-приёмщик, причина обращения, работы и запчасти с ценами, гарантия) и печать ЗН в PDF
+                </span>
+              </span>
+            </label>
+          </div>
+          {draft.workOrderEnabled ? (
+            <>
+              <Field label="ИНН / ОГРНИП">
+                <Input
+                  className="input"
+                  value={draft.inn}
+                  maxLength={30}
+                  onChange={(e) => setDraft((d) => ({ ...d, inn: e.target.value }))}
+                />
+              </Field>
+              <Field label="Юридическое название" hint="ИП / ООО — выводится в шапке заказ-наряда">
+                <Input
+                  className="input"
+                  value={draft.legalName}
+                  maxLength={255}
+                  onChange={(e) => setDraft((d) => ({ ...d, legalName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, legalName: next })))}
+                />
+              </Field>
+              <Field label="Мастер-приёмщик (по умолчанию)">
+                <Input
+                  className="input"
+                  value={draft.masterName}
+                  maxLength={255}
+                  onChange={(e) => setDraft((d) => ({ ...d, masterName: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, masterName: next })))}
+                />
+              </Field>
+              <Field className="field--full" label="Гарантийные обязательства">
+                <Textarea
+                  className="textarea"
+                  rows={4}
+                  value={draft.warrantyText}
+                  maxLength={5000}
+                  onChange={(e) => setDraft((d) => ({ ...d, warrantyText: e.target.value }))}
+                  onBlur={createBlurFixRuFreeText((next) => setDraft((d) => ({ ...d, warrantyText: next })))}
+                />
+              </Field>
+            </>
+          ) : null}
         </div>
 
-        <div className="formActions topBorder historyFormActions">
+        <div className="formActions topBorder detailingSettings__actions">
+          <button type="button" className="btn" data-variant="ghost" onClick={logout}>
+            Выйти
+          </button>
           <Button
             className="btn"
             variant="primary"

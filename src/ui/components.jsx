@@ -10,9 +10,6 @@ import { PageLoadSpinner } from './PageLoadSpinner.jsx'
 import { useLogout } from './useLogout.js'
 import { resolvePublicMediaUrl } from '../lib/mediaUrl.js'
 import { getApi } from '../api/index.js'
-import { formatHttpErrorMessage } from '../api/http.js'
-import { fmtDateTime } from '../lib/format.js'
-import { isNativeApp } from '../lib/nativePlatform.js'
 import { syncNotificationBadge } from '../lib/notificationBadge.js'
 import { ComboBox } from './ComboBox.jsx'
 import {
@@ -458,210 +455,6 @@ export function BackNav({ className = '', title = 'Назад', to, fallbackTo, 
   )
 }
 
-function notificationKindLabel(kind) {
-  if (kind === 'car_ready') return 'Авто'
-  if (kind === 'service_reminder') return 'Напоминание'
-  if (kind === 'owner_booking_request_sent') return 'Запись'
-  if (kind === 'detailing_car_add_request') return 'Заявка'
-  if (kind === 'admin_broadcast') return 'Сервис'
-  if (kind === 'admin_test') return 'Тест'
-  return 'Уведомление'
-}
-
-function NotificationCenterOverlay({ open, owner, unreadCount, onClose, onLogout, onUnreadChange }) {
-  const nav = useNavigate()
-  const [payload, setPayload] = useState({ items: [], unread_count: unreadCount || 0 })
-  const [loading, setLoading] = useState(false)
-  const [err, setErr] = useState('')
-
-  const load = useCallback(async () => {
-    if (!open) return
-    setLoading(true)
-    setErr('')
-    try {
-      const data = await getApi().notifications()
-      const next = data && typeof data === 'object' ? data : { items: [], unread_count: 0 }
-      const count = Number(next.unread_count || 0)
-      setPayload(next)
-      onUnreadChange(count)
-      syncNotificationBadge(count)
-    } catch (e) {
-      setErr(formatHttpErrorMessage(e, 'Не удалось загрузить уведомления'))
-    } finally {
-      setLoading(false)
-    }
-  }, [onUnreadChange, open])
-
-  useEffect(() => {
-    if (!open) return
-    void load()
-  }, [load, open])
-
-  useEffect(() => {
-    if (!open) return undefined
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [onClose, open])
-
-  if (!open) return null
-
-  const items = Array.isArray(payload.items) ? payload.items : []
-  const unread = Number(payload.unread_count || 0)
-  const sessionOwner = owner || getSessionOwner() || {}
-  const displayName = String(sessionOwner.name || '').trim() || 'Личный гараж'
-
-  const updateUnread = (count, itemsPatch) => {
-    const nextCount = Math.max(0, Number(count || 0))
-    setPayload((p) => ({
-      ...p,
-      unread_count: nextCount,
-      items: typeof itemsPatch === 'function' ? itemsPatch(Array.isArray(p.items) ? p.items : []) : p.items,
-    }))
-    onUnreadChange(nextCount)
-    syncNotificationBadge(nextCount)
-  }
-
-  const markRead = async (n) => {
-    const wasUnread = !n.readAt
-    if (wasUnread) {
-      updateUnread(unread - 1, (list) =>
-        list.map((x) => (String(x.id) === String(n.id) ? { ...x, readAt: x.readAt || new Date().toISOString() } : x)),
-      )
-    }
-    await getApi().notificationMarkRead(n.id).catch(() => {})
-  }
-
-  const openNotification = async (n) => {
-    await markRead(n)
-    const carId = String(n?.data?.carId || '').trim()
-    const eventId = String(n?.data?.eventId || '').trim()
-    const detailingId = String(n?.data?.detailingId || '').trim()
-    onClose()
-    if (n?.kind === 'owner_booking_request_sent' && carId) {
-      const suffix = eventId ? `?visit=${encodeURIComponent(eventId)}` : ''
-      nav(`/car/${encodeURIComponent(carId)}/history${suffix}`)
-      return
-    }
-    if (n?.kind === 'detailing_car_add_request') {
-      nav('/requests')
-      return
-    }
-    if (detailingId && !isNativeApp()) {
-      nav(`/d/${encodeURIComponent(detailingId)}`)
-      return
-    }
-    if (detailingId && isNativeApp()) {
-      nav('/garage')
-    }
-  }
-
-  const clearAll = async () => {
-    await getApi().notificationsClear()
-    setPayload({ items: [], unread_count: 0 })
-    onUnreadChange(0)
-    syncNotificationBadge(0)
-  }
-
-  const goSettings = () => {
-    onClose()
-    nav('/garage/settings')
-  }
-
-  const logout = () => {
-    onClose()
-    onLogout()
-  }
-
-  const content = (
-    <div className="profileCenter" role="dialog" aria-modal="true" aria-label="Центр уведомлений и профиля">
-      <div className="profileCenter__sheet">
-        <div className="profileCenter__head">
-          <div className="profileCenter__profile">
-            <span className="profileCenter__avatar" aria-hidden="true">
-              {sessionOwner.garageAvatar ? (
-                <img alt="" src={resolvePublicMediaUrl(sessionOwner.garageAvatar)} />
-              ) : (
-                <DefaultAvatar
-                  email={String(sessionOwner.email || '').trim()}
-                  fallback={displayName}
-                  alt=""
-                  className="profileCenter__avatarDefault"
-                />
-              )}
-            </span>
-            <div>
-              <h2 className="profileCenter__title">Центр уведомлений</h2>
-              <p className="profileCenter__subtitle">{unread > 0 ? `Новых: ${unread}` : displayName}</p>
-            </div>
-          </div>
-          <button type="button" className="profileCenter__close" onClick={onClose} aria-label="Закрыть">
-            ×
-          </button>
-        </div>
-
-        <div className="profileCenter__actions">
-          <button type="button" className="btn" data-variant="outline" onClick={goSettings}>
-            Настройки гаража
-          </button>
-          <button type="button" className="btn" data-variant="ghost" disabled={items.length === 0 || loading} onClick={clearAll}>
-            Очистить уведомления
-          </button>
-        </div>
-
-        <div className="profileCenter__list" aria-live="polite">
-          {loading ? <PageLoadSpinner label="Загрузка уведомлений..." /> : null}
-          {err ? <Card className="pad profileCenter__state"><p className="adminSupportErr">{err}</p></Card> : null}
-          {!loading && !err && items.length === 0 ? (
-            <Card className="pad profileCenter__state">
-              <h3 className="h2">Пока пусто</h3>
-              <p className="muted">Здесь появятся сообщения от сервиса и детейлинга.</p>
-            </Card>
-          ) : null}
-          {items.map((n) => {
-            const unreadItem = !n.readAt
-            const canOpen = String(n?.data?.detailingId || '').trim() !== ''
-            return (
-              <button
-                key={n.id}
-                type="button"
-                className={`profileCenter__item${unreadItem ? ' profileCenter__item--unread' : ''}`}
-                onClick={() => void openNotification(n)}
-              >
-                <span className="profileCenter__itemTop">
-                  <span className="notificationsItem__kind">{notificationKindLabel(n.kind)}</span>
-                  <span className="muted small">{fmtDateTime(n.createdAt)}</span>
-                </span>
-                <span className="profileCenter__itemTitle">{n.title || 'Уведомление'}</span>
-                <span className="profileCenter__itemBody">{n.body}</span>
-                {canOpen ? <span className="profileCenter__itemHint">Открыть</span> : null}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="profileCenter__footer">
-          <button type="button" className="btn profileCenter__cancel" data-variant="outline" onClick={onClose}>
-            Отмена
-          </button>
-          <button type="button" className="btn profileCenter__logout" data-variant="ghost" onClick={logout}>
-            Выйти
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
-  return typeof document !== 'undefined' ? createPortal(content, document.body) : content
-}
-
 function BellIcon({ className = 'nav__notifySvg' }) {
   return (
     <svg className={className} viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
@@ -701,7 +494,7 @@ function GearIcon({ className = 'nav__notifySvg' }) {
   )
 }
 
-/** Выпадающее меню шестерёнки в кабинете детейлинга: вторичные разделы (Лендинг, Техкарты).
+/** Выпадающее меню шестерёнки в кабинете детейлинга: вторичные разделы (Компания, Техкарты).
  *  Закрытие по клику вне/Esc обрабатывается в TopNav на обёртке .nav__toolsWrap (чтобы повторный клик по шестерне закрывал меню). */
 function PartnerToolsMenu({ open, onClose, onLogout }) {
   const nav = useNavigate()
@@ -713,7 +506,7 @@ function PartnerToolsMenu({ open, onClose, onLogout }) {
   return (
     <div className="partnerToolsMenu" role="menu">
       <button type="button" className="partnerToolsMenu__item" role="menuitem" onClick={() => go('/detailing/landing')}>
-        Лендинг
+        Компания
       </button>
       <button type="button" className="partnerToolsMenu__item" role="menuitem" onClick={() => go('/detailing/tech-cards')}>
         Техкарты
@@ -824,7 +617,7 @@ export function TopNav() {
   const isDetailingCabinet = mode === 'detailing' && !isPublicDetailingPage
   const [pendingClaims, setPendingClaims] = useState(0)
   const [notificationsUnread, setNotificationsUnread] = useState(0)
-  const [profileCenterOpen, setProfileCenterOpen] = useState(false)
+  const profileDialogRef = useRef(null)
   const [partnerActivityOpen, setPartnerActivityOpen] = useState(false)
   const [partnerToolsOpen, setPartnerToolsOpen] = useState(false)
   const partnerToolsWrapRef = useRef(null)
@@ -900,6 +693,14 @@ export function TopNav() {
       window.clearInterval(pollId)
     }
   }, [loc.pathname, mode, isPublicShowcasePage])
+  const profileOwner = owner || getSessionOwner()
+  const ownerName = String(profileOwner?.name || '').trim()
+  const ownerEmail = String(profileOwner?.email || '').trim()
+  const ownerAvatar = profileOwner?.garageAvatar ? (
+    <img alt="" src={resolvePublicMediaUrl(profileOwner.garageAvatar)} className="nav__ownerGarageImg" />
+  ) : (
+    <DefaultAvatar email={ownerEmail} fallback={ownerName} alt="" className="nav__ownerGarageDefaultImg" />
+  )
   const logout = useLogout()
   const partnerActivityCount = Math.max(0, Number(pendingClaims || 0) + Number(notificationsUnread || 0))
   const partnerActivityActive = loc.pathname.startsWith('/requests') || loc.pathname.startsWith('/notifications')
@@ -937,10 +738,10 @@ export function TopNav() {
                         type="button"
                         className={`nav__notifyLink nav__activityButton${partnerToolsOpen || loc.pathname.startsWith('/detailing/landing') || loc.pathname.startsWith('/detailing/tech-cards') ? ' is-active' : ''}`}
                         onClick={() => setPartnerToolsOpen((v) => !v)}
-                        aria-label="Меню: лендинг и техкарты"
+                        aria-label="Меню: компания и техкарты"
                         aria-haspopup="menu"
                         aria-expanded={partnerToolsOpen}
-                        title="Лендинг и техкарты"
+                        title="Компания и техкарты"
                       >
                         <GearIcon />
                       </button>
@@ -984,20 +785,19 @@ export function TopNav() {
                         <button
                           type="button"
                           className="nav__ownerGarageLink"
-                          onClick={() => setProfileCenterOpen(true)}
-                          aria-label="Центр уведомлений и профиля"
+                          onClick={(event) => {
+                            const dialog = profileDialogRef.current
+                            if (!dialog || dialog.open) return
+                            const avatar = event.currentTarget.getBoundingClientRect()
+                            dialog.style.top = `${avatar.bottom + 8}px`
+                            dialog.style.right = `${Math.max(8, document.documentElement.clientWidth - avatar.right)}px`
+                            dialog.showModal()
+                          }}
+                          aria-label="Открыть меню профиля"
+                          aria-haspopup="dialog"
                           title="Профиль"
                         >
-                          {owner?.garageAvatar ? (
-                            <img alt="" src={resolvePublicMediaUrl(owner.garageAvatar)} className="nav__ownerGarageImg" />
-                          ) : (
-                            <DefaultAvatar
-                              email={String((owner || getSessionOwner())?.email || '').trim()}
-                              fallback={String((owner || getSessionOwner())?.name || '').trim()}
-                              alt=""
-                              className="nav__ownerGarageDefaultImg"
-                            />
-                          )}
+                          {ownerAvatar}
                         </button>
                       </>
                     ) : null}
@@ -1009,14 +809,38 @@ export function TopNav() {
         </nav>
       </div>
       {mode === 'owner' ? (
-        <NotificationCenterOverlay
-          open={profileCenterOpen}
-          owner={owner}
-          unreadCount={notificationsUnread}
-          onClose={() => setProfileCenterOpen(false)}
-          onLogout={logout}
-          onUnreadChange={setNotificationsUnread}
-        />
+        <dialog
+          ref={profileDialogRef}
+          className="navProfileDialog"
+          aria-label="Меню профиля"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) event.currentTarget.close()
+          }}
+        >
+          <div className="navProfileDialog__actions">
+            <div className="navProfileDialog__identity">
+              <span className="navProfileDialog__avatar" aria-hidden="true">{ownerAvatar}</span>
+              <strong>{ownerName || ownerEmail || 'Личный гараж'}</strong>
+            </div>
+            <Link
+              className="navProfileDialog__item"
+              to="/garage/settings"
+              onClick={() => profileDialogRef.current?.close()}
+            >
+              Профиль
+            </Link>
+            <button
+              type="button"
+              className="navProfileDialog__item navProfileDialog__item--logout"
+              onClick={() => {
+                profileDialogRef.current?.close()
+                logout()
+              }}
+            >
+              Выйти
+            </button>
+          </div>
+        </dialog>
       ) : null}
       {mode === 'detailing' ? (
         <PartnerActivityOverlay

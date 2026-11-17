@@ -149,6 +149,7 @@ Route::middleware(['auth:sanctum', 'ensure.detailing'])->group(function () {
     Route::patch('/detailings/service-booking-requests/{id}', [ServiceBookingRequestController::class, 'updateDetailing']);
 
     Route::get('/cars/search-duplicate', [CarSearchController::class, 'duplicateCandidatesForDetailing']);
+    Route::post('/cars/add-existing', [CarController::class, 'addExisting']);
     Route::post('/cars/link-from-personal-garage', [CarController::class, 'linkFromPersonalGarage']);
 
     Route::get('/cars', [CarController::class, 'index']);

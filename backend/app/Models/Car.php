@@ -6,6 +6,7 @@ use App\Http\Support\MediaStorage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Car extends Model
@@ -52,6 +53,11 @@ class Car extends Model
     public function owner(): BelongsTo
     {
         return $this->belongsTo(Owner::class, 'owner_id');
+    }
+
+    public function detailingsWithCabinetLink(): BelongsToMany
+    {
+        return $this->belongsToMany(Detailing::class, 'detailing_cabinet_cars');
     }
 
     public function events(): HasMany

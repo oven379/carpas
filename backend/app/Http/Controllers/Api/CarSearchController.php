@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Support\ApiResources;
+use App\Http\Support\DetailingCarAccess;
 use App\Http\Support\OwnerGarageCar;
 use App\Http\Support\VinPlateValidator;
 use App\Models\Car;
+use App\Models\Detailing;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -40,20 +42,31 @@ class CarSearchController extends Controller
             ->with(['detailing', 'owner']);
     }
 
-    private static function mapCarRows(Collection $cars)
+    private static function mapCarRows(Collection $cars, ?Detailing $detailing = null)
     {
-        return $cars
+        $cars = $cars
             ->unique('id')
             ->sortByDesc('updated_at')
             ->take(20)
-            ->values()
-            ->map(function (Car $c) {
-                $row = ApiResources::carSearchResult($c);
-                $row['detailingName'] = $c->detailing?->name ?? '';
-                $row['vinHitFromOwnerGarage'] = OwnerGarageCar::isGarageOnly($c);
+            ->values();
+        $cabinetIds = $detailing && $cars->isNotEmpty()
+            ? DetailingCarAccess::cabinetCarsQuery($detailing)->whereKey($cars->pluck('id')->all())->pluck('id')->flip()
+            : collect();
 
-                return $row;
-            });
+        return $cars->map(function (Car $c) use ($detailing, $cabinetIds) {
+            $row = ApiResources::carSearchResult($c);
+            $row['detailingName'] = $c->detailing?->name ?? '';
+            $row['vinHitFromOwnerGarage'] = OwnerGarageCar::isGarageOnly($c);
+            if ($detailing !== null) {
+                $inCabinet = $cabinetIds->has($c->id);
+                $reserved = DetailingCarAccess::isPendingOwnerCar($c);
+                $row['alreadyInDetailingCabinet'] = $inCabinet;
+                $row['ownerApprovalRequired'] = ! $reserved && ! $inCabinet && $c->owner_id !== null;
+                $row['canAddToDetailing'] = ! $reserved;
+            }
+
+            return $row;
+        });
     }
 
     /**
@@ -183,16 +196,7 @@ class CarSearchController extends Controller
 
         if ($wantVin) {
             $found = $found->merge(
-                self::studioLinkedCarsQuery()
-                    ->whereRaw('lower(trim(vin)) = ?', [$vin])
-                    ->orderByDesc('updated_at')
-                    ->limit(50)
-                    ->get(),
-            );
-            $found = $found->merge(
                 Car::query()
-                    ->whereNotNull('owner_id')
-                    ->whereNull('detailing_id')
                     ->whereRaw('lower(trim(vin)) = ?', [$vin])
                     ->with(['detailing', 'owner'])
                     ->orderByDesc('updated_at')
@@ -242,7 +246,7 @@ class CarSearchController extends Controller
             );
         }
 
-        return response()->json(self::mapCarRows($found));
+        return response()->json(self::mapCarRows($found, $wantVin ? $request->user() : null));
     }
 
     public function byVin(Request $request)

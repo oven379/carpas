@@ -326,6 +326,16 @@ export function createApiClient() {
       return await req('cars/for-visit', { method: 'POST', body, token: dTok() })
     },
 
+    async addExistingCarToDetailing({ carId, vin }) {
+      const result = await req('cars/add-existing', {
+        method: 'POST',
+        body: { carId, vin },
+        token: dTok(),
+      })
+      flushCoalescedRequests()
+      return result
+    },
+
     /** Владелец: шаг добавления авто — статус not_found | orphan | claimed. */
     async lookupOwnerCarForAdd(vin) {
       const v = String(vin || '').trim()
