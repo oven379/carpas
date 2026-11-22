@@ -1,5 +1,6 @@
 /** Единый бренд в title и og:site_name */
-export const SITE_NAME = 'CarPass'
+export const SITE_NAME = 'Карпас'
+export const SITE_ALTERNATE_NAME = 'carpas'
 
 /** Подстановка для og:image, если нет фото страницы (PNG 1200×630 — для превью при шаринге в соцсетях). */
 export const SEO_DEFAULT_OG_IMAGE_PATH = '/og.png'

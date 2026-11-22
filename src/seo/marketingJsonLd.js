@@ -1,5 +1,5 @@
 import { absoluteUrl } from '../lib/siteOrigin.js'
-import { SITE_NAME } from './seoConstants.js'
+import { SITE_ALTERNATE_NAME, SITE_NAME } from './seoConstants.js'
 
 export function buildBreadcrumbJsonLd(items) {
   return {
@@ -19,6 +19,7 @@ export function buildSoftwareJsonLd({ path, name, description, audience }) {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: name.replaceAll('КарПас', SITE_NAME),
+    alternateName: SITE_ALTERNATE_NAME,
     applicationCategory: 'AutoApplication',
     operatingSystem: 'iOS, Android, Web',
     url: absoluteUrl(path),

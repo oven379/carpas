@@ -1,5 +1,5 @@
 import { absoluteUrl } from '../lib/siteOrigin.js'
-import { SITE_NAME } from './seoConstants.js'
+import { SITE_ALTERNATE_NAME, SITE_NAME } from './seoConstants.js'
 
 export function buildHomePageJsonLd() {
   const homeUrl = absoluteUrl('/')
@@ -9,6 +9,7 @@ export function buildHomePageJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAME,
     description:
       'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга, тюнинга и СТО. Публичная ссылка на историю при продаже авто.',
     sameAs: ['https://rutube.ru/channel/32016425/', 'https://dzen.ru/itteam379'],
@@ -22,6 +23,7 @@ export function buildHomePageJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAME,
     inLanguage: 'ru-RU',
     publisher: { '@type': 'Organization', name: SITE_NAME },
   }
@@ -31,6 +33,7 @@ export function buildHomePageJsonLd() {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
     name: SITE_NAME,
+    alternateName: SITE_ALTERNATE_NAME,
     applicationCategory: 'AutoApplication',
     operatingSystem: 'iOS, Android, Web',
     description:
