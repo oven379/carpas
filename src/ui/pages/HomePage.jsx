@@ -5,7 +5,6 @@ import { CarFront, ChevronDown, Heart, Layers, ShieldCheck, Users, Wrench } from
 import { Seo } from '../../seo/Seo.jsx'
 import { HOME_META_DESCRIPTION, HOME_TITLE } from '../../seo/seoConstants.js'
 import { buildHomePageJsonLd } from '../../seo/homePageJsonLd.js'
-import { truncateMetaDescription } from '../../seo/seoUtils.js'
 import { hasDetailingSession, hasOwnerSession } from '../auth.js'
 import { SUPPORT_LINK_HREF } from '../supportConfig.js'
 import { finishLogout, LOGOUT_STATE_KEY } from '../useLogout.js'
@@ -85,7 +84,6 @@ export default function HomePage() {
   const loggingOut = Boolean(loc.state?.[LOGOUT_STATE_KEY])
   const [hadOwnerSession] = useState(() => !loggingOut && hasOwnerSession())
   const homeJsonLd = useMemo(() => buildHomePageJsonLd(), [])
-  const seoDesc = truncateMetaDescription(HOME_META_DESCRIPTION)
 
   // Выход из кабинета: сессию очищаем уже на главной, иначе защита кабинета уводит на /auth/owner.
   useLayoutEffect(() => {
@@ -103,7 +101,7 @@ export default function HomePage() {
 
   return (
     <div className="aboutLanding homeLight">
-      <Seo title={HOME_TITLE} description={seoDesc} canonicalPath="/" jsonLd={homeJsonLd} />
+      <Seo title={HOME_TITLE} description={HOME_META_DESCRIPTION} canonicalPath="/" jsonLd={homeJsonLd} />
       <LandingNav sections={HOME_SECTIONS} />
       <div className="homeOpening"><HomeHero /></div>
 

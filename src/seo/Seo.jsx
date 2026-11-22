@@ -43,7 +43,8 @@ function upsertCanonical(href) {
  */
 export function Seo({ title, description, canonicalPath, noindex = false, ogType = 'website', ogImage, jsonLd }) {
   const brandedTitle = title.replaceAll('КарПас', SITE_NAME)
-  const desc = description ? truncateMetaDescription(description.replaceAll('КарПас', SITE_NAME)) : ''
+  const brandedDescription = description?.replaceAll('КарПас', SITE_NAME) ?? ''
+  const desc = canonicalPath === '/' ? brandedDescription : truncateMetaDescription(brandedDescription)
   const canonical = canonicalPath != null && canonicalPath !== '' ? absoluteUrl(canonicalPath) : null
   let ogImageAbs = ''
   if (ogImage) {
