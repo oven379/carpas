@@ -6,7 +6,7 @@ export const SITE_ALTERNATE_NAME = 'carpas'
 export const SEO_DEFAULT_OG_IMAGE_PATH = '/og.png'
 
 /** Маркетинговая главная — обзор сервиса (маршрут /), точка входа для владельцев и бизнеса */
-export const HOME_TITLE = 'CarPass — бортовой журнал вашего автомобиля (ICRM) для детейлинга STO'
+export const HOME_TITLE = 'Карпас (Carpas) — бортовой журнал вашего автомобиля (ICRM) для детейлинга STO'
 
 export const HOME_META_DESCRIPTION =
   'Карпас — бортовой журнал автомобиля в вашем телефоне. Записывайте мойки, ТО и ремонты. Для детейлинг-студий и СТО — система учёта клиентов, автомобилей и визитов.'
