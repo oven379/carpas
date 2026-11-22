@@ -1,4 +1,5 @@
 import { absoluteUrl } from '../lib/siteOrigin.js'
+import { SITE_NAME } from './seoConstants.js'
 
 export function buildHomePageJsonLd() {
   const homeUrl = absoluteUrl('/')
@@ -7,27 +8,7 @@ export function buildHomePageJsonLd() {
   const org = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
-    name: 'КарПас',
-    alternateName: [
-      'КарПас',
-      'КарПасс',
-      'Кар Пас',
-      'Кар Пасс',
-      'кар пасс',
-      'кар пассс',
-      'карпас',
-      'карпасс',
-      'карпассс',
-      'карпаспорт',
-      'кар паспорт',
-      'Car Pass',
-      'Car Passs',
-      'Carpas',
-      'Carpass',
-      'carpass',
-      'carpasss',
-      'car passport',
-    ],
+    name: SITE_NAME,
     description:
       'Сервис истории обслуживания автомобилей в России для владельцев, детейлинга, тюнинга и СТО. Публичная ссылка на историю при продаже авто.',
     sameAs: ['https://rutube.ru/channel/32016425/', 'https://dzen.ru/itteam379'],
@@ -40,18 +21,16 @@ export function buildHomePageJsonLd() {
   const website = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'КарПас',
-    alternateName: ['Кар Пас', 'карпас', 'карпасс', 'Carpas', 'carpass'],
+    name: SITE_NAME,
     inLanguage: 'ru-RU',
-    publisher: { '@type': 'Organization', name: 'КарПас', alternateName: 'Carpass' },
+    publisher: { '@type': 'Organization', name: SITE_NAME },
   }
   if (absOk) website.url = homeUrl
 
   const app = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name: 'КарПас',
-    alternateName: 'Carpass',
+    name: SITE_NAME,
     applicationCategory: 'AutoApplication',
     operatingSystem: 'iOS, Android, Web',
     description:

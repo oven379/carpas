@@ -42,7 +42,8 @@ function upsertCanonical(href) {
  * @param {object|object[]} [props.jsonLd] — один или несколько объектов schema.org
  */
 export function Seo({ title, description, canonicalPath, noindex = false, ogType = 'website', ogImage, jsonLd }) {
-  const desc = description ? truncateMetaDescription(description) : ''
+  const brandedTitle = title.replaceAll('КарПас', SITE_NAME)
+  const desc = description ? truncateMetaDescription(description.replaceAll('КарПас', SITE_NAME)) : ''
   const canonical = canonicalPath != null && canonicalPath !== '' ? absoluteUrl(canonicalPath) : null
   let ogImageAbs = ''
   if (ogImage) {
@@ -58,7 +59,7 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
   const yandexVerification = import.meta.env.VITE_YANDEX_VERIFICATION || ''
 
   useEffect(() => {
-    document.title = title
+    document.title = brandedTitle
     if (desc) upsertMeta('meta[name="description"]', { name: 'description', content: desc })
     upsertMeta('meta[name="robots"]', { name: 'robots', content: noindex ? 'noindex, nofollow' : 'index, follow' })
     if (googleVerification) {
@@ -73,7 +74,7 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
     upsertCanonical(canonical)
 
     upsertMeta('meta[property="og:site_name"]', { property: 'og:site_name', content: SITE_NAME })
-    upsertMeta('meta[property="og:title"]', { property: 'og:title', content: title })
+    upsertMeta('meta[property="og:title"]', { property: 'og:title', content: brandedTitle })
     if (desc) upsertMeta('meta[property="og:description"]', { property: 'og:description', content: desc })
     if (canonical) upsertMeta('meta[property="og:url"]', { property: 'og:url', content: canonical })
     upsertMeta('meta[property="og:type"]', { property: 'og:type', content: ogType })
@@ -82,7 +83,7 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
 
     upsertMeta('meta[name="twitter:card"]', { name: 'twitter:card', content: ogImageFinal ? 'summary_large_image' : 'summary' })
     if (ogImageFinal) upsertMeta('meta[name="twitter:image"]', { name: 'twitter:image', content: ogImageFinal })
-    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: title })
+    upsertMeta('meta[name="twitter:title"]', { name: 'twitter:title', content: brandedTitle })
     if (desc) upsertMeta('meta[name="twitter:description"]', { name: 'twitter:description', content: desc })
 
     document.head.querySelectorAll('script[data-carpas-seo-jsonld="true"]').forEach((el) => el.remove())
@@ -93,7 +94,7 @@ export function Seo({ title, description, canonicalPath, noindex = false, ogType
       script.textContent = JSON.stringify(obj)
       document.head.appendChild(script)
     })
-  }, [canonical, desc, googleVerification, ldList, noindex, ogImageFinal, ogType, title, yandexVerification])
+  }, [brandedTitle, canonical, desc, googleVerification, ldList, noindex, ogImageFinal, ogType, yandexVerification])
 
   return null
 }

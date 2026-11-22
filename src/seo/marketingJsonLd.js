@@ -1,6 +1,5 @@
 import { absoluteUrl } from '../lib/siteOrigin.js'
-
-const BRAND_ALIASES = ['Кар Пас', 'карпас', 'карпасс', 'карпассс', 'Car Passs', 'Carpas', 'carpasss', 'carpass']
+import { SITE_NAME } from './seoConstants.js'
 
 export function buildBreadcrumbJsonLd(items) {
   return {
@@ -19,15 +18,14 @@ export function buildSoftwareJsonLd({ path, name, description, audience }) {
   return {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
-    name,
-    alternateName: BRAND_ALIASES,
+    name: name.replaceAll('КарПас', SITE_NAME),
     applicationCategory: 'AutoApplication',
     operatingSystem: 'iOS, Android, Web',
     url: absoluteUrl(path),
     description,
     audience: audience ? { '@type': 'Audience', audienceType: audience } : undefined,
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB' },
-    publisher: { '@type': 'Organization', name: 'КарПас', alternateName: 'Carpass' },
+    publisher: { '@type': 'Organization', name: SITE_NAME },
   }
 }
 
